@@ -7,6 +7,7 @@ Codecov provides free code coverage reporting for open source Swift projects. Th
 ## Swift Support
 
 Yes, **Codecov fully supports Swift**! It works with:
+
 - Swift Package Manager projects
 - Xcode projects
 - Command line Swift tools
@@ -28,7 +29,7 @@ Yes, **Codecov fully supports Swift**! It works with:
 
 ### 2. Add Your Repository
 
-1. Click "Add repository" 
+1. Click "Add repository"
 2. Select `lekman/magsafe-buskill`
 3. Codecov will provide a token (optional for public repos)
 
@@ -50,12 +51,14 @@ The workflow is already configured in `.github/workflows/test.yml`:
 ### 4. Get Your Badge
 
 After your first test run:
+
 1. Go to your Codecov dashboard
 2. Click "Settings" → "Badge"
 3. Copy the markdown badge
 4. Add to README.md or docs/qa.md
 
 Example badge (already configured):
+
 ```markdown
 [![codecov](https://codecov.io/gh/lekman/magsafe-buskill/graph/badge.svg?token=AshUsxKtAI)](https://codecov.io/gh/lekman/magsafe-buskill)
 ```
@@ -63,11 +66,13 @@ Example badge (already configured):
 ## What Gets Measured
 
 ### Coverage Metrics
+
 - **Line coverage**: Which lines of code were executed
 - **Branch coverage**: Which decision paths were taken
 - **Function coverage**: Which functions were called
 
 ### Swift-Specific Features
+
 - Protocol coverage
 - Extension coverage
 - Generic type coverage
@@ -78,6 +83,7 @@ Example badge (already configured):
 ### Writing Testable Swift Code
 
 1. **Use dependency injection**
+
    ```swift
    class PowerMonitor {
        private let notificationCenter: NotificationCenter
@@ -89,6 +95,7 @@ Example badge (already configured):
    ```
 
 2. **Test edge cases**
+
    ```swift
    func testPowerDisconnectedWhileArmed() {
        // Test security triggers
@@ -96,6 +103,7 @@ Example badge (already configured):
    ```
 
 3. **Mock system APIs**
+
    ```swift
    protocol PowerSource {
        var isConnected: Bool { get }
@@ -111,14 +119,17 @@ Example badge (already configured):
 ## Troubleshooting
 
 ### "No coverage data found"
+
 - Ensure `swift test --enable-code-coverage` runs successfully
 - Check that tests actually execute code
 
 ### "Badge not updating"
+
 - Coverage badges cache for performance
 - Wait 10 minutes or add `?cacheBust=1` to URL
 
 ### "Low coverage reported"
+
 - View detailed report on Codecov dashboard
 - Identify untested files
 - Add tests for critical paths first
@@ -164,6 +175,7 @@ ignore:
 ## Integration with PR Workflow
 
 Codecov automatically:
+
 1. Comments on PRs with coverage changes
 2. Shows coverage diff
 3. Fails check if coverage drops significantly
@@ -172,6 +184,7 @@ Codecov automatically:
 ## Free Tier Details
 
 ### What's Included (Free for Open Source)
+
 - Unlimited public repositories
 - Unlimited users
 - Coverage history
@@ -180,6 +193,7 @@ Codecov automatically:
 - Detailed reports
 
 ### Limitations
+
 - Private repos: 5 free (with limited features)
 - No priority support
 - Standard data retention
