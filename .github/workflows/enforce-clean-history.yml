@@ -11,9 +11,21 @@ on:
       - develop
 
 jobs:
+  cancel-redundant:
+    name: Cancel Redundant Workflows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Cancel redundant workflow runs
+        uses: ./.github/actions/cancel-redundant-workflows
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   block-direct-push:
     name: Block Direct Push to Protected Branches
     runs-on: ubuntu-latest
+    needs: cancel-redundant
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     
     steps:
@@ -26,6 +38,7 @@ jobs:
   enforce-clean-commits:
     name: Enforce Clean Commit History
     runs-on: ubuntu-latest
+    needs: cancel-redundant
     if: github.event_name == 'pull_request'
     
     steps:

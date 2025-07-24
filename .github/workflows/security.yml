@@ -16,10 +16,22 @@ permissions:
   actions: read
 
 jobs:
+  cancel-redundant:
+    name: Cancel Redundant Workflows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Cancel redundant workflow runs
+        uses: ./.github/actions/cancel-redundant-workflows
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   # Basic security checks
   basic-checks:
     name: Basic Security Checks
     runs-on: ubuntu-latest
+    needs: cancel-redundant
     
     steps:
     - name: Checkout repository
@@ -131,6 +143,7 @@ jobs:
     name: CodeQL Analysis
     runs-on: macos-latest
     timeout-minutes: 30
+    needs: cancel-redundant
     
     strategy:
       fail-fast: false
@@ -161,6 +174,7 @@ jobs:
   dependency-review:
     name: Dependency Review
     runs-on: ubuntu-latest
+    needs: cancel-redundant
     if: github.event_name == 'pull_request'
     
     steps:
@@ -181,6 +195,7 @@ jobs:
   trufflehog:
     name: Secret Scanning
     runs-on: ubuntu-latest
+    needs: cancel-redundant
     
     steps:
     - name: Checkout repository
@@ -200,6 +215,7 @@ jobs:
   security-policy:
     name: Security Policy Check
     runs-on: ubuntu-latest
+    needs: cancel-redundant
     
     steps:
     - name: Checkout repository
@@ -217,6 +233,7 @@ jobs:
   semgrep:
     name: Semgrep SAST
     runs-on: ubuntu-latest
+    needs: cancel-redundant
     
     steps:
     - name: Checkout repository
@@ -272,6 +289,7 @@ jobs:
   license-scan:
     name: License Compliance
     runs-on: ubuntu-latest
+    needs: cancel-redundant
     
     steps:
     - name: Checkout repository
@@ -287,6 +305,7 @@ jobs:
   scorecard:
     name: Security Scorecard
     runs-on: ubuntu-latest
+    needs: cancel-redundant
     if: github.event_name != 'pull_request'
     
     permissions:
@@ -317,6 +336,7 @@ jobs:
   trivy:
     name: Container Security Scan
     runs-on: ubuntu-latest
+    needs: cancel-redundant
     if: github.event_name == 'pull_request'
     
     steps:
@@ -352,7 +372,7 @@ jobs:
   security-summary:
     name: Security Summary
     runs-on: ubuntu-latest
-    needs: [basic-checks, codeql, dependency-review, trufflehog, semgrep, scorecard]
+    needs: [cancel-redundant, basic-checks, codeql, dependency-review, trufflehog, semgrep, scorecard]
     if: always()
     
     steps:

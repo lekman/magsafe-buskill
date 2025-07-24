@@ -11,9 +11,21 @@ on:
       - 'fix/**'
 
 jobs:
+  cancel-redundant:
+    name: Cancel Redundant Workflows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Cancel redundant workflow runs
+        uses: ./.github/actions/cancel-redundant-workflows
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   check-commit-messages:
     name: Validate Commit Messages
     runs-on: ubuntu-latest
+    needs: cancel-redundant
     
     steps:
       - name: Checkout code
