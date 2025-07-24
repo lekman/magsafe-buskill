@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- This changelog is automatically maintained by release-please -->
 <!-- Do not manually edit below this line -->
 
+## [1.1.0](https://github.com/lekman/magsafe-buskill/compare/v1.0.0...v1.1.0) (2025-07-24)
+
+
+### Features
+
+* add cancel redundant workflows action to multiple workflows ([97103a2](https://github.com/lekman/magsafe-buskill/commit/97103a29e2d42d592c7a5b7a9261dff0e874d464))
+* add CI/CD workflows documentation to project ([c23eb93](https://github.com/lekman/magsafe-buskill/commit/c23eb932dd4c1f10a435f19f3e80f095e925c9ad))
+* implement commit message enforcement and block prohibited words ([4a69143](https://github.com/lekman/magsafe-buskill/commit/4a69143971a2eeb2b6b178a62ad1342ca15cac9a))
+* Initial implementation of MagSafe Guard application ([9a180e4](https://github.com/lekman/magsafe-buskill/commit/9a180e4bded4edd71b60c54e53d364606698c1d1))
+* Initial implementation of MagSafe Guard application ([2210239](https://github.com/lekman/magsafe-buskill/commit/2210239b807a25d8b3a7e628c51b034d524cd8c0))
+
+
+### Bug Fixes
+
+* update minimum macOS deployment target to 13.0 ([7f55208](https://github.com/lekman/magsafe-buskill/commit/7f55208dc19a1428970320d0e776b3371ffdca2e))
+* update variable references in GitHub Actions summary for clarity ([c0df60b](https://github.com/lekman/magsafe-buskill/commit/c0df60ba18bfdee9265f0fc8857169dc7af64bab))
+
 ## 1.0.0 (2025-07-24)
 
 ### Features
