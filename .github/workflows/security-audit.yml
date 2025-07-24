@@ -108,10 +108,12 @@ jobs:
         grep -r "TODO.*security\|FIXME.*security\|XXX.*security" . --exclude-dir=.git || echo "No security TODOs found" >> security-audit/code-audit.md
         
     - name: Generate Summary Report
+      env:
+        AUDIT_TYPE: ${{ inputs.audit_type }}
       run: |
         echo "# Security Audit Summary" > security-audit/SUMMARY.md
         echo "Generated on: $(date)" >> security-audit/SUMMARY.md
-        echo "Audit Type: ${{ inputs.audit_type }}" >> security-audit/SUMMARY.md
+        echo "Audit Type: $AUDIT_TYPE" >> security-audit/SUMMARY.md
         echo "" >> security-audit/SUMMARY.md
         
         echo "## Reports Generated" >> security-audit/SUMMARY.md
@@ -131,10 +133,12 @@ jobs:
         retention-days: 30
         
     - name: Post Summary
+      env:
+        AUDIT_TYPE: ${{ inputs.audit_type }}
       run: |
         echo "## 🔒 Security Audit Complete" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Audit Type**: ${{ inputs.audit_type }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Audit Type**: $AUDIT_TYPE" >> $GITHUB_STEP_SUMMARY
         echo "**Date**: $(date)" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Reports Generated:" >> $GITHUB_STEP_SUMMARY
