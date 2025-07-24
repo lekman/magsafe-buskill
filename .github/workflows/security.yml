@@ -127,35 +127,37 @@ jobs:
         fi
 
   # CodeQL Analysis for code scanning
-  codeql:
-    name: CodeQL Analysis
-    runs-on: macos-latest
-    timeout-minutes: 30
-    
-    strategy:
-      fail-fast: false
-      matrix:
-        language: ['swift']
-        # Add more languages as needed: ['swift', 'javascript', 'python']
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: ${{ matrix.language }}
-        # Optionally specify custom queries
-        queries: security-extended,security-and-quality
-        
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v3
-      
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
-      with:
-        category: "/language:${{matrix.language}}"
+  # TODO: Enable once we have a formal Swift Package.swift or Xcode project
+  # Currently disabled as we only have prototype scripts
+  # codeql:
+  #   name: CodeQL Analysis
+  #   runs-on: macos-latest
+  #   timeout-minutes: 30
+  #   
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       language: ['swift']
+  #       # Add more languages as needed: ['swift', 'javascript', 'python']
+  #   
+  #   steps:
+  #   - name: Checkout repository
+  #     uses: actions/checkout@v4
+  #     
+  #   - name: Initialize CodeQL
+  #     uses: github/codeql-action/init@v3
+  #     with:
+  #       languages: ${{ matrix.language }}
+  #       # Optionally specify custom queries
+  #       queries: security-extended,security-and-quality
+  #       
+  #   - name: Autobuild
+  #     uses: github/codeql-action/autobuild@v3
+  #     
+  #   - name: Perform CodeQL Analysis
+  #     uses: github/codeql-action/analyze@v3
+  #     with:
+  #       category: "/language:${{matrix.language}}"
 
   # Dependency scanning
   dependency-review:
@@ -243,29 +245,30 @@ jobs:
       continue-on-error: true
 
   # Snyk Security Scanning (Free for Open Source)
-  snyk:
-    name: Snyk Security
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Run Snyk to check for vulnerabilities
-      uses: snyk/actions/swift@master
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      with:
-        args: --severity-threshold=high
-      continue-on-error: true  # Don't fail if Snyk is not configured
-      
-    - name: Upload Snyk results to GitHub Code Scanning
-      uses: github/codeql-action/upload-sarif@v3
-      if: always() && env.SNYK_TOKEN != ''
-      with:
-        sarif_file: snyk.sarif
-      continue-on-error: true
+  # TODO: Enable once SNYK_TOKEN is configured
+  # snyk:
+  #   name: Snyk Security
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+  #   
+  #   steps:
+  #   - name: Checkout repository
+  #     uses: actions/checkout@v4
+  #     
+  #   - name: Run Snyk to check for vulnerabilities
+  #     uses: snyk/actions/swift@master
+  #     env:
+  #       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+  #     with:
+  #       args: --severity-threshold=high
+  #     continue-on-error: true  # Don't fail if Snyk is not configured
+  #     
+  #   - name: Upload Snyk results to GitHub Code Scanning
+  #     uses: github/codeql-action/upload-sarif@v3
+  #     if: always() && env.SNYK_TOKEN != ''
+  #     with:
+  #       sarif_file: snyk.sarif
+  #     continue-on-error: true
 
   # License scanning
   license-scan:

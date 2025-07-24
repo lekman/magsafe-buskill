@@ -89,6 +89,8 @@ For PR checks and inline comments:
            args: --severity-threshold=high
    ```
 
+   **Note:** The Snyk workflow is currently commented out in `security.yml`. Uncomment it after adding your SNYK_TOKEN.
+
 ### 6. Add Snyk Token (If using workflow)
 
 1. In Snyk account settings, go to "General"
