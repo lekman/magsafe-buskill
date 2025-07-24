@@ -1,0 +1,277 @@
+# MagSafe Guard Configuration Examples
+
+# Default Configuration (Balanced Security)
+default:
+  security:
+    require_auth_to_toggle: true
+    grace_period: 10000  # 10 seconds
+    recovery_allowed: true
+    action_timing: "immediate"
+    action_mode: "sequential"
+  
+  battery:
+    low_battery_protection: false
+    minimum_battery_level: 10
+  
+  actions:
+    screen_lock:
+      enabled: true
+      priority: 1
+      force_logout_if_locked: true
+      logout_delay: 30
+    
+    alarm:
+      enabled: false
+      priority: 2
+    
+    shutdown:
+      enabled: false
+      priority: 3
+
+  smart_features:
+    auto_arm:
+      enabled: true
+      public_networks: true
+      on_screen_lock: true
+      delay: 5
+    
+    trusted_networks:
+      - "HomeWiFi"
+      - "OfficeWiFi"
+
+  notifications:
+    enabled: true
+    show_armed: true
+    show_disarmed: true
+    show_trigger: true
+    show_grace_countdown: true
+
+---
+
+# High Security Configuration
+high_security:
+  security:
+    require_auth_to_toggle: true
+    grace_period: 2000  # 2 seconds only
+    recovery_allowed: false  # No recovery
+    action_timing: "immediate"
+    action_mode: "parallel"  # All actions at once
+  
+  battery:
+    low_battery_protection: false  # Always trigger
+  
+  actions:
+    screen_lock:
+      enabled: true
+      priority: 1
+      force_logout_if_locked: true
+      logout_delay: 0  # Immediate logout
+    
+    alarm:
+      enabled: true
+      priority: 1  # Same priority = parallel
+      volume: 100
+      duration: 60
+      visual_alert: true
+    
+    shutdown:
+      enabled: true
+      priority: 2
+      countdown: 5
+      force: true
+    
+    data_protection:
+      enabled: true
+      priority: 1
+      unmount_volumes: true
+      clear_clipboard: true
+      lock_keychain: true
+    
+    network_security:
+      enabled: true
+      priority: 1
+      disconnect_vpn: true
+      clear_ssh_keys: true
+      disable_wifi: true
+    
+    custom_script:
+      enabled: true
+      priority: 1
+      path: "~/Library/MagSafeGuard/emergency.sh"
+      timeout: 10
+      run_as_root: true
+
+  smart_features:
+    auto_arm:
+      enabled: true
+      public_networks: true
+      on_screen_lock: true
+      delay: 0  # Immediate
+    
+    trusted_networks: []  # No trusted networks
+
+  notifications:
+    enabled: true
+    show_grace_countdown: false  # Too fast to matter
+
+---
+
+# Laptop-in-Bag Protection
+travel_mode:
+  security:
+    require_auth_to_toggle: true
+    grace_period: 5000  # 5 seconds
+    recovery_allowed: true
+    action_timing: "immediate"
+    action_mode: "sequential"
+  
+  battery:
+    low_battery_protection: true  # Prevent shutdown on low battery
+    minimum_battery_level: 20
+  
+  actions:
+    screen_lock:
+      enabled: true
+      priority: 1
+    
+    alarm:
+      enabled: true
+      priority: 2
+      volume: 100
+      duration: 120  # 2 minutes
+      visual_alert: false  # Lid might be closed
+    
+    location_tracking:
+      enabled: true
+      priority: 3
+      email: "emergency@example.com"
+      take_photo: true
+      continuous: true  # Keep tracking
+    
+    sleep:
+      enabled: true
+      priority: 4  # After alarm starts
+
+  smart_features:
+    auto_arm:
+      enabled: true
+      public_networks: true
+      on_screen_lock: false  # Manual only for travel
+    
+    safe_locations: []  # No safe locations while traveling
+
+  notifications:
+    enabled: true
+    sound: true
+
+---
+
+# Developer/Office Mode
+developer_mode:
+  security:
+    require_auth_to_toggle: true
+    grace_period: 15000  # 15 seconds (more grace)
+    recovery_allowed: true
+    action_timing: "immediate"
+    action_mode: "sequential"
+  
+  battery:
+    low_battery_protection: false
+  
+  actions:
+    screen_lock:
+      enabled: true
+      priority: 1
+      force_logout_if_locked: false  # Don't logout
+    
+    alarm:
+      enabled: true
+      priority: 2
+      volume: 50  # Quieter for office
+      duration: 10
+    
+    custom_script:
+      enabled: true
+      priority: 3
+      path: "~/Library/MagSafeGuard/notify_it.sh"
+      timeout: 30
+
+  smart_features:
+    auto_arm:
+      enabled: true
+      public_networks: false  # Office is "public"
+      on_screen_lock: true
+      schedule:
+        - days: ["mon", "tue", "wed", "thu", "fri"]
+          start: "09:00"
+          end: "18:00"
+    
+    safe_locations:
+      - name: "Office"
+        latitude: 37.7749
+        longitude: -122.4194
+        radius: 200
+    
+    trusted_networks:
+      - "CompanyWiFi"
+      - "CompanyGuest"
+
+  notifications:
+    enabled: true
+    sound: false  # Silent in office
+
+---
+
+# Minimal/Testing Configuration
+minimal:
+  security:
+    require_auth_to_toggle: false  # Easy testing
+    grace_period: 30000  # 30 seconds
+    recovery_allowed: true
+    action_timing: "immediate"
+    action_mode: "sequential"
+  
+  actions:
+    screen_lock:
+      enabled: true
+      priority: 1
+      force_logout_if_locked: false
+  
+  smart_features:
+    auto_arm:
+      enabled: false  # Manual only
+  
+  notifications:
+    enabled: true
+    show_grace_countdown: true
+
+---
+
+# Custom Script Examples
+
+# notify_it.sh - Send notification to IT department
+#!/bin/bash
+# Sends alert to IT security team
+curl -X POST https://company.slack.com/webhook \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "text": "Security Alert: Laptop power disconnected while locked",
+    "username": "MagSafeGuard",
+    "icon_emoji": ":warning:"
+  }'
+
+# emergency.sh - High security data protection
+#!/bin/bash
+# WARNING: Destructive actions
+# 1. Unmount encrypted volumes
+diskutil unmount force /Volumes/SecureData
+# 2. Clear sensitive caches
+rm -rf ~/Library/Caches/com.company.app/*
+# 3. Lock password manager
+osascript -e 'tell application "1Password 7" to quit'
+# 4. Clear clipboard
+pbcopy < /dev/null
+# 5. Send emergency beacon
+curl -X POST https://emergency.example.com/beacon \
+  -d "lat=$(CoreLocationCLI -format %latitude)" \
+  -d "lon=$(CoreLocationCLI -format %longitude)"

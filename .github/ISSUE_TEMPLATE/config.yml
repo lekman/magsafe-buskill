@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Issue
+    url: https://github.com/lekman/magsafe-buskill/security/advisories/new
+    about: Please report security vulnerabilities here (not as a regular issue)
+  - name: GitHub Discussions
+    url: https://github.com/lekman/magsafe-buskill/discussions
+    about: For general discussions and community help

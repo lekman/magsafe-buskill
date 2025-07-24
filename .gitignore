@@ -416,3 +416,8 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# AI files, local settings and scratch pads
+/*.md
+.claude
+.env
