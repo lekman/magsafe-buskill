@@ -24,17 +24,32 @@ jobs:
       run: swift build -v
       
     - name: Run tests with coverage
-      run: |
-        swift test --enable-code-coverage
+      run: swift test --enable-code-coverage
         
-    # Codecov supports Swift/Xcode coverage format directly
+    # Convert Swift coverage to lcov format for Codecov
+    - name: Generate coverage report
+      run: |
+        # Find the coverage data
+        PROF_DATA=$(find .build/debug -name 'default.profdata' -type f)
+        EXECUTABLE=$(find .build/debug -name 'MagSafeGuardPackageTests.xctest' -type d)/Contents/MacOS/MagSafeGuardPackageTests
+        
+        # Generate lcov format
+        if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
+          xcrun llvm-cov export \
+            "$EXECUTABLE" \
+            -instr-profile="$PROF_DATA" \
+            -format="lcov" > coverage.lcov
+        else
+          echo "Coverage data not found, creating minimal test executable coverage"
+          echo "" > coverage.lcov
+        fi
+        
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
+        file: ./coverage.lcov
         flags: unittests
         name: codecov-swift
         fail_ci_if_error: false # Don't fail if upload fails
-        xcode: true # Enable Xcode coverage format
-        xcode_archive_path: .build/debug/codecov # Path to coverage data
       env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }} # Optional for public repos
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

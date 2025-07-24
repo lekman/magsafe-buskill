@@ -41,11 +41,18 @@ The workflow is already configured in `.github/workflows/test.yml`:
 - name: Run tests with coverage
   run: swift test --enable-code-coverage
   
+- name: Generate coverage report
+  run: |
+    # Convert Swift coverage to lcov format
+    xcrun llvm-cov export \
+      <test-executable> \
+      -instr-profile=<profdata> \
+      -format="lcov" > coverage.lcov
+  
 - name: Upload coverage to Codecov
   uses: codecov/codecov-action@v4
   with:
-    xcode: true # Enable Xcode coverage format
-    xcode_archive_path: .build/debug/codecov
+    file: ./coverage.lcov
 ```
 
 ### 4. Get Your Badge
