@@ -71,6 +71,7 @@ Need help or found an issue? We're here to assist:
 - [Requirements & Specifications](requirements.md)
 - [Configuration Guide](docs/config-examples.yaml)
 - [Authentication Flow](docs/auth-flow-design.md)
+- [CI/CD Workflows](docs/ci-cd-workflows.md)
 - [Developer Documentation](docs/) - _More sections coming soon_
 
 ## Development
