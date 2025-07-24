@@ -1,0 +1,115 @@
+#!/bin/bash
+# Pre-commit hook for MagSafe Guard
+# Performs quick security checks before allowing commits
+
+echo "🔒 Running pre-commit security checks..."
+
+# Color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Check for obvious secrets in staged files
+check_secrets() {
+    local found_issues=0
+    
+    # Get list of staged Swift files
+    staged_swift=$(git diff --cached --name-only --diff-filter=ACM | grep '\.swift$' || true)
+    
+    if [ -n "$staged_swift" ]; then
+        echo "Checking Swift files for secrets..."
+        
+        for file in $staged_swift; do
+            # Check for hardcoded passwords
+            if git show ":$file" | grep -q -i -E 'password\s*=\s*"[^"]+"'; then
+                echo -e "${RED}❌ Potential hardcoded password in: $file${NC}"
+                found_issues=1
+            fi
+            
+            # Check for API keys
+            if git show ":$file" | grep -q -i -E 'api_?key\s*=\s*"[^"]+"'; then
+                echo -e "${RED}❌ Potential hardcoded API key in: $file${NC}"
+                found_issues=1
+            fi
+            
+            # Check for secrets
+            if git show ":$file" | grep -q -i -E 'secret\s*=\s*"[^"]+"'; then
+                echo -e "${RED}❌ Potential hardcoded secret in: $file${NC}"
+                found_issues=1
+            fi
+        done
+    fi
+    
+    # Check for private key files
+    staged_keys=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(pem|key|p12)$|id_rsa' || true)
+    if [ -n "$staged_keys" ]; then
+        echo -e "${RED}❌ Private key files detected:${NC}"
+        echo "$staged_keys"
+        found_issues=1
+    fi
+    
+    # Check for .env files
+    staged_env=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^\.env' | grep -v '.env.example' || true)
+    if [ -n "$staged_env" ]; then
+        echo -e "${RED}❌ Environment files detected:${NC}"
+        echo "$staged_env"
+        found_issues=1
+    fi
+    
+    return $found_issues
+}
+
+# Optional: Run Semgrep if installed
+run_semgrep() {
+    if command -v semgrep &> /dev/null; then
+        echo -e "${YELLOW}Running Semgrep security scan...${NC}"
+        
+        # Run Semgrep only on staged files
+        staged_files=$(git diff --cached --name-only --diff-filter=ACM)
+        if [ -n "$staged_files" ]; then
+            # Run focused scan on staged files only
+            if ! semgrep --config=auto --quiet --error $staged_files 2>/dev/null; then
+                echo -e "${RED}❌ Semgrep found security issues${NC}"
+                echo "Run 'semgrep --config=auto' for details"
+                return 1
+            fi
+            echo -e "${GREEN}✅ Semgrep scan passed${NC}"
+        fi
+    else
+        echo -e "${YELLOW}ℹ️  Semgrep not installed - skipping advanced scan${NC}"
+        echo "   Install with: brew install semgrep"
+    fi
+    return 0
+}
+
+# Main execution
+main() {
+    local exit_code=0
+    
+    # Always run basic secret checks
+    if ! check_secrets; then
+        exit_code=1
+        echo -e "\n${RED}❌ Basic security checks failed${NC}"
+        echo "Fix the issues above or use 'git commit --no-verify' to bypass (not recommended)"
+    else
+        echo -e "${GREEN}✅ Basic security checks passed${NC}"
+    fi
+    
+    # Run Semgrep if available (optional)
+    if [ -z "$SKIP_SEMGREP" ]; then
+        if ! run_semgrep; then
+            exit_code=1
+        fi
+    fi
+    
+    if [ $exit_code -eq 0 ]; then
+        echo -e "\n${GREEN}✅ All pre-commit checks passed${NC}"
+    else
+        echo -e "\n${YELLOW}💡 Tip: Set SKIP_SEMGREP=1 to skip Semgrep scan temporarily${NC}"
+    fi
+    
+    exit $exit_code
+}
+
+main

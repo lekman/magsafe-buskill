@@ -1,0 +1,68 @@
+#!/bin/bash
+# Commit message validation hook for MagSafe Guard
+# Ensures commits follow Conventional Commits format
+
+# Color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Read the commit message
+commit_regex='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .{1,50}'
+merge_regex='^Merge (branch|pull request|remote-tracking branch)'
+
+commit_msg=$(cat "$1")
+first_line=$(echo "$commit_msg" | head -n1)
+
+# Check if it's a merge commit
+if [[ "$first_line" =~ $merge_regex ]]; then
+    echo -e "${GREEN}✅ Merge commit detected${NC}"
+    exit 0
+fi
+
+# Check if it follows conventional commits
+if [[ ! "$first_line" =~ $commit_regex ]]; then
+    echo -e "${RED}❌ Invalid commit message format${NC}"
+    echo ""
+    echo -e "${YELLOW}Commit message must follow Conventional Commits format:${NC}"
+    echo ""
+    echo -e "${BLUE}Format: <type>(<scope>): <subject>${NC}"
+    echo ""
+    echo "Types:"
+    echo "  • feat:     New feature"
+    echo "  • fix:      Bug fix"
+    echo "  • docs:     Documentation changes"
+    echo "  • style:    Code style changes (formatting, semicolons, etc)"
+    echo "  • refactor: Code refactoring"
+    echo "  • perf:     Performance improvements"
+    echo "  • test:     Adding or updating tests"
+    echo "  • build:    Build system changes"
+    echo "  • ci:       CI/CD changes"
+    echo "  • chore:    Other changes (dependencies, configs, etc)"
+    echo "  • revert:   Reverting a previous commit"
+    echo ""
+    echo -e "${BLUE}Examples:${NC}"
+    echo "  feat: add power monitoring to menu bar"
+    echo "  fix: resolve TouchID authentication timeout"
+    echo "  docs: update security policy with new procedures"
+    echo "  feat(auth): implement biometric authentication fallback"
+    echo ""
+    echo -e "${YELLOW}Your message:${NC} $first_line"
+    echo ""
+    exit 1
+fi
+
+# Check commit message length
+if [ ${#first_line} -gt 72 ]; then
+    echo -e "${YELLOW}⚠️  Warning: First line is ${#first_line} characters (recommended: ≤72)${NC}"
+fi
+
+# Check for issue references (optional but encouraged)
+if [[ ! "$commit_msg" =~ (#[0-9]+|PLATSD-[0-9]+) ]]; then
+    echo -e "${BLUE}💡 Tip: Consider referencing an issue (e.g., #123 or PLATSD-456)${NC}"
+fi
+
+echo -e "${GREEN}✅ Commit message follows Conventional Commits format${NC}"
+exit 0

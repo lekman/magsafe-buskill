@@ -1,0 +1,480 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MagSafe Guard Configuration",
+  "description": "Configuration schema for MagSafe Guard security application",
+  "type": "object",
+  "properties": {
+    "security": {
+      "type": "object",
+      "description": "Core security settings",
+      "properties": {
+        "require_auth_to_toggle": {
+          "type": "boolean",
+          "default": true,
+          "description": "Require TouchID/password to arm or disarm"
+        },
+        "grace_period": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000,
+          "default": 10000,
+          "description": "Milliseconds to wait before triggering actions (0-60 seconds)"
+        },
+        "recovery_allowed": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow cancellation during grace period"
+        },
+        "action_timing": {
+          "type": "string",
+          "enum": ["immediate", "delayed"],
+          "default": "immediate",
+          "description": "When to execute actions after grace period"
+        },
+        "action_mode": {
+          "type": "string",
+          "enum": ["sequential", "parallel"],
+          "default": "sequential",
+          "description": "How to execute multiple actions"
+        },
+        "auth_timeout": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 300,
+          "default": 30,
+          "description": "Seconds before auth prompt times out"
+        }
+      },
+      "required": ["require_auth_to_toggle", "grace_period"]
+    },
+    "battery": {
+      "type": "object",
+      "description": "Battery-related safety settings",
+      "properties": {
+        "low_battery_protection": {
+          "type": "boolean",
+          "default": false,
+          "description": "Prevent destructive actions on low battery"
+        },
+        "minimum_battery_level": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 50,
+          "default": 10,
+          "description": "Minimum battery % for destructive actions"
+        },
+        "warn_on_low_battery": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show warning when arming with low battery"
+        }
+      }
+    },
+    "actions": {
+      "type": "object",
+      "description": "Security actions configuration",
+      "properties": {
+        "screen_lock": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "priority": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 1
+            },
+            "force_logout_if_locked": {
+              "type": "boolean",
+              "default": true,
+              "description": "Force logout if screen already locked"
+            },
+            "logout_delay": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 300,
+              "default": 30,
+              "description": "Seconds after grace period to force logout"
+            }
+          }
+        },
+        "alarm": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "priority": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 2
+            },
+            "volume": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100,
+              "default": 100
+            },
+            "duration": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 300,
+              "default": 30,
+              "description": "Alarm duration in seconds"
+            },
+            "sound_file": {
+              "type": "string",
+              "default": "default",
+              "description": "Path to custom alarm sound or 'default'"
+            },
+            "visual_alert": {
+              "type": "boolean",
+              "default": true,
+              "description": "Flash screen during alarm"
+            }
+          }
+        },
+        "shutdown": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "priority": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 3
+            },
+            "countdown": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 60,
+              "default": 10,
+              "description": "Countdown seconds before shutdown"
+            },
+            "force": {
+              "type": "boolean",
+              "default": false,
+              "description": "Force shutdown without saving"
+            }
+          }
+        },
+        "sleep": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "priority": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 2
+            }
+          }
+        },
+        "location_tracking": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "priority": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 4
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "description": "Email to send location data"
+            },
+            "take_photo": {
+              "type": "boolean",
+              "default": true,
+              "description": "Capture photo from FaceTime camera"
+            },
+            "continuous": {
+              "type": "boolean",
+              "default": false,
+              "description": "Continue tracking after trigger"
+            }
+          }
+        },
+        "data_protection": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "priority": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 5
+            },
+            "unmount_volumes": {
+              "type": "boolean",
+              "default": true
+            },
+            "clear_clipboard": {
+              "type": "boolean",
+              "default": true
+            },
+            "clear_recent_documents": {
+              "type": "boolean",
+              "default": true
+            },
+            "lock_keychain": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "network_security": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "priority": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 6
+            },
+            "disconnect_vpn": {
+              "type": "boolean",
+              "default": true
+            },
+            "clear_ssh_keys": {
+              "type": "boolean",
+              "default": true
+            },
+            "disable_wifi": {
+              "type": "boolean",
+              "default": false
+            },
+            "logout_apps": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": [],
+              "description": "Bundle IDs of apps to logout"
+            }
+          }
+        },
+        "custom_script": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "priority": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 7
+            },
+            "path": {
+              "type": "string",
+              "default": "~/Library/MagSafeGuard/trigger.sh",
+              "description": "Path to executable script"
+            },
+            "timeout": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 300,
+              "default": 30,
+              "description": "Maximum execution time in seconds"
+            },
+            "run_as_root": {
+              "type": "boolean",
+              "default": false,
+              "description": "Execute with elevated privileges"
+            }
+          }
+        }
+      }
+    },
+    "smart_features": {
+      "type": "object",
+      "description": "Automated behavior settings",
+      "properties": {
+        "auto_arm": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "public_networks": {
+              "type": "boolean",
+              "default": true,
+              "description": "Auto-arm on public/unknown networks"
+            },
+            "on_screen_lock": {
+              "type": "boolean",
+              "default": true,
+              "description": "Auto-arm when screen locks while charging"
+            },
+            "delay": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 300,
+              "default": 5,
+              "description": "Seconds to wait before auto-arming"
+            },
+            "schedule": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "days": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+                    }
+                  },
+                  "start": {
+                    "type": "string",
+                    "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+                  },
+                  "end": {
+                    "type": "string",
+                    "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+                  }
+                },
+                "required": ["days", "start", "end"]
+              }
+            }
+          }
+        },
+        "safe_locations": {
+          "type": "array",
+          "description": "GPS locations where auto-arm is disabled",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "latitude": {
+                "type": "number",
+                "minimum": -90,
+                "maximum": 90
+              },
+              "longitude": {
+                "type": "number",
+                "minimum": -180,
+                "maximum": 180
+              },
+              "radius": {
+                "type": "integer",
+                "minimum": 10,
+                "maximum": 5000,
+                "default": 100,
+                "description": "Radius in meters"
+              }
+            },
+            "required": ["name", "latitude", "longitude"]
+          }
+        },
+        "trusted_networks": {
+          "type": "array",
+          "description": "Wi-Fi SSIDs where auto-arm is disabled",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          }
+        }
+      }
+    },
+    "notifications": {
+      "type": "object",
+      "description": "Notification preferences",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "show_armed": {
+          "type": "boolean",
+          "default": true,
+          "description": "Notify when armed"
+        },
+        "show_disarmed": {
+          "type": "boolean",
+          "default": true,
+          "description": "Notify when disarmed"
+        },
+        "show_trigger": {
+          "type": "boolean",
+          "default": true,
+          "description": "Notify when triggered"
+        },
+        "show_grace_countdown": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show countdown during grace period"
+        },
+        "show_auto_arm": {
+          "type": "boolean",
+          "default": true,
+          "description": "Notify when auto-armed"
+        },
+        "sound": {
+          "type": "boolean",
+          "default": true,
+          "description": "Play notification sounds"
+        }
+      }
+    },
+    "logging": {
+      "type": "object",
+      "description": "Logging configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "level": {
+          "type": "string",
+          "enum": ["debug", "info", "warning", "error"],
+          "default": "info"
+        },
+        "max_file_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 10,
+          "description": "Maximum log file size in MB"
+        },
+        "retention_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 365,
+          "default": 30,
+          "description": "Days to keep log files"
+        }
+      }
+    }
+  },
+  "required": ["security", "actions"]
+}

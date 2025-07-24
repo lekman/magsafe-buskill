@@ -416,3 +416,11 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# AI files, local settings and scratch pads
+/*.md
+.claude
+.env
+
+# Don't ignore important markdown files
+!README.md

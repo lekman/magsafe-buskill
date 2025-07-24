@@ -1,0 +1,70 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Release Please
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          config-file: .github/.release-please-config.json
+          manifest-file: .github/.release-please-manifest.json
+
+  auto-approve:
+    needs: release-please
+    runs-on: ubuntu-latest
+    if: ${{ needs.release-please.outputs.pr }}
+    steps:
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Auto-approve Release PR
+        uses: lekman/auto-approve-action@v1
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          pull-request-number: ${{ fromJson(needs.release-please.outputs.pr).number }}
+          review-message: "Auto-approving release-please PR 🚀"
+
+  merge-on-approval:
+    needs: [release-please, auto-approve]
+    runs-on: ubuntu-latest
+    if: ${{ needs.release-please.outputs.pr }}
+    steps:
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Enable Auto-merge
+        run: |
+          gh pr merge ${{ fromJson(needs.release-please.outputs.pr).number }} \
+            --auto \
+            --merge \
+            --delete-branch
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}

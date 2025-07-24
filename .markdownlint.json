@@ -1,0 +1,17 @@
+{
+  "default": true,
+  "MD003": { "style": "atx" },
+  "MD004": { "style": "dash" },
+  "MD007": { "indent": 2 },
+  "MD013": false,
+  "MD024": { "allow_different_nesting": true },
+  "MD026": { "punctuation": ".,;:!" },
+  "MD029": { "style": "ordered" },
+  "MD033": false,
+  "MD034": false,
+  "MD041": false,
+  "MD046": { "style": "fenced" },
+  "MD048": { "style": "backtick" },
+  "line-length": false,
+  "no-bare-urls": false
+}
