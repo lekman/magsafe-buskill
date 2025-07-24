@@ -1,0 +1,8 @@
+# Ignore auto-generated files
+docs/CHANGELOG.md
+
+# Ignore node_modules
+node_modules/
+
+# Ignore vendor directories
+vendor/

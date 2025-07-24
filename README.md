@@ -168,3 +168,43 @@ View our [Security Dashboard](./docs/qa.md) for detailed status.
 ---
 
 Made with ❤️ for the Mac community. Stay safe out there!
+
+<!-- TASKMASTER_EXPORT_START -->
+> 🎯 **Taskmaster Export** - 2025-07-24 19:11:29 UTC
+> 📋 Export: without subtasks • Status filter: none
+> 🔗 Powered by [Task Master](https://task-master.dev?utm_source=github-readme&utm_medium=readme-export&utm_campaign=magsafe-buskill&utm_content=task-export-link)
+
+| Project Dashboard |  |
+| :-                |:-|
+| Task Progress     | █░░░░░░░░░░░░░░░░░░░ 7% |
+| Done | 1 |
+| In Progress | 0 |
+| Pending | 14 |
+| Deferred | 0 |
+| Cancelled | 0 |
+|-|-|
+| Subtask Progress | ░░░░░░░░░░░░░░░░░░░░ 0% |
+| Completed | 0 |
+| In Progress | 0 |
+| Pending | 15 |
+
+| ID | Title | Status | Priority | Dependencies | Complexity |
+| :- | :-    | :-     | :-       | :-           | :-         |
+| 1 | Setup Project Repository and Structure | ✓&nbsp;done | high | None | ● 4 |
+| 2 | Implement Power Monitoring Service | ○&nbsp;pending | high | 1 | ● 7 |
+| 3 | Implement Authentication Service | ○&nbsp;pending | high | 1 | ● 6 |
+| 4 | Implement Security Actions Service | ○&nbsp;pending | high | 1 | ● 7 |
+| 5 | Create Menu Bar UI Component | ○&nbsp;pending | high | 1 | ● 6 |
+| 6 | Implement Core Application Logic | ○&nbsp;pending | high | 2, 3, 4, 5 | ● 8 |
+| 7 | Implement Settings UI and Persistence | ○&nbsp;pending | medium | 1, 6 | ● 6 |
+| 8 | Implement Auto-Arm Feature | ○&nbsp;pending | medium | 6, 7 | ● 7 |
+| 9 | Implement Find My Mac Integration | ○&nbsp;pending | low | 6 | ● 5 |
+| 10 | Implement Custom Script Execution | ○&nbsp;pending | low | 6, 7 | ● 6 |
+| 11 | Implement Network Actions | ○&nbsp;pending | low | 6, 7 | ● 6 |
+| 12 | Implement Data Protection Features | ○&nbsp;pending | low | 6, 7 | ● 7 |
+| 13 | Implement Accessibility Features | ○&nbsp;pending | medium | 5, 7 | ● 6 |
+| 14 | Implement Documentation and Help System | ○&nbsp;pending | medium | 1, 5, 6, 7 | ● 5 |
+| 15 | Implement Code Signing and Distribution | ○&nbsp;pending | high | 1, 2, 3, 4, 5, 6, 7 | ● 8 |
+
+> 📋 **End of Taskmaster Export** - Tasks are synced from your project using the `sync-readme` command.
+<!-- TASKMASTER_EXPORT_END -->
