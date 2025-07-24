@@ -48,9 +48,9 @@
 
 | Tool             | Status                                                                                                              | Dashboard                                                        |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| **Code Climate** | [![Maintainability](https://img.shields.io/badge/Maintainability-Setup%20Required-yellow)](https://codeclimate.com) | [Setup →](https://codeclimate.com/github/lekman/magsafe-buskill) |
+| **Code Climate** (Free for OSS) | [![Maintainability](https://img.shields.io/badge/Maintainability-Setup%20Required-yellow)](https://codeclimate.com) | [Setup →](https://codeclimate.com/github/lekman/magsafe-buskill) |
 | **Codecov**      | [![codecov](https://codecov.io/gh/lekman/magsafe-buskill/graph/badge.svg?token=AshUsxKtAI)](https://codecov.io/gh/lekman/magsafe-buskill) | [Dashboard →](https://codecov.io/gh/lekman/magsafe-buskill) • [Swift Guide →](./codecov-swift.md) |
-| **SonarCloud**   | [![SonarCloud](https://img.shields.io/badge/SonarCloud-Setup%20Required-yellow)](https://sonarcloud.io)             | [Setup →](https://sonarcloud.io/projects/create)                 |
+| **SonarCloud** (Free for OSS) | [![SonarCloud](https://img.shields.io/badge/SonarCloud-Setup%20Required-yellow)](https://sonarcloud.io)             | [Setup →](https://sonarcloud.io/projects/create)                 |
 
 ### Language & Platform
 
