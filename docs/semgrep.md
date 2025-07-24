@@ -145,6 +145,31 @@ If Semgrep reports a false positive:
 - Fix rate tracking
 - Developer leaderboards
 
+### Status Badges
+
+Semgrep provides badges to display your project's security status:
+
+1. **Navigate to Project Settings**
+   - Go to [semgrep.dev](https://semgrep.dev)
+   - Select your project
+   - Click "Settings" → "Badges"
+
+2. **Available Badge Types**
+   - **Findings Badge**: Shows number of findings
+   - **Status Badge**: Shows pass/fail status
+   - **Grade Badge**: Shows security grade (A-F)
+
+3. **Badge Formats**
+
+   ```markdown
+   [![Semgrep](https://img.shields.io/badge/Semgrep-PROJECT_ID-blue)](https://semgrep.dev/gh/lekman/magsafe-buskill)
+   ```
+
+4. **Integration**
+   - Add to README.md
+   - Include in docs/qa.md
+   - Display on project website
+
 ## Best Practices
 
 ### For Developers
