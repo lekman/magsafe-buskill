@@ -159,16 +159,15 @@ Semgrep provides badges to display your project's security status:
    - **Status Badge**: Shows pass/fail status
    - **Grade Badge**: Shows security grade (A-F)
 
-3. **Badge Formats**
-
-   ```markdown
-   [![Semgrep](https://img.shields.io/badge/Semgrep-PROJECT_ID-blue)](https://semgrep.dev/gh/lekman/magsafe-buskill)
-   ```
+3. **Current Status**
+   - Semgrep doesn't provide dynamic project-specific badges
+   - We use a static "Enabled" badge to indicate integration
+   - SARIF upload provides visibility in GitHub Security tab
 
 4. **Integration**
-   - Add to README.md
-   - Include in docs/qa.md
-   - Display on project website
+   - Badge added to docs/qa.md
+   - Results viewable in GitHub Security tab
+   - PR comments with findings
 
 ## Best Practices
 

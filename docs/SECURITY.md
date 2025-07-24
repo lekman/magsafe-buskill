@@ -18,7 +18,7 @@ Security vulnerabilities should **never** be reported through public GitHub issu
 
 ### 2. Report Privately
 
-Please report security vulnerabilities by emailing: [YOUR-SECURITY-EMAIL]
+Please report security vulnerabilities by emailing: [security@lekman.com](mailto:security@lekman.com)
 
 Include the following information:
 
@@ -70,6 +70,98 @@ Include the following information:
 4. **Test security features**: Ensure authentication works correctly
 5. **Review dependencies**: Check for known vulnerabilities
 
+## Secure Software Development Lifecycle (SSDLC)
+
+### Security Toolchain
+
+We implement defense-in-depth using multiple security scanning tools:
+
+#### Static Application Security Testing (SAST)
+
+- **Semgrep**: Security patterns and vulnerability detection
+  - OWASP Top 10 coverage
+  - Swift-specific security rules
+  - Custom rules for macOS security
+- **CodeQL**: GitHub's semantic code analysis
+  - Query-based vulnerability detection
+  - Data flow analysis
+  - macOS-specific queries
+
+#### Software Composition Analysis (SCA)
+
+- **Snyk**: Dependency vulnerability scanning
+  - Real-time vulnerability database
+  - License compliance checking
+  - Automated fix PRs
+- **Dependabot**: GitHub's dependency updates
+  - Security updates prioritized
+  - Automated pull requests
+- **OSSF Scorecard**: Supply chain security scoring
+
+#### Secret Scanning
+
+- **GitHub Secret Scanning**: Automated secret detection
+- **TruffleHog**: Git history scanning
+- **Pre-commit hooks**: Local secret prevention
+
+#### Continuous Security
+
+- **Branch protection**: Required security checks
+- **SARIF integration**: Unified security dashboard
+- **Automated security workflows**: Every PR and commit
+
+### Security Frameworks & Standards
+
+#### OWASP Guidelines
+
+- **OWASP Top 10**: Addressed through Semgrep rules
+- **OWASP MASVS**: Mobile Application Security Verification Standard
+  - Applied to macOS desktop context
+  - Focus on authentication, crypto, and storage
+- **OWASP Secure Coding Practices**: Integrated in development
+
+#### Apple Platform Security
+
+- **macOS Security Guide**: Following Apple's best practices
+- **Secure Coding Guide**: Apple's secure development guidelines
+- **Privacy by Design**: Local-only processing, no telemetry
+
+#### Industry Standards
+
+- **CIS Controls**: Implementing applicable controls
+- **NIST Cybersecurity Framework**: Risk-based approach
+- **ISO 27001 Principles**: Information security management
+
+### Security Development Practices
+
+1. **Threat Modeling**
+   - STRIDE methodology for threat identification
+   - Attack surface minimization
+   - Regular security reviews
+
+2. **Secure Design Principles**
+   - Principle of least privilege
+   - Defense in depth
+   - Fail secure defaults
+   - Complete mediation
+
+3. **Security Testing**
+   - Automated security scans on every commit
+   - Manual security review for releases
+   - Penetration testing (planned)
+
+4. **Vulnerability Management**
+   - 48-hour response SLA
+   - CVSS scoring for prioritization
+   - Coordinated disclosure process
+
+### Compliance & Auditing
+
+- **Security event logging**: Comprehensive audit trail
+- **Change management**: All changes reviewed and tested
+- **Access control**: Repository permissions management
+- **Incident response**: Defined security incident process
+
 ## Security Features
 
 MagSafe Guard includes several security features:
@@ -79,6 +171,8 @@ MagSafe Guard includes several security features:
 - **Grace period**: Prevents false positives
 - **Secure configuration**: Sensitive data in Keychain
 - **Audit logging**: Security events are logged
+- **Code signing**: Developer ID signing (planned)
+- **Notarization**: Apple notarization (planned)
 
 ## Disclosure Policy
 
@@ -100,7 +194,7 @@ Security advisories will be published through:
 
 ## Contact
 
-For security concerns, contact: [YOUR-SECURITY-EMAIL]
+For security concerns, contact: [security@lekman.com](mailto:security@lekman.com)
 For general issues, use GitHub Issues.
 
 ---

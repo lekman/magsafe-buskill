@@ -233,6 +233,39 @@ jobs:
       env:
         SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
       continue-on-error: true
+      
+    # Upload Semgrep results to GitHub Security tab
+    - name: Upload SARIF results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always() # Upload even if Semgrep step fails
+      with:
+        sarif_file: semgrep.sarif
+      continue-on-error: true
+
+  # Snyk Security Scanning (Free for Open Source)
+  snyk:
+    name: Snyk Security
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Run Snyk to check for vulnerabilities
+      uses: snyk/actions/swift@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=high
+      continue-on-error: true  # Don't fail if Snyk is not configured
+      
+    - name: Upload Snyk results to GitHub Code Scanning
+      uses: github/codeql-action/upload-sarif@v3
+      if: always() && env.SNYK_TOKEN != ''
+      with:
+        sarif_file: snyk.sarif
+      continue-on-error: true
 
   # License scanning
   license-scan:

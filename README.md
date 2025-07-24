@@ -129,6 +129,20 @@ Run `task` to see all available commands:
 - Any Mac with power adapter support
 - Administrator privileges for some security actions
 
+## Security & Quality
+
+[![Security Scan](https://img.shields.io/github/actions/workflow/status/lekman/magsafe-buskill/security.yml?branch=main&label=Security%20Scan)](https://github.com/lekman/magsafe-buskill/actions/workflows/security.yml)
+[![Known Vulnerabilities](https://snyk.io/test/github/lekman/magsafe-buskill/badge.svg)](https://snyk.io/test/github/lekman/magsafe-buskill)
+[![License](https://img.shields.io/github/license/lekman/magsafe-buskill)](./LICENSE)
+
+Security is our top priority. We use multiple tools to ensure code quality:
+
+- **GitHub Advanced Security** - CodeQL analysis and secret scanning
+- **Semgrep** - Static analysis for security patterns
+- **Snyk** - Vulnerability scanning (protected by [Snyk](https://snyk.io))
+
+View our [Security Dashboard](./docs/qa.md) for detailed status.
+
 ## Privacy & Security
 
 - **No tracking**: We don't collect any user data

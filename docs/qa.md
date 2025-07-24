@@ -32,13 +32,13 @@
 
 [![Semgrep](https://img.shields.io/badge/Semgrep-Enabled-green)](https://semgrep.dev)
 
-[View Dashboard →](https://semgrep.dev/orgs/-/projects)
+[View Dashboard →](https://semgrep.dev/orgs/-/projects) | [Setup Guide →](./semgrep.md)
 
 ### Third-Party Security Tools
 
 | Tool               | Status                                                                                                                                                                                     | Dashboard                                                                 |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| **Snyk**           | [![Known Vulnerabilities](https://snyk.io/test/github/lekman/magsafe-buskill/badge.svg)](https://snyk.io/test/github/lekman/magsafe-buskill)                                               | [Snyk Dashboard →](https://app.snyk.io)                                   |
+| **Snyk** (Free for OSS) | [![Known Vulnerabilities](https://snyk.io/test/github/lekman/magsafe-buskill/badge.svg)](https://snyk.io/test/github/lekman/magsafe-buskill)                                               | [Snyk Dashboard →](https://app.snyk.io) • [Setup →](./snyk-integration.md) |
 | **Libraries.io**   | [![Dependencies](https://img.shields.io/librariesio/github/lekman/magsafe-buskill)](https://libraries.io/github/lekman/magsafe-buskill)                                                    | [View Analysis →](https://libraries.io/github/lekman/magsafe-buskill)     |
 | **OSSF Scorecard** | [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/lekman/magsafe-buskill/badge)](https://api.securityscorecards.dev/projects/github.com/lekman/magsafe-buskill) | [View Report →](https://deps.dev/project/github/lekman%2Fmagsafe-buskill) |
 
@@ -112,7 +112,7 @@
 
 ### 3. Security Badges
 
-- **Snyk**: Sign up at [snyk.io](https://snyk.io) and import your repo
+- **Snyk**: Sign up at [snyk.io](https://snyk.io) - **Free for open source projects!**
 - **LGTM**: Use [lgtm.com](https://lgtm.com) for security analysis
 - **WhiteSource**: [whitesourcesoftware.com](https://www.whitesourcesoftware.com)
 
