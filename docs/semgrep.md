@@ -103,14 +103,16 @@ rules:
 ### Example Findings
 
 1. **Hardcoded Secrets**
-   ```
+
+   ```text
    Found hardcoded API key in Config.swift:12
    Severity: ERROR
    Fix: Move to environment variable or keychain
    ```
 
 2. **Shell Injection**
-   ```
+
+   ```text
    User input passed to shell command in Utils.swift:45
    Severity: ERROR
    Fix: Sanitize input or use safer API
@@ -122,6 +124,7 @@ If Semgrep reports a false positive:
 
 1. Review the finding carefully
 2. If confirmed false positive, add inline comment:
+
    ```swift
    // nosemgrep: rule-id
    let safeCode = "This is actually safe"
@@ -147,6 +150,7 @@ If Semgrep reports a false positive:
 ### For Developers
 
 1. **Run Locally**: Install Semgrep CLI for pre-commit scanning
+
    ```bash
    brew install semgrep
    semgrep --config=auto .
@@ -167,10 +171,12 @@ If Semgrep reports a false positive:
 ### Common Issues
 
 1. **"No SEMGREP_APP_TOKEN"**
+
    - Ensure secret is added to repository
    - Check secret name matches exactly
 
 2. **"Repository not found"**
+
    - Reconnect repository in Semgrep dashboard
    - Ensure Semgrep app has repository access
 
@@ -200,20 +206,26 @@ If Semgrep reports a false positive:
 - No code is stored permanently
 - Opt-out of telemetry available
 
-## Alternative: Basic Security Scanning
+## Integrated Security Scanning
 
-If you prefer not to use Semgrep's cloud service, a basic security workflow is available at `.github/workflows/security-basic.yml` that provides:
+The main security workflow (`.github/workflows/security.yml`) includes both basic checks and advanced scanning:
 
-- Local secret detection
-- Permission checks
-- Security TODO scanning
-- No external dependencies
+### Basic Checks (Always Run)
 
-However, this lacks:
-- Comprehensive rule sets
+- Hardcoded secret detection in Swift files
+- Private key file detection
+- Environment file scanning
+- File permission checks
+- Security TODO tracking
+
+### Advanced Scanning (With Semgrep Token)
+
+- Comprehensive security rule sets
 - Dashboard and metrics
-- PR integration
-- Automatic updates
+- PR integration with comments
+- Automatic rule updates
+
+The basic checks run regardless of whether Semgrep is configured, ensuring a baseline level of security scanning for all contributors.
 
 ## Future Enhancements
 

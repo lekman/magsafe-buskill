@@ -1,0 +1,367 @@
+version: '3'
+
+vars:
+  HOOKS_PATH: .githooks
+  SEMGREP_CONFIG: auto
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  init:
+    desc: Initialize development environment
+    cmds:
+      - task: check-tools
+      - task: setup-hooks
+      - task: verify-setup
+    silent: true
+
+  check-tools:
+    desc: Check required development tools
+    cmds:
+      - |
+        echo "🔍 Checking development tools..."
+        missing_tools=0
+        
+        # Check for git
+        if ! command -v git &> /dev/null; then
+          echo "❌ git is not installed"
+          missing_tools=$((missing_tools + 1))
+        else
+          echo "✅ git $(git --version | awk '{print $3}')"
+        fi
+        
+        # Check for Swift
+        if ! command -v swift &> /dev/null; then
+          echo "❌ Swift is not installed"
+          missing_tools=$((missing_tools + 1))
+        else
+          echo "✅ Swift $(swift --version | head -1 | awk '{print $4}')"
+        fi
+        
+        # Check for Semgrep (optional)
+        if ! command -v semgrep &> /dev/null; then
+          echo "⚠️  Semgrep not installed (optional but recommended)"
+          echo "   Install with: brew install semgrep"
+        else
+          echo "✅ Semgrep $(semgrep --version | head -1)"
+        fi
+        
+        if [ $missing_tools -gt 0 ]; then
+          exit 1
+        fi
+    silent: true
+
+  setup-hooks:
+    desc: Configure git hooks
+    vars:
+      CURRENT_HOOKS_PATH:
+        sh: git config core.hooksPath || echo ""
+    status:
+      - test "{{.CURRENT_HOOKS_PATH}}" = "{{.HOOKS_PATH}}"
+    cmds:
+      - |
+        echo "🔧 Setting up git hooks..."
+        git config core.hooksPath {{.HOOKS_PATH}}
+        chmod +x {{.HOOKS_PATH}}/*
+        echo "✅ Git hooks configured"
+    silent: true
+
+  verify-setup:
+    desc: Verify development setup
+    cmds:
+      - |
+        echo ""
+        echo "🎉 Development environment ready!"
+        echo ""
+        echo "Git hooks installed:"
+        hooks_path=$(git config core.hooksPath)
+        if [ -n "$hooks_path" ]; then
+          echo "  • Pre-commit: Security scanning"
+          echo "  • Commit-msg: Conventional commits validation"
+        fi
+        echo ""
+        echo "Next steps:"
+        echo "  1. Make changes to the code"
+        echo "  2. Commit with conventional format: git commit -m 'feat: description'"
+        echo "  3. Run 'task test' before pushing"
+    silent: true
+
+  test:
+    desc: Run all tests
+    cmds:
+      - task: test:security
+      - task: test:swift
+      - echo "✅ All tests passed!"
+
+  test:security:
+    desc: Run security checks locally
+    silent: true
+    cmds:
+      - |
+        echo "🔒 Running security checks..."
+        
+        # Basic secret scanning
+        if find . -name "*.swift" -type f -exec grep -l -E "password\s*=\s*\"[^\"]+\"" {} \; 2>/dev/null | head -1 | grep -q .; then
+          echo "❌ Found hardcoded passwords"
+          exit 1
+        fi
+        
+        # Check for private keys
+        if find . -type f \( -name "*.pem" -o -name "*.key" \) -not -path "./.git/*" | head -1 | grep -q .; then
+          echo "❌ Found private key files"
+          exit 1
+        fi
+        
+        echo "✅ Basic security checks passed"
+        
+        # Run Semgrep if available
+        if command -v semgrep &> /dev/null; then
+          echo "Running Semgrep scan..."
+          semgrep --config={{.SEMGREP_CONFIG}} --error --quiet . || exit 1
+          echo "✅ Semgrep scan passed"
+        fi
+
+  test:swift:
+    desc: Run Swift tests
+    silent: true
+    cmds:
+      - |
+        echo "🧪 Running Swift tests..."
+        # Placeholder for when we have actual tests
+        echo "⚠️  No tests implemented yet"
+
+  lint:
+    desc: Run linters
+    cmds:
+      - task: lint:swift
+      - task: lint:markdown
+
+  lint:swift:
+    desc: Lint Swift files
+    silent: true
+    cmds:
+      - |
+        echo "🔍 Linting Swift files..."
+        if command -v swiftlint &> /dev/null; then
+          swiftlint lint --quiet
+        else
+          echo "⚠️  SwiftLint not installed"
+          echo "   Install with: brew install swiftlint"
+        fi
+
+  lint:markdown:
+    desc: Lint Markdown files
+    silent: true
+    cmds:
+      - |
+        echo "🔍 Linting Markdown files..."
+        
+        # Check if markdownlint is installed
+        if ! command -v markdownlint &> /dev/null; then
+          echo "📦 markdownlint not found. Installing..."
+          
+          # Try to install with npm first (most universal)
+          if command -v npm &> /dev/null; then
+            echo "Installing with npm..."
+            npm install -g markdownlint-cli
+          # Try Homebrew as fallback
+          elif command -v brew &> /dev/null; then
+            echo "Installing with Homebrew..."
+            brew install markdownlint-cli
+          else
+            echo "⚠️  Cannot auto-install markdownlint"
+            echo "   Please install Node.js or Homebrew first"
+            exit 1
+          fi
+        fi
+        
+        # Run the linter
+        markdownlint '**/*.md' --ignore node_modules
+
+  lint:fix:
+    desc: Fix linting issues automatically
+    cmds:
+      - task: lint:fix:markdown
+      - echo "✅ Linting fixes complete!"
+
+  lint:fix:markdown:
+    desc: Fix Markdown formatting issues
+    silent: true
+    cmds:
+      - |
+        echo "🔧 Fixing Markdown formatting issues..."
+        
+        # Check if markdownlint is installed
+        if ! command -v markdownlint &> /dev/null; then
+          echo "📦 markdownlint not found. Installing..."
+          
+          # Try to install with npm first (most universal)
+          if command -v npm &> /dev/null; then
+            echo "Installing with npm..."
+            npm install -g markdownlint-cli
+          # Try Homebrew as fallback
+          elif command -v brew &> /dev/null; then
+            echo "Installing with Homebrew..."
+            brew install markdownlint-cli
+          else
+            echo "❌ Neither npm nor Homebrew found"
+            echo ""
+            echo "Please install Node.js or Homebrew first:"
+            echo "  - Node.js: https://nodejs.org/"
+            echo "  - Homebrew: https://brew.sh/"
+            exit 1
+          fi
+          
+          # Verify installation
+          if ! command -v markdownlint &> /dev/null; then
+            echo "❌ Installation failed"
+            exit 1
+          fi
+          echo "✅ markdownlint installed successfully"
+        fi
+        
+        # Fix all markdown files
+        echo "Running markdown formatter..."
+        markdownlint '**/*.md' --ignore node_modules --fix
+        echo "✅ Markdown files formatted"
+        
+        # Show which files were modified
+        echo ""
+        echo "Modified files:"
+        git diff --name-only | grep '\.md$' || echo "  No changes needed"
+
+  clean:
+    desc: Clean build artifacts
+    silent: true
+    cmds:
+      - |
+        echo "🧹 Cleaning build artifacts..."
+        rm -rf .build/
+        rm -rf *.xcodeproj
+        echo "✅ Clean complete"
+
+  run:poc:
+    desc: Run the basic proof of concept
+    cmds:
+      - |
+        echo "🚀 Running PowerMonitor POC..."
+        ./prototypes/PowerMonitorPOC.swift
+
+  run:demo:
+    desc: Run the interactive demo
+    cmds:
+      - |
+        echo "🚀 Running PowerMonitor Advanced Demo..."
+        ./prototypes/PowerMonitorAdvanced.swift
+
+  dev:setup:
+    desc: Complete development setup (hooks + tools)
+    silent: true
+    cmds:
+      - task: init
+      - |
+        echo ""
+        echo "📦 Installing recommended tools..."
+        
+        # Check if Homebrew is installed
+        if command -v brew &> /dev/null; then
+          echo "Installing/updating tools via Homebrew..."
+          
+          # Install Semgrep
+          if ! command -v semgrep &> /dev/null; then
+            brew install semgrep
+          fi
+          
+          # Install SwiftLint
+          if ! command -v swiftlint &> /dev/null; then
+            brew install swiftlint
+          fi
+          
+          # Install markdownlint
+          if ! command -v markdownlint &> /dev/null; then
+            brew install markdownlint-cli
+          fi
+          
+          echo "✅ Development tools installed"
+        else
+          echo "⚠️  Homebrew not found. Install tools manually:"
+          echo "   - Semgrep: https://semgrep.dev/docs/getting-started/"
+          echo "   - SwiftLint: https://github.com/realm/SwiftLint"
+          echo "   - markdownlint: npm install -g markdownlint-cli"
+        fi
+
+  pr:fix:
+    desc: Fix PR documentation formatting
+    silent: true
+    cmds:
+      - |
+        echo "📝 Fixing PR documentation..."
+        pr_file=$(find . -name "pr.*.md" | head -1)
+        if [ -n "$pr_file" ]; then
+          echo "Found PR file: $pr_file"
+          markdownlint "$pr_file" --fix
+          echo "✅ PR documentation fixed"
+        else
+          echo "No PR documentation found (pr.*.md)"
+        fi
+
+  pre-push:
+    desc: Run all checks before pushing
+    cmds:
+      - echo "🚀 Running pre-push checks..."
+      - task: lint:fix:markdown
+      - task: test:security
+      - task: lint
+      - echo "✅ All pre-push checks passed!"
+      - echo "Ready to push your changes."
+
+  commit:
+    desc: Interactive commit with conventional format
+    cmds:
+      - |
+        echo "📝 Creating conventional commit..."
+        echo ""
+        echo "Select commit type:"
+        echo "  1) feat     - New feature"
+        echo "  2) fix      - Bug fix"
+        echo "  3) docs     - Documentation"
+        echo "  4) style    - Code style"
+        echo "  5) refactor - Code refactoring"
+        echo "  6) test     - Tests"
+        echo "  7) chore    - Maintenance"
+        echo ""
+        read -p "Enter number (1-7): " type_num
+        
+        case $type_num in
+          1) type="feat";;
+          2) type="fix";;
+          3) type="docs";;
+          4) type="style";;
+          5) type="refactor";;
+          6) type="test";;
+          7) type="chore";;
+          *) echo "Invalid selection"; exit 1;;
+        esac
+        
+        read -p "Enter scope (optional, press enter to skip): " scope
+        read -p "Enter commit message: " message
+        
+        if [ -n "$scope" ]; then
+          commit_msg="${type}(${scope}): ${message}"
+        else
+          commit_msg="${type}: ${message}"
+        fi
+        
+        echo ""
+        echo "Commit message: $commit_msg"
+        read -p "Proceed? (y/n): " confirm
+        
+        if [ "$confirm" = "y" ]; then
+          git commit -m "$commit_msg"
+        else
+          echo "Commit cancelled"
+        fi
+    interactive: true

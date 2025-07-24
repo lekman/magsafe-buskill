@@ -48,6 +48,7 @@ Created two proof-of-concept scripts to test macOS power monitoring capabilities
 ## Testing Instructions
 
 ### Basic Test
+
 ```bash
 # Run the basic monitor
 ./PowerMonitorPOC.swift
@@ -56,6 +57,7 @@ Created two proof-of-concept scripts to test macOS power monitoring capabilities
 ```
 
 ### Interactive Demo
+
 ```bash
 # Run the advanced demo
 ./PowerMonitorAdvanced.swift
@@ -69,6 +71,7 @@ Created two proof-of-concept scripts to test macOS power monitoring capabilities
 ## Technical Implementation Notes
 
 ### Core API Usage
+
 ```swift
 // Create notification source
 let runLoopSource = IOPSNotificationCreateRunLoopSource(callback, context)
@@ -83,6 +86,7 @@ let isConnected = (state == kIOPSACPowerValue)
 ```
 
 ### Integration Points
+
 - **Menu Bar**: Use `NSStatusItem` for UI
 - **LaunchAgent**: For startup persistence
 - **Security Framework**: For Keychain storage
@@ -112,6 +116,7 @@ let isConnected = (state == kIOPSACPowerValue)
 ## Conclusion
 
 The POC confirms that:
+
 - ✅ Power monitoring is technically feasible
 - ✅ Works with all power adapters (not just MagSafe)
 - ✅ Suitable for security applications

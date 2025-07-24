@@ -41,7 +41,7 @@ MagSafe BusKill is fully open source software, licensed under the [MIT License](
 
 For information about contributing to the project, please see our [Contributors Guide](CONTRIBUTORS.md).
 
-## Quick Start
+## Installation
 
 ### Installation Options
 
@@ -70,6 +70,58 @@ Need help or found an issue? We're here to assist:
 - [Configuration Guide](docs/config-examples.yaml)
 - [Authentication Flow](docs/auth-flow-design.md)
 - [Developer Documentation](docs/) - _More sections coming soon_
+
+## Development
+
+### Quick Start
+
+1. **Install Task** (if not already installed):
+
+   ```bash
+   brew install go-task/tap/go-task
+   ```
+
+2. **Initialize Development Environment**:
+
+   ```bash
+   task init
+   ```
+
+   This sets up git hooks and verifies your development tools.
+
+3. **Run Prototypes**:
+
+   ```bash
+   task run:poc    # Basic power monitoring
+   task run:demo   # Interactive demo
+   ```
+
+### Available Tasks
+
+Run `task` to see all available commands:
+
+- `task init` - Set up development environment
+- `task test` - Run all tests
+- `task test:security` - Run security checks
+- `task lint` - Run linters
+- `task lint:fix` - Auto-fix markdown formatting issues
+- `task pre-push` - Run all checks before pushing
+- `task commit` - Interactive conventional commit
+
+### Manual Setup (without Task)
+
+1. **Configure Git Hooks**:
+
+   ```bash
+   ./scripts/setup-hooks.sh
+   ```
+
+2. **Run Prototypes**:
+
+   ```bash
+   chmod +x prototypes/PowerMonitorPOC.swift
+   ./prototypes/PowerMonitorPOC.swift
+   ```
 
 ## System Requirements
 

@@ -21,6 +21,7 @@ Security vulnerabilities should **never** be reported through public GitHub issu
 Please report security vulnerabilities by emailing: [YOUR-SECURITY-EMAIL]
 
 Include the following information:
+
 - Type of vulnerability
 - Full paths of source file(s) related to the vulnerability
 - Location of the affected source code (tag/branch/commit)
@@ -32,7 +33,7 @@ Include the following information:
 
 - **Initial Response**: Within 48 hours
 - **Status Update**: Within 5 business days
-- **Resolution Target**: 
+- **Resolution Target**:
   - Critical: 7 days
   - High: 14 days
   - Medium: 30 days
@@ -41,18 +42,21 @@ Include the following information:
 ## Security Measures
 
 ### Code Security
+
 - All code is open source for transparency
 - No telemetry or data collection
 - Local processing only
 - Secure credential storage using macOS Keychain
 
 ### Authentication
+
 - TouchID/password required for all security state changes
 - No keyboard shortcuts for security operations
 - Authentication cannot be disabled
 - Maximum 3 failed attempts before cooldown
 
 ### Distribution Security
+
 - Code signing with Developer ID (planned)
 - Notarization for Gatekeeper (planned)
 - SHA-256 checksums for releases
@@ -89,6 +93,7 @@ When we receive a security report, we will:
 ## Security Advisories
 
 Security advisories will be published through:
+
 - GitHub Security Advisories
 - Release notes
 - Security mailing list (if established)
