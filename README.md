@@ -1,8 +1,8 @@
-# MagSafe BusKill
+# MagSafe Guard
 
 ## A Dead-Man's Cord Theft Protection Switch for Your Mac
 
-MagSafe BusKill transforms your Mac's power connection into an intelligent security guard. When armed, it instantly detects if your power cable is disconnected and triggers protective actions to secure your data - perfect for protecting your laptop in coffee shops, airports, or any public space.
+MagSafe Guard transforms your Mac's power connection into an intelligent security guard. When armed, it instantly detects if your power cable is disconnected and triggers protective actions to secure your data - perfect for protecting your laptop in coffee shops, airports, or any public space.
 
 ### Key Features
 
@@ -25,9 +25,9 @@ Perfect for digital nomads, security-conscious professionals, and anyone who wor
 
 ## Acknowledgments
 
-MagSafe BusKill is inspired by the excellent work of the [BusKill Project](https://github.com/BusKill/buskill-app) - an open-source laptop kill cord that uses a USB magnetic breakaway to trigger security actions. We deeply appreciate their pioneering work in this space and their commitment to open-source security tools.
+MagSafe Guard is inspired by the excellent work of the [BusKill Project](https://github.com/BusKill/buskill-app) - an open-source laptop kill cord that uses a USB magnetic breakaway to trigger security actions. We deeply appreciate their pioneering work in this space and their commitment to open-source security tools.
 
-While BusKill requires a physical USB cable attachment, MagSafe BusKill adapts the concept to use your existing power connection, making it seamless for Mac users. We encourage you to check out the original BusKill project, especially if you need cross-platform support or prefer a dedicated hardware solution.
+While BusKill requires a physical USB cable attachment, MagSafe Guard adapts the concept to use your existing power connection, making it seamless for Mac users. We encourage you to check out the original BusKill project, especially if you need cross-platform support or prefer a dedicated hardware solution.
 
 Special thanks to:
 
@@ -37,7 +37,7 @@ Special thanks to:
 
 ## Intended Usage
 
-MagSafe BusKill is fully open source software, licensed under the [MIT License](LICENSE). We believe in transparency and community-driven development for security tools.
+MagSafe Guard is fully open source software, licensed under the [MIT License](LICENSE). We believe in transparency and community-driven development for security tools.
 
 For information about contributing to the project, please see our [Contributors Guide](CONTRIBUTORS.md).
 

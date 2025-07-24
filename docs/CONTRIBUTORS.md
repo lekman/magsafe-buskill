@@ -1,6 +1,6 @@
 # Contributors Guide
 
-Welcome to MagSafe BusKill! We're excited that you're interested in contributing to this open-source security tool for the Mac community.
+Welcome to MagSafe Guard! We're excited that you're interested in contributing to this open-source security tool for the Mac community.
 
 ## How to Contribute
 
@@ -105,4 +105,4 @@ _Your name could be here! Make your first contribution today._
 
 ---
 
-Thank you for helping make MagSafe BusKill better for everyone! 🙏
+Thank you for helping make MagSafe Guard better for everyone! 🙏
