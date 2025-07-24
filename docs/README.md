@@ -1,6 +1,6 @@
 # MagSafe BusKill
 
-## Your Mac's Ultimate Theft Protection
+## A Dead-Man's Cord Theft Protection Switch for Your Mac
 
 MagSafe BusKill transforms your Mac's power connection into an intelligent security guard. When armed, it instantly detects if your power cable is disconnected and triggers protective actions to secure your data - perfect for protecting your laptop in coffee shops, airports, or any public space.
 
@@ -30,6 +30,7 @@ MagSafe BusKill is inspired by the excellent work of the [BusKill Project](https
 While BusKill requires a physical USB cable attachment, MagSafe BusKill adapts the concept to use your existing power connection, making it seamless for Mac users. We encourage you to check out the original BusKill project, especially if you need cross-platform support or prefer a dedicated hardware solution.
 
 Special thanks to:
+
 - The [BusKill team](https://github.com/BusKill) for creating the original concept and implementation
 - [Michael Altfield](https://github.com/maltfield) and all BusKill contributors
 - The open-source security community for continuous innovation
@@ -45,9 +46,11 @@ For information about contributing to the project, please see our [Contributors 
 ### Installation Options
 
 #### 1. Mac App Store (Recommended)
-*Coming Soon* - Get automatic updates and easy installation directly from the Mac App Store.
+
+_Coming Soon_ - Get automatic updates and easy installation directly from the Mac App Store.
 
 #### 2. Direct Download
+
 Download the latest release from our [GitHub Releases](https://github.com/lekman/magsafe-buskill/releases) page.
 
 **Note:** Direct downloads require manual updates. For automatic updates, please wait for the Mac App Store release.
@@ -66,7 +69,7 @@ Need help or found an issue? We're here to assist:
 - [Requirements & Specifications](requirements.md)
 - [Configuration Guide](docs/config-examples.yaml)
 - [Authentication Flow](docs/auth-flow-design.md)
-- [Developer Documentation](docs/) - *More sections coming soon*
+- [Developer Documentation](docs/) - _More sections coming soon_
 
 ## System Requirements
 
