@@ -49,7 +49,7 @@
 | Tool             | Status                                                                                                              | Dashboard                                                        |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | **Code Climate** | [![Maintainability](https://img.shields.io/badge/Maintainability-Setup%20Required-yellow)](https://codeclimate.com) | [Setup →](https://codeclimate.com/github/lekman/magsafe-buskill) |
-| **Codecov**      | [![codecov](https://img.shields.io/badge/Coverage-Pending-yellow)](https://codecov.io)                              | [Setup →](https://codecov.io/gh/lekman/magsafe-buskill)          |
+| **Codecov**      | [![codecov](https://codecov.io/gh/lekman/magsafe-buskill/graph/badge.svg?token=AshUsxKtAI)](https://codecov.io/gh/lekman/magsafe-buskill) | [Dashboard →](https://codecov.io/gh/lekman/magsafe-buskill) • [Swift Guide →](./codecov-swift.md) |
 | **SonarCloud**   | [![SonarCloud](https://img.shields.io/badge/SonarCloud-Setup%20Required-yellow)](https://sonarcloud.io)             | [Setup →](https://sonarcloud.io/projects/create)                 |
 
 ### Language & Platform
@@ -64,6 +64,7 @@
 
 | Workflow           | Status                                                                                                                                                                                                                  | Details                                                                                       |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Tests**          | [![Tests](https://img.shields.io/github/actions/workflow/status/lekman/magsafe-buskill/test.yml?branch=main&label=Tests)](https://github.com/lekman/magsafe-buskill/actions/workflows/test.yml)                        | [View Runs →](https://github.com/lekman/magsafe-buskill/actions/workflows/test.yml)           |
 | **Security Scan**  | [![Security](https://img.shields.io/github/actions/workflow/status/lekman/magsafe-buskill/security.yml?branch=main&label=Security)](https://github.com/lekman/magsafe-buskill/actions/workflows/security.yml)           | [View Runs →](https://github.com/lekman/magsafe-buskill/actions/workflows/security.yml)       |
 | **Release Please** | [![Release](https://img.shields.io/github/actions/workflow/status/lekman/magsafe-buskill/release-please.yml?branch=main&label=Release)](https://github.com/lekman/magsafe-buskill/actions/workflows/release-please.yml) | [View Runs →](https://github.com/lekman/magsafe-buskill/actions/workflows/release-please.yml) |
 | **Security Audit** | [![Audit](https://img.shields.io/badge/Security%20Audit-Manual-blue)](https://github.com/lekman/magsafe-buskill/actions/workflows/security-audit.yml)                                                                   | [Run Audit →](https://github.com/lekman/magsafe-buskill/actions/workflows/security-audit.yml) |
@@ -104,11 +105,17 @@
 
 ### 2. Code Coverage Badge
 
-1. Set up coverage reporting in your test workflow
-2. Use services like:
-   - [Codecov](https://codecov.io)
-   - [Coveralls](https://coveralls.io)
-   - [Code Climate](https://codeclimate.com)
+**Codecov Setup (Free for Open Source):**
+
+1. Sign in to [codecov.io](https://codecov.io) with GitHub
+2. Add your repository
+3. The test workflow is already configured for Swift
+4. Badge will appear after first test run
+
+Alternative services:
+
+- [Coveralls](https://coveralls.io) - Also free for OSS
+- [Code Climate](https://codeclimate.com) - Free for OSS
 
 ### 3. Security Badges
 

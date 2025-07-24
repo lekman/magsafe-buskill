@@ -1,0 +1,40 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Test Suite
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: "5.9"
+        
+    - name: Build
+      run: swift build -v
+      
+    - name: Run tests with coverage
+      run: |
+        swift test --enable-code-coverage
+        
+    # Codecov supports Swift/Xcode coverage format directly
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        flags: unittests
+        name: codecov-swift
+        fail_ci_if_error: false # Don't fail if upload fails
+        xcode: true # Enable Xcode coverage format
+        xcode_archive_path: .build/debug/codecov # Path to coverage data
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }} # Optional for public repos
