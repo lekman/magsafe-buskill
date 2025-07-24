@@ -16,6 +16,24 @@ merge_regex='^Merge (branch|pull request|remote-tracking branch)'
 commit_msg=$(cat "$1")
 first_line=$(echo "$commit_msg" | head -n1)
 
+# Word block list - case insensitive
+blocked_words=("claude" "anthropic" "co-authored")
+
+# Check for blocked words (case-insensitive)
+for word in "${blocked_words[@]}"; do
+    if echo "$commit_msg" | grep -qi "$word"; then
+        echo -e "${RED}❌ Commit message contains blocked word: '$word'${NC}"
+        echo ""
+        echo -e "${YELLOW}The following words are not allowed in commit messages:${NC}"
+        for blocked in "${blocked_words[@]}"; do
+            echo "  • $blocked"
+        done
+        echo ""
+        echo -e "${BLUE}Please revise your commit message to remove these words.${NC}"
+        exit 1
+    fi
+done
+
 # Check if it's a merge commit
 if [[ "$first_line" =~ $merge_regex ]]; then
     echo -e "${GREEN}✅ Merge commit detected${NC}"

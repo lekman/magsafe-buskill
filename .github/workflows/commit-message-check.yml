@@ -1,0 +1,72 @@
+name: Commit Message Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+      - 'fix/**'
+
+jobs:
+  check-commit-messages:
+    name: Validate Commit Messages
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all branches
+      
+      - name: Check for blocked words in commits
+        run: |
+          # Get all commit messages in this PR/push
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # For PRs, check all commits between base and head
+            COMMITS=$(git log --format=%B origin/${{ github.base_ref }}..HEAD)
+          else
+            # For pushes, check the pushed commits
+            COMMITS=$(git log --format=%B ${{ github.event.before }}..${{ github.sha }} 2>/dev/null || git log --format=%B -1)
+          fi
+          
+          # Define blocked words (case-insensitive)
+          BLOCKED_WORDS=("claude" "anthropic" "co-authored")
+          
+          # Check each blocked word
+          FOUND_BLOCKED=false
+          for word in "${BLOCKED_WORDS[@]}"; do
+            if echo "$COMMITS" | grep -qi "$word"; then
+              echo "❌ Found blocked word: '$word'"
+              echo ""
+              echo "The following words are not allowed in commit messages:"
+              for blocked in "${BLOCKED_WORDS[@]}"; do
+                echo "  • $blocked"
+              done
+              echo ""
+              echo "Please rewrite your commit history to remove these words."
+              echo ""
+              echo "To fix this:"
+              echo "1. Use 'git rebase -i' to edit the problematic commits"
+              echo "2. Reword the commit messages to remove blocked words"
+              echo "3. Force push the updated branch"
+              echo ""
+              echo "Affected commits:"
+              git log --format="%h %s" origin/${{ github.base_ref }}..HEAD | grep -i "$word" || true
+              FOUND_BLOCKED=true
+              break
+            fi
+          done
+          
+          if [ "$FOUND_BLOCKED" = true ]; then
+            exit 1
+          fi
+          
+          echo "✅ No blocked words found in commit messages"
+      
+      - name: Check conventional commits format
+        uses: webiny/action-conventional-commits@v1.3.0
+        with:
+          allowed-commit-types: "feat,fix,docs,style,refactor,perf,test,build,ci,chore,revert"
