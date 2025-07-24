@@ -106,14 +106,14 @@ jobs:
             echo "   - Change \`pick\` to \`reword\` for commits you want to EDIT" >> $GITHUB_STEP_SUMMARY
             echo "   - Save and close the editor" >> $GITHUB_STEP_SUMMARY
             echo "5. If you chose \`reword\`, edit the commit messages to remove blocked words" >> $GITHUB_STEP_SUMMARY
-            echo "6. Run: \`git push --force-with-lease origin $(echo ${{ github.head_ref }} | sed 's/refs\/heads\///')\`" >> $GITHUB_STEP_SUMMARY
+            echo "6. Run: \`git push --force-with-lease origin $(echo ${HEAD_REF} | sed 's/refs\/heads\///')\`" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "#### Option 2: Start with a clean branch" >> $GITHUB_STEP_SUMMARY
             echo "1. Run: \`git checkout ${BASE_REF}\`" >> $GITHUB_STEP_SUMMARY
             echo "2. Run: \`git pull origin ${BASE_REF}\`" >> $GITHUB_STEP_SUMMARY
-            echo "3. Run: \`git checkout -b $(echo ${{ github.head_ref }} | sed 's/refs\/heads\///')-clean\`" >> $GITHUB_STEP_SUMMARY
+            echo "3. Run: \`git checkout -b $(echo ${HEAD_REF} | sed 's/refs\/heads\///')-clean\`" >> $GITHUB_STEP_SUMMARY
             echo "4. Cherry-pick only the good commits or recreate your changes" >> $GITHUB_STEP_SUMMARY
-            echo "5. Run: \`git push -u origin $(echo ${{ github.head_ref }} | sed 's/refs\/heads\///')-clean\`" >> $GITHUB_STEP_SUMMARY
+            echo "5. Run: \`git push -u origin $(echo ${HEAD_REF} | sed 's/refs\/heads\///')-clean\`" >> $GITHUB_STEP_SUMMARY
             echo "6. Close this PR and create a new one from the clean branch" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### ❓ Why can't this be automatic?" >> $GITHUB_STEP_SUMMARY
