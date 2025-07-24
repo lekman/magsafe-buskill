@@ -7,9 +7,12 @@
     "**/.DS_Store": true,
     "**/Thumbs.db": true,
     ".markdownlint.json": true,
+    ".markdownlintignore": true,
+    ".env": true,
     "CLAUDE.md": true,
     ".vscode": true,
-    ".claude": true
+    ".claude": true,
+    ".taskmaster": true
   },
   "search.exclude": {
     "**/node_modules": true,

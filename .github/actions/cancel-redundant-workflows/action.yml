@@ -1,0 +1,117 @@
+name: "Cancel Redundant Workflows"
+description: "Cancel older in-progress workflow runs when a new run is triggered"
+
+inputs:
+  token:
+    description: "GitHub token with workflow permissions"
+    required: false
+    default: ${{ github.token }}
+  only-same-workflow:
+    description: "Only cancel runs of the same workflow file"
+    required: false
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Cancel redundant workflows
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.token }}
+        script: |
+          const { owner, repo } = context.repo;
+          const currentRunId = context.runId;
+          
+          console.log(`Current run ID: ${currentRunId}`);
+          console.log(`Event: ${context.eventName}`);
+          console.log(`Ref: ${context.ref}`);
+          
+          // Get current workflow details
+          const currentRun = await github.rest.actions.getWorkflowRun({
+            owner,
+            repo,
+            run_id: currentRunId
+          });
+          
+          const workflowId = currentRun.data.workflow_id;
+          const headBranch = currentRun.data.head_branch;
+          const headSha = currentRun.data.head_sha;
+          
+          console.log(`Workflow ID: ${workflowId}`);
+          console.log(`Branch: ${headBranch}`);
+          
+          // Get all in-progress runs
+          const query = {
+            owner,
+            repo,
+            status: 'in_progress',
+            per_page: 100
+          };
+          
+          // If only cancelling same workflow, add workflow_id filter
+          if (${{ inputs.only-same-workflow }}) {
+            query.workflow_id = workflowId;
+          }
+          
+          const { data: { workflow_runs } } = await github.rest.actions.listWorkflowRuns(query);
+          
+          console.log(`Found ${workflow_runs.length} in-progress workflow runs`);
+          
+          const runsToCancel = [];
+          
+          for (const run of workflow_runs) {
+            // Skip the current run
+            if (run.id === currentRunId) {
+              continue;
+            }
+            
+            // Skip if it's a different workflow (when not filtering by workflow)
+            if (${{ inputs.only-same-workflow }} && run.workflow_id !== workflowId) {
+              continue;
+            }
+            
+            // For pull requests, cancel runs for the same PR
+            if (context.eventName === 'pull_request' && run.event === 'pull_request') {
+              const runPRs = run.pull_requests || [];
+              const currentPR = context.issue.number;
+              
+              if (runPRs.some(pr => pr.number === currentPR)) {
+                runsToCancel.push(run);
+              }
+            }
+            // For push events, cancel older runs for the same branch
+            else if (context.eventName === 'push' && run.event === 'push') {
+              if (run.head_branch === headBranch && 
+                  run.created_at < currentRun.data.created_at) {
+                runsToCancel.push(run);
+              }
+            }
+            // For other events on same branch
+            else if (run.head_branch === headBranch && 
+                     run.created_at < currentRun.data.created_at) {
+              runsToCancel.push(run);
+            }
+          }
+          
+          console.log(`Will cancel ${runsToCancel.length} redundant workflow runs`);
+          
+          // Cancel the redundant runs
+          for (const run of runsToCancel) {
+            console.log(`Cancelling run #${run.run_number} (${run.id}) - ${run.name}`);
+            try {
+              await github.rest.actions.cancelWorkflowRun({
+                owner,
+                repo,
+                run_id: run.id
+              });
+              console.log(`✅ Cancelled run ${run.id}`);
+            } catch (error) {
+              console.log(`❌ Failed to cancel run ${run.id}: ${error.message}`);
+            }
+          }
+          
+          if (runsToCancel.length === 0) {
+            console.log('✨ No redundant workflow runs to cancel');
+          } else {
+            console.log(`✅ Cancelled ${runsToCancel.length} redundant workflow runs`);
+          }

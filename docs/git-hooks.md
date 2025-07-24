@@ -42,7 +42,13 @@ git commit --no-verify -m "fix: emergency patch"
 
 ### 2. Commit Message Hook
 
-**Purpose**: Ensures commits follow Conventional Commits format
+**Purpose**: Ensures commits follow Conventional Commits format and blocks certain words
+
+**Blocked words** (case-insensitive):
+
+- `claude`
+- `anthropic`
+- `co-authored`
 
 **Valid formats**:
 

@@ -1,0 +1,192 @@
+name: Enforce Clean History
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  
+  # Prevent direct pushes to protected branches
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  cancel-redundant:
+    name: Cancel Redundant Workflows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Cancel redundant workflow runs
+        uses: ./.github/actions/cancel-redundant-workflows
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  block-direct-push:
+    name: Block Direct Push to Protected Branches
+    runs-on: ubuntu-latest
+    needs: cancel-redundant
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    
+    steps:
+      - name: Block direct push
+        run: |
+          echo "❌ Direct pushes to protected branches are not allowed!"
+          echo "Please create a pull request instead."
+          exit 1
+
+  enforce-clean-commits:
+    name: Enforce Clean Commit History
+    runs-on: ubuntu-latest
+    needs: cancel-redundant
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Scan and require clean history
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          echo "🔍 Scanning commit history for prohibited content..."
+          
+          # Define blocked words
+          BLOCKED_WORDS=("claude" "anthropic" "co-authored")
+          
+          # Get all commits in this PR
+          COMMITS=$(git log --format="%H %s" "origin/${BASE_REF}..HEAD")
+          
+          # Check for blocked words
+          VIOLATIONS=""
+          while IFS= read -r commit; do
+            HASH=$(echo "$commit" | cut -d' ' -f1)
+            MESSAGE=$(echo "$commit" | cut -d' ' -f2-)
+            
+            for word in "${BLOCKED_WORDS[@]}"; do
+              if echo "$MESSAGE" | grep -qi "$word"; then
+                VIOLATIONS="$VIOLATIONS\n  • $HASH: $MESSAGE (contains '$word')"
+              fi
+            done
+          done <<< "$COMMITS"
+          
+          if [ -n "$VIOLATIONS" ]; then
+            echo "❌ COMMIT HISTORY CONTAINS PROHIBITED WORDS"
+            echo ""
+            echo "The following commits must be removed or rewritten:"
+            echo -e "$VIOLATIONS"
+            echo ""
+            echo "📝 TO FIX THIS ISSUE:"
+            echo ""
+            echo "Option 1 - Rewrite history (recommended):"
+            echo "  git rebase -i origin/${BASE_REF}"
+            echo "  # Mark problematic commits as 'reword' or 'drop'"
+            echo "  # Save and rewrite the messages"
+            echo "  git push --force-with-lease"
+            echo ""
+            echo "Option 2 - Start fresh:"
+            echo "  git checkout ${BASE_REF}"
+            echo "  git checkout -b clean-branch"
+            echo "  # Cherry-pick only clean commits or recreate changes"
+            echo "  git push -u origin clean-branch"
+            echo ""
+            echo "⚠️ This PR cannot be merged until the history is clean."
+            
+            # Write detailed instructions to GitHub Step Summary
+            echo "## ❌ Commit History Violation Detected" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### ⚠️ IMPORTANT: You MUST delete or rewrite these commits yourself" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "GitHub Actions cannot automatically delete commits from your branch. You must clean your git history manually." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 🚫 Prohibited Commits Found:" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo -e "$VIOLATIONS" | sed 's/^/  /' >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 🛠️ Step-by-Step Fix Instructions:" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### Option 1: Delete the problematic commits (Recommended)" >> $GITHUB_STEP_SUMMARY
+            echo "1. Open your terminal and navigate to your repository" >> $GITHUB_STEP_SUMMARY
+            echo "2. Run: \`git fetch origin\`" >> $GITHUB_STEP_SUMMARY
+            echo "3. Run: \`git rebase -i origin/${BASE_REF}\`" >> $GITHUB_STEP_SUMMARY
+            echo "4. In the editor that opens:" >> $GITHUB_STEP_SUMMARY
+            echo "   - Find the commits listed above" >> $GITHUB_STEP_SUMMARY
+            echo "   - Change \`pick\` to \`drop\` for commits you want to DELETE" >> $GITHUB_STEP_SUMMARY
+            echo "   - Change \`pick\` to \`reword\` for commits you want to EDIT" >> $GITHUB_STEP_SUMMARY
+            echo "   - Save and close the editor" >> $GITHUB_STEP_SUMMARY
+            echo "5. If you chose \`reword\`, edit the commit messages to remove blocked words" >> $GITHUB_STEP_SUMMARY
+            echo "6. Run: \`git push --force-with-lease origin $(echo ${HEAD_REF} | sed 's/refs\/heads\///')\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### Option 2: Start with a clean branch" >> $GITHUB_STEP_SUMMARY
+            echo "1. Run: \`git checkout ${BASE_REF}\`" >> $GITHUB_STEP_SUMMARY
+            echo "2. Run: \`git pull origin ${BASE_REF}\`" >> $GITHUB_STEP_SUMMARY
+            echo "3. Run: \`git checkout -b $(echo ${HEAD_REF} | sed 's/refs\/heads\///')-clean\`" >> $GITHUB_STEP_SUMMARY
+            echo "4. Cherry-pick only the good commits or recreate your changes" >> $GITHUB_STEP_SUMMARY
+            echo "5. Run: \`git push -u origin $(echo ${HEAD_REF} | sed 's/refs\/heads\///')-clean\`" >> $GITHUB_STEP_SUMMARY
+            echo "6. Close this PR and create a new one from the clean branch" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### ❓ Why can't this be automatic?" >> $GITHUB_STEP_SUMMARY
+            echo "- Git history is immutable once pushed" >> $GITHUB_STEP_SUMMARY
+            echo "- Only you can rewrite your branch history" >> $GITHUB_STEP_SUMMARY
+            echo "- This protects against accidental data loss" >> $GITHUB_STEP_SUMMARY
+            echo "- GitHub Actions has read-only access to protect your code" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📋 Blocked Words:" >> $GITHUB_STEP_SUMMARY
+            echo "- \`claude\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`anthropic\`" >> $GITHUB_STEP_SUMMARY  
+            echo "- \`co-authored\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 🔄 After Fixing:" >> $GITHUB_STEP_SUMMARY
+            echo "Once you've cleaned your commit history and force-pushed, this check will run again automatically." >> $GITHUB_STEP_SUMMARY
+            
+            exit 1
+          fi
+          
+          echo "✅ Commit history is clean"
+          
+          # Write success message to GitHub Step Summary
+          echo "## ✅ Commit History Clean" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All commits in this PR have been verified and contain no prohibited words." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Checked for blocked words:" >> $GITHUB_STEP_SUMMARY
+          echo "- \`claude\` ✓" >> $GITHUB_STEP_SUMMARY
+          echo "- \`anthropic\` ✓" >> $GITHUB_STEP_SUMMARY
+          echo "- \`co-authored\` ✓" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "This PR is ready for review from a commit history perspective." >> $GITHUB_STEP_SUMMARY
+      
+      - name: Add PR comment for violations
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `## ❌ Commit History Violation
+
+            This PR contains commits with prohibited words. These commits must be removed or rewritten before merging.
+
+            ### Required Actions:
+
+            1. **Rewrite the problematic commits** using \`git rebase -i\`
+            2. **Force push** the cleaned history
+            3. **Request a new review** after fixing
+
+            ### Blocked Words:
+            - \`claude\`
+            - \`anthropic\`
+            - \`co-authored\`
+
+            Please see the [Commit Message Enforcement Guide](https://github.com/${{ github.repository }}/blob/main/docs/commit-message-enforcement.md) for detailed instructions.
+
+            ⚠️ **Note**: This is a hard requirement. The PR cannot be merged until all commits are clean.`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
