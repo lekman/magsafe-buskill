@@ -89,9 +89,16 @@ Need help or found an issue? We're here to assist:
 
    This sets up git hooks and verifies your development tools.
 
-3. **Run Prototypes**:
+3. **Build and Run**:
 
    ```bash
+   # Build the Swift package
+   swift build
+   
+   # Run the main executable
+   swift run
+   
+   # Or run prototypes directly:
    task run:poc    # Basic power monitoring
    task run:demo   # Interactive demo
    ```
@@ -116,9 +123,14 @@ Run `task` to see all available commands:
    ./scripts/setup-hooks.sh
    ```
 
-2. **Run Prototypes**:
+2. **Build and Run**:
 
    ```bash
+   # Using Swift Package Manager
+   swift build
+   swift run
+   
+   # Or run prototypes directly
    chmod +x prototypes/PowerMonitorPOC.swift
    ./prototypes/PowerMonitorPOC.swift
    ```

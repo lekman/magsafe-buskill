@@ -127,37 +127,35 @@ jobs:
         fi
 
   # CodeQL Analysis for code scanning
-  # TODO: Enable once we have a formal Swift Package.swift or Xcode project
-  # Currently disabled as we only have prototype scripts
-  # codeql:
-  #   name: CodeQL Analysis
-  #   runs-on: macos-latest
-  #   timeout-minutes: 30
-  #   
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       language: ['swift']
-  #       # Add more languages as needed: ['swift', 'javascript', 'python']
-  #   
-  #   steps:
-  #   - name: Checkout repository
-  #     uses: actions/checkout@v4
-  #     
-  #   - name: Initialize CodeQL
-  #     uses: github/codeql-action/init@v3
-  #     with:
-  #       languages: ${{ matrix.language }}
-  #       # Optionally specify custom queries
-  #       queries: security-extended,security-and-quality
-  #       
-  #   - name: Autobuild
-  #     uses: github/codeql-action/autobuild@v3
-  #     
-  #   - name: Perform CodeQL Analysis
-  #     uses: github/codeql-action/analyze@v3
-  #     with:
-  #       category: "/language:${{matrix.language}}"
+  codeql:
+    name: CodeQL Analysis
+    runs-on: macos-latest
+    timeout-minutes: 30
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['swift']
+        # Add more languages as needed: ['swift', 'javascript', 'python']
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        # Optionally specify custom queries
+        queries: security-extended,security-and-quality
+        
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+      
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
 
   # Dependency scanning
   dependency-review:
