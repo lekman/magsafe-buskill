@@ -424,3 +424,9 @@ FodyWeavers.xsd
 
 # Don't ignore important markdown files
 !README.md
+
+# Mac
+**/.DS_Store
+
+# Local scratch files
+assets/

@@ -4,6 +4,8 @@
 
 MagSafe Guard transforms your Mac's power connection into an intelligent security guard. When armed, it instantly detects if your power cable is disconnected and triggers protective actions to secure your data - perfect for protecting your laptop in coffee shops, airports, or any public space.
 
+![Demo](docs/magsafe-guard.gif)
+
 ### Key Features
 
 ⚡ **Instant Detection** - Responds in milliseconds when your power cable is disconnected  
@@ -94,10 +96,10 @@ Need help or found an issue? We're here to assist:
    ```bash
    # Build the Swift package
    swift build
-   
+
    # Run the main executable
    swift run
-   
+
    # Or run prototypes directly:
    task run:poc    # Basic power monitoring
    task run:demo   # Interactive demo
@@ -129,7 +131,7 @@ Run `task` to see all available commands:
    # Using Swift Package Manager
    swift build
    swift run
-   
+
    # Or run prototypes directly
    chmod +x prototypes/PowerMonitorPOC.swift
    ./prototypes/PowerMonitorPOC.swift
