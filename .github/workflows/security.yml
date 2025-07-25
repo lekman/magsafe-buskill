@@ -167,41 +167,33 @@ jobs:
       with:
         xcode-version: 'latest-stable'
         
-    - name: Build Swift Project
+    - name: Build Swift Project for CodeQL
+      env:
+        CODEQL_EXTRACTOR_SWIFT_LOG_LEVEL: 5
       run: |
         echo "Building MagSafe Guard for CodeQL analysis..."
-        # Clean build folder
-        rm -rf build
+        echo "Current directory: $(pwd)"
+        echo "Swift version: $(swift --version)"
         
-        # Install xcpretty for cleaner output
-        gem install xcpretty --no-document 2>/dev/null || true
-        
-        # Build using xcodebuild with minimal configuration
-        if command -v xcpretty &> /dev/null; then
-          xcodebuild -project MagSafeGuard.xcodeproj \
-                     -scheme MagSafeGuard \
-                     -configuration Debug \
-                     -derivedDataPath build \
-                     -destination 'platform=macOS' \
-                     CODE_SIGNING_ALLOWED=NO \
-                     COMPILER_INDEX_STORE_ENABLE=NO \
-                     build | xcpretty --simple --no-color
-        else
-          xcodebuild -project MagSafeGuard.xcodeproj \
-                     -scheme MagSafeGuard \
-                     -configuration Debug \
-                     -derivedDataPath build \
-                     -destination 'platform=macOS' \
-                     CODE_SIGNING_ALLOWED=NO \
-                     COMPILER_INDEX_STORE_ENABLE=NO \
-                     build
+        # Create Package.resolved if it doesn't exist
+        if [ ! -f "Package.resolved" ]; then
+          echo "Creating Package.resolved..."
+          swift package resolve
         fi
         
-        # Check if build succeeded
-        if [ $? -ne 0 ]; then
-          echo "Xcodebuild failed, trying swift build..."
-          swift build --configuration debug
-        fi
+        # Build with swift build (CodeQL prefers this)
+        echo "Building with Swift Package Manager..."
+        swift build --configuration debug --verbose
+        
+        # List built products
+        echo ""
+        echo "Built products:"
+        find .build -name "*.swiftmodule" -o -name "*.o" | head -20
+        
+        # Ensure source files are visible
+        echo ""
+        echo "Swift source files:"
+        find Sources -name "*.swift" -type f
       
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
