@@ -25,7 +25,7 @@ task init
 
 - `.githooks/pre-commit` - Security scanning
 - `.githooks/commit-msg` - Conventional commit enforcement
-- `scripts/security-check.sh` - Local security scanner
+- `task test:security` - Local security scanner
 
 ### 2. Pull Request Stage
 
@@ -165,7 +165,7 @@ task test
 task init
 
 # Manual security scan
-./scripts/security-check.sh
+task test:security
 
 # Check commit message format
 echo "feat: my feature" | ./.githooks/commit-msg

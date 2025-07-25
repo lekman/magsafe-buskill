@@ -1,11 +1,10 @@
 //
-//  PowerMonitorDemo.swift
+//  PowerMonitorDemoView.swift
 //  MagSafe Guard
 //
 //  Created on 2025-07-25.
 //
 
-import Foundation
 import SwiftUI
 
 /// Demo view for testing PowerMonitorService
@@ -133,15 +132,5 @@ class PowerMonitorDemoViewModel: ObservableObject {
         isCharging = powerInfo.isCharging
         adapterWattage = powerInfo.adapterWattage
         lastUpdate = dateFormatter.string(from: powerInfo.timestamp)
-    }
-}
-
-// Demo app entry point
-@main
-struct PowerMonitorDemoApp: App {
-    var body: some Scene {
-        WindowGroup {
-            PowerMonitorDemoView()
-        }
     }
 }

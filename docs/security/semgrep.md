@@ -150,22 +150,25 @@ If Semgrep reports a false positive:
 Semgrep provides badges to display your project's security status:
 
 1. **Navigate to Project Settings**
+
    - Go to [semgrep.dev](https://semgrep.dev)
    - Select your project
    - Click "Settings" → "Badges"
 
 2. **Available Badge Types**
+
    - **Findings Badge**: Shows number of findings
    - **Status Badge**: Shows pass/fail status
    - **Grade Badge**: Shows security grade (A-F)
 
 3. **Current Status**
+
    - Semgrep doesn't provide dynamic project-specific badges
    - We use a static "Enabled" badge to indicate integration
    - SARIF upload provides visibility in GitHub Security tab
 
 4. **Integration**
-   - Badge added to docs/qa.md
+   - Badge added to docs/QA.md
    - Results viewable in GitHub Security tab
    - PR comments with findings
 

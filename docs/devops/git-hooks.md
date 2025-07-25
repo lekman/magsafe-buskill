@@ -7,8 +7,8 @@ MagSafe Guard uses Git hooks to enforce security best practices and commit stand
 ## Quick Setup
 
 ```bash
-# Run the setup script
-./scripts/setup-hooks.sh
+# Run the setup task
+task setup-hooks
 ```
 
 This configures Git to use the hooks in `.githooks/` directory.
@@ -116,7 +116,7 @@ chmod +x .githooks/*
 git config core.hooksPath
 
 # Re-run setup
-./scripts/setup-hooks.sh
+task setup-hooks
 ```
 
 ### False positives in security scan
@@ -162,7 +162,7 @@ git commit -m "your message" --dry-run
 When new developers join:
 
 1. Clone the repository
-2. Run `./scripts/setup-hooks.sh`
+2. Run `task setup-hooks`
 3. Optionally install Semgrep for enhanced scanning
 4. Make a test commit to verify setup
 

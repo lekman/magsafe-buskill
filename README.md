@@ -4,7 +4,7 @@
 
 MagSafe Guard transforms your Mac's power connection into an intelligent security guard. When armed, it instantly detects if your power cable is disconnected and triggers protective actions to secure your data - perfect for protecting your laptop in coffee shops, airports, or any public space.
 
-![Demo](docs/magsafe-guard.gif)
+![Demo](docs/assets/magsafe-guard.gif)
 
 ### Key Features
 
@@ -41,7 +41,7 @@ Special thanks to:
 
 MagSafe Guard is fully open source software, licensed under the [MIT License](LICENSE). We believe in transparency and community-driven development for security tools.
 
-For information about contributing to the project, please see our [Contributors Guide](CONTRIBUTORS.md).
+For information about contributing to the project, please see our [Contributors Guide](docs/CONTRIBUTORS.md).
 
 ## Installation
 
@@ -68,13 +68,15 @@ Need help or found an issue? We're here to assist:
 
 ### Documentation
 
-- [Requirements & Specifications](requirements.md)
-- [Configuration Guide](docs/config-examples.yaml)
-- [Authentication Flow](docs/auth-flow-design.md)
-- [CI/CD Workflows](docs/ci-cd-workflows.md)
+- [Requirements & Specifications](docs/REQUIREMENTS.md)
+- [Configuration Guide](docs/examples/config-examples.yaml)
+- [Authentication Flow](docs/architecture/auth-flow-design.md)
+- [CI/CD Workflows](docs/devops/ci-cd-workflows.md)
 - [Developer Documentation](docs/) - _More sections coming soon_
 
 ## Development
+
+> **Note:** MagSafe Guard is an Xcode project. For the best development experience, use Xcode for building, running, and testing. The command-line tools mentioned below are primarily for CI/CD automation.
 
 ### Quick Start
 
@@ -95,48 +97,32 @@ Need help or found an issue? We're here to assist:
 3. **Build and Run**:
 
    ```bash
-   # Build the Swift package
-   swift build
-
-   # Run the main executable
-   swift run
-
-   # Or run prototypes directly:
-   task run:poc    # Basic power monitoring
-   task run:demo   # Interactive demo
+   # Open in Xcode (recommended)
+   open MagSafeGuard.xcodeproj
    ```
 
-### Available Tasks
+   In Xcode:
+   - Press `⌘B` to build
+   - Press `⌘R` to run
+   - Look for the lock shield icon in your menu bar
 
-Run `task` to see all available commands:
+### Testing
 
-- `task init` - Set up development environment
-- `task test` - Run all tests
-- `task test:security` - Run security checks
-- `task lint` - Run linters
-- `task lint:fix` - Auto-fix markdown formatting issues
-- `task pre-push` - Run all checks before pushing
-- `task commit` - Interactive conventional commit
+**For Development Testing:**
+- Use Xcode's Test Navigator (`⌘5`)
+- Press `⌘U` to run all tests
+- Use the demo window in the app to test power detection
 
-### Manual Setup (without Task)
+**For CI/CD Pipeline:**
 
-1. **Configure Git Hooks**:
+The following tasks are used by our automated CI/CD pipeline and are not needed for normal development:
 
-   ```bash
-   ./scripts/setup-hooks.sh
-   ```
-
-2. **Build and Run**:
-
-   ```bash
-   # Using Swift Package Manager
-   swift build
-   swift run
-
-   # Or run prototypes directly
-   chmod +x prototypes/PowerMonitorPOC.swift
-   ./prototypes/PowerMonitorPOC.swift
-   ```
+```bash
+task test           # Run all tests (CI/CD)
+task test:security  # Run security checks (CI/CD)
+task lint          # Run linters (CI/CD)
+task pre-push      # Pre-push checks (CI/CD)
+```
 
 ## System Requirements
 
@@ -157,7 +143,7 @@ Security is our top priority. We use multiple tools to ensure code quality:
 - **Semgrep** - Static analysis for security patterns
 - **Snyk** - Vulnerability scanning (protected by [Snyk](https://snyk.io))
 
-View our [Security Dashboard](./docs/qa.md) for detailed status.
+View our [Security Dashboard](docs/QA.md) for detailed status.
 
 ## Privacy & Security
 
@@ -169,43 +155,43 @@ View our [Security Dashboard](./docs/qa.md) for detailed status.
 ## Project Task Status
 
 <!-- TASKMASTER_EXPORT_START -->
+
 > 🎯 **Taskmaster Export** - 2025-07-25 04:23:20 UTC
 > 📋 Export: without subtasks • Status filter: none
 > 🔗 Powered by [Task Master](https://task-master.dev?utm_source=github-readme&utm_medium=readme-export&utm_campaign=magsafe-buskill&utm_content=task-export-link)
 
-| Project Dashboard |  |
-| :-                |:-|
+| Project Dashboard |                         |
+| :---------------- | :---------------------- |
 | Task Progress     | █░░░░░░░░░░░░░░░░░░░ 7% |
-| Done | 1 |
-| In Progress | 0 |
-| Pending | 14 |
-| Deferred | 0 |
-| Cancelled | 0 |
-|-|-|
-| Subtask Progress | ░░░░░░░░░░░░░░░░░░░░ 0% |
-| Completed | 0 |
-| In Progress | 0 |
-| Pending | 90 |
+| Done              | 1                       |
+| In Progress       | 0                       |
+| Pending           | 14                      |
+| Deferred          | 0                       |
+| Cancelled         | 0                       |
+| -                 | -                       |
+| Subtask Progress  | ░░░░░░░░░░░░░░░░░░░░ 0% |
+| Completed         | 0                       |
+| In Progress       | 0                       |
+| Pending           | 90                      |
 
-
-| ID | Title | Status | Priority | Dependencies | Complexity |
-| :- | :-    | :-     | :-       | :-           | :-         |
-| 1 | Setup Project Repository and Structure | ✓&nbsp;done | high | None | ● 4 |
-| 2 | Implement Power Monitoring Service | ○&nbsp;pending | high | 1 | ● 7 |
-| 3 | Implement Authentication Service | ○&nbsp;pending | high | 1 | ● 6 |
-| 4 | Implement Security Actions Service | ○&nbsp;pending | high | 1 | ● 7 |
-| 5 | Create Menu Bar UI Component | ○&nbsp;pending | high | 1 | ● 6 |
-| 6 | Implement Core Application Logic | ○&nbsp;pending | high | 2, 3, 4, 5 | ● 8 |
-| 7 | Implement Settings UI and Persistence | ○&nbsp;pending | medium | 1, 6 | ● 6 |
-| 8 | Implement Auto-Arm Feature | ○&nbsp;pending | medium | 6, 7 | ● 7 |
-| 9 | Implement Find My Mac Integration | ○&nbsp;pending | low | 6 | ● 5 |
-| 10 | Implement Custom Script Execution | ○&nbsp;pending | low | 6, 7 | ● 6 |
-| 11 | Implement Network Actions | ○&nbsp;pending | low | 6, 7 | ● 6 |
-| 12 | Implement Data Protection Features | ○&nbsp;pending | low | 6, 7 | ● 7 |
-| 13 | Implement Accessibility Features | ○&nbsp;pending | medium | 5, 7 | ● 6 |
-| 14 | Implement Documentation and Help System | ○&nbsp;pending | medium | 1, 5, 6, 7 | ● 5 |
-| 15 | Implement Code Signing and Distribution | ○&nbsp;pending | high | 1, 2, 3, 4, 5, 6, 7 | ● 8 |
+| ID  | Title                                   | Status         | Priority | Dependencies        | Complexity |
+| :-- | :-------------------------------------- | :------------- | :------- | :------------------ | :--------- |
+| 1   | Setup Project Repository and Structure  | ✓&nbsp;done    | high     | None                | ● 4        |
+| 2   | Implement Power Monitoring Service      | ○&nbsp;pending | high     | 1                   | ● 7        |
+| 3   | Implement Authentication Service        | ○&nbsp;pending | high     | 1                   | ● 6        |
+| 4   | Implement Security Actions Service      | ○&nbsp;pending | high     | 1                   | ● 7        |
+| 5   | Create Menu Bar UI Component            | ○&nbsp;pending | high     | 1                   | ● 6        |
+| 6   | Implement Core Application Logic        | ○&nbsp;pending | high     | 2, 3, 4, 5          | ● 8        |
+| 7   | Implement Settings UI and Persistence   | ○&nbsp;pending | medium   | 1, 6                | ● 6        |
+| 8   | Implement Auto-Arm Feature              | ○&nbsp;pending | medium   | 6, 7                | ● 7        |
+| 9   | Implement Find My Mac Integration       | ○&nbsp;pending | low      | 6                   | ● 5        |
+| 10  | Implement Custom Script Execution       | ○&nbsp;pending | low      | 6, 7                | ● 6        |
+| 11  | Implement Network Actions               | ○&nbsp;pending | low      | 6, 7                | ● 6        |
+| 12  | Implement Data Protection Features      | ○&nbsp;pending | low      | 6, 7                | ● 7        |
+| 13  | Implement Accessibility Features        | ○&nbsp;pending | medium   | 5, 7                | ● 6        |
+| 14  | Implement Documentation and Help System | ○&nbsp;pending | medium   | 1, 5, 6, 7          | ● 5        |
+| 15  | Implement Code Signing and Distribution | ○&nbsp;pending | high     | 1, 2, 3, 4, 5, 6, 7 | ● 8        |
 
 > 📋 **End of Taskmaster Export** - Tasks are synced from your project using the `sync-readme` command.
-<!-- TASKMASTER_EXPORT_END -->
 
+<!-- TASKMASTER_EXPORT_END -->

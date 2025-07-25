@@ -65,7 +65,7 @@ Security Requirements:
 **Artifacts Created:**
 
 - `docs/SECURITY.md` - Security policy
-- `docs/auth-flow-design.md` - Authentication design
+- `docs/architecture/auth-flow-design.md` - Authentication design
 - Threat model diagrams
 
 ### 2. Development Phase
@@ -83,7 +83,7 @@ Security Requirements:
 # .githooks/pre-commit
 #!/bin/bash
 # Scan for secrets before committing
-./scripts/security-check.sh || exit 1
+task test:security || exit 1
 ```
 
 ### 3. Testing Phase
@@ -285,7 +285,7 @@ repos:
 ```ini
 docs/
 ├── SECURITY.md          # Security policy & reporting
-├── qa.md               # Quality dashboard with badges
+├── QA.md               # Quality dashboard with badges
 ├── ssdlc-case-study.md # This document
 ├── semgrep.md          # Tool-specific guides
 ├── snyk-integration.md
@@ -301,7 +301,7 @@ docs/
 - Response SLAs
 - Disclosure policy
 
-#### Quality Dashboard (qa.md)
+#### Quality Dashboard (QA.md)
 
 - Real-time security status
 - All tool badges
@@ -359,7 +359,7 @@ We provide:
 **Solution**: Optional local scans, clear fix instructions
 
 **Challenge**: Multiple tool dashboards
-**Solution**: Unified quality dashboard (qa.md)
+**Solution**: Unified quality dashboard (QA.md)
 
 ### Best Practices Discovered
 
@@ -381,7 +381,7 @@ All configurations and workflows from MagSafe Guard are reusable:
 .github/workflows/test.yml          # Testing + coverage
 .github/SECURITY.md                 # Security policy
 .githooks/                          # Pre-commit hooks
-docs/qa.md                         # Quality dashboard
+docs/QA.md                         # Quality dashboard
 ```
 
 ### Quick Start Checklist

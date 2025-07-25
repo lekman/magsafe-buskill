@@ -55,7 +55,7 @@ tasks:
     silent: true
 
   setup-hooks:
-    desc: Configure git hooks
+    desc: Configure git hooks for MagSafe Guard development
     vars:
       CURRENT_HOOKS_PATH:
         sh: git config core.hooksPath || echo ""
@@ -63,10 +63,34 @@ tasks:
       - test "{{.CURRENT_HOOKS_PATH}}" = "{{.HOOKS_PATH}}"
     cmds:
       - |
-        echo "🔧 Setting up git hooks..."
+        echo "🔧 Setting up MagSafe Guard development environment..."
+        
+        # Configure git to use our hooks directory
         git config core.hooksPath {{.HOOKS_PATH}}
-        chmod +x {{.HOOKS_PATH}}/*
+        chmod +x {{.HOOKS_PATH}}/* 2>/dev/null || true
+        
         echo "✅ Git hooks configured"
+        
+        # Check if Semgrep is installed
+        if command -v semgrep &> /dev/null; then
+          echo "✅ Semgrep is installed (version: $(semgrep --version | head -1))"
+        else
+          echo "ℹ️  Semgrep not installed (optional but recommended)"
+          echo "   To install: brew install semgrep"
+          echo "   Pre-commit will still run basic security checks"
+        fi
+        
+        echo ""
+        echo "Git hooks will now:"
+        echo "  • Check for hardcoded secrets in Swift files"
+        echo "  • Detect private key files"
+        echo "  • Prevent committing .env files"
+        echo "  • Run Semgrep scan (if installed)"
+        echo "  • Validate commit message format (Conventional Commits)"
+        echo "  • Block certain words in commit messages"
+        echo ""
+        echo "To bypass hooks in emergencies: git commit --no-verify"
+        echo "To skip Semgrep only: SKIP_SEMGREP=1 git commit"
     silent: true
 
   verify-setup:
@@ -243,19 +267,38 @@ tasks:
         rm -rf *.xcodeproj
         echo "✅ Clean complete"
 
-  run:poc:
-    desc: Run the basic proof of concept
+  run:
+    desc: Build and run MagSafe Guard
     cmds:
       - |
-        echo "🚀 Running PowerMonitor POC..."
-        ./prototypes/PowerMonitorPOC.swift
-
-  run:demo:
-    desc: Run the interactive demo
-    cmds:
-      - |
-        echo "🚀 Running PowerMonitor Advanced Demo..."
-        ./prototypes/PowerMonitorAdvanced.swift
+        echo "🚀 Building MagSafe Guard..."
+        
+        # Try xcodebuild first for proper bundling
+        if command -v xcodebuild &> /dev/null; then
+          xcodebuild -project MagSafeGuard.xcodeproj \
+                     -scheme MagSafeGuard \
+                     -configuration Debug \
+                     -derivedDataPath build \
+                     build
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Build successful!"
+            APP_PATH="build/Build/Products/Debug/MagSafeGuard.app"
+            if [ -d "$APP_PATH" ]; then
+              echo "Launching MagSafe Guard..."
+              open "$APP_PATH"
+              echo "Look for the lock shield icon in your menu bar."
+            fi
+          else
+            echo "❌ Build failed"
+            exit 1
+          fi
+        else
+          # Fallback to swift build
+          swift build
+          echo "✅ Build complete. Run: .build/debug/MagSafeGuard"
+          echo "Note: For proper app bundle, use Xcode."
+        fi
 
   dev:setup:
     desc: Complete development setup (hooks + tools)

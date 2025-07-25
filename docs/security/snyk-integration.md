@@ -59,7 +59,7 @@ Snyk provides free vulnerability scanning for open source projects. This guide w
 1. In project overview, click "Settings"
 2. Click "Badge"
 3. Copy the markdown code
-4. The badge is already added to `docs/qa.md`
+4. The badge is already added to `docs/QA.md`
 
 ### 5. GitHub Integration (Optional)
 
@@ -241,10 +241,12 @@ Document your security policy:
 If Snyk doesn't meet your needs:
 
 1. **GitHub Dependabot** (free)
+
    - Basic dependency scanning
    - Integrated with GitHub
 
 2. **WhiteSource Renovate** (free for OSS)
+
    - Aggressive dependency updates
    - More configuration options
 

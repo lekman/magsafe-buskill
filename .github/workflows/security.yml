@@ -162,8 +162,46 @@ jobs:
         # Optionally specify custom queries
         queries: security-extended,security-and-quality
         
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v3
+    - name: Set up Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: 'latest-stable'
+        
+    - name: Build Swift Project
+      run: |
+        echo "Building MagSafe Guard for CodeQL analysis..."
+        # Clean build folder
+        rm -rf build
+        
+        # Install xcpretty for cleaner output
+        gem install xcpretty --no-document 2>/dev/null || true
+        
+        # Build using xcodebuild with minimal configuration
+        if command -v xcpretty &> /dev/null; then
+          xcodebuild -project MagSafeGuard.xcodeproj \
+                     -scheme MagSafeGuard \
+                     -configuration Debug \
+                     -derivedDataPath build \
+                     -destination 'platform=macOS' \
+                     CODE_SIGNING_ALLOWED=NO \
+                     COMPILER_INDEX_STORE_ENABLE=NO \
+                     build | xcpretty --simple --no-color
+        else
+          xcodebuild -project MagSafeGuard.xcodeproj \
+                     -scheme MagSafeGuard \
+                     -configuration Debug \
+                     -derivedDataPath build \
+                     -destination 'platform=macOS' \
+                     CODE_SIGNING_ALLOWED=NO \
+                     COMPILER_INDEX_STORE_ENABLE=NO \
+                     build
+        fi
+        
+        # Check if build succeeded
+        if [ $? -ne 0 ]; then
+          echo "Xcodebuild failed, trying swift build..."
+          swift build --configuration debug
+        fi
       
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3

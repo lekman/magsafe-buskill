@@ -11,7 +11,7 @@ Located in `.githooks/commit-msg`, these run on your machine:
 - ✅ Instant feedback before commit
 - ✅ No network required
 - ⚠️ Can be bypassed with `--no-verify`
-- 📝 Configured via `./scripts/setup-hooks.sh`
+- 📝 Configured via `task setup-hooks`
 
 ### 2. GitHub Actions (Server-Side Enforcement)
 
