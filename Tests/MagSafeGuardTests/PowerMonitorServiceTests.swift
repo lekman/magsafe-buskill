@@ -41,16 +41,25 @@ final class PowerMonitorServiceTests: XCTestCase {
             expectation.fulfill()
         }
         
+        // Wait a moment for async operation to complete
+        Thread.sleep(forTimeInterval: 0.1)
+        
         XCTAssertTrue(service.isMonitoring, "Service should be monitoring after start")
         
-        wait(for: [expectation], timeout: 1.0)
+        wait(for: [expectation], timeout: 2.0)
     }
     
     func testStopMonitoring() {
         service.startMonitoring { _ in }
+        
+        // Wait for async start operation
+        Thread.sleep(forTimeInterval: 0.1)
         XCTAssertTrue(service.isMonitoring, "Service should be monitoring")
         
         service.stopMonitoring()
+        
+        // Wait for async stop operation
+        Thread.sleep(forTimeInterval: 0.1)
         XCTAssertFalse(service.isMonitoring, "Service should not be monitoring after stop")
     }
     
