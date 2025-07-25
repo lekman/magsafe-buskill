@@ -317,12 +317,14 @@ jobs:
       continue-on-error: true
         
     - name: Check TruffleHog Results
+      env:
+        TRUFFLEHOG_OUTCOME: ${{ steps.trufflehog.outcome }}
+        DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
       run: |
-        if [[ "${{ steps.trufflehog.outcome }}" == "failure" ]]; then
+        if [[ "$TRUFFLEHOG_OUTCOME" == "failure" ]]; then
           echo "TruffleHog scan failed. Checking if it's due to BASE==HEAD..."
           
           # Get the default branch commit
-          DEFAULT_BRANCH="${{ github.event.repository.default_branch }}"
           BASE_COMMIT=$(git rev-parse "origin/${DEFAULT_BRANCH}" 2>/dev/null || echo "")
           HEAD_COMMIT=$(git rev-parse HEAD)
           
@@ -503,36 +505,42 @@ jobs:
     
     steps:
     - name: Security Scan Summary
+      env:
+        BASIC_CHECKS_RESULT: ${{ needs.basic-checks.result }}
+        CODEQL_RESULT: ${{ needs.codeql.result }}
+        DEPENDENCY_REVIEW_RESULT: ${{ needs.dependency-review.result }}
+        TRUFFLEHOG_RESULT: ${{ needs.trufflehog.result }}
+        SEMGREP_RESULT: ${{ needs.semgrep.result }}
       run: |
         echo "## Security Scan Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
         # Check job statuses
-        if [ "${{ needs.basic-checks.result }}" == "success" ]; then
+        if [ "$BASIC_CHECKS_RESULT" == "success" ]; then
           echo "✅ Basic Security Checks: Passed" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ Basic Security Checks: Failed" >> $GITHUB_STEP_SUMMARY
         fi
         
-        if [ "${{ needs.codeql.result }}" == "success" ]; then
+        if [ "$CODEQL_RESULT" == "success" ]; then
           echo "✅ CodeQL Analysis: Passed" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ CodeQL Analysis: Failed" >> $GITHUB_STEP_SUMMARY
         fi
         
-        if [ "${{ needs.dependency-review.result }}" == "success" ] || [ "${{ needs.dependency-review.result }}" == "skipped" ]; then
+        if [ "$DEPENDENCY_REVIEW_RESULT" == "success" ] || [ "$DEPENDENCY_REVIEW_RESULT" == "skipped" ]; then
           echo "✅ Dependency Review: Passed" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ Dependency Review: Failed" >> $GITHUB_STEP_SUMMARY
         fi
         
-        if [ "${{ needs.trufflehog.result }}" == "success" ]; then
+        if [ "$TRUFFLEHOG_RESULT" == "success" ]; then
           echo "✅ Secret Scanning: Passed" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ Secret Scanning: Failed" >> $GITHUB_STEP_SUMMARY
         fi
         
-        if [ "${{ needs.semgrep.result }}" == "success" ]; then
+        if [ "$SEMGREP_RESULT" == "success" ]; then
           echo "✅ SAST (Semgrep): Passed" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ SAST (Semgrep): Failed" >> $GITHUB_STEP_SUMMARY
