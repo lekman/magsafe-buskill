@@ -24,7 +24,7 @@ xcode-select --install
 
 ## Project Structure
 
-```
+```ini
 MagSafeGuard/
 ├── Sources/
 │   └── MagSafeGuard/
@@ -54,10 +54,12 @@ MagSafeGuard/
    ```
 
 2. **Select scheme and destination**:
+
    - Scheme: `MagSafeGuard`
    - Destination: `My Mac`
 
 3. **Build**:
+
    - Press `⌘B` (Command+B)
    - Or select `Product → Build`
 
@@ -178,7 +180,7 @@ View print statements and logs:
 
 ### Common Debug Messages
 
-```
+```text
 [PowerMonitorService] Started monitoring (mode: notifications)
 [AppDelegate] Power state: Power adapter connected
 [PowerMonitorService] Power state changed via notification: Power adapter disconnected
@@ -331,6 +333,7 @@ sudo xcode-select -s /Applications/Xcode.app
 ### Creating a Release Build
 
 1. **In Xcode**:
+
    - Select "Any Mac" as destination
    - Product → Archive
    - Distribute App → Direct Distribution
@@ -371,6 +374,7 @@ hdiutil create -volname "MagSafe Guard" \
 ### Recommended Xcode Settings
 
 1. **Preferences → Text Editing**:
+
    - Line numbers: On
    - Code folding: On
    - Page guide at column: 120
@@ -401,11 +405,11 @@ jobs:
   build:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Build
-      run: swift build
-    - name: Test
-      run: swift test
+      - uses: actions/checkout@v3
+      - name: Build
+        run: swift build
+      - name: Test
+        run: swift test
 ```
 
 ## Quick Commands Reference

@@ -8,7 +8,7 @@ This guide covers testing strategies, procedures, and best practices for MagSafe
 
 ### Test Structure
 
-```
+```ini
 Tests/
 └── MagSafeGuardTests/
     ├── MagSafeGuardTests.swift      # Basic app tests
@@ -42,15 +42,15 @@ swift test --filter PowerMonitorServiceTests.testStartMonitoring
 
 #### PowerMonitorServiceTests
 
-| Test | Purpose | Status |
-|------|---------|--------|
-| `testServiceSingleton` | Verify singleton pattern | ✅ |
-| `testInitialState` | Check default values | ✅ |
-| `testStartMonitoring` | Validate monitoring starts | ✅ |
-| `testStopMonitoring` | Ensure cleanup works | ✅ |
-| `testGetCurrentPowerInfo` | Test sync power check | ✅ |
-| `testObjectiveCCompatibility` | ObjC bridge testing | ✅ |
-| `testPowerStateEnum` | Enum values/descriptions | ✅ |
+| Test                          | Purpose                    | Status |
+| ----------------------------- | -------------------------- | ------ |
+| `testServiceSingleton`        | Verify singleton pattern   | ✅     |
+| `testInitialState`            | Check default values       | ✅     |
+| `testStartMonitoring`         | Validate monitoring starts | ✅     |
+| `testStopMonitoring`          | Ensure cleanup works       | ✅     |
+| `testGetCurrentPowerInfo`     | Test sync power check      | ✅     |
+| `testObjectiveCCompatibility` | ObjC bridge testing        | ✅     |
+| `testPowerStateEnum`          | Enum values/descriptions   | ✅     |
 
 ### Writing New Tests
 
@@ -61,14 +61,14 @@ func testNewFeature() {
     // Arrange
     let service = PowerMonitorService.shared
     let expectation = XCTestExpectation(description: "Callback fired")
-    
+
     // Act
     service.startMonitoring { powerInfo in
         // Assert
         XCTAssertNotNil(powerInfo)
         expectation.fulfill()
     }
-    
+
     // Wait
     wait(for: [expectation], timeout: 1.0)
 }
@@ -80,17 +80,17 @@ func testNewFeature() {
 func testAsyncPowerChange() {
     let expectation = XCTestExpectation(description: "Power state changed")
     var callCount = 0
-    
+
     service.startMonitoring { _ in
         callCount += 1
         if callCount > 1 {
             expectation.fulfill()
         }
     }
-    
+
     // Simulate power change
     // Note: Actual power changes require manual testing
-    
+
     wait(for: [expectation], timeout: 5.0)
 }
 ```
@@ -102,11 +102,13 @@ func testAsyncPowerChange() {
 **Test Scenarios**:
 
 1. **Normal Operation**:
+
    - Plug in power → Verify "connected" state
    - Unplug power → Verify "disconnected" state
    - Multiple cycles → Ensure consistency
 
 2. **Edge Cases**:
+
    - Rapid plug/unplug cycles
    - Sleep/wake with power changes
    - Multiple power adapters (if available)
@@ -122,7 +124,7 @@ func testAsyncPowerChange() {
 
 1. **Launch Test**:
 
-   ```
+   ```text
    ✓ App launches without crash
    ✓ No dock icon appears
    ✓ Menu bar icon visible
@@ -130,7 +132,7 @@ func testAsyncPowerChange() {
 
 2. **Menu Test**:
 
-   ```
+   ```text
    ✓ Click opens menu
    ✓ All items visible
    ✓ Keyboard shortcuts work
@@ -139,7 +141,7 @@ func testAsyncPowerChange() {
 
 3. **State Management**:
 
-   ```
+   ```text
    ✓ Armed state persists
    ✓ Icon updates on state change
    ✓ Menu reflects current state
@@ -150,11 +152,13 @@ func testAsyncPowerChange() {
 ### Basic Functionality Test
 
 1. **Setup**:
+
    - Build and run app
    - Open demo window
    - Have power adapter ready
 
 2. **Power Detection**:
+
    - Start monitoring in demo
    - Unplug power adapter
    - Verify: Icon red, state "disconnected"
@@ -224,6 +228,7 @@ Test on:
    ```
 
 2. **Select Templates**:
+
    - Time Profiler: CPU usage
    - Allocations: Memory usage
    - Energy Log: Battery impact
@@ -257,14 +262,14 @@ class MagSafeGuardUITests: XCTestCase {
     func testMenuBarInteraction() {
         let app = XCUIApplication()
         app.launch()
-        
+
         // Find menu bar item
         let menuBar = app.menuBars
         let statusItem = menuBar.statusItems["MagSafe Guard"]
-        
+
         // Click to open menu
         statusItem.click()
-        
+
         // Verify menu items
         XCTAssert(app.menuItems["Arm"].exists)
     }
@@ -282,34 +287,36 @@ jobs:
   test:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Run tests
-      run: |
-        swift test
-        xcodebuild test -scheme MagSafeGuard
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          swift test
+          xcodebuild test -scheme MagSafeGuard
 ```
 
 ## Test Data and Scenarios
 
 ### Power States Test Matrix
 
-| Scenario | Initial State | Action | Expected Result |
-|----------|--------------|--------|-----------------|
-| Normal connect | Disconnected | Plug adapter | Connected state |
-| Normal disconnect | Connected | Unplug adapter | Disconnected state |
-| Armed disconnect | Armed + Connected | Unplug | Screen lock |
-| Disarmed disconnect | Disarmed + Connected | Unplug | No action |
-| Sleep transition | Connected | Sleep Mac | State maintained |
-| Wake transition | Any | Wake Mac | State updated |
+| Scenario            | Initial State        | Action         | Expected Result    |
+| ------------------- | -------------------- | -------------- | ------------------ |
+| Normal connect      | Disconnected         | Plug adapter   | Connected state    |
+| Normal disconnect   | Connected            | Unplug adapter | Disconnected state |
+| Armed disconnect    | Armed + Connected    | Unplug         | Screen lock        |
+| Disarmed disconnect | Disarmed + Connected | Unplug         | No action          |
+| Sleep transition    | Connected            | Sleep Mac      | State maintained   |
+| Wake transition     | Any                  | Wake Mac       | State updated      |
 
 ### Error Scenarios
 
 1. **IOKit Failure**:
+
    - Simulate by denying permissions
    - Should fall back to polling
    - Log appropriate errors
 
 2. **Memory Pressure**:
+
    - Run with memory constraints
    - Should handle gracefully
    - No crashes or data loss
@@ -328,7 +335,7 @@ jobs:
    ```swift
    // Bad: Fixed delay
    Thread.sleep(forTimeInterval: 1.0)
-   
+
    // Good: Expectation with timeout
    wait(for: [expectation], timeout: 5.0)
    ```

@@ -109,6 +109,7 @@ Need help or found an issue? We're here to assist:
 ### Testing
 
 **For Development Testing:**
+
 - Use Xcode's Test Navigator (`⌘5`)
 - Press `⌘U` to run all tests
 - Use the demo window in the app to test power detection

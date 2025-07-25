@@ -32,7 +32,7 @@ private func updateStatusIcon() {
     if let button = statusItem?.button {
         let iconName = isArmed ? "lock.shield.fill" : "lock.shield"
         button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "MagSafe Guard")
-        
+
         if isArmed {
             button.contentTintColor = .systemRed
         } else {
@@ -46,7 +46,7 @@ private func updateStatusIcon() {
 
 ### Current Menu Layout
 
-```
+```text
 ┌─────────────────────────┐
 │ Armed/Disarmed          │ (Status indicator)
 ├─────────────────────────┤
@@ -67,17 +67,17 @@ private func updateStatusIcon() {
 ```swift
 private func setupMenu() {
     let menu = NSMenu()
-    
+
     // Status indicator (disabled)
     let statusMenuItem = NSMenuItem(title: isArmed ? "Armed" : "Disarmed", action: nil, keyEquivalent: "")
     statusMenuItem.isEnabled = false
     menu.addItem(statusMenuItem)
-    
+
     // Actions
     menu.addItem(NSMenuItem(title: isArmed ? "Disarm" : "Arm", action: #selector(toggleArmed), keyEquivalent: "a"))
-    
+
     // ... additional items
-    
+
     statusItem?.menu = menu
 }
 ```
@@ -125,19 +125,19 @@ NSApp.setActivationPolicy(.accessory)
 @objc private func showDemo() {
     if demoWindow == nil {
         let demoView = PowerMonitorDemoView()
-        
+
         demoWindow = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 480, height: 600),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
-        
+
         demoWindow?.title = "Power Monitor Demo"
         demoWindow?.contentView = NSHostingView(rootView: demoView)
         demoWindow?.center()
     }
-    
+
     demoWindow?.makeKeyAndOrderFront(nil)
     NSApp.activate(ignoringOtherApps: true)
 }
@@ -239,7 +239,7 @@ private var isArmed = false {
 
 Run from Xcode to see debug prints:
 
-```
+```text
 [AppDelegate] Power state: Power adapter connected
 [PowerMonitorService] Started monitoring (mode: notifications)
 ⚠️ SECURITY ALERT: Power disconnected while armed!
@@ -248,11 +248,13 @@ Run from Xcode to see debug prints:
 ### Common Issues
 
 1. **Menu Not Appearing**:
+
    - Check `statusItem` creation
    - Verify button has image
    - Ensure menu assignment
 
 2. **Icon Not Changing**:
+
    - Verify `updateStatusIcon` called
    - Check tint color support
    - Test with different icons

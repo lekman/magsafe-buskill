@@ -8,7 +8,7 @@ The demo window provides a graphical interface for testing and visualizing the P
 
 ### SwiftUI View Structure
 
-```
+```ini
 PowerMonitorDemoView
 ├── VStack (main container)
     ├── Title
@@ -42,7 +42,7 @@ HStack {
     Image(systemName: viewModel.isConnected ? "bolt.fill" : "bolt.slash")
         .foregroundColor(viewModel.isConnected ? .green : .red)
         .font(.system(size: 50))
-    
+
     VStack(alignment: .leading) {
         Text("Power State: \(viewModel.powerState)")
             .font(.headline)
@@ -65,11 +65,11 @@ HStack {
 VStack {
     Text("Battery Level: \(batteryLevel)%")
         .font(.headline)
-    
+
     ProgressView(value: Double(batteryLevel), total: 100)
         .progressViewStyle(.linear)
         .frame(width: 200)
-    
+
     if viewModel.isCharging {
         Label("Charging", systemImage: "battery.100.bolt")
             .foregroundColor(.green)
@@ -110,7 +110,7 @@ class PowerMonitorDemoViewModel: ObservableObject {
     @Published var adapterWattage: Int?
     @Published var lastUpdate = "Never"
     @Published var isMonitoring = false
-    
+
     private let powerMonitor = PowerMonitorService.shared
 }
 ```
@@ -157,19 +157,19 @@ private let dateFormatter: DateFormatter = {
 @objc private func showDemo() {
     if demoWindow == nil {
         let demoView = PowerMonitorDemoView()
-        
+
         demoWindow = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 480, height: 600),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
-        
+
         demoWindow?.title = "Power Monitor Demo"
         demoWindow?.contentView = NSHostingView(rootView: demoView)
         demoWindow?.center()
     }
-    
+
     demoWindow?.makeKeyAndOrderFront(nil)
     NSApp.activate(ignoringOtherApps: true)
 }
@@ -223,11 +223,13 @@ private let dateFormatter: DateFormatter = {
 ### Common Issues
 
 1. **Window Not Opening**:
+
    - Check if `demoWindow` is nil
    - Verify SwiftUI imports
    - Check for compilation errors
 
 2. **No Updates**:
+
    - Ensure monitoring is started
    - Check PowerMonitorService is working
    - Verify callback registration
@@ -268,7 +270,7 @@ func updateUI(with powerInfo: PowerMonitorService.PowerInfo) {
 
 ### File Structure
 
-```
+```ini
 Views/
 └── PowerMonitorDemoView.swift
     ├── PowerMonitorDemoView (SwiftUI View)
