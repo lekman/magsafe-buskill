@@ -62,8 +62,19 @@ jobs:
             -format="lcov" > sonar-coverage.lcov
         fi
     
+    - name: Install SonarScanner
+      run: |
+        brew install sonar-scanner
+    
     - name: SonarCloud Scan
-      uses: SonarSource/sonarcloud-github-action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: |
+        sonar-scanner \
+          -Dsonar.host.url=https://sonarcloud.io \
+          -Dsonar.projectKey=lekman_magsafe-buskill \
+          -Dsonar.organization=lekman \
+          -Dsonar.sources=Sources \
+          -Dsonar.tests=Tests \
+          -Dsonar.swift.coverage.reportPaths=coverage.lcov,sonar-coverage.lcov
