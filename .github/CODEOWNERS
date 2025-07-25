@@ -1,38 +1,21 @@
 # CODEOWNERS for MagSafe Guard
-# This file defines code ownership for automatic PR review requests
-# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+# This file defines who reviews PRs for different parts of the codebase
 
-# Default owners for everything in the repo
-# These owners will be requested for review when someone opens a pull request
+# Global owners - these users will be requested for review on all PRs
 * @lekman
-
-# Documentation owners
-/docs/ @lekman
-*.md @lekman
-/README.md @lekman
-/CONTRIBUTORS.md @lekman
 
 # Swift source code
 *.swift @lekman
-/prototypes/ @lekman
+Sources/ @lekman
 
-# Configuration and schemas
-*.yaml @lekman
-*.yml @lekman
-*.json @lekman
-/docs/config-*.yaml @lekman
-/docs/config-schema.json @lekman
+# GitHub Actions workflows
+.github/workflows/ @lekman
 
-# GitHub specific files
-/.github/ @lekman
-/.github/workflows/ @lekman
-/.github/CODEOWNERS @lekman
+# Security-related files
+SECURITY.md @lekman
+.github/SECURITY.md @lekman
+docs/security/ @lekman
 
-# Security-sensitive files
-/docs/auth-flow-design.md @lekman
-*security* @lekman
-*auth* @lekman
-
-# Release and versioning
-/.release-please-*.json @lekman
-/docs/CHANGELOG.md @lekman
+# Documentation
+docs/ @lekman
+*.md @lekman
