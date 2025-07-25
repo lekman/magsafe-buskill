@@ -71,10 +71,8 @@ Need help or found an issue? We're here to assist:
 📚 **[View Full Documentation](https://lekman.github.io/magsafe-buskill/)** - Comprehensive guides and API references
 
 **Quick Links:**
-- [Requirements & Specifications](docs/REQUIREMENTS.md)
-- [Configuration Guide](docs/examples/config-examples.yaml)
-- [Authentication Flow](docs/architecture/auth-flow-design.md)
-- [CI/CD Workflows](docs/devops/ci-cd-workflows.md)
+
+- [QA Dashboard](docs/QA.md)
 - [All Documentation](docs/)
 
 ## Development
@@ -105,6 +103,7 @@ Need help or found an issue? We're here to assist:
    ```
 
    In Xcode:
+
    - Press `⌘B` to build
    - Press `⌘R` to run
    - Look for the lock shield icon in your menu bar
