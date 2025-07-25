@@ -7,7 +7,9 @@ baseurl: "" # Leave empty since we're in /docs
 url: "https://lekman.github.io/magsafe-buskill" # Full URL
 
 # Build settings
-theme: jekyll-theme-minimal
+remote_theme: pages-themes/minimal@v0.2.0
+plugins:
+  - jekyll-remote-theme
 markdown: kramdown
 kramdown:
   input: GFM
@@ -15,21 +17,9 @@ kramdown:
 
 # Exclude files from processing
 exclude:
-  - archive/
   - .DS_Store
   - "*.swp"
   - "*~"
-
-# Plugins
-plugins:
-  - jekyll-relative-links
-  - jekyll-seo-tag
-  - jekyll-sitemap
-
-# Enable relative links
-relative_links:
-  enabled: true
-  collections: true
 
 # Navigation structure (optional - for theme customization)
 navigation:
