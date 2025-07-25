@@ -4,10 +4,14 @@ import XCTest
 final class AppDelegateCoreTests: XCTestCase {
     
     var core: AppDelegateCore!
+    var mockSystemActions: MockSystemActions!
+    var mockSecurityActions: SecurityActionsService!
     
     override func setUp() {
         super.setUp()
-        core = AppDelegateCore()
+        mockSystemActions = MockSystemActions()
+        mockSecurityActions = SecurityActionsService(systemActions: mockSystemActions)
+        core = AppDelegateCore(securityActions: mockSecurityActions)
     }
     
     override func tearDown() {
@@ -20,7 +24,9 @@ final class AppDelegateCoreTests: XCTestCase {
     func testInitialization() {
         XCTAssertFalse(core.isArmed)
         XCTAssertNotNil(core.powerMonitor)
+        XCTAssertNotNil(core.securityActions)
         XCTAssertTrue(core.powerMonitor === PowerMonitorService.shared)
+        XCTAssertTrue(core.securityActions === mockSecurityActions)
     }
     
     // MARK: - Menu Tests
@@ -94,6 +100,12 @@ final class AppDelegateCoreTests: XCTestCase {
     
     func testHandlePowerStateChangeWhileArmed() {
         core.isArmed = true
+        mockSystemActions.reset() // Ensure clean state
+        
+        // Configure to execute immediately without delay
+        var config = mockSecurityActions.configuration
+        config.actionDelay = 0
+        mockSecurityActions.updateConfiguration(config)
         
         // Test disconnected state
         let disconnectedInfo = PowerMonitorService.PowerInfo(
@@ -105,6 +117,15 @@ final class AppDelegateCoreTests: XCTestCase {
         )
         
         XCTAssertTrue(core.handlePowerStateChange(disconnectedInfo))
+        
+        // Wait for async execution
+        let expectation = self.expectation(description: "Security actions executed")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            // Verify that the screen lock was called
+            XCTAssertTrue(self.mockSystemActions.lockScreenCalled, "Screen lock should have been called")
+            expectation.fulfill()
+        }
+        waitForExpectations(timeout: 2)
     }
     
     func testHandlePowerStateChangeWhileDisarmed() {

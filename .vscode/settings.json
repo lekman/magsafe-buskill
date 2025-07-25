@@ -22,7 +22,9 @@
     "*.lcov": true,
     ".coverage": true,
     "coverage": true,
-    ".snyk": true
+    ".snyk": true,
+    ".codecov.yml": true,
+    "coverage.xml": true
   },
   "search.exclude": {
     "**/node_modules": true,

@@ -16,10 +16,30 @@ jobs:
     steps:
       - name: Check if release-please branch
         id: check
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          if [[ "${{ github.ref_name }}" == release-please--* ]]; then
+          echo "Event: $EVENT_NAME"
+          echo "Ref: $REF"
+          echo "Head ref: $HEAD_REF"
+          echo "Base ref: $BASE_REF"
+          
+          # For pull requests, check the head branch name
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            if [[ "$HEAD_REF" == release-please--* ]]; then
+              echo "should-skip=true" >> $GITHUB_OUTPUT
+              echo "Skipping tests for release-please PR from branch: $HEAD_REF"
+            else
+              echo "should-skip=false" >> $GITHUB_OUTPUT
+            fi
+          # For pushes, check the ref name
+          elif [[ "$REF_NAME" == release-please--* ]]; then
             echo "should-skip=true" >> $GITHUB_OUTPUT
-            echo "Skipping tests for release-please branch: ${{ github.ref_name }}"
+            echo "Skipping tests for release-please branch: $REF_NAME"
           else
             echo "should-skip=false" >> $GITHUB_OUTPUT
           fi

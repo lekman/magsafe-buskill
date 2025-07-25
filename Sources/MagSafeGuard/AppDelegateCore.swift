@@ -17,13 +17,22 @@ public class AppDelegateCore {
     // MARK: - Properties
     
     public var isArmed = false
-    public let powerMonitor = PowerMonitorService.shared
+    public let powerMonitor: PowerMonitorService
+    public let securityActions: SecurityActionsService
     
     // MARK: - Initialization
     
     public init() {
-        // Default initializer - all properties have default values
-        // isArmed defaults to false, powerMonitor uses shared instance
+        // Default initializer - uses shared instances
+        self.powerMonitor = PowerMonitorService.shared
+        self.securityActions = SecurityActionsService.shared
+    }
+    
+    /// Initialize with custom services (for testing)
+    public init(powerMonitor: PowerMonitorService = PowerMonitorService.shared,
+                securityActions: SecurityActionsService) {
+        self.powerMonitor = powerMonitor
+        self.securityActions = securityActions
     }
     
     // MARK: - Menu Configuration
@@ -79,7 +88,20 @@ public class AppDelegateCore {
         
         if powerInfo.state == .disconnected && isArmed {
             print("[PowerMonitor] ⚠️ Power disconnected while armed!")
-            return true // Should trigger security action
+            
+            // Execute security actions
+            securityActions.executeActions { result in
+                if result.allSucceeded {
+                    print("[PowerMonitor] All security actions executed successfully")
+                } else {
+                    print("[PowerMonitor] Some security actions failed:")
+                    for (action, error) in result.failedActions {
+                        print("  - \(action.displayName): \(error.localizedDescription)")
+                    }
+                }
+            }
+            
+            return true // Security action triggered
         }
         
         return false

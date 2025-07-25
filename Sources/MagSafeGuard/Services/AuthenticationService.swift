@@ -32,7 +32,7 @@ public class AuthenticationService: NSObject {
     }
     
     /// Authentication error types
-    public enum AuthenticationError: LocalizedError {
+    public enum AuthenticationError: LocalizedError, Equatable {
         case biometryNotAvailable
         case biometryNotEnrolled
         case biometryLockout
@@ -42,6 +42,25 @@ public class AuthenticationService: NSObject {
         case passcodeNotSet
         case authenticationFailed
         case unknown(Error)
+        
+        public static func == (lhs: AuthenticationError, rhs: AuthenticationError) -> Bool {
+            switch (lhs, rhs) {
+            case (.biometryNotAvailable, .biometryNotAvailable),
+                 (.biometryNotEnrolled, .biometryNotEnrolled),
+                 (.biometryLockout, .biometryLockout),
+                 (.userCancel, .userCancel),
+                 (.userFallback, .userFallback),
+                 (.systemCancel, .systemCancel),
+                 (.passcodeNotSet, .passcodeNotSet),
+                 (.authenticationFailed, .authenticationFailed):
+                return true
+            case (.unknown(let lhsError), .unknown(let rhsError)):
+                return (lhsError as NSError).code == (rhsError as NSError).code &&
+                       (lhsError as NSError).domain == (rhsError as NSError).domain
+            default:
+                return false
+            }
+        }
         
         public var errorDescription: String? {
             switch self {
@@ -85,8 +104,11 @@ public class AuthenticationService: NSObject {
     /// Shared instance for singleton pattern
     public static let shared = AuthenticationService()
     
-    /// Authentication context
-    private var context: LAContext
+    /// Factory for creating authentication contexts
+    internal let contextFactory: AuthenticationContextFactoryProtocol
+    
+    /// Current authentication context
+    internal var context: AuthenticationContextProtocol?
     
     /// Last successful authentication timestamp
     internal var lastAuthenticationTime: Date?
@@ -110,7 +132,13 @@ public class AuthenticationService: NSObject {
     // MARK: - Initialization
     
     private override init() {
-        self.context = LAContext()
+        self.contextFactory = RealAuthenticationContextFactory()
+        super.init()
+    }
+    
+    /// Initialize with custom context factory (for testing)
+    internal init(contextFactory: AuthenticationContextFactoryProtocol) {
+        self.contextFactory = contextFactory
         super.init()
     }
     
@@ -118,8 +146,9 @@ public class AuthenticationService: NSObject {
     
     /// Check if biometric authentication is available
     public func isBiometricAuthenticationAvailable() -> Bool {
+        let authContext = contextFactory.createContext()
         var error: NSError?
-        let available = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
+        let available = authContext.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
         
         if let error = error {
             print("[AuthenticationService] Biometric check error: \(error.localizedDescription)")
@@ -130,9 +159,9 @@ public class AuthenticationService: NSObject {
     
     /// Get the type of biometry available
     public var biometryType: LABiometryType {
-        let localContext = LAContext()
-        _ = localContext.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
-        return localContext.biometryType
+        let authContext = contextFactory.createContext()
+        _ = authContext.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
+        return authContext.biometryType
     }
     
     /// Authenticate using biometrics with optional password fallback
@@ -200,8 +229,8 @@ public class AuthenticationService: NSObject {
     /// Invalidate the current authentication context
     public func invalidateAuthentication() {
         queue.async { [weak self] in
-            self?.context.invalidate()
-            self?.context = LAContext()
+            self?.context?.invalidate()
+            self?.context = nil
             self?.lastAuthenticationTime = nil
         }
     }

@@ -34,14 +34,19 @@ jobs:
           fetch-depth: 0  # Fetch all history for all branches
       
       - name: Check for blocked words in commits
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
         run: |
           # Get all commit messages in this PR/push
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [ "$EVENT_NAME" = "pull_request" ]; then
             # For PRs, check all commits between base and head
-            COMMITS=$(git log --format=%B origin/${{ github.base_ref }}..HEAD)
+            COMMITS=$(git log --format=%B origin/"$BASE_REF"..HEAD)
           else
             # For pushes, check the pushed commits
-            COMMITS=$(git log --format=%B ${{ github.event.before }}..${{ github.sha }} 2>/dev/null || git log --format=%B -1)
+            COMMITS=$(git log --format=%B "$BEFORE_SHA".."$CURRENT_SHA" 2>/dev/null || git log --format=%B -1)
           fi
           
           # Define blocked words (case-insensitive)
@@ -66,7 +71,7 @@ jobs:
               echo "3. Force push the updated branch"
               echo ""
               echo "Affected commits:"
-              git log --format="%h %s" origin/${{ github.base_ref }}..HEAD | grep -i "$word" || true
+              git log --format="%h %s" origin/"$BASE_REF"..HEAD | grep -i "$word" || true
               FOUND_BLOCKED=true
               break
             fi

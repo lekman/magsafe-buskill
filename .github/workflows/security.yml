@@ -25,10 +25,30 @@ jobs:
     steps:
       - name: Check if release-please branch
         id: check
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          if [[ "${{ github.ref_name }}" == release-please--* ]]; then
+          echo "Event: $EVENT_NAME"
+          echo "Ref: $REF"
+          echo "Head ref: $HEAD_REF"
+          echo "Base ref: $BASE_REF"
+          
+          # For pull requests, check the head branch name
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            if [[ "$HEAD_REF" == release-please--* ]]; then
+              echo "should-skip=true" >> $GITHUB_OUTPUT
+              echo "Skipping security checks for release-please PR from branch: $HEAD_REF"
+            else
+              echo "should-skip=false" >> $GITHUB_OUTPUT
+            fi
+          # For pushes, check the ref name
+          elif [[ "$REF_NAME" == release-please--* ]]; then
             echo "should-skip=true" >> $GITHUB_OUTPUT
-            echo "Skipping security checks for release-please branch: ${{ github.ref_name }}"
+            echo "Skipping security checks for release-please branch: $REF_NAME"
           else
             echo "should-skip=false" >> $GITHUB_OUTPUT
           fi
@@ -278,12 +298,37 @@ jobs:
         fetch-depth: 0  # Fetch all history for scanning
         
     - name: TruffleHog OSS
+      id: trufflehog
       uses: trufflesecurity/trufflehog@main
       with:
         path: ./
         base: ${{ github.event.repository.default_branch }}
         head: HEAD
         extra_args: --debug --only-verified
+      continue-on-error: true
+        
+    - name: Check TruffleHog Results
+      env:
+        TRUFFLEHOG_OUTCOME: ${{ steps.trufflehog.outcome }}
+        DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      run: |
+        if [[ "$TRUFFLEHOG_OUTCOME" == "failure" ]]; then
+          echo "TruffleHog scan failed. Checking if it's due to BASE==HEAD..."
+          
+          # Get the default branch commit
+          BASE_COMMIT=$(git rev-parse "origin/${DEFAULT_BRANCH}" 2>/dev/null || echo "")
+          HEAD_COMMIT=$(git rev-parse HEAD)
+          
+          if [[ "$BASE_COMMIT" == "$HEAD_COMMIT" ]]; then
+            echo "✅ BASE and HEAD commits are the same. This is expected for direct pushes to ${DEFAULT_BRANCH}."
+            echo "No incremental scan needed - all secrets would have been caught in previous scans."
+          else
+            echo "❌ TruffleHog failed for another reason. Please check the logs above."
+            exit 1
+          fi
+        else
+          echo "✅ TruffleHog scan completed successfully"
+        fi
 
   # Security Policy Check
   security-policy:
@@ -395,7 +440,7 @@ jobs:
         persist-credentials: false
         
     - name: Run Scorecard
-      uses: ossf/scorecard-action@v2
+      uses: ossf/scorecard-action@v2.4.0
       with:
         results_file: results.sarif
         results_format: sarif
@@ -451,36 +496,42 @@ jobs:
     
     steps:
     - name: Security Scan Summary
+      env:
+        BASIC_CHECKS_RESULT: ${{ needs.basic-checks.result }}
+        CODEQL_RESULT: ${{ needs.codeql.result }}
+        DEPENDENCY_REVIEW_RESULT: ${{ needs.dependency-review.result }}
+        TRUFFLEHOG_RESULT: ${{ needs.trufflehog.result }}
+        SEMGREP_RESULT: ${{ needs.semgrep.result }}
       run: |
         echo "## Security Scan Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
         # Check job statuses
-        if [ "${{ needs.basic-checks.result }}" == "success" ]; then
+        if [ "$BASIC_CHECKS_RESULT" == "success" ]; then
           echo "✅ Basic Security Checks: Passed" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ Basic Security Checks: Failed" >> $GITHUB_STEP_SUMMARY
         fi
         
-        if [ "${{ needs.codeql.result }}" == "success" ]; then
+        if [ "$CODEQL_RESULT" == "success" ]; then
           echo "✅ CodeQL Analysis: Passed" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ CodeQL Analysis: Failed" >> $GITHUB_STEP_SUMMARY
         fi
         
-        if [ "${{ needs.dependency-review.result }}" == "success" ] || [ "${{ needs.dependency-review.result }}" == "skipped" ]; then
+        if [ "$DEPENDENCY_REVIEW_RESULT" == "success" ] || [ "$DEPENDENCY_REVIEW_RESULT" == "skipped" ]; then
           echo "✅ Dependency Review: Passed" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ Dependency Review: Failed" >> $GITHUB_STEP_SUMMARY
         fi
         
-        if [ "${{ needs.trufflehog.result }}" == "success" ]; then
+        if [ "$TRUFFLEHOG_RESULT" == "success" ]; then
           echo "✅ Secret Scanning: Passed" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ Secret Scanning: Failed" >> $GITHUB_STEP_SUMMARY
         fi
         
-        if [ "${{ needs.semgrep.result }}" == "success" ]; then
+        if [ "$SEMGREP_RESULT" == "success" ]; then
           echo "✅ SAST (Semgrep): Passed" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ SAST (Semgrep): Failed" >> $GITHUB_STEP_SUMMARY

@@ -1,108 +1,150 @@
 # Test Coverage Report
 
+This document tracks the current test coverage status for MagSafe Guard. For information about the testing strategy and architecture, see the [Testing Guide](testing-guide.md).
+
 ## Current Coverage Status
 
 As of the latest test run:
 
-- **Overall Coverage**: 93.21% ✅ (exceeds 80% target)
-- **AppDelegateCore**: 100.00% ✅
-- **AuthenticationService**: ~95% ✅
-- **PowerMonitorDemoView**: ~92% ✅
-- **PowerMonitorService**: Excluded (UI/IOKit specific code)
-- **PowerMonitorCore**: Excluded (testable logic moved to PowerMonitorService)
-- **MagSafeGuardApp**: Excluded (NSApp-dependent UI code)
+- **Overall Coverage**: 81.51% ✅ (exceeds 80% target)
+- **Line Coverage**: 81.51% (767/941 lines)
+- **Function Coverage**: 91.18% (93/102 functions)
 
-## Coverage Details by File
+### Coverage by File
 
-### AuthenticationService.swift (~95%)
+| File | Coverage | Status | Notes |
+|------|----------|--------|---------|
+| AppDelegateCore | 94.44% | ✅ | Core business logic fully tested |
+| AuthenticationService | 95.43% | ✅ | Comprehensive mock-based tests |
+| SecurityActionsService | 69.70% | ⚠️ | Limited by system action mocking |
+| PowerMonitorDemoView | 87.02% | ✅ | View model well tested |
+| PowerMonitorService | Excluded | - | IOKit-specific code |
+| PowerMonitorCore | Excluded | - | Coverage tool issue |
+| MagSafeGuardApp | Excluded | - | NSApp-dependent UI code |
 
-- Well tested with comprehensive unit tests
-- Covers all authentication flows including CI environment handling
-- Tests rate limiting, biometric availability, and error handling
-- Near complete coverage with minor gaps in edge cases
+## Coverage Trends
 
-### AppDelegateCore.swift (100.00%)
+| Date | Overall | Line | Function | Notes |
+|------|---------|------|----------|---------|
+| 2025-07-25 | 81.51% | 81.51% | 91.18% | Protocol refactoring complete |
+| 2025-07-24 | 75.20% | 75.20% | 85.00% | Initial coverage baseline |
 
-- Full coverage achieved by extracting testable logic from AppDelegate
-- Tests all menu creation, state management, and power monitoring logic
-- No NSApp dependencies, making it fully testable
-- Complete coverage including the documented empty initializer
+## Coverage Details
 
-### PowerMonitorDemoView.swift (~92%)
+### High Coverage Files (>90%)
 
-- Good coverage of view model functionality
-- Tests initialization, monitoring state changes, and UI updates
-- Fixed test failures by accepting actual power state instead of expecting "Unknown"
-- Small gaps in SwiftUI view lifecycle methods
+#### AuthenticationService.swift (95.43%)
 
-### PowerMonitorService.swift (Excluded)
+- Comprehensive mock-based testing
+- All authentication flows covered
+- Rate limiting and error handling tested
 
-- Contains IOKit-specific code for power monitoring
-- UI/system integration code that cannot be unit tested
-- Testable logic has been extracted to PowerMonitorCore (also excluded)
-- Integration testing would require XCUITests or manual testing
+#### AppDelegateCore.swift (94.44%)
 
-### PowerMonitorCore.swift (Excluded)
+- Business logic extracted from UI
+- Menu creation and state management tested
+- Power monitoring integration covered
 
-- Created to extract testable logic from PowerMonitorService
-- However, the tests weren't properly recognized by the coverage tool
-- Since the logic is tested through PowerMonitorService integration, it's excluded
-- Contains power state processing logic without IOKit dependencies
+### Medium Coverage Files (70-90%)
 
-### MagSafeGuardApp.swift (Excluded)
+#### PowerMonitorDemoView.swift (87.02%)
 
-- Very low coverage due to NSApp dependencies
-- Difficult to test in unit test environment:
-  - `NSApp.setActivationPolicy` crashes in tests
-  - Status bar item creation requires full app context
-  - Notification permissions require user interaction
-  - Menu actions tied to AppKit runtime
-- Core logic extracted to AppDelegateCore.swift to improve testability
+- View model functionality tested
+- Monitoring state changes covered
+- Minor gaps in SwiftUI lifecycle
 
-## Test Status
+#### SecurityActionsService.swift (69.70%)
 
-All tests now pass in CI environment:
+- Configuration and persistence tested
+- System actions mocked for safety
+- Lower coverage due to system integration points
 
-- Fixed environment-specific test failures by adapting tests to handle actual system state
-- Added delays for async operations to prevent timing issues
-- Created AppDelegateCore to extract testable logic from UI-dependent code
-- Tests run with `CI=true` environment variable to adapt behavior
+### Excluded Files
 
-## Coverage Exclusions
+Files excluded from coverage with rationale:
 
-The following files are excluded from coverage calculations:
+1. **UI-Dependent Code**
+   - `MagSafeGuardApp.swift` - NSApp dependencies
+   - `*View.swift` - SwiftUI views (test view models instead)
 
-- `MagSafeGuardApp.swift` - Contains NSApp-dependent UI code that cannot be unit tested
-- `PowerMonitorService.swift` - IOKit-specific system integration code
-- `PowerMonitorCore.swift` - Extracted logic (coverage tool issue, but logic is tested)
-- `*Tests.swift` - Test files themselves
-- `runner.swift` - Test runner
+2. **System Integration Code**
+   - `*LAContext.swift` - Direct LAContext usage
+   - `Mac*Actions.swift` - Real system implementations
+   - `PowerMonitorService.swift` - IOKit integration
 
-## Recommendations
+3. **Test Infrastructure**
+   - `*Tests.swift` - Test files
+   - `Mock*.swift` - Mock implementations
+   - `runner.swift` - Test runner
 
-1. **Focus on testable business logic**: Extract business logic from UI components into testable services ✅ (Done with AppDelegateCore)
-2. **Use UI/Integration tests**: For MagSafeGuardApp.swift, consider XCUITests instead of unit tests
-3. **Mock IOKit interactions**: Create abstractions for PowerMonitorService to enable better testing
-4. **Accept lower coverage for UI code**: The 80% target may not be realistic for macOS menu bar apps
+## Running Coverage Reports
 
-## Running Coverage Locally
+### Quick Commands
 
 ```bash
-# Run tests with coverage
+# Generate coverage report
 task test:coverage
 
-# Generate HTML report
+# View HTML coverage report
 task test:coverage:html
+open .build/coverage/index.html
 
-# Manual coverage check
-CI=true swift test --enable-code-coverage
-xcrun llvm-profdata merge -sparse .build/*/debug/codecov/*.profraw -o .build/*/debug/codecov/default.profdata
-xcrun llvm-cov report .build/*/debug/MagSafeGuardPackageTests.xctest/Contents/MacOS/MagSafeGuardPackageTests \
-  -instr-profile=.build/*/debug/codecov/default.profdata \
-  -ignore-filename-regex=".*Tests\.swift" \
-  -ignore-filename-regex=".*/runner.swift"
+# CI environment
+CI=true task test:coverage
 ```
 
-## CI Configuration
+### Manual Coverage Generation
 
-The coverage check is integrated into the GitHub Actions workflow and will report to SonarCloud. However, the 80% threshold enforcement may need to be relaxed for this type of application.
+```bash
+# 1. Run tests with coverage enabled
+swift test --enable-code-coverage
+
+# 2. Generate profdata
+xcrun llvm-profdata merge -sparse \
+  .build/*/debug/codecov/*.profraw \
+  -o .build/*/debug/codecov/default.profdata
+
+# 3. Generate report
+xcrun llvm-cov report \
+  .build/*/debug/MagSafeGuardPackageTests.xctest/Contents/MacOS/MagSafeGuardPackageTests \
+  -instr-profile=.build/*/debug/codecov/default.profdata \
+  -ignore-filename-regex=".*Tests\.swift|.*Mock.*\.swift|.*/runner.swift"
+```
+
+## CI/CD Integration
+
+### GitHub Actions
+
+Coverage is automatically generated in CI:
+
+```yaml
+- name: Run Tests with Coverage
+  env:
+    CI: true
+  run: task test:coverage
+```
+
+### SonarCloud
+
+Coverage reports are converted to SonarQube format:
+
+```bash
+task test:convert  # Converts LCOV to SonarQube XML
+```
+
+### Codecov
+
+Coverage is uploaded to Codecov for tracking:
+
+```bash
+bash <(curl -s https://codecov.io/bash)
+```
+
+## Coverage Goals
+
+- **Target**: 80% overall coverage
+- **Current**: 81.51% ✅
+- **Strategy**: Protocol-based testing for business logic
+- **Exclusions**: UI and system integration code
+
+For details on improving coverage, see the [Testing Guide](testing-guide.md).

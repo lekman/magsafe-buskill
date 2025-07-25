@@ -179,7 +179,7 @@ tasks:
           # Generate detailed coverage report
           xcrun llvm-cov report "$EXECUTABLE" \
             -instr-profile="$PROF_DATA" \
-            -ignore-filename-regex=".*Tests\.swift|.*Mock.*\.swift|.*/runner.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*/PowerMonitorCore\.swift|.*LAContext\.swift" | tee coverage-report.txt
+            -ignore-filename-regex=".*Tests\.swift|.*Mock.*\.swift|.*/runner.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*/PowerMonitorCore\.swift|.*LAContext\.swift|.*/MacSystemActions\.swift|.*Protocol\.swift" | tee coverage-report.txt
           
           # Extract total coverage percentage (line coverage is in column 10)
           COVERAGE=$(tail -1 coverage-report.txt | awk '{print $10}' | sed 's/%//')
@@ -219,7 +219,7 @@ tasks:
             -instr-profile="$PROF_DATA" \
             -format=html \
             -output-dir=coverage-html \
-            -ignore-filename-regex=".*Tests\.swift|.*Mock.*\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*/PowerMonitorCore\.swift|.*LAContext\.swift"
+            -ignore-filename-regex=".*Tests\.swift|.*Mock.*\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*/PowerMonitorCore\.swift|.*LAContext\.swift|.*/MacSystemActions\.swift|.*Protocol\.swift"
           echo "Coverage report generated at: coverage-html/index.html"
           open coverage-html/index.html
         fi
@@ -517,7 +517,7 @@ tasks:
             xcrun llvm-cov show "$EXECUTABLE" \
               -instr-profile="$PROF_DATA" \
               -use-color=false \
-              -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*/PowerMonitorCore\.swift|.*LAContext\.swift" | \
+              -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*/PowerMonitorCore\.swift|.*LAContext\.swift|.*/MacSystemActions\.swift|.*Protocol\.swift" | \
             awk '
               /^[[:space:]]*[^[:space:]]+:$/ {
                 if (in_file) print "  </file>"
