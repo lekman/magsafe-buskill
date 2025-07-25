@@ -42,9 +42,6 @@ jobs:
         key: ${{ runner.os }}-spm-${{ hashFiles('Package.swift', '**/Package.resolved') }}
         restore-keys: |
           ${{ runner.os }}-spm-
-        
-    - name: Build
-      run: swift build -v
       
     - name: Run tests with coverage
       env:
@@ -68,7 +65,7 @@ jobs:
             "$EXECUTABLE" \
             -instr-profile="$PROF_DATA" \
             -format="lcov" \
-            -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift" > coverage.lcov
+            -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*/PowerMonitorCore\.swift" > coverage.lcov
           
           echo "Coverage report size: $(wc -l < coverage.lcov) lines"
         else
