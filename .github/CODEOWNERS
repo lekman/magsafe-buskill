@@ -19,3 +19,7 @@ docs/security/ @lekman
 # Documentation
 docs/ @lekman
 *.md @lekman
+
+# Release-related files owned by the release bot
+/docs/CHANGELOG.md @app/lekman-release-please-bot
+/.github/.release-please-manifest.json @app/lekman-release-please-bot
