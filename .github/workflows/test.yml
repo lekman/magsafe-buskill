@@ -36,6 +36,8 @@ jobs:
       run: swift build -v
       
     - name: Run tests with coverage
+      env:
+        CI: true
       run: swift test --enable-code-coverage
         
     # Convert Swift coverage to lcov format for Codecov

@@ -146,7 +146,12 @@ public class AuthenticationService: NSObject {
         completion: @escaping (AuthenticationResult) -> Void
     ) {
         queue.async { [weak self] in
-            guard let self = self else { return }
+            guard let self = self else { 
+                DispatchQueue.main.async {
+                    completion(.failure(AuthenticationError.unknown(NSError(domain: "AuthenticationService", code: -3, userInfo: nil))))
+                }
+                return 
+            }
             
             // Perform pre-authentication checks
             if let earlyResult = self.performPreAuthenticationChecks(reason: reason, policy: policy) {
