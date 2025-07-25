@@ -1,6 +1,15 @@
+---
+layout: default
+title: Home
+---
+
 # MagSafe Guard Documentation
 
 Welcome to the MagSafe Guard documentation. This guide will help you understand, build, and contribute to the project.
+
+<div style="text-align: center; margin: 2em 0;">
+  <img src="assets/magsafe-guard.gif" alt="MagSafe Guard Demo" style="max-width: 100%; height: auto;">
+</div>
 
 ## 📚 Documentation Index
 
