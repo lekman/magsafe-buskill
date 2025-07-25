@@ -21,7 +21,10 @@ public class AppDelegateCore {
     
     // MARK: - Initialization
     
-    public init() {}
+    public init() {
+        // Default initializer - all properties have default values
+        // isArmed defaults to false, powerMonitor uses shared instance
+    }
     
     // MARK: - Menu Configuration
     

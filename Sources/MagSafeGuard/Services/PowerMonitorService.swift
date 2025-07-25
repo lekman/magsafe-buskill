@@ -167,17 +167,16 @@ public class PowerMonitorService: NSObject {
         queue.async { [weak self] in
             guard let self = self else { return }
             
-            if let newPowerInfo = self.getCurrentPowerInfo() {
-                if self.core.hasPowerStateChanged(newInfo: newPowerInfo) {
-                    // Notify on main thread
-                    if let callback = self.stateChangeCallback {
-                        DispatchQueue.main.async {
-                            callback(newPowerInfo)
-                        }
+            if let newPowerInfo = self.getCurrentPowerInfo(),
+               self.core.hasPowerStateChanged(newInfo: newPowerInfo) {
+                // Notify on main thread
+                if let callback = self.stateChangeCallback {
+                    DispatchQueue.main.async {
+                        callback(newPowerInfo)
                     }
-                    
-                    print("[PowerMonitorService] Power state changed to: \(newPowerInfo.state.description)")
                 }
+                
+                print("[PowerMonitorService] Power state changed to: \(newPowerInfo.state.description)")
             }
         }
     }
@@ -220,17 +219,16 @@ public class PowerMonitorService: NSObject {
         queue.async { [weak self] in
             guard let self = self else { return }
             
-            if let newPowerInfo = self.getCurrentPowerInfo() {
-                if self.core.hasPowerStateChanged(newInfo: newPowerInfo) {
-                    // Notify on main thread
-                    if let callback = self.stateChangeCallback {
-                        DispatchQueue.main.async {
-                            callback(newPowerInfo)
-                        }
+            if let newPowerInfo = self.getCurrentPowerInfo(),
+               self.core.hasPowerStateChanged(newInfo: newPowerInfo) {
+                // Notify on main thread
+                if let callback = self.stateChangeCallback {
+                    DispatchQueue.main.async {
+                        callback(newPowerInfo)
                     }
-                    
-                    print("[PowerMonitorService] Power state changed via notification: \(newPowerInfo.state.description)")
                 }
+                
+                print("[PowerMonitorService] Power state changed via notification: \(newPowerInfo.state.description)")
             }
         }
     }

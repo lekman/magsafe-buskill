@@ -4,33 +4,36 @@
 
 As of the latest test run:
 
-- **Overall Coverage**: 82.72% ✅ (exceeds 80% target)
-- **AppDelegateCore**: 82.54% ✅
-- **AuthenticationService**: 83.44% ✅
-- **PowerMonitorDemoView**: 81.73% ✅
+- **Overall Coverage**: 93.21% ✅ (exceeds 80% target)
+- **AppDelegateCore**: 100.00% ✅
+- **AuthenticationService**: ~95% ✅
+- **PowerMonitorDemoView**: ~92% ✅
 - **PowerMonitorService**: Excluded (UI/IOKit specific code)
 - **PowerMonitorCore**: Excluded (testable logic moved to PowerMonitorService)
 - **MagSafeGuardApp**: Excluded (NSApp-dependent UI code)
 
 ## Coverage Details by File
 
-### AuthenticationService.swift (83.44%)
+### AuthenticationService.swift (~95%)
 
 - Well tested with comprehensive unit tests
 - Covers all authentication flows including CI environment handling
 - Tests rate limiting, biometric availability, and error handling
+- Near complete coverage with minor gaps in edge cases
 
 ### AppDelegateCore.swift (100.00%)
 
 - Full coverage achieved by extracting testable logic from AppDelegate
 - Tests all menu creation, state management, and power monitoring logic
 - No NSApp dependencies, making it fully testable
+- Complete coverage including the documented empty initializer
 
-### PowerMonitorDemoView.swift (87.02%)
+### PowerMonitorDemoView.swift (~92%)
 
 - Good coverage of view model functionality
 - Tests initialization, monitoring state changes, and UI updates
 - Fixed test failures by accepting actual power state instead of expecting "Unknown"
+- Small gaps in SwiftUI view lifecycle methods
 
 ### PowerMonitorService.swift (Excluded)
 
