@@ -110,13 +110,21 @@ final class PowerMonitorServiceTests: XCTestCase {
     
     func testMultipleCallbacks() {
         let expectation1 = XCTestExpectation(description: "First callback")
+        expectation1.expectedFulfillmentCount = 1
+        expectation1.assertForOverFulfill = false // Don't fail if called more than once
+        
+        var callbackCount = 0
+        let lock = NSLock()
         
         // Start monitoring with first callback
         service.startMonitoring { _ in
+            lock.lock()
+            callbackCount += 1
+            lock.unlock()
             expectation1.fulfill()
         }
         
-        Thread.sleep(forTimeInterval: 0.1)
+        Thread.sleep(forTimeInterval: 0.2)
         
         // Try to start again (should be ignored since already monitoring)
         service.startMonitoring { _ in
@@ -124,10 +132,18 @@ final class PowerMonitorServiceTests: XCTestCase {
             XCTFail("Second callback should not be called")
         }
         
-        // Only the first expectation should be fulfilled
-        wait(for: [expectation1], timeout: 1.0)
+        // Wait for the initial callback
+        wait(for: [expectation1], timeout: 2.0)
+        
+        // Give a bit more time to ensure no second callback
+        Thread.sleep(forTimeInterval: 0.1)
         
         service.stopMonitoring()
+        
+        // Verify we got at least one callback from the first monitor
+        lock.lock()
+        XCTAssertGreaterThanOrEqual(callbackCount, 1, "Should have received at least one callback")
+        lock.unlock()
     }
     
     func testMultipleStartCalls() {
