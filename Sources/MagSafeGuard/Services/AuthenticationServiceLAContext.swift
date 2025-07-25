@@ -56,10 +56,6 @@ extension AuthenticationService {
         }
     }
     
-    /// Process authentication response (separate method to reduce nesting)
-    private func processAuthenticationResponse(success: Bool, error: Error?, context: AuthenticationContextProtocol, completion: @escaping (AuthenticationResult) -> Void) {
-        handleAuthenticationResult(success: success, error: error, context: context, completion: completion)
-    }
     
     /// Handle authentication result
     private func handleAuthenticationResult(success: Bool, error: Error?, context: AuthenticationContextProtocol, completion: @escaping (AuthenticationResult) -> Void) {

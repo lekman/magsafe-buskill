@@ -64,7 +64,7 @@ public class SecurityActionsService {
         var customScriptPath: String?
         var executeInParallel: Bool // Execute actions in parallel vs sequential
         
-        static let `default` = Configuration(
+        static let defaultConfiguration = Configuration(
             enabledActions: [.screenLock],
             actionDelay: 0, // Immediate by default
             alarmVolume: 1.0,
@@ -112,14 +112,14 @@ public class SecurityActionsService {
     // MARK: - Initialization
     
     private init() {
-        self.configuration = Configuration.default
+        self.configuration = Configuration.defaultConfiguration
         self.systemActions = MacSystemActions()
         loadConfiguration()
     }
     
     /// Initialize with custom system actions (for testing)
     internal init(systemActions: SystemActionsProtocol) {
-        self.configuration = Configuration.default
+        self.configuration = Configuration.defaultConfiguration
         self.systemActions = systemActions
         loadConfiguration()
     }
@@ -127,7 +127,7 @@ public class SecurityActionsService {
     /// Reset configuration to default (for testing)
     internal func resetToDefault() {
         queue.sync {
-            self.configuration = Configuration.default
+            self.configuration = Configuration.defaultConfiguration
             UserDefaults.standard.removeObject(forKey: "SecurityActionsConfiguration")
         }
     }
@@ -218,8 +218,12 @@ public class SecurityActionsService {
     private func getSortedActions() -> [SecurityAction] {
         return configuration.enabledActions.sorted { action1, action2 in
             // Screen lock has highest priority
-            if action1 == .screenLock { return true }
-            if action2 == .screenLock { return false }
+            if action1 == .screenLock { 
+                return true 
+            }
+            if action2 == .screenLock { 
+                return false 
+            }
             return action1.rawValue < action2.rawValue
         }
     }

@@ -159,9 +159,9 @@ public class AuthenticationService: NSObject {
     
     /// Get the type of biometry available
     public var biometryType: LABiometryType {
-        let context = contextFactory.createContext()
-        _ = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
-        return context.biometryType
+        let authContext = contextFactory.createContext()
+        _ = authContext.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
+        return authContext.biometryType
     }
     
     /// Authenticate using biometrics with optional password fallback

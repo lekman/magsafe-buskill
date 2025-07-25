@@ -42,7 +42,7 @@ final class SecurityActionsServiceTests: XCTestCase {
     }
     
     func testUpdateConfiguration() {
-        var newConfig = SecurityActionsService.Configuration.default
+        var newConfig = SecurityActionsService.Configuration.defaultConfiguration
         newConfig.enabledActions = [.screenLock, .soundAlarm]
         newConfig.actionDelay = 5
         newConfig.alarmVolume = 0.5
@@ -316,7 +316,7 @@ final class SecurityActionsServiceTests: XCTestCase {
     
     func testConfigurationPersistence() {
         // Create a unique configuration
-        var config = SecurityActionsService.Configuration.default
+        var config = SecurityActionsService.Configuration.defaultConfiguration
         config.enabledActions = [.soundAlarm, .forceLogout]
         config.actionDelay = 10
         config.alarmVolume = 0.75
