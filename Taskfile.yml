@@ -154,8 +154,76 @@ tasks:
     cmds:
       - |
         echo "🧪 Running Swift tests..."
-        # Placeholder for when we have actual tests
-        echo "⚠️  No tests implemented yet"
+        swift test
+
+  test:ci:
+    desc: Run tests in CI mode
+    env:
+      CI: "true"
+    cmds:
+      - swift test
+
+  test:coverage:
+    desc: Run tests with coverage and ensure >80%
+    env:
+      CI: "true"
+    cmds:
+      - echo "Running tests with coverage in CI mode..."
+      - swift test --enable-code-coverage
+      - |
+        echo "Generating coverage report..."
+        PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
+        EXECUTABLE=$(find .build -name 'MagSafeGuardPackageTests.xctest' -type d | head -1)/Contents/MacOS/MagSafeGuardPackageTests
+        
+        if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
+          # Generate detailed coverage report
+          xcrun llvm-cov report "$EXECUTABLE" \
+            -instr-profile="$PROF_DATA" \
+            -ignore-filename-regex=".*Tests\.swift" \
+            -ignore-filename-regex=".*/runner.swift" | tee coverage-report.txt
+          
+          # Extract total coverage percentage
+          COVERAGE=$(tail -1 coverage-report.txt | awk '{print $(NF-2)}' | sed 's/%//')
+          
+          echo ""
+          echo "Total coverage: ${COVERAGE}%"
+          
+          # Check if coverage meets threshold
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            echo "❌ Coverage is below 80% threshold!"
+            echo ""
+            echo "To improve coverage, add tests for:"
+            grep -E "^\S+\.swift" coverage-report.txt | grep -v "100.00%" | head -10
+            rm coverage-report.txt
+            exit 1
+          else
+            echo "✅ Coverage meets 80% threshold!"
+            rm coverage-report.txt
+          fi
+        else
+          echo "❌ Error: Could not find coverage data files"
+          exit 1
+        fi
+
+  test:coverage:html:
+    desc: Generate HTML coverage report
+    env:
+      CI: "true"
+    cmds:
+      - swift test --enable-code-coverage
+      - |
+        PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
+        EXECUTABLE=$(find .build -name 'MagSafeGuardPackageTests.xctest' -type d | head -1)/Contents/MacOS/MagSafeGuardPackageTests
+        
+        if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
+          xcrun llvm-cov show "$EXECUTABLE" \
+            -instr-profile="$PROF_DATA" \
+            -format=html \
+            -output-dir=coverage-html \
+            -ignore-filename-regex=".*Tests\.swift"
+          echo "Coverage report generated at: coverage-html/index.html"
+          open coverage-html/index.html
+        fi
 
   lint:
     desc: Run linters
@@ -265,6 +333,9 @@ tasks:
         echo "🧹 Cleaning build artifacts..."
         rm -rf .build/
         rm -rf *.xcodeproj
+        rm -rf coverage-html/
+        rm -f coverage-report.txt
+        rm -f coverage.lcov
         echo "✅ Clean complete"
 
   run:
@@ -356,10 +427,22 @@ tasks:
     cmds:
       - echo "🚀 Running pre-push checks..."
       - task: lint:fix:markdown
+      - task: test:coverage
       - task: test:security
       - task: lint
       - echo "✅ All pre-push checks passed!"
       - echo "Ready to push your changes."
+
+  pre-pr:
+    desc: Run all checks before creating a PR
+    cmds:
+      - echo "🚀 Running pre-PR checks..."
+      - task: lint:fix:markdown
+      - task: test:coverage
+      - task: test:security
+      - task: lint
+      - echo "✅ All pre-PR checks passed!"
+      - echo "Ready to create your PR."
 
   commit:
     desc: Interactive commit with conventional format
