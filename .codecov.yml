@@ -1,0 +1,62 @@
+codecov:
+  require_ci_to_pass: yes
+
+coverage:
+  precision: 2
+  round: down
+  range: "80...100"
+  
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 1%
+        base: auto
+        if_not_found: success
+        if_ci_failed: error
+        informational: false
+        only_pulls: false
+    patch:
+      default:
+        target: 80%
+        threshold: 1%
+        base: auto
+        if_not_found: success
+        if_ci_failed: error
+        informational: false
+        only_pulls: false
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: yes
+      loop: yes
+      method: no
+      macro: no
+
+comment:
+  layout: "reach,diff,flags,files,footer"
+  behavior: default
+  require_changes: false
+
+ignore:
+  # Test files
+  - "Tests/"
+  - "**/*Tests.swift"
+  - "**/Mock*.swift"
+  - "**/runner.swift"
+  
+  # UI/System Integration files
+  - "**/MagSafeGuardApp.swift"
+  - "**/PowerMonitorService.swift"
+  - "**/PowerMonitorCore.swift"
+  - "**/*LAContext.swift"
+  - "**/MacSystemActions.swift"
+  - "**/*Protocol.swift"
+  
+  # SwiftUI Views (test view models instead)
+  - "**/*View.swift"
+  
+  # Package files
+  - "Package.swift"
+  - ".build/"

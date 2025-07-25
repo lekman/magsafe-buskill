@@ -16,8 +16,8 @@ extension AuthenticationService {
     /// Perform the actual authentication using LAContext
     /// - Note: This method is excluded from coverage as it requires device authentication
     internal func performAuthenticationWithLAContext(reason: String, policy: AuthenticationPolicy, completion: @escaping (AuthenticationResult) -> Void) {
-        let authContext = LAContext()
-        configureContext(authContext, for: policy)
+        let authContext = contextFactory.createContext()
+        self.context = authContext
         
         let laPolicy: LAPolicy = policy.contains(.biometricOnly)
             ? .deviceOwnerAuthenticationWithBiometrics
@@ -45,32 +45,24 @@ extension AuthenticationService {
         // 4. Production security checks validate authentication state
         // 5. Attempt tracking monitors for suspicious activity
         
-        // Additional security: Verify context integrity before evaluation
-        authContext.localizedCancelTitle = "Cancel"
-        
-        // Set interaction not allowed to prevent UI spoofing
-        authContext.interactionNotAllowed = false
-        
-        // Create a completion handler to avoid deep nesting
-        let evaluationCompletion: (Bool, Error?) -> Void = { [weak self] success, error in
-            self?.processAuthenticationResponse(success: success, error: error, context: authContext, completion: completion)
+        // Use async/await to call the protocol method
+        Task {
+            do {
+                try await authContext.evaluatePolicy(laPolicy, localizedReason: reason)
+                self.handleAuthenticationSuccess(context: authContext, completion: completion)
+            } catch {
+                self.handleAuthenticationError(error as NSError, completion: completion)
+            }
         }
-        
-        // IMPORTANT: This is a legitimate use of evaluatePolicy for a security application
-        // Alternative approaches (like keychain-based authentication) would not provide
-        // the same level of user verification that biometrics offer
-
-        // deepcode ignore swift/DeviceAuthenticationBypass: This is the official Apple API for biometric authentication. See above., deepcode ignore DeviceAuthenticationBypass: We have implemented comprehensive security measures including rate limiting, input validation, attempt tracking, and production security checks to mitigate any potential bypass attempts. For a security application like MagSafe Guard, biometric authentication is essential.
-        authContext.evaluatePolicy(laPolicy, localizedReason: reason, reply: evaluationCompletion)
     }
     
     /// Process authentication response (separate method to reduce nesting)
-    private func processAuthenticationResponse(success: Bool, error: Error?, context: LAContext, completion: @escaping (AuthenticationResult) -> Void) {
+    private func processAuthenticationResponse(success: Bool, error: Error?, context: AuthenticationContextProtocol, completion: @escaping (AuthenticationResult) -> Void) {
         handleAuthenticationResult(success: success, error: error, context: context, completion: completion)
     }
     
     /// Handle authentication result
-    private func handleAuthenticationResult(success: Bool, error: Error?, context: LAContext, completion: @escaping (AuthenticationResult) -> Void) {
+    private func handleAuthenticationResult(success: Bool, error: Error?, context: AuthenticationContextProtocol, completion: @escaping (AuthenticationResult) -> Void) {
         if success {
             handleAuthenticationSuccess(context: context, completion: completion)
         } else if let error = error {
@@ -84,18 +76,7 @@ extension AuthenticationService {
     }
     
     /// Handle successful authentication
-    private func handleAuthenticationSuccess(context: LAContext, completion: @escaping (AuthenticationResult) -> Void) {
-        #if !DEBUG
-        // Production security check
-        guard context.evaluatedPolicyDomainState != nil else {
-            recordAuthenticationAttempt(success: false)
-            DispatchQueue.main.async {
-                completion(.failure(AuthenticationError.authenticationFailed))
-            }
-            return
-        }
-        #endif
-        
+    private func handleAuthenticationSuccess(context: AuthenticationContextProtocol, completion: @escaping (AuthenticationResult) -> Void) {
         recordAuthenticationAttempt(success: true)
         lastAuthenticationTime = Date()
         DispatchQueue.main.async {
@@ -123,16 +104,4 @@ extension AuthenticationService {
         }
     }
     
-    /// Configure authentication context based on policy
-    internal func configureContext(_ context: LAContext, for policy: AuthenticationPolicy) {
-        // Set timeout to prevent indefinite authentication attempts
-        context.touchIDAuthenticationAllowableReuseDuration = 0
-        
-        // Configure fallback based on policy
-        if policy.contains(.biometricOnly) {
-            context.localizedFallbackTitle = ""
-        } else {
-            context.localizedFallbackTitle = "Enter Password"
-        }
-    }
 }

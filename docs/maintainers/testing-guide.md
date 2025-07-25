@@ -1,398 +1,475 @@
-# Testing Guide for MagSafe Guard
+# Testing Guide
 
-## Overview
+This guide explains the testing strategy for MagSafe Guard, focusing on achieving high code coverage through proper separation of business logic from system interfaces.
 
-This guide covers testing strategies, procedures, and best practices for MagSafe Guard, including unit tests, integration tests, and manual testing scenarios.
+## Testing Philosophy
 
-## Unit Testing
+### Core Principles
 
-### Test Structure
+1. **Separation of Concerns**: Extract business logic from UI and system interfaces
+2. **Protocol-Based Testing**: Use protocols to abstract system dependencies
+3. **Mock Everything External**: Mock all external dependencies for unit tests
+4. **Manual Acceptance Testing**: Cover system integration through manual tests
 
-```ini
-Tests/
-└── MagSafeGuardTests/
-    ├── MagSafeGuardTests.swift      # Basic app tests
-    └── PowerMonitorServiceTests.swift # Service tests
+### Testing Layers
+
+```text
+┌─────────────────────────────────┐
+│   Manual Acceptance Tests       │ ← Real system integration
+├─────────────────────────────────┤
+│   Unit Tests with Mocks         │ ← Business logic (100% coverage target)
+├─────────────────────────────────┤
+│   Protocol Abstractions         │ ← Interfaces for system dependencies
+├─────────────────────────────────┤
+│   Business Logic               │ ← Pure, testable code
+├─────────────────────────────────┤
+│   System Integration Code      │ ← Thin layer, minimal logic
+└─────────────────────────────────┘
 ```
 
-### Running Unit Tests
+## Architecture Patterns
 
-**From Xcode**:
+### Protocol-Based Dependency Injection
 
-- Press `⌘U` (Command+U)
-- Or select Product → Test
+#### Example: Security Actions
 
-**From Terminal**:
+```swift
+// Protocol defining system actions
+protocol SystemActionsProtocol {
+    func lockScreen() throws
+    func playAlarm(volume: Float) throws
+    func stopAlarm()
+    // ... other system actions
+}
+
+// Real implementation
+class MacSystemActions: SystemActionsProtocol {
+    func lockScreen() throws {
+        // Actual system calls
+    }
+}
+
+// Mock for testing
+class MockSystemActions: SystemActionsProtocol {
+    var lockScreenCalled = false
+    func lockScreen() throws {
+        lockScreenCalled = true
+    }
+}
+
+// Service using the protocol
+class SecurityActionsService {
+    private let systemActions: SystemActionsProtocol
+    
+    init(systemActions: SystemActionsProtocol = MacSystemActions()) {
+        self.systemActions = systemActions
+    }
+}
+```
+
+#### Example: Authentication Context
+
+```swift
+// Protocol for authentication
+protocol AuthenticationContextProtocol {
+    func canEvaluatePolicy(_ policy: LAPolicy, error: NSErrorPointer) -> Bool
+    func evaluatePolicy(_ policy: LAPolicy, localizedReason: String) async throws
+    var biometryType: LABiometryType { get }
+}
+
+// Factory pattern for creating contexts
+protocol AuthenticationContextFactoryProtocol {
+    func createContext() -> AuthenticationContextProtocol
+}
+```
+
+### Extracting Testable Logic
+
+#### Before (Untestable)
+
+```swift
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.accessory) // Crashes in tests
+        statusItem = NSStatusBar.system.statusItem(...) // Requires NSApp
+        // Business logic mixed with UI
+    }
+}
+```
+
+#### After (Testable)
+
+```swift
+// Extract business logic
+class AppDelegateCore {
+    func createMenu() -> NSMenu { ... }
+    func handlePowerStateChange(_ info: PowerInfo) -> Bool { ... }
+}
+
+// Thin UI layer
+class AppDelegate: NSObject, NSApplicationDelegate {
+    let core = AppDelegateCore()
+    
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.accessory)
+        statusItem.menu = core.createMenu()
+    }
+}
+```
+
+## Testing Strategies by Component
+
+### Authentication Service
+
+**Strategy**: Use mock LAContext to test all authentication flows
+
+```swift
+// Test setup
+let mockContext = MockAuthenticationContext()
+let mockFactory = MockAuthenticationContextFactory(mockContext: mockContext)
+let service = AuthenticationService(contextFactory: mockFactory)
+
+// Test success path
+mockContext.evaluatePolicyShouldSucceed = true
+service.authenticate(reason: "Test") { result in
+    XCTAssertEqual(result, .success)
+}
+
+// Test failure path
+mockContext.evaluatePolicyError = LAError(.authenticationFailed)
+service.authenticate(reason: "Test") { result in
+    XCTAssertEqual(result, .failure(.authenticationFailed))
+}
+```
+
+### Security Actions Service
+
+**Strategy**: Mock system calls to test action coordination
+
+```swift
+// Test setup
+let mockSystemActions = MockSystemActions()
+let service = SecurityActionsService(systemActions: mockSystemActions)
+
+// Test action execution
+service.executeActions { result in
+    XCTAssertTrue(mockSystemActions.lockScreenCalled)
+    XCTAssertTrue(result.allSucceeded)
+}
+```
+
+### Power Monitoring
+
+**Strategy**: Extract power state logic from IOKit dependencies
+
+```swift
+// Testable core logic
+class PowerMonitorCore {
+    func processPowerSourceInfo(_ info: [String: Any]) -> PowerInfo { ... }
+    func hasPowerStateChanged(newInfo: PowerInfo) -> Bool { ... }
+}
+
+// IOKit integration (excluded from coverage)
+class PowerMonitorService {
+    private let core = PowerMonitorCore()
+    // Thin wrapper around IOKit
+}
+```
+
+## Test Organization
+
+### Unit Tests
+
+Location: `Tests/MagSafeGuardTests/`
+
+- **MockTests**: Tests using mocks for 100% coverage
+  - `AuthenticationServiceMockTests.swift`
+  - `SecurityActionsServiceTests.swift`
+  - `AppDelegateCoreTests.swift`
+
+- **Integration Tests**: Tests with some real components
+  - `PowerMonitorServiceTests.swift`
+  - `PowerMonitorCoreTests.swift`
+
+### Manual Acceptance Tests
+
+Location: `docs/maintainers/acceptance-tests.md`
+
+Cover real system integration that cannot be automated:
+
+- Actual biometric authentication
+- Real screen locking
+- System shutdown/logout
+- Hardware power disconnection
+
+## Running Tests
+
+### Using Taskfile (Recommended)
+
+The project includes a comprehensive Taskfile with test commands:
 
 ```bash
 # Run all tests
+task test
+
+# Run tests with coverage report
+task test:coverage
+
+# Generate HTML coverage report
+task test:coverage:html
+
+# Run specific test file
+task test -- --filter SecurityActionsServiceTests
+
+# Run tests in CI mode (non-interactive)
+CI=true task test
+```
+
+### Manual Test Commands
+
+```bash
+# Basic test run
 swift test
 
-# Run with verbose output
-swift test --verbose
+# With coverage
+swift test --enable-code-coverage
 
-# Run specific test class
-swift test --filter PowerMonitorServiceTests
-
-# Run specific test method
-swift test --filter PowerMonitorServiceTests.testStartMonitoring
+# Generate coverage report
+xcrun llvm-cov report \
+  .build/*/debug/MagSafeGuardPackageTests.xctest/Contents/MacOS/MagSafeGuardPackageTests \
+  -instr-profile=.build/*/debug/codecov/default.profdata \
+  -ignore-filename-regex=".*Tests\.swift|.*Mock.*\.swift"
 ```
 
-### Current Test Coverage
+### Environment Variables
 
-#### PowerMonitorServiceTests
+The test suite recognizes these environment variables:
 
-| Test                          | Purpose                    | Status |
-| ----------------------------- | -------------------------- | ------ |
-| `testServiceSingleton`        | Verify singleton pattern   | ✅     |
-| `testInitialState`            | Check default values       | ✅     |
-| `testStartMonitoring`         | Validate monitoring starts | ✅     |
-| `testStopMonitoring`          | Ensure cleanup works       | ✅     |
-| `testGetCurrentPowerInfo`     | Test sync power check      | ✅     |
-| `testObjectiveCCompatibility` | ObjC bridge testing        | ✅     |
-| `testPowerStateEnum`          | Enum values/descriptions   | ✅     |
+- **`CI=true`**: Enables CI mode for non-interactive testing
+  - Skips authentication dialogs
+  - Adjusts timeouts for CI environment
+  - Enables additional logging
 
-### Writing New Tests
+- **`SKIP_UI_TESTS=true`**: Skip UI-dependent tests
 
-#### Basic Test Template
+- **`COVERAGE_THRESHOLD=80`**: Set minimum coverage requirement
+
+Example:
+
+```bash
+CI=true COVERAGE_THRESHOLD=85 task test:coverage
+```
+
+## Writing Effective Tests
+
+### Test Structure
 
 ```swift
-func testNewFeature() {
-    // Arrange
-    let service = PowerMonitorService.shared
-    let expectation = XCTestExpectation(description: "Callback fired")
+func testFeatureBehavior() {
+    // Arrange: Set up test conditions
+    mockService.configureExpectedBehavior()
+    
+    // Act: Execute the feature
+    let result = service.performAction()
+    
+    // Assert: Verify the outcome
+    XCTAssertTrue(result.succeeded)
+    XCTAssertTrue(mockService.expectedMethodCalled)
+}
+```
 
-    // Act
-    service.startMonitoring { powerInfo in
-        // Assert
-        XCTAssertNotNil(powerInfo)
+### Async Testing
+
+```swift
+func testAsyncOperation() {
+    let expectation = self.expectation(description: "Async operation completes")
+    
+    service.performAsyncOperation { result in
+        XCTAssertNotNil(result)
         expectation.fulfill()
     }
-
-    // Wait
-    wait(for: [expectation], timeout: 1.0)
+    
+    waitForExpectations(timeout: 2)
 }
 ```
 
-#### Testing Async Operations
+### Testing Error Paths
 
 ```swift
-func testAsyncPowerChange() {
-    let expectation = XCTestExpectation(description: "Power state changed")
-    var callCount = 0
-
-    service.startMonitoring { _ in
-        callCount += 1
-        if callCount > 1 {
-            expectation.fulfill()
+func testErrorHandling() {
+    // Configure mock to fail
+    mockService.shouldFail = true
+    mockService.errorToThrow = CustomError.networkFailure
+    
+    // Verify error is handled correctly
+    service.performOperation { result in
+        switch result {
+        case .failure(let error):
+            XCTAssertEqual(error as? CustomError, .networkFailure)
+        case .success:
+            XCTFail("Should have failed")
         }
     }
-
-    // Simulate power change
-    // Note: Actual power changes require manual testing
-
-    wait(for: [expectation], timeout: 5.0)
 }
 ```
 
-## Integration Testing
+## Coverage Exclusions
 
-### Power Detection Testing
+### Files to Exclude
 
-**Test Scenarios**:
+1. **UI-Dependent Code**
+   - `MagSafeGuardApp.swift` - NSApp dependencies
+   - `*View.swift` - SwiftUI views (test view models instead)
 
-1. **Normal Operation**:
+2. **System Integration Code**
+   - `*LAContext.swift` - Direct LAContext usage
+   - `Mac*Actions.swift` - Real system implementations
+   - `PowerMonitorService.swift` - IOKit integration
 
-   - Plug in power → Verify "connected" state
-   - Unplug power → Verify "disconnected" state
-   - Multiple cycles → Ensure consistency
+3. **Test Infrastructure**
+   - `*Tests.swift` - Test files
+   - `Mock*.swift` - Mock implementations
+   - `runner.swift` - Test runner
 
-2. **Edge Cases**:
+### Exclusion Configuration
 
-   - Rapid plug/unplug cycles
-   - Sleep/wake with power changes
-   - Multiple power adapters (if available)
+Configure in multiple places:
 
-3. **Performance**:
-   - CPU usage under 1%
-   - Memory stable over time
-   - No memory leaks
-
-### Menu Bar Integration
-
-**Manual Test Steps**:
-
-1. **Launch Test**:
-
-   ```text
-   ✓ App launches without crash
-   ✓ No dock icon appears
-   ✓ Menu bar icon visible
-   ```
-
-2. **Menu Test**:
-
-   ```text
-   ✓ Click opens menu
-   ✓ All items visible
-   ✓ Keyboard shortcuts work
-   ✓ Items enable/disable correctly
-   ```
-
-3. **State Management**:
-
-   ```text
-   ✓ Armed state persists
-   ✓ Icon updates on state change
-   ✓ Menu reflects current state
-   ```
-
-## Manual Testing Procedures
-
-### Basic Functionality Test
-
-1. **Setup**:
-
-   - Build and run app
-   - Open demo window
-   - Have power adapter ready
-
-2. **Power Detection**:
-
-   - Start monitoring in demo
-   - Unplug power adapter
-   - Verify: Icon red, state "disconnected"
-   - Plug in power adapter
-   - Verify: Icon green, state "connected"
-
-3. **Security Features**:
-   - Disarm the app (default state)
-   - Unplug power → Nothing happens
-   - Arm the app (icon turns red)
-   - Unplug power → Screen locks
-
-### Stress Testing
-
-#### Rapid State Changes
-
-```bash
-# Pseudo-script for manual testing
-1. Start monitoring
-2. For 30 seconds:
-   - Unplug adapter
-   - Wait 1 second
-   - Plug adapter
-   - Wait 1 second
-3. Check:
-   - No crashes
-   - All changes detected
-   - UI responsive
-```
-
-#### Long-Duration Test
-
-1. Start app in armed mode
-2. Leave running for 24 hours
-3. Monitor:
-   - CPU usage (Activity Monitor)
-   - Memory usage
-   - Battery impact
-4. Verify still responsive
-
-### Platform Testing
-
-#### macOS Versions
-
-Test on:
-
-- macOS 13 (Ventura) - Minimum
-- macOS 14 (Sonoma) - Current
-- macOS 15 (Beta) - Future
-
-#### Hardware Variants
-
-- **MacBook Air**: USB-C power
-- **MacBook Pro**: USB-C/MagSafe 3
-- **Mac mini**: Different power architecture
-- **Intel Mac**: Legacy hardware
-- **Apple Silicon**: Current hardware
-
-## Performance Testing
-
-### Using Instruments
-
-1. **Launch Instruments**:
-
-   ```bash
-   open /Applications/Xcode.app/Contents/Applications/Instruments.app
-   ```
-
-2. **Select Templates**:
-
-   - Time Profiler: CPU usage
-   - Allocations: Memory usage
-   - Energy Log: Battery impact
-
-3. **Key Metrics**:
-   - CPU: < 1% when idle
-   - Memory: < 50MB total
-   - Wake ups: Minimal
-
-### Command Line Monitoring
-
-```bash
-# Monitor CPU usage
-top -pid $(pgrep MagSafeGuard)
-
-# Check memory
-footprint MagSafeGuard
-
-# System calls
-dtrace -n 'syscall:::entry /execname == "MagSafeGuard"/ { @[probefunc] = count(); }'
-```
-
-## Test Automation
-
-### UI Testing (Future)
-
-```swift
-import XCTest
-
-class MagSafeGuardUITests: XCTestCase {
-    func testMenuBarInteraction() {
-        let app = XCUIApplication()
-        app.launch()
-
-        // Find menu bar item
-        let menuBar = app.menuBars
-        let statusItem = menuBar.statusItems["MagSafe Guard"]
-
-        // Click to open menu
-        statusItem.click()
-
-        // Verify menu items
-        XCTAssert(app.menuItems["Arm"].exists)
-    }
-}
-```
-
-### Continuous Integration Tests
+1. **Taskfile.yml**:
 
 ```yaml
-# .github/workflows/test.yml
-name: Test
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Run tests
-        run: |
-          swift test
-          xcodebuild test -scheme MagSafeGuard
+test:coverage:
+  cmds:
+    - swift test --enable-code-coverage
+    - |
+      xcrun llvm-cov report ... \
+        -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift"
 ```
 
-## Test Data and Scenarios
+1. **sonar-project.properties**:
 
-### Power States Test Matrix
+```properties
+sonar.coverage.exclusions=\
+  **/MagSafeGuardApp.swift,\
+  **/PowerMonitorService.swift,\
+  **/PowerMonitorCore.swift,\
+  **/*LAContext.swift,\
+  **/Mac*Actions.swift,\
+  **/*Tests.swift,\
+  **/Mock*.swift
+```
 
-| Scenario            | Initial State        | Action         | Expected Result    |
-| ------------------- | -------------------- | -------------- | ------------------ |
-| Normal connect      | Disconnected         | Plug adapter   | Connected state    |
-| Normal disconnect   | Connected            | Unplug adapter | Disconnected state |
-| Armed disconnect    | Armed + Connected    | Unplug         | Screen lock        |
-| Disarmed disconnect | Disarmed + Connected | Unplug         | No action          |
-| Sleep transition    | Connected            | Sleep Mac      | State maintained   |
-| Wake transition     | Any                  | Wake Mac       | State updated      |
+1. **.codecov.yml**:
 
-### Error Scenarios
+```yaml
+coverage:
+  ignore:
+    - "Tests/"
+    - "**/Mock*.swift"
+    - "**/MagSafeGuardApp.swift"
+```
 
-1. **IOKit Failure**:
+## CI/CD Integration
 
-   - Simulate by denying permissions
-   - Should fall back to polling
-   - Log appropriate errors
+### GitHub Actions Configuration
 
-2. **Memory Pressure**:
+```yaml
+- name: Run Tests with Coverage
+  env:
+    CI: true
+  run: |
+    # Install dependencies
+    brew install go-task/tap/go-task
+    
+    # Run tests with coverage
+    task test:coverage
+    
+    # Upload to codecov
+    bash <(curl -s https://codecov.io/bash)
+```
 
-   - Run with memory constraints
-   - Should handle gracefully
-   - No crashes or data loss
+### SonarCloud Integration
 
-3. **Rapid User Actions**:
-   - Spam arm/disarm
-   - Multiple demo windows
-   - Menu during updates
+The coverage report is automatically converted to SonarQube format:
 
-## Debugging Test Failures
+```bash
+# Conversion happens in test:coverage task
+task test:convert  # Converts LCOV to SonarQube XML
+```
+
+## Best Practices
+
+### DO
+
+- ✅ Extract business logic into testable classes
+- ✅ Use dependency injection with protocols
+- ✅ Test all success and failure paths
+- ✅ Mock external dependencies
+- ✅ Write tests before fixing bugs
+- ✅ Keep tests fast and isolated
+- ✅ Use `CI=true` for automated testing
+
+### DON'T
+
+- ❌ Test implementation details
+- ❌ Mock types you own (use real objects)
+- ❌ Write tests that depend on timing
+- ❌ Test UI layout in unit tests
+- ❌ Execute real system actions in tests
+- ❌ Hardcode paths in tests
+
+## Troubleshooting
 
 ### Common Issues
 
-1. **Timing Issues**:
+1. **"Authentication dialog appears during tests"**
+   - Ensure you're using mock authentication context
+   - Check that `CI=true` is set
+   - Verify mock factory is properly injected
 
-   ```swift
-   // Bad: Fixed delay
-   Thread.sleep(forTimeInterval: 1.0)
+2. **"Tests timeout in CI"**
+   - Add explicit timeouts to async tests
+   - Mock time-dependent operations
+   - Use `CI=true` to adjust timeouts
 
-   // Good: Expectation with timeout
-   wait(for: [expectation], timeout: 5.0)
-   ```
+3. **"Coverage is lower than expected"**
+   - Check exclusion patterns in Taskfile
+   - Ensure all test files are being run
+   - Verify mock usage in tests
+   - Run `task test:coverage:html` to see detailed report
 
-2. **State Isolation**:
+4. **"Screen locks during test run"**
+   - Ensure SecurityActionsService uses mock
+   - Check AppDelegateCore initialization
+   - Verify test uses dependency injection
 
-   ```swift
-   override func setUp() {
-       super.setUp()
-       // Reset singleton state
-       PowerMonitorService.shared.stopMonitoring()
-   }
-   ```
-
-3. **Main Thread**:
-
-   ```swift
-   // Ensure UI updates on main thread
-   DispatchQueue.main.async {
-       XCTAssertEqual(label.stringValue, "Expected")
-   }
-   ```
-
-### Test Logging
-
-Enable verbose logging for tests:
+### Debugging Tips
 
 ```swift
-// In test setup
-UserDefaults.standard.set(true, forKey: "EnableTestLogging")
+// Add verbose logging in tests
+XCTContext.runActivity(named: "Testing authentication") { _ in
+    print("Mock state: \(mockContext)")
+    // Test code here
+}
 
-// In service
-if UserDefaults.standard.bool(forKey: "EnableTestLogging") {
-    print("[TEST] Power state: \(state)")
+// Use afterEach to verify mock state
+override func tearDown() {
+    XCTAssertFalse(mockService.hasUnexpectedCalls)
+    super.tearDown()
+}
+
+// Check CI environment
+if ProcessInfo.processInfo.environment["CI"] != nil {
+    print("Running in CI mode")
 }
 ```
 
-## Test Reports
+## Future Improvements
 
-### Coverage Report
-
-Generate coverage report:
-
-```bash
-# Build with coverage
-xcodebuild test -scheme MagSafeGuard -enableCodeCoverage YES
-
-# View report
-xcrun xccov view --report derived_data/Logs/Test/*.xcresult
-```
-
-### Test Summary
-
-After each release, document:
-
-- Tests run: X total
-- Pass rate: X%
-- Coverage: X%
-- Performance: CPU < X%, Memory < XMB
-- Known issues: List any
+1. **Property-Based Testing**: Use SwiftCheck for randomized testing
+2. **Snapshot Testing**: Add UI snapshot tests for views
+3. **Performance Testing**: Add XCTest performance tests
+4. **Integration Test Suite**: Separate integration tests from unit tests
+5. **Test Data Builders**: Create builders for complex test objects
+6. **Mutation Testing**: Use tools to verify test quality
+7. **Contract Testing**: Ensure mocks match real implementations
