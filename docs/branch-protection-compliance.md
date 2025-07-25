@@ -30,9 +30,6 @@ Your ruleset is missing status checks for our commit message workflows. Add thes
       },
       {
         "context": "Enforce Clean Commit History"
-      },
-      {
-        "context": "Block Direct Push to Protected Branches"
       }
     ],
     "strict_required_status_checks_policy": true

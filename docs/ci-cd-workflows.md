@@ -82,14 +82,13 @@ All workflows include automatic cancellation of redundant runs to optimize CI/CD
 
 ### 3. Enforce Clean History (`enforce-clean-history.yml`)
 
-**Trigger**: Pull requests, Push to protected branches
+**Trigger**: Pull requests
 
 **Purpose**: Deep scan of entire commit history for prohibited content
 
 **Jobs**:
 
 - `cancel-redundant`: Cancels outdated runs
-- `block-direct-push`: Prevents direct pushes to main/develop
 - `enforce-clean-commits`:
   - Scans full commit history
   - Provides detailed remediation instructions
@@ -189,11 +188,12 @@ The following workflows are configured as required status checks in branch prote
 1. ✅ `Test Suite`
 2. ✅ `Validate Commit Messages`
 3. ✅ `Enforce Clean Commit History`
-4. ✅ `Block Direct Push to Protected Branches`
-5. ✅ `Security Scan / basic-checks`
-6. ✅ `CodeQL`
+4. ✅ `Security Scan / basic-checks`
+5. ✅ `CodeQL`
 
 These checks must pass before merging to protected branches.
+
+**Note**: Direct push protection is handled by GitHub's branch protection rules, not by workflow checks.
 
 ## Troubleshooting
 
