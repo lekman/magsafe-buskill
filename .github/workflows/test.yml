@@ -90,9 +90,5 @@ jobs:
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     
-    # SonarCloud Analysis
-    - name: SonarCloud Scan
-      uses: SonarSource/sonarcloud-github-action@master
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    # Note: SonarCloud analysis is handled in .github/workflows/sonarcloud.yml
+    # to avoid duplication and use the latest scanner version
