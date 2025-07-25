@@ -8,6 +8,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- This changelog is automatically maintained by release-please -->
 <!-- Do not manually edit below this line -->
 
+## [1.3.0](https://github.com/lekman/magsafe-buskill/compare/v1.2.0...v1.3.0) (2025-07-25)
+
+
+### Features
+
+* add LGPL-3.0 to allowed licenses in license compliance check ([eb533c8](https://github.com/lekman/magsafe-buskill/commit/eb533c8faf40faf5f13e91951cbfed2d6c6bc9a8))
+* add Snyk policy file and justification for DeviceAuthenticationBypass warning; enhance AuthenticationService with detailed security measures ([e15bef0](https://github.com/lekman/magsafe-buskill/commit/e15bef0c930c94ef24ca83aded6ac0666dac49d2))
+* add SonarCloud analysis workflow and coverage reporting for improved code quality ([11139b3](https://github.com/lekman/magsafe-buskill/commit/11139b32e13a9d1e7f870ca4329d61bbdbb703f9))
+* enhance AuthenticationService with security hardening measures and comprehensive tests ([875d1df](https://github.com/lekman/magsafe-buskill/commit/875d1dfb85f9d692b38608c3f9a2b9ae51cde5dd))
+* enhance CI testing for AuthenticationService by adding environment detection and adapting tests for CI execution ([78ab15e](https://github.com/lekman/magsafe-buskill/commit/78ab15ed8bd1e77378a2f7cc663cfc00522ac7aa))
+* enhance SonarCloud coverage report generation and add exclusions for improved analysis ([ff23aee](https://github.com/lekman/magsafe-buskill/commit/ff23aeea4d2ac44130d8be17dccb68a5f95d7666))
+* enhance test coverage tasks and add pre-PR checks for improved quality assurance ([f5cc076](https://github.com/lekman/magsafe-buskill/commit/f5cc076ff24bb31780aaf02d2999e4d9f78cab17))
+* implement AuthenticationService with comprehensive error handling and caching mechanisms ([9f0af20](https://github.com/lekman/magsafe-buskill/commit/9f0af20b2fe9252bbb8b9574af0f0bbdde1077f6))
+* implement caching strategy for Swift builds in CI workflows to optimize build times ([7c4f273](https://github.com/lekman/magsafe-buskill/commit/7c4f27390b633adda64f2ae080268ad472a7a852))
+* implement comprehensive authentication service with biometric and password support ([dad7c21](https://github.com/lekman/magsafe-buskill/commit/dad7c2178739af6636fedbabbe86c6137dae4b6b))
+* integrate Semgrep for enhanced security scanning with cloud rules support ([91c1d7b](https://github.com/lekman/magsafe-buskill/commit/91c1d7bb7614a2643ea8a8ef977dc4edc4945d43))
+* simplify SonarCloud scanner configuration and update exclusions for better coverage analysis ([d0afe79](https://github.com/lekman/magsafe-buskill/commit/d0afe798bbb99d61cea2fe824be51a8a20180d73))
+* update SonarCloud workflow to install SonarScanner and run analysis with coverage reports ([f30dca7](https://github.com/lekman/magsafe-buskill/commit/f30dca7610115fce19bfac99e2be79e2e1742ae5))
+
+
+### Documentation
+
+* add Changelog link to Quick Links section in README ([67615eb](https://github.com/lekman/magsafe-buskill/commit/67615eb099947f24d7c48e6573cd7d3da526dfb3))
+* enhance Snyk policy justification with detailed risk assessment and compliance measures ([2adf543](https://github.com/lekman/magsafe-buskill/commit/2adf543b8bca2ead31dd7028ea225ef6d1fb7c3b))
+* expand project task status section in README ([c6a464f](https://github.com/lekman/magsafe-buskill/commit/c6a464fcfdac838ae4127f21635d49d597dff853))
+* update README and configuration for improved documentation structure ([3ba2c03](https://github.com/lekman/magsafe-buskill/commit/3ba2c0343ac68157d9cfa1738ddf61ead9025a05))
+
+
+### Code Refactoring
+
+* rename context variable to avoid naming conflicts and improve clarity in AuthenticationService ([81d8c2d](https://github.com/lekman/magsafe-buskill/commit/81d8c2d3af64a18c01b0a13f9a43de872bc08093))
+* resolve SonarCloud issues by renaming variables, reducing cognitive complexity, and improving closure nesting in AuthenticationService ([411147a](https://github.com/lekman/magsafe-buskill/commit/411147aacb5c149761bdcc2850c07e1a6b07338f))
+
+
+### Tests
+
+* enhance monitoring behavior in PowerMonitorServiceTests to handle immediate stop scenarios ([b870453](https://github.com/lekman/magsafe-buskill/commit/b870453ed1cdf82ba56a5490fa038ac263cd9916))
+* enhance multiple callback handling in PowerMonitorServiceTests ([637ef97](https://github.com/lekman/magsafe-buskill/commit/637ef9711e6fdd9ea156c7c504f9568350c8cad4))
+* Refactor and enhance MagSafe Guard project ([9167fba](https://github.com/lekman/magsafe-buskill/commit/9167fba0828ab4f8016fe3664e438bb56be70a84))
+
 ## [1.2.0](https://github.com/lekman/magsafe-buskill/compare/v1.1.0...v1.2.0) (2025-07-25)
 
 
