@@ -31,6 +31,17 @@ jobs:
       uses: swift-actions/setup-swift@v2
       with:
         swift-version: "5.9"
+    
+    # Cache Swift Package Manager dependencies
+    - name: Cache SPM dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          .build
+          ~/.swiftpm
+        key: ${{ runner.os }}-spm-${{ hashFiles('Package.swift', '**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
         
     - name: Build
       run: swift build -v

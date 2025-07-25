@@ -431,7 +431,7 @@ FodyWeavers.xsd
 # Swift Package Manager
 .build/
 .swiftpm/
-Package.resolved
+# Package.resolved should be committed for reproducible builds and caching
 /*.xcodeproj
 
 # Xcode
