@@ -169,7 +169,7 @@ public class AuthenticationService: NSObject {
     // MARK: - Authentication Helper Methods
     
     /// Perform pre-authentication security checks
-    private func performPreAuthenticationChecks(reason: String, policy: AuthenticationPolicy) -> AuthenticationResult? {
+    internal func performPreAuthenticationChecks(reason: String, policy: AuthenticationPolicy) -> AuthenticationResult? {
         // Check rate limiting
         if isRateLimited() {
             return .failure(AuthenticationError.biometryLockout)
@@ -329,10 +329,17 @@ public class AuthenticationService: NSObject {
         }
     }
     
+    /// Reset authentication attempts (for testing only)
+    internal func resetAuthenticationAttempts() {
+        queue.sync {
+            authenticationAttempts.removeAll()
+        }
+    }
+    
     // MARK: - Private Methods
     
     /// Check if authentication is rate limited
-    private func isRateLimited() -> Bool {
+    internal func isRateLimited() -> Bool {
         // Clean up old attempts
         let cutoffTime = Date().addingTimeInterval(-SecurityConfig.authenticationCooldownPeriod)
         authenticationAttempts.removeAll { $0.date < cutoffTime }
@@ -344,7 +351,7 @@ public class AuthenticationService: NSObject {
     }
     
     /// Record an authentication attempt
-    private func recordAuthenticationAttempt(success: Bool) {
+    internal func recordAuthenticationAttempt(success: Bool) {
         authenticationAttempts.append((date: Date(), success: success))
         
         // Keep only recent attempts to prevent memory growth
@@ -353,7 +360,7 @@ public class AuthenticationService: NSObject {
     }
     
     /// Map LAError to AuthenticationError
-    private func mapLAError(_ error: NSError?) -> AuthenticationError {
+    internal func mapLAError(_ error: NSError?) -> AuthenticationError {
         guard let error = error else {
             return .unknown(NSError(domain: "AuthenticationService", code: -1, userInfo: nil))
         }

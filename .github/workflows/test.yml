@@ -26,6 +26,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for SonarCloud blame data
       
     - name: Setup Swift
       uses: swift-actions/setup-swift@v2
@@ -68,6 +70,8 @@ jobs:
             -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*/PowerMonitorCore\.swift" > coverage.lcov
           
           echo "Coverage report size: $(wc -l < coverage.lcov) lines"
+          echo "First 20 lines of coverage report:"
+          head -20 coverage.lcov || echo "Failed to read coverage report"
         else
           echo "Coverage data not found"
           echo "PROF_DATA: $PROF_DATA"
@@ -101,6 +105,10 @@ jobs:
         if [ -f "coverage.lcov" ]; then
           echo "Coverage file found: $(wc -l < coverage.lcov) lines"
           echo "Running SonarCloud analysis with coverage..."
+          echo "Current directory: $(pwd)"
+          echo "Coverage file path: $(realpath coverage.lcov)"
+          echo "Checking file paths in coverage report:"
+          grep -m 5 "^SF:" coverage.lcov || echo "No source files found in coverage"
         else
           echo "WARNING: No coverage.lcov file found"
           echo "Running SonarCloud analysis without coverage..."
