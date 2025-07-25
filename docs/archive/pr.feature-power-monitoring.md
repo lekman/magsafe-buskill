@@ -20,6 +20,7 @@ N/A - Documentation and test improvements
 ## Changes
 
 ### Documentation Improvements
+
 - Reorganized documentation into logical folders: `architecture/`, `maintainers/`, `devops/`, `security/`, `examples/`
 - Created comprehensive documentation index at `docs/README.md`
 - Updated all cross-references and links to reflect new folder structure
@@ -28,11 +29,13 @@ N/A - Documentation and test improvements
 - Updated README to emphasize Xcode usage for development
 
 ### Test Fixes
+
 - Fixed async timing issues in PowerMonitorServiceTests
 - Removed redundant example test
 - All 7 unit tests now pass successfully
 
 ### Code Cleanup
+
 - Removed prototype scripts (PowerMonitorPOC.swift, PowerMonitorAdvanced.swift)
 - Removed unused ContentView.swift
 - Integrated setup-hooks functionality directly into Taskfile.yml
@@ -40,6 +43,7 @@ N/A - Documentation and test improvements
 - Added VS Code settings to hide build artifacts
 
 ### CI/CD Improvements
+
 - Fixed CodeQL Swift analysis timeout by replacing autobuild with explicit build steps
 - Added Xcode setup and optimized build configuration for faster CI runs
 
@@ -63,9 +67,10 @@ N/A - Documentation and test changes only
 - Power Adapter Type: USB-C
 
 ### Test Results
-```
+
+```text
 Test Suite 'All tests' passed at 2025-07-25 09:53:12.857.
-	 Executed 7 tests, with 0 failures (0 unexpected) in 0.313 (0.314) seconds
+  Executed 7 tests, with 0 failures (0 unexpected) in 0.313 (0.314) seconds
 ```
 
 ## Security Considerations
@@ -89,7 +94,9 @@ Test Suite 'All tests' passed at 2025-07-25 09:53:12.857.
 ## Additional Notes
 
 ### Documentation Structure
+
 The new documentation organization follows industry best practices:
+
 - **architecture/** - System design and technical guides
 - **maintainers/** - Build, test, and troubleshooting guides
 - **devops/** - CI/CD and automation documentation
@@ -97,6 +104,7 @@ The new documentation organization follows industry best practices:
 - **examples/** - Configuration examples and schemas
 
 ### Breaking Changes
+
 None. All changes are backwards compatible and focused on improving documentation and tests.
 
 ## Post-Merge Tasks
@@ -108,7 +116,7 @@ None. All changes are backwards compatible and focused on improving documentatio
 
 ---
 
-<!-- 
+<!--
 Reviewer Guidelines:
 1. Check security implications for all changes ✓
 2. Verify no kernel extensions or privileged operations added ✓

@@ -38,7 +38,7 @@
 
 | Tool               | Status                                                                                                                                                                                     | Dashboard                                                                 |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| **Snyk** (Free for OSS) | [![Known Vulnerabilities](https://snyk.io/test/github/lekman/magsafe-buskill/badge.svg)](https://snyk.io/test/github/lekman/magsafe-buskill)                                               | [Snyk Dashboard →](https://app.snyk.io) • [Setup →](./snyk-integration.md) |
+| **Snyk** (Free for OSS) | [![Known Vulnerabilities](https://snyk.io/test/github/lekman/magsafe-buskill/badge.svg)](https://snyk.io/test/github/lekman/magsafe-buskill)                                               | [Snyk Dashboard →](https://app.snyk.io/org/lekman) • [Setup →](./security/snyk-integration.md) |
 | **Libraries.io**   | [![Dependencies](https://img.shields.io/librariesio/github/lekman/magsafe-buskill)](https://libraries.io/github/lekman/magsafe-buskill)                                                    | [View Analysis →](https://libraries.io/github/lekman/magsafe-buskill)     |
 | **OSSF Scorecard** | [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/lekman/magsafe-buskill/badge)](https://api.securityscorecards.dev/projects/github.com/lekman/magsafe-buskill) | [View Report →](https://deps.dev/project/github/lekman%2Fmagsafe-buskill) |
 
@@ -50,7 +50,7 @@
 | ---------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | **Code Climate** (Free for OSS) | [![Maintainability](https://img.shields.io/badge/Maintainability-Setup%20Required-yellow)](https://codeclimate.com) | [Setup →](https://codeclimate.com/github/lekman/magsafe-buskill) |
 | **Codecov**      | [![codecov](https://codecov.io/gh/lekman/magsafe-buskill/graph/badge.svg?token=AshUsxKtAI)](https://codecov.io/gh/lekman/magsafe-buskill) | [Dashboard →](https://codecov.io/gh/lekman/magsafe-buskill) • [Swift Guide →](./codecov-swift.md) |
-| **SonarCloud** (Free for OSS) | [![SonarCloud](https://img.shields.io/badge/SonarCloud-Setup%20Required-yellow)](https://sonarcloud.io)             | [Setup →](https://sonarcloud.io/projects/create)                 |
+| **SonarCloud** (Free for OSS) | [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=lekman_magsafe-buskill&metric=alert_status)](https://sonarcloud.io/summary/overall?id=lekman_magsafe-buskill) | [Dashboard →](https://sonarcloud.io/summary/overall?id=lekman_magsafe-buskill&branch=main) |
 
 ### Language & Platform
 
