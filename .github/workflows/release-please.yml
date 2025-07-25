@@ -62,7 +62,7 @@ jobs:
         uses: lekman/auto-approve-action@v1
         with:
           allowed-authors: "app/lekman-release-please-bot"
-          github-token: ${{ steps.app-token.outputs.token }}
+          github-token: ${{ secrets.APPROVE_TOKEN }}
           required-labels: "autorelease: pending"
           label-match-mode: "all"
           path-filters: ".github/.release-please-manifest.json,**/CHANGELOG.md,**/package.json,**/package-lock.json"
