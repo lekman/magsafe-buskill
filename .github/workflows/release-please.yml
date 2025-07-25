@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
@@ -47,7 +49,7 @@ jobs:
     name: Auto Approve
     needs: release-please
     runs-on: ubuntu-latest
-    if: ${{ needs.release-please.outputs.pr }}
+    if: startsWith(github.head_ref, 'release-please')
     steps:
       - name: Generate GitHub App Token
         id: app-token
