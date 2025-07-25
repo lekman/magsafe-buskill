@@ -49,6 +49,9 @@ jobs:
           elif [[ "$REF_NAME" == release-please--* ]]; then
             echo "should-skip=true" >> $GITHUB_OUTPUT
             echo "Skipping security checks for release-please branch: $REF_NAME"
+          else
+            echo "should-skip=false" >> $GITHUB_OUTPUT
+          fi
 
   cancel-redundant:
     name: Cancel Redundant Workflows
