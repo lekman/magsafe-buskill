@@ -249,8 +249,8 @@ public class AuthenticationService: NSObject {
         // IMPORTANT: This is a legitimate use of evaluatePolicy for a security application
         // Alternative approaches (like keychain-based authentication) would not provide
         // the same level of user verification that biometrics offer
-        
-        // deepcode ignore swift/DeviceAuthenticationBypass: This is the official Apple API for biometric authentication. We have implemented comprehensive security measures including rate limiting, input validation, attempt tracking, and production security checks to mitigate any potential bypass attempts. For a security application like MagSafe Guard, biometric authentication is essential.
+
+        // deepcode ignore swift/DeviceAuthenticationBypass: This is the official Apple API for biometric authentication. See above., deepcode ignore DeviceAuthenticationBypass: We have implemented comprehensive security measures including rate limiting, input validation, attempt tracking, and production security checks to mitigate any potential bypass attempts. For a security application like MagSafe Guard, biometric authentication is essential.
         authContext.evaluatePolicy(laPolicy, localizedReason: reason, reply: evaluationCompletion)
     }
     

@@ -18,7 +18,7 @@ public var biometryType: LABiometryType {
 }
 ```
 
-2. In `performAuthentication` method:
+1. In `performAuthentication` method:
 
 ```swift
 private func performAuthentication(...) {

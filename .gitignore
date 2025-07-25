@@ -488,6 +488,8 @@ sonar-coverage.lcov
 *.lcov
 .coverage/
 coverage/
+coverage-report.txt
+coverage-html/
 
 # Local scratch files
 .taskmaster

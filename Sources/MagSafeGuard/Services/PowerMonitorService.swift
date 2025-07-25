@@ -13,29 +13,9 @@ public class PowerMonitorService: NSObject {
     
     // MARK: - Types
     
-    /// Represents the current power connection state
-    public enum PowerState: String {
-        case connected = "connected"
-        case disconnected = "disconnected"
-        
-        var description: String {
-            switch self {
-            case .connected:
-                return "Power adapter connected"
-            case .disconnected:
-                return "Power adapter disconnected"
-            }
-        }
-    }
-    
-    /// Power source information
-    public struct PowerInfo {
-        let state: PowerState
-        let batteryLevel: Int?
-        let isCharging: Bool
-        let adapterWattage: Int?
-        let timestamp: Date
-    }
+    /// Re-export types from PowerMonitorCore for backward compatibility
+    public typealias PowerState = PowerMonitorCore.PowerState
+    public typealias PowerInfo = PowerMonitorCore.PowerInfo
     
     /// Callback type for power state changes
     public typealias PowerStateCallback = (PowerInfo) -> Void
@@ -46,7 +26,9 @@ public class PowerMonitorService: NSObject {
     public static let shared = PowerMonitorService()
     
     /// Current power state
-    private(set) public var currentPowerInfo: PowerInfo?
+    public var currentPowerInfo: PowerInfo? {
+        return core.currentPowerInfo
+    }
     
     /// Polling interval in seconds (100ms as per PRD)
     private let pollingInterval: TimeInterval = 0.1
@@ -68,6 +50,9 @@ public class PowerMonitorService: NSObject {
     
     /// Flag to use notification-based monitoring instead of polling
     private let useNotifications = true
+    
+    /// Core logic handler
+    internal let core = PowerMonitorCore(pollingInterval: 0.1)
     
     // MARK: - Initialization
     
@@ -93,7 +78,8 @@ public class PowerMonitorService: NSObject {
             
             // Get initial state
             if let powerInfo = self.getCurrentPowerInfo() {
-                self.currentPowerInfo = powerInfo
+                // Update core's state
+                _ = self.core.hasPowerStateChanged(newInfo: powerInfo)
                 
                 DispatchQueue.main.async {
                     callback(powerInfo)
@@ -145,46 +131,14 @@ public class PowerMonitorService: NSObject {
         let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
         let sources = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue() as Array
         
-        var state: PowerState = .disconnected
-        var batteryLevel: Int?
-        var isCharging = false
-        var adapterWattage: Int?
-        
+        var sourceDicts: [[String: Any]] = []
         for source in sources {
             if let sourceDict = IOPSGetPowerSourceDescription(snapshot, source).takeUnretainedValue() as? [String: Any] {
-                
-                // Check power state
-                if let powerSourceState = sourceDict[kIOPSPowerSourceStateKey as String] as? String {
-                    state = (powerSourceState == kIOPSACPowerValue as String) ? .connected : .disconnected
-                }
-                
-                // Get battery level
-                if let currentCapacity = sourceDict[kIOPSCurrentCapacityKey as String] as? Int,
-                   let maxCapacity = sourceDict[kIOPSMaxCapacityKey as String] as? Int,
-                   maxCapacity > 0 {
-                    batteryLevel = (currentCapacity * 100) / maxCapacity
-                }
-                
-                // Check charging status
-                if let chargingValue = sourceDict[kIOPSIsChargingKey as String] as? Bool {
-                    isCharging = chargingValue
-                }
-                
-                // Try to get adapter wattage (not always available)
-                if let adapterInfo = sourceDict["AdapterDetails"] as? [String: Any],
-                   let watts = adapterInfo["Watts"] as? Int {
-                    adapterWattage = watts
-                }
+                sourceDicts.append(sourceDict)
             }
         }
         
-        return PowerInfo(
-            state: state,
-            batteryLevel: batteryLevel,
-            isCharging: isCharging,
-            adapterWattage: adapterWattage,
-            timestamp: Date()
-        )
+        return core.processPowerSourceInfo(sourceDicts)
     }
     
     // MARK: - Private Methods
@@ -214,12 +168,7 @@ public class PowerMonitorService: NSObject {
             guard let self = self else { return }
             
             if let newPowerInfo = self.getCurrentPowerInfo() {
-                // Check if state changed
-                if let currentInfo = self.currentPowerInfo,
-                   currentInfo.state != newPowerInfo.state {
-                    
-                    self.currentPowerInfo = newPowerInfo
-                    
+                if self.core.hasPowerStateChanged(newInfo: newPowerInfo) {
                     // Notify on main thread
                     if let callback = self.stateChangeCallback {
                         DispatchQueue.main.async {
@@ -228,8 +177,6 @@ public class PowerMonitorService: NSObject {
                     }
                     
                     print("[PowerMonitorService] Power state changed to: \(newPowerInfo.state.description)")
-                } else if self.currentPowerInfo == nil {
-                    self.currentPowerInfo = newPowerInfo
                 }
             }
         }
@@ -274,12 +221,7 @@ public class PowerMonitorService: NSObject {
             guard let self = self else { return }
             
             if let newPowerInfo = self.getCurrentPowerInfo() {
-                // Check if state actually changed
-                if let currentInfo = self.currentPowerInfo,
-                   currentInfo.state != newPowerInfo.state {
-                    
-                    self.currentPowerInfo = newPowerInfo
-                    
+                if self.core.hasPowerStateChanged(newInfo: newPowerInfo) {
                     // Notify on main thread
                     if let callback = self.stateChangeCallback {
                         DispatchQueue.main.async {
@@ -288,8 +230,6 @@ public class PowerMonitorService: NSObject {
                     }
                     
                     print("[PowerMonitorService] Power state changed via notification: \(newPowerInfo.state.description)")
-                } else if self.currentPowerInfo == nil {
-                    self.currentPowerInfo = newPowerInfo
                 }
             }
         }
@@ -301,11 +241,11 @@ public class PowerMonitorService: NSObject {
 @objc public extension PowerMonitorService {
     /// Objective-C compatible method to check if power is connected
     @objc var isPowerConnected: Bool {
-        return currentPowerInfo?.state == .connected
+        return core.isPowerConnected()
     }
     
     /// Objective-C compatible method to get battery level
     @objc var batteryLevel: Int {
-        return currentPowerInfo?.batteryLevel ?? -1
+        return core.getBatteryLevel()
     }
 }

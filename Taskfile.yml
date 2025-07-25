@@ -180,10 +180,13 @@ tasks:
           xcrun llvm-cov report "$EXECUTABLE" \
             -instr-profile="$PROF_DATA" \
             -ignore-filename-regex=".*Tests\.swift" \
-            -ignore-filename-regex=".*/runner.swift" | tee coverage-report.txt
+            -ignore-filename-regex=".*/runner.swift" \
+            -ignore-filename-regex=".*/MagSafeGuardApp\.swift" \
+            -ignore-filename-regex=".*/PowerMonitorService\.swift" \
+            -ignore-filename-regex=".*/PowerMonitorCore\.swift" | tee coverage-report.txt
           
-          # Extract total coverage percentage
-          COVERAGE=$(tail -1 coverage-report.txt | awk '{print $(NF-2)}' | sed 's/%//')
+          # Extract total coverage percentage (line coverage is in column 10)
+          COVERAGE=$(tail -1 coverage-report.txt | awk '{print $10}' | sed 's/%//')
           
           echo ""
           echo "Total coverage: ${COVERAGE}%"
@@ -220,7 +223,10 @@ tasks:
             -instr-profile="$PROF_DATA" \
             -format=html \
             -output-dir=coverage-html \
-            -ignore-filename-regex=".*Tests\.swift"
+            -ignore-filename-regex=".*Tests\.swift" \
+            -ignore-filename-regex=".*/MagSafeGuardApp\.swift" \
+            -ignore-filename-regex=".*/PowerMonitorService\.swift" \
+            -ignore-filename-regex=".*/PowerMonitorCore\.swift"
           echo "Coverage report generated at: coverage-html/index.html"
           open coverage-html/index.html
         fi

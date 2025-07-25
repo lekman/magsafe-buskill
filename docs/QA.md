@@ -64,7 +64,7 @@
 
 ## 📚 Documentation
 
-[![Documentation](https://img.shields.io/badge/Docs-GitHub%20Pages-blue)](https://lekman.github.io/magsafe-buskill)
+[![Documentation](https://img.shields.io/badge/Docs-Project%20Documentation-blue)](README.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/lekman/magsafe-buskill/blob/main/CONTRIBUTORS.md)
 [![Contributors](https://img.shields.io/github/contributors/lekman/magsafe-buskill)](https://github.com/lekman/magsafe-buskill/graphs/contributors)
 

@@ -29,9 +29,8 @@ struct MagSafeGuardApp: App {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
-    private let powerMonitor = PowerMonitorService.shared
-    private var isArmed = false
     private var demoWindow: NSWindow?
+    private let core = AppDelegateCore()
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Hide dock icon as this is a menu bar app
@@ -50,6 +49,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let button = statusItem?.button {
             updateStatusIcon()
             button.action = #selector(statusItemClicked)
+            button.target = self
+            
+            // Log status
+            print("[AppDelegate] Status button created: \(button)")
+            print("[AppDelegate] Button image: \(button.image?.description ?? "nil")")
+        } else {
+            print("[AppDelegate] ERROR: Failed to create status button")
         }
         
         // Create menu
@@ -60,52 +66,38 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func setupMenu() {
-        let menu = NSMenu()
-        
-        // Armed/Disarmed status
-        let statusMenuItem = NSMenuItem(title: isArmed ? "Armed" : "Disarmed", action: nil, keyEquivalent: "")
-        statusMenuItem.isEnabled = false
-        menu.addItem(statusMenuItem)
-        
-        menu.addItem(NSMenuItem.separator())
-        
-        // Arm/Disarm toggle
-        menu.addItem(NSMenuItem(title: isArmed ? "Disarm" : "Arm", action: #selector(toggleArmed), keyEquivalent: "a"))
-        
-        menu.addItem(NSMenuItem.separator())
-        
-        // Power status
-        let powerInfo = powerMonitor.getCurrentPowerInfo()
-        let powerStatus = powerInfo?.state == .connected ? "Power Connected" : "Power Disconnected"
-        menu.addItem(NSMenuItem(title: powerStatus, action: nil, keyEquivalent: ""))
-        
-        if let battery = powerInfo?.batteryLevel {
-            menu.addItem(NSMenuItem(title: "Battery: \(battery)%", action: nil, keyEquivalent: ""))
-        }
-        
-        menu.addItem(NSMenuItem.separator())
-        
-        // Settings
-        menu.addItem(NSMenuItem(title: "Settings...", action: #selector(showSettings), keyEquivalent: ","))
-        
-        // Demo Window
-        menu.addItem(NSMenuItem(title: "Show Demo...", action: #selector(showDemo), keyEquivalent: "d"))
-        
-        menu.addItem(NSMenuItem.separator())
-        
-        // Quit
-        menu.addItem(NSMenuItem(title: "Quit MagSafe Guard", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
-        
+        let menu = core.createMenu()
         statusItem?.menu = menu
     }
     
     private func updateStatusIcon() {
         if let button = statusItem?.button {
-            let iconName = isArmed ? "lock.shield.fill" : "lock.shield"
-            button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "MagSafe Guard")
+            let iconName = core.statusIconName()
+            let image = NSImage(systemSymbolName: iconName, accessibilityDescription: "MagSafe Guard")
+            
+            // If SF Symbol fails, try a fallback
+            if image == nil {
+                print("[AppDelegate] WARNING: Failed to load SF Symbol '\(iconName)', using fallback")
+                // Create a simple circle as fallback
+                let fallbackImage = NSImage(size: NSSize(width: 18, height: 18))
+                fallbackImage.lockFocus()
+                let path = NSBezierPath(ovalIn: NSRect(x: 2, y: 2, width: 14, height: 14))
+                if core.isArmed {
+                    NSColor.systemRed.setFill()
+                } else {
+                    NSColor.labelColor.setFill()
+                }
+                path.fill()
+                fallbackImage.unlockFocus()
+                button.image = fallbackImage
+            } else {
+                button.image = image
+                // Make it a template image so it adapts to menu bar appearance
+                button.image?.isTemplate = true
+            }
             
             // Color the icon based on armed state
-            if isArmed {
+            if core.isArmed {
                 button.contentTintColor = .systemRed
             } else {
                 button.contentTintColor = nil
@@ -114,40 +106,38 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func startPowerMonitoring() {
-        powerMonitor.startMonitoring { [weak self] powerInfo in
+        core.powerMonitor.startMonitoring { [weak self] powerInfo in
             guard let self = self else { return }
-            
-            print("[AppDelegate] Power state: \(powerInfo.state.description)")
             
             // Update menu
             self.setupMenu()
             
             // Check if we should trigger security action
-            if self.isArmed && powerInfo.state == .disconnected {
+            if self.core.handlePowerStateChange(powerInfo) {
                 self.triggerSecurityAction()
             }
         }
     }
     
-    @objc private func statusItemClicked() {
-        // Menu will show automatically
+    @objc private func statusItemClicked(_ sender: AnyObject?) {
+        // Menu will show automatically when clicked
     }
     
-    @objc private func toggleArmed() {
-        isArmed.toggle()
+    @objc func toggleArmed() {
+        core.toggleArmedState()
         updateStatusIcon()
-        setupMenu()
+        core.updateMenuItems(in: statusItem?.menu ?? NSMenu())
         
-        let message = isArmed ? "MagSafe Guard is now ARMED" : "MagSafe Guard is now DISARMED"
+        let message = core.isArmed ? "MagSafe Guard is now ARMED" : "MagSafe Guard is now DISARMED"
         showNotification(title: "MagSafe Guard", message: message)
     }
     
-    @objc private func showSettings() {
+    @objc func showSettings() {
         // TODO: Implement settings window
         print("Settings clicked")
     }
     
-    @objc private func showDemo() {
+    @objc func showDemo() {
         if demoWindow == nil {
             let demoView = PowerMonitorDemoView()
             
@@ -193,16 +183,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func showNotification(title: String, message: String) {
+        let (notificationTitle, text, identifier) = core.createNotificationContent(title: title, message: message)
+        
         // Check if we can use UNUserNotificationCenter
         guard Bundle.main.bundleIdentifier != nil else {
             // Fallback: Just print to console when running from Xcode
-            print("🔔 NOTIFICATION: \(title) - \(message)")
+            print("🔔 NOTIFICATION: \(notificationTitle) - \(text)")
             
             // Alternative: Show an alert window
             DispatchQueue.main.async {
                 let alert = NSAlert()
-                alert.messageText = title
-                alert.informativeText = message
+                alert.messageText = notificationTitle
+                alert.informativeText = text
                 alert.alertStyle = .warning
                 alert.addButton(withTitle: "OK")
                 alert.runModal()
@@ -211,12 +203,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = message
+        content.title = notificationTitle
+        content.body = text
         content.sound = UNNotificationSound.default
-        
-        // Create a unique identifier
-        let identifier = UUID().uuidString
         
         // Trigger immediately
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)

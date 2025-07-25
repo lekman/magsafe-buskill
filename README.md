@@ -68,7 +68,7 @@ Need help or found an issue? We're here to assist:
 
 ### Documentation
 
-📚 **[View Full Documentation](https://lekman.github.io/magsafe-buskill/)** - Comprehensive guides and API references
+📚 **[View Full Documentation](docs/README.md)** - Comprehensive guides and API references
 
 **Quick Links:**
 
