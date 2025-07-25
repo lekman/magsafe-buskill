@@ -92,12 +92,9 @@ jobs:
           echo "WARNING: No coverage.lcov file found"
         fi
         
-        sonar-scanner \
-          -Dsonar.host.url=https://sonarcloud.io \
-          -Dsonar.projectKey=lekman_magsafe-buskill \
-          -Dsonar.organization=lekman \
-          -Dsonar.sources=Sources \
-          -Dsonar.tests=Tests \
-          -Dsonar.swift.coverage.reportPaths=coverage.lcov \
-          -Dsonar.exclusions="**/*Tests.swift,.build/**,DerivedData/**" \
-          -Dsonar.coverage.exclusions="**/*Tests.swift,**/Mock*.swift,**/*Demo*.swift,**/*App.swift,**/runner.swift"
+        # Debug: Show what's in the coverage file
+        echo "Coverage file contains:"
+        grep -E "^SF:|^DA:" coverage.lcov | head -20
+        
+        # Run sonar-scanner with simplified configuration
+        sonar-scanner
