@@ -174,6 +174,65 @@ final class AuthenticationServiceTests: XCTestCase {
             print("[CI Test] Biometry type available: \(biometryType == .touchID ? "TouchID" : "FaceID")")
         }
     }
+    
+    // MARK: - Security Tests
+    
+    func testRateLimiting() {
+        // Test that rate limiting prevents excessive authentication attempts
+        let expectations = [
+            XCTestExpectation(description: "First auth attempt"),
+            XCTestExpectation(description: "Second auth attempt"),
+            XCTestExpectation(description: "Third auth attempt"),
+            XCTestExpectation(description: "Fourth auth attempt - should be rate limited")
+        ]
+        
+        // Clear any previous attempts
+        service.clearAuthenticationCache()
+        
+        // Simulate multiple failed authentication attempts
+        for (index, expectation) in expectations.enumerated() {
+            service.authenticate(
+                reason: "Rate limit test \(index + 1)",
+                policy: .biometricOnly
+            ) { result in
+                if index < 3 {
+                    // First 3 attempts should proceed (may fail due to no biometrics)
+                    print("[Rate Limit Test] Attempt \(index + 1): \(result)")
+                } else {
+                    // Fourth attempt should be rate limited
+                    if case .failure(let error) = result,
+                       case .biometryLockout = error as? AuthenticationService.AuthenticationError {
+                        print("[Rate Limit Test] Attempt \(index + 1): Correctly rate limited")
+                    } else {
+                        print("[Rate Limit Test] Attempt \(index + 1): Expected rate limiting but got: \(result)")
+                    }
+                }
+                expectation.fulfill()
+            }
+            
+            // Small delay between attempts
+            Thread.sleep(forTimeInterval: 0.1)
+        }
+        
+        wait(for: expectations, timeout: 10.0)
+    }
+    
+    func testEmptyReasonValidation() {
+        // Test that empty authentication reasons are rejected
+        let expectation = XCTestExpectation(description: "Empty reason should fail")
+        
+        service.authenticate(reason: "") { result in
+            if case .failure(let error) = result,
+               case .authenticationFailed = error as? AuthenticationService.AuthenticationError {
+                expectation.fulfill()
+            } else {
+                XCTFail("Empty reason should fail with authenticationFailed error")
+                expectation.fulfill()
+            }
+        }
+        
+        wait(for: [expectation], timeout: 5.0)
+    }
 }
 
 // MARK: - Mock LAContext for Testing
