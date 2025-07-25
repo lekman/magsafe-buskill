@@ -42,5 +42,9 @@
   },
   "files.associations": {
     "*.mdc": "markdown"
+  },
+  "sonarlint.connectedMode.project": {
+    "connectionId": "lekman",
+    "projectKey": "lekman_magsafe-buskill"
   }
 }
