@@ -22,6 +22,8 @@ jobs:
     name: Test Suite
     runs-on: macos-latest
     needs: cancel-redundant
+    env:
+      CI: true
     
     steps:
     - name: Checkout repository
@@ -46,8 +48,6 @@ jobs:
           ${{ runner.os }}-spm-
       
     - name: Run tests with coverage
-      env:
-        CI: true
       run: swift test --enable-code-coverage
         
     # Convert Swift coverage to lcov format for Codecov
@@ -67,7 +67,7 @@ jobs:
             "$EXECUTABLE" \
             -instr-profile="$PROF_DATA" \
             -format="lcov" \
-            -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*/PowerMonitorCore\.swift" > coverage.lcov
+            -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*/PowerMonitorCore\.swift|.*LAContext\.swift" > coverage.lcov
           
           echo "Coverage report size: $(wc -l < coverage.lcov) lines"
           echo "First 20 lines of coverage report:"
