@@ -8,6 +8,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- This changelog is automatically maintained by release-please -->
 <!-- Do not manually edit below this line -->
 
+## [1.2.0](https://github.com/lekman/magsafe-buskill/compare/v1.1.0...v1.2.0) (2025-07-25)
+
+
+### Features
+
+* add documentation structure and deployment workflow for GitHub Pages ([c9a5c9f](https://github.com/lekman/magsafe-buskill/commit/c9a5c9fc0ae5b7f70d6e6f8de48982d3e16622d6))
+* implement power monitoring service and demo UI ([0e8192c](https://github.com/lekman/magsafe-buskill/commit/0e8192cd9c5609e82d4a35f9bbac1fac24b944dd))
+
+
+### Documentation
+
+* Add troubleshooting guide, security implementation guide, and integrate Semgrep and Snyk for enhanced security in MagSafe Guard ([afa2d54](https://github.com/lekman/magsafe-buskill/commit/afa2d54c7a2c440bb727171c61b0448ae93ed0b9))
+* improve formatting in various documentation files for consistency ([1716873](https://github.com/lekman/magsafe-buskill/commit/1716873bea340a6c4fb8f2acbfb7807974e0615a))
+* reorganize documentation structure and improve test coverage ([5442a2d](https://github.com/lekman/magsafe-buskill/commit/5442a2d464440dc3a9dcbf9c17491e73e150318f))
+* restore and update Quality Assurance Dashboard with comprehensive analysis tools and project metrics ([9fabe47](https://github.com/lekman/magsafe-buskill/commit/9fabe4785c89e0f22004c0d6a1f5b5866014276c))
+* update README with new quick links and improve development instructions ([90a2d44](https://github.com/lekman/magsafe-buskill/commit/90a2d44c6a5a8bd1f63dbafe9941c015aca88d9b))
+* update Snyk and SonarCloud links for improved accuracy and navigation ([2db46f0](https://github.com/lekman/magsafe-buskill/commit/2db46f01184bad5cda272104bf33eb39ba159ab4))
+
+
+### Code Refactoring
+
+* add job names for clarity in release workflow ([c5697e1](https://github.com/lekman/magsafe-buskill/commit/c5697e1d3ec165a9789e34c02f52a9fb27c0e065))
+* enhance auto-approve action with required labels and path filters ([dfc795b](https://github.com/lekman/magsafe-buskill/commit/dfc795b930bc378c315d5b9dc2041a0c217828a5))
+* enhance CodeQL build process for Swift projects ([72b3772](https://github.com/lekman/magsafe-buskill/commit/72b3772b0cc24eaf2c53e23a3e72520f89002250))
+* remove unused GitHub Actions workflow and clean up documentation files ([99a03c0](https://github.com/lekman/magsafe-buskill/commit/99a03c0a211708d2da180e589cb45a441a33e225))
+* simplify PowerMonitorDemoView by extracting view components for better readability ([7cb1ce5](https://github.com/lekman/magsafe-buskill/commit/7cb1ce58765d016c7e2469f1fc43669d4ca0f21d))
+* streamline CODEOWNERS and QA.md for clarity and organization ([8e028ba](https://github.com/lekman/magsafe-buskill/commit/8e028baa0cb5d54bb739c6d64cf38f560a15761c))
+* update auto-approve action to use secret token and add required labels and path filters ([5011361](https://github.com/lekman/magsafe-buskill/commit/50113616148b328c3d2bb28d3dd50059f4e1c3b4))
+* update CODEOWNERS and release workflow for better file ownership and permissions ([cf0b85d](https://github.com/lekman/magsafe-buskill/commit/cf0b85d3c99db1b331894bb28edc9fc771d299d4))
+* update pull request trigger and condition for auto-approve job ([e839a52](https://github.com/lekman/magsafe-buskill/commit/e839a52d489561f83d2309bdd8134bcd070a3bba))
+
+
+### Tests
+
+* remove example test and update PowerMonitorServiceTests for async operations ([0ae2332](https://github.com/lekman/magsafe-buskill/commit/0ae233239482bb65d07851dd500ebedb89b5dc3a))
+
 ## [1.1.0](https://github.com/lekman/magsafe-buskill/compare/v1.0.0...v1.1.0) (2025-07-24)
 
 
