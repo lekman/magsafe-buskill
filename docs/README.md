@@ -50,9 +50,10 @@ Welcome to the MagSafe Guard documentation. This guide will help you understand,
 
 ### 📦 Archive
 
+- [Feature Power Monitoring PR](archive/pr.feature-power-monitoring.md) - Documentation reorganization and test fixes
 - [POC Findings](archive/poc-findings-archive.md) - Proof of concept results
-- [Setup Project PR](archive/pr.setup-project-repo.md) - Initial setup documentation
 - [Power Detection PR](archive/pr.proto-power-detect.md) - Power monitoring implementation
+- [Setup Project PR](archive/pr.setup-project-repo.md) - Initial setup documentation
 
 ## 🎯 Quick Links
 
