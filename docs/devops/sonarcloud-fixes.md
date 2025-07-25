@@ -2,17 +2,29 @@
 
 ## Issues Addressed
 
-### 1. Variable Naming Conflict
+### 1. Variable Naming Conflicts
 
 **Issue**: "Rename 'context' which has the same name as the field declared at line 89"
 
-**Fix**: Renamed local variable from `context` to `localContext` in `biometryType` getter:
+**Fixes**: Renamed local variables to avoid shadowing instance variable `context`:
+
+1. In `biometryType` getter:
 
 ```swift
 public var biometryType: LABiometryType {
     let localContext = LAContext()  // Was: let context = LAContext()
     _ = localContext.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
     return localContext.biometryType
+}
+```
+
+2. In `performAuthentication` method:
+
+```swift
+private func performAuthentication(...) {
+    let authContext = LAContext()  // Was: let context = LAContext()
+    configureContext(authContext, for: policy)
+    // All references updated to use authContext
 }
 ```
 

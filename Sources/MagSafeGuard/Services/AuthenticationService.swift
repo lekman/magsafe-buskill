@@ -201,15 +201,15 @@ public class AuthenticationService: NSObject {
     
     /// Perform the actual authentication
     private func performAuthentication(reason: String, policy: AuthenticationPolicy, completion: @escaping (AuthenticationResult) -> Void) {
-        let context = LAContext()
-        configureContext(context, for: policy)
+        let authContext = LAContext()
+        configureContext(authContext, for: policy)
         
         let laPolicy: LAPolicy = policy.contains(.biometricOnly)
             ? .deviceOwnerAuthenticationWithBiometrics
             : .deviceOwnerAuthentication
         
         var error: NSError?
-        guard context.canEvaluatePolicy(laPolicy, error: &error) else {
+        guard authContext.canEvaluatePolicy(laPolicy, error: &error) else {
             let authError = mapLAError(error)
             DispatchQueue.main.async {
                 completion(.failure(authError))
@@ -231,14 +231,14 @@ public class AuthenticationService: NSObject {
         // 5. Attempt tracking monitors for suspicious activity
         
         // Additional security: Verify context integrity before evaluation
-        context.localizedCancelTitle = "Cancel"
+        authContext.localizedCancelTitle = "Cancel"
         
         // Set interaction not allowed to prevent UI spoofing
-        context.interactionNotAllowed = false
+        authContext.interactionNotAllowed = false
         
         // Create a completion handler to avoid deep nesting
         let evaluationCompletion: (Bool, Error?) -> Void = { [weak self] success, error in
-            self?.processAuthenticationResponse(success: success, error: error, context: context, completion: completion)
+            self?.processAuthenticationResponse(success: success, error: error, context: authContext, completion: completion)
         }
         
         // IMPORTANT: This is a legitimate use of evaluatePolicy for a security application
@@ -246,7 +246,7 @@ public class AuthenticationService: NSObject {
         // the same level of user verification that biometrics offer
         
         // deepcode ignore swift/DeviceAuthenticationBypass: This is the official Apple API for biometric authentication. We have implemented comprehensive security measures including rate limiting, input validation, attempt tracking, and production security checks to mitigate any potential bypass attempts. For a security application like MagSafe Guard, biometric authentication is essential.
-        context.evaluatePolicy(laPolicy, localizedReason: reason, reply: evaluationCompletion)
+        authContext.evaluatePolicy(laPolicy, localizedReason: reason, reply: evaluationCompletion)
     }
     
     /// Process authentication response (separate method to reduce nesting)
