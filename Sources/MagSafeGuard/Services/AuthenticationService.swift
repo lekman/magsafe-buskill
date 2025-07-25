@@ -130,9 +130,9 @@ public class AuthenticationService: NSObject {
     
     /// Get the type of biometry available
     public var biometryType: LABiometryType {
-        let context = LAContext()
-        _ = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
-        return context.biometryType
+        let localContext = LAContext()
+        _ = localContext.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
+        return localContext.biometryType
     }
     
     /// Authenticate using biometrics with optional password fallback
@@ -148,119 +148,142 @@ public class AuthenticationService: NSObject {
         queue.async { [weak self] in
             guard let self = self else { return }
             
-            // Security: Check for rate limiting
-            if self.isRateLimited() {
+            // Perform pre-authentication checks
+            if let earlyResult = self.performPreAuthenticationChecks(reason: reason, policy: policy) {
                 DispatchQueue.main.async {
-                    completion(.failure(AuthenticationError.biometryLockout))
+                    completion(earlyResult)
                 }
                 return
             }
             
-            // Security: Validate reason is not empty and reasonable length
-            let trimmedReason = reason.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmedReason.isEmpty && trimmedReason.count <= 200 else {
-                DispatchQueue.main.async {
-                    completion(.failure(AuthenticationError.authenticationFailed))
-                }
-                return
+            // Setup and perform authentication
+            self.performAuthentication(reason: reason, policy: policy, completion: completion)
+        }
+    }
+    
+    // MARK: - Authentication Helper Methods
+    
+    /// Perform pre-authentication security checks
+    private func performPreAuthenticationChecks(reason: String, policy: AuthenticationPolicy) -> AuthenticationResult? {
+        // Check rate limiting
+        if isRateLimited() {
+            return .failure(AuthenticationError.biometryLockout)
+        }
+        
+        // Validate input
+        let trimmedReason = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedReason.isEmpty && trimmedReason.count <= 200 else {
+            return .failure(AuthenticationError.authenticationFailed)
+        }
+        
+        // Check cached authentication
+        if policy.contains(.requireRecentAuthentication),
+           let lastAuth = lastAuthenticationTime,
+           Date().timeIntervalSince(lastAuth) < authenticationCacheDuration {
+            return .success
+        }
+        
+        return nil
+    }
+    
+    /// Configure authentication context based on policy
+    private func configureContext(_ context: LAContext, for policy: AuthenticationPolicy) {
+        // Set timeout to prevent indefinite authentication attempts
+        context.touchIDAuthenticationAllowableReuseDuration = 0
+        
+        // Configure fallback based on policy
+        if policy.contains(.biometricOnly) {
+            context.localizedFallbackTitle = ""
+        } else {
+            context.localizedFallbackTitle = "Enter Password"
+        }
+    }
+    
+    /// Perform the actual authentication
+    private func performAuthentication(reason: String, policy: AuthenticationPolicy, completion: @escaping (AuthenticationResult) -> Void) {
+        let context = LAContext()
+        configureContext(context, for: policy)
+        
+        let laPolicy: LAPolicy = policy.contains(.biometricOnly)
+            ? .deviceOwnerAuthenticationWithBiometrics
+            : .deviceOwnerAuthentication
+        
+        var error: NSError?
+        guard context.canEvaluatePolicy(laPolicy, error: &error) else {
+            let authError = mapLAError(error)
+            DispatchQueue.main.async {
+                completion(.failure(authError))
             }
-            
-            // Check if we have a recent cached authentication
-            if policy.contains(.requireRecentAuthentication),
-               let lastAuth = self.lastAuthenticationTime,
-               Date().timeIntervalSince(lastAuth) < self.authenticationCacheDuration {
-                DispatchQueue.main.async {
-                    completion(.success)
-                }
-                return
+            return
+        }
+        
+        #if DEBUG
+        print("[AuthenticationService] Authentication requested with reason: \(reason)")
+        #endif
+        
+        // Create a completion handler to avoid deep nesting
+        let evaluationCompletion: (Bool, Error?) -> Void = { [weak self] success, error in
+            self?.processAuthenticationResponse(success: success, error: error, context: context, completion: completion)
+        }
+        
+        context.evaluatePolicy(laPolicy, localizedReason: reason, reply: evaluationCompletion)
+    }
+    
+    /// Process authentication response (separate method to reduce nesting)
+    private func processAuthenticationResponse(success: Bool, error: Error?, context: LAContext, completion: @escaping (AuthenticationResult) -> Void) {
+        handleAuthenticationResult(success: success, error: error, context: context, completion: completion)
+    }
+    
+    /// Handle authentication result
+    private func handleAuthenticationResult(success: Bool, error: Error?, context: LAContext, completion: @escaping (AuthenticationResult) -> Void) {
+        if success {
+            handleAuthenticationSuccess(context: context, completion: completion)
+        } else if let error = error {
+            handleAuthenticationError(error as NSError, completion: completion)
+        } else {
+            recordAuthenticationAttempt(success: false)
+            DispatchQueue.main.async {
+                completion(.failure(AuthenticationError.unknown(NSError(domain: "AuthenticationService", code: -1, userInfo: nil))))
             }
-            
-            // Create new context for each authentication attempt
-            let context = LAContext()
-            
-            // Security: Set timeout to prevent indefinite authentication attempts
-            context.touchIDAuthenticationAllowableReuseDuration = 0 // Disable TouchID reuse
-            
-            // Security: Disable fallback for biometric-only policy
-            if policy.contains(.biometricOnly) {
-                context.localizedFallbackTitle = ""
+        }
+    }
+    
+    /// Handle successful authentication
+    private func handleAuthenticationSuccess(context: LAContext, completion: @escaping (AuthenticationResult) -> Void) {
+        #if !DEBUG
+        // Production security check
+        guard context.evaluatedPolicyDomainState != nil else {
+            recordAuthenticationAttempt(success: false)
+            DispatchQueue.main.async {
+                completion(.failure(AuthenticationError.authenticationFailed))
+            }
+            return
+        }
+        #endif
+        
+        recordAuthenticationAttempt(success: true)
+        lastAuthenticationTime = Date()
+        DispatchQueue.main.async {
+            completion(.success)
+        }
+    }
+    
+    /// Handle authentication error
+    private func handleAuthenticationError(_ error: NSError, completion: @escaping (AuthenticationResult) -> Void) {
+        let authError = mapLAError(error)
+        
+        // Only record failed attempts for actual authentication failures
+        if case .userCancel = authError {
+            // Don't count cancellations as failed attempts
+        } else {
+            recordAuthenticationAttempt(success: false)
+        }
+        
+        DispatchQueue.main.async {
+            if case .userCancel = authError {
+                completion(.cancelled)
             } else {
-                context.localizedFallbackTitle = "Enter Password"
-            }
-            
-            // Determine authentication policy
-            let laPolicy: LAPolicy = policy.contains(.biometricOnly) 
-                ? .deviceOwnerAuthenticationWithBiometrics 
-                : .deviceOwnerAuthentication
-            
-            var error: NSError?
-            
-            // Check if authentication is available
-            guard context.canEvaluatePolicy(laPolicy, error: &error) else {
-                let authError = self.mapLAError(error)
-                DispatchQueue.main.async {
-                    completion(.failure(authError))
-                }
-                return
-            }
-            
-            // Security: Additional validation before authentication
-            #if DEBUG
-            // In debug builds, log authentication attempts
-            print("[AuthenticationService] Authentication requested with reason: \(reason)")
-            #endif
-            
-            // Perform authentication with additional security checks
-            context.evaluatePolicy(laPolicy, localizedReason: reason) { [weak self] success, error in
-                guard let self = self else {
-                    DispatchQueue.main.async {
-                        completion(.failure(AuthenticationError.unknown(NSError(domain: "AuthenticationService", code: -2, userInfo: nil))))
-                    }
-                    return
-                }
-                
-                // Security: Validate the context hasn't been tampered with
-                if success {
-                    // Additional validation for production
-                    #if !DEBUG
-                    // In production, perform additional security checks
-                    guard context.evaluatedPolicyDomainState != nil else {
-                        self.recordAuthenticationAttempt(success: false)
-                        DispatchQueue.main.async {
-                            completion(.failure(AuthenticationError.authenticationFailed))
-                        }
-                        return
-                    }
-                    #endif
-                    
-                    self.recordAuthenticationAttempt(success: true)
-                    self.lastAuthenticationTime = Date()
-                    DispatchQueue.main.async {
-                        completion(.success)
-                    }
-                } else if let error = error {
-                    let authError = self.mapLAError(error as NSError)
-                    
-                    // Only record failed attempts for actual authentication failures
-                    if case .userCancel = authError {
-                        // Don't count cancellations as failed attempts
-                    } else {
-                        self.recordAuthenticationAttempt(success: false)
-                    }
-                    
-                    DispatchQueue.main.async {
-                        if case .userCancel = authError {
-                            completion(.cancelled)
-                        } else {
-                            completion(.failure(authError))
-                        }
-                    }
-                } else {
-                    self.recordAuthenticationAttempt(success: false)
-                    DispatchQueue.main.async {
-                        completion(.failure(AuthenticationError.unknown(NSError(domain: "AuthenticationService", code: -1, userInfo: nil))))
-                    }
-                }
+                completion(.failure(authError))
             }
         }
     }
