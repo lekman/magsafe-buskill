@@ -18,40 +18,13 @@ struct PowerMonitorDemoView: View {
                 .padding()
             
             // Power State
-            HStack {
-                Image(systemName: viewModel.isConnected ? "bolt.fill" : "bolt.slash")
-                    .foregroundColor(viewModel.isConnected ? .green : .red)
-                    .font(.system(size: 50))
-                
-                VStack(alignment: .leading) {
-                    Text("Power State: \(viewModel.powerState)")
-                        .font(.headline)
-                    Text("Last Update: \(viewModel.lastUpdate)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .padding()
-            .background(Color.gray.opacity(0.1))
-            .cornerRadius(10)
+            powerStateView
+                .padding()
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(10)
             
             // Battery Info
-            if let batteryLevel = viewModel.batteryLevel {
-                VStack {
-                    Text("Battery Level: \(batteryLevel)%")
-                        .font(.headline)
-                    
-                    ProgressView(value: Double(batteryLevel), total: 100)
-                        .progressViewStyle(.linear)
-                        .frame(width: 200)
-                    
-                    if viewModel.isCharging {
-                        Label("Charging", systemImage: "battery.100.bolt")
-                            .foregroundColor(.green)
-                    }
-                }
-                .padding()
-            }
+            batteryInfoView
             
             // Adapter Info
             if let wattage = viewModel.adapterWattage {
@@ -61,18 +34,8 @@ struct PowerMonitorDemoView: View {
             }
             
             // Control Buttons
-            HStack {
-                Button(viewModel.isMonitoring ? "Stop Monitoring" : "Start Monitoring") {
-                    viewModel.toggleMonitoring()
-                }
-                .buttonStyle(.borderedProminent)
-                
-                Button("Refresh") {
-                    viewModel.refresh()
-                }
-                .buttonStyle(.bordered)
-            }
-            .padding()
+            controlButtonsView
+                .padding()
             
             // Instructions
             Text("Unplug and replug your power adapter to test detection")
@@ -84,6 +47,58 @@ struct PowerMonitorDemoView: View {
         }
         .frame(width: 400, height: 500)
         .padding()
+    }
+    
+    // MARK: - View Components
+    
+    private var powerStateView: some View {
+        HStack {
+            Image(systemName: viewModel.isConnected ? "bolt.fill" : "bolt.slash")
+                .foregroundColor(viewModel.isConnected ? .green : .red)
+                .font(.system(size: 50))
+            
+            VStack(alignment: .leading) {
+                Text("Power State: \(viewModel.powerState)")
+                    .font(.headline)
+                Text("Last Update: \(viewModel.lastUpdate)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+    
+    private var controlButtonsView: some View {
+        HStack {
+            Button(viewModel.isMonitoring ? "Stop Monitoring" : "Start Monitoring") {
+                viewModel.toggleMonitoring()
+            }
+            .buttonStyle(.borderedProminent)
+            
+            Button("Refresh") {
+                viewModel.refresh()
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+    
+    @ViewBuilder
+    private var batteryInfoView: some View {
+        if let batteryLevel = viewModel.batteryLevel {
+            VStack {
+                Text("Battery Level: \(batteryLevel)%")
+                    .font(.headline)
+                
+                ProgressView(value: Double(batteryLevel), total: 100)
+                    .progressViewStyle(.linear)
+                    .frame(width: 200)
+                
+                if viewModel.isCharging {
+                    Label("Charging", systemImage: "battery.100.bolt")
+                        .foregroundColor(.green)
+                }
+            }
+            .padding()
+        }
     }
 }
 
