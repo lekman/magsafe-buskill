@@ -63,7 +63,10 @@ jobs:
         with:
           allowed-authors: "app/lekman-release-please-bot"
           github-token: ${{ steps.app-token.outputs.token }}
-          review-message: "Auto-approving release-please PR 🚀"
+          required-labels: "autorelease: pending"
+          label-match-mode: "all"
+          path-filters: ".github/.release-please-manifest.json,**/CHANGELOG.md,**/package.json,**/package-lock.json"
+          merge-method: "merge"
 
   merge-on-approval:
     name: Merge
