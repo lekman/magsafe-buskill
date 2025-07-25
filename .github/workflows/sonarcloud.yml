@@ -1,0 +1,69 @@
+name: SonarCloud Analysis
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+jobs:
+  sonarcloud:
+    name: SonarCloud
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full clone for better analysis
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: "5.9"
+    
+    - name: Cache SPM dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          .build
+          ~/.swiftpm
+        key: ${{ runner.os }}-spm-${{ hashFiles('Package.swift', '**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
+    
+    - name: Build and Test with Coverage
+      env:
+        CI: true
+      run: |
+        swift build
+        swift test --enable-code-coverage
+    
+    - name: Generate Coverage Report
+      run: |
+        # Find coverage files
+        PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
+        EXECUTABLE=$(find .build -name 'MagSafeGuardPackageTests.xctest' -type d | head -1)/Contents/MacOS/MagSafeGuardPackageTests
+        
+        if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
+          xcrun llvm-cov export \
+            "$EXECUTABLE" \
+            -instr-profile="$PROF_DATA" \
+            -format="lcov" \
+            -ignore-filename-regex=".*Tests\.swift" > coverage.lcov
+          
+          echo "Generated coverage report: $(wc -l < coverage.lcov) lines"
+          
+          # Also generate XML format for better SonarCloud compatibility
+          xcrun llvm-cov export \
+            "$EXECUTABLE" \
+            -instr-profile="$PROF_DATA" \
+            -format="lcov" > sonar-coverage.lcov
+        fi
+    
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

@@ -16,7 +16,13 @@
     ".build": true,
     ".swiftpm": true,
     "MagSafeGuard.xcodeproj": true,
-    ".githooks": true
+    ".githooks": true,
+    "sonar-project.properties": true,
+    "coverage.lcov": true,
+    "*.lcov": true,
+    ".coverage": true,
+    "coverage": true,
+    ".snyk": true
   },
   "search.exclude": {
     "**/node_modules": true,

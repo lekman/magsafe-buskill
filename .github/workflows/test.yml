@@ -54,19 +54,30 @@ jobs:
     # Convert Swift coverage to lcov format for Codecov
     - name: Generate coverage report
       run: |
-        # Find the coverage data
-        PROF_DATA=$(find .build/debug -name 'default.profdata' -type f)
-        EXECUTABLE=$(find .build/debug -name 'MagSafeGuardPackageTests.xctest' -type d)/Contents/MacOS/MagSafeGuardPackageTests
+        # Find the coverage data - check multiple possible locations
+        PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
+        EXECUTABLE=$(find .build -name 'MagSafeGuardPackageTests.xctest' -type d | head -1)/Contents/MacOS/MagSafeGuardPackageTests
+        
+        echo "Found profdata: $PROF_DATA"
+        echo "Found executable: $EXECUTABLE"
         
         # Generate lcov format
         if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
+          echo "Generating coverage report..."
           xcrun llvm-cov export \
             "$EXECUTABLE" \
             -instr-profile="$PROF_DATA" \
-            -format="lcov" > coverage.lcov
+            -format="lcov" \
+            -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift" > coverage.lcov
+          
+          echo "Coverage report size: $(wc -l < coverage.lcov) lines"
         else
-          echo "Coverage data not found, creating minimal test executable coverage"
-          echo "" > coverage.lcov
+          echo "Coverage data not found"
+          echo "PROF_DATA: $PROF_DATA"
+          echo "EXECUTABLE: $EXECUTABLE"
+          echo "Build directory contents:"
+          find .build -type f -name "*.profdata" -o -name "*.xctest" | head -20
+          exit 1
         fi
         
     - name: Upload coverage to Codecov
@@ -78,3 +89,10 @@ jobs:
         fail_ci_if_error: false # Don't fail if upload fails
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    
+    # SonarCloud Analysis
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

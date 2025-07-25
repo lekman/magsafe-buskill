@@ -482,6 +482,13 @@ fastlane/test_output
 # Code Injection
 iOSInjectionProject/
 
+# Coverage reports
+coverage.lcov
+sonar-coverage.lcov
+*.lcov
+.coverage/
+coverage/
+
 # Local scratch files
 .taskmaster
 
