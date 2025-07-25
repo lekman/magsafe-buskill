@@ -180,15 +180,6 @@ jobs:
           ${{ runner.os }}-spm-${{ hashFiles('Package.swift', '**/Package.resolved') }}-
           ${{ runner.os }}-spm-
     
-    # Cache CodeQL database
-    - name: Cache CodeQL database
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{ runner.temp }}/codeql_databases
-        key: ${{ runner.os }}-codeql-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-codeql-
         
     - name: Build Swift Project for CodeQL
       env:
