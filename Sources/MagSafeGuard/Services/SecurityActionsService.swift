@@ -137,86 +137,145 @@ public class SecurityActionsService {
     /// Execute all enabled security actions
     /// - Parameter completion: Callback with execution result
     public func executeActions(completion: @escaping (ExecutionResult) -> Void) {
-        // Use lock to atomically check and set isExecuting
-        executingLock.lock()
-        if _isExecuting {
-            executingLock.unlock()
+        guard trySetExecuting() else {
             print("[SecurityActionsService] Actions already executing, ignoring request")
             return
         }
-        _isExecuting = true
-        executingLock.unlock()
         
         queue.async { [weak self] in
             guard let self = self else { return }
-            
-            let startTime = Date()
-            
-            // Apply configured delay
-            if self.configuration.actionDelay > 0 {
-                print("[SecurityActionsService] Waiting \(self.configuration.actionDelay)s before executing actions")
-                Thread.sleep(forTimeInterval: self.configuration.actionDelay)
+            self.performExecution(completion: completion)
+        }
+    }
+    
+    // MARK: - Execution Helper Methods
+    
+    /// Try to set the executing flag atomically
+    /// - Returns: true if successfully set, false if already executing
+    private func trySetExecuting() -> Bool {
+        executingLock.lock()
+        defer { executingLock.unlock() }
+        
+        if _isExecuting {
+            return false
+        }
+        _isExecuting = true
+        return true
+    }
+    
+    /// Clear the executing flag
+    private func clearExecuting() {
+        executingLock.lock()
+        defer { executingLock.unlock() }
+        _isExecuting = false
+    }
+    
+    /// Perform the actual execution of actions
+    private func performExecution(completion: @escaping (ExecutionResult) -> Void) {
+        let startTime = Date()
+        
+        // Apply configured delay
+        applyActionDelay()
+        
+        // Execute actions and collect results
+        let (executedActions, failedActions) = executeEnabledActions()
+        
+        // Clear executing flag and create result
+        clearExecuting()
+        
+        let result = ExecutionResult(
+            executedActions: executedActions,
+            failedActions: failedActions,
+            timestamp: startTime
+        )
+        
+        DispatchQueue.main.async {
+            completion(result)
+        }
+    }
+    
+    /// Apply configured delay before executing actions
+    private func applyActionDelay() {
+        if configuration.actionDelay > 0 {
+            print("[SecurityActionsService] Waiting \(configuration.actionDelay)s before executing actions")
+            Thread.sleep(forTimeInterval: configuration.actionDelay)
+        }
+    }
+    
+    /// Execute all enabled actions and return results
+    /// - Returns: Tuple of (executed actions, failed actions with errors)
+    private func executeEnabledActions() -> ([SecurityAction], [(SecurityAction, Error)]) {
+        let sortedActions = getSortedActions()
+        
+        if configuration.executeInParallel {
+            return executeActionsInParallel(sortedActions)
+        } else {
+            return executeActionsSequentially(sortedActions)
+        }
+    }
+    
+    /// Get enabled actions sorted by priority
+    private func getSortedActions() -> [SecurityAction] {
+        return configuration.enabledActions.sorted { action1, action2 in
+            // Screen lock has highest priority
+            if action1 == .screenLock { return true }
+            if action2 == .screenLock { return false }
+            return action1.rawValue < action2.rawValue
+        }
+    }
+    
+    /// Execute actions in parallel
+    private func executeActionsInParallel(_ actions: [SecurityAction]) -> ([SecurityAction], [(SecurityAction, Error)]) {
+        var executedActions: [SecurityAction] = []
+        var failedActions: [(SecurityAction, Error)] = []
+        let group = DispatchGroup()
+        let resultsQueue = DispatchQueue(label: "com.magsafeguard.results")
+        
+        for action in actions {
+            group.enter()
+            queue.async {
+                self.executeActionWithResult(action, resultsQueue: resultsQueue, 
+                                           executedActions: &executedActions, 
+                                           failedActions: &failedActions)
+                group.leave()
             }
-            
-            var executedActions: [SecurityAction] = []
-            var failedActions: [(SecurityAction, Error)] = []
-            
-            // Sort actions by priority
-            let sortedActions = self.configuration.enabledActions.sorted { action1, action2 in
-                // Screen lock has highest priority
-                if action1 == .screenLock { return true }
-                if action2 == .screenLock { return false }
-                return action1.rawValue < action2.rawValue
+        }
+        
+        group.wait()
+        return (executedActions, failedActions)
+    }
+    
+    /// Execute actions sequentially
+    private func executeActionsSequentially(_ actions: [SecurityAction]) -> ([SecurityAction], [(SecurityAction, Error)]) {
+        var executedActions: [SecurityAction] = []
+        var failedActions: [(SecurityAction, Error)] = []
+        
+        for action in actions {
+            do {
+                try executeAction(action)
+                executedActions.append(action)
+            } catch {
+                failedActions.append((action, error))
+                print("[SecurityActionsService] Failed to execute \(action): \(error)")
             }
-            
-            if self.configuration.executeInParallel {
-                // Execute actions in parallel
-                let group = DispatchGroup()
-                let resultsQueue = DispatchQueue(label: "com.magsafeguard.results")
-                
-                for action in sortedActions {
-                    group.enter()
-                    self.queue.async {
-                        do {
-                            try self.executeAction(action)
-                            resultsQueue.sync {
-                                executedActions.append(action)
-                            }
-                        } catch {
-                            resultsQueue.sync {
-                                failedActions.append((action, error))
-                            }
-                        }
-                        group.leave()
-                    }
-                }
-                
-                group.wait()
-            } else {
-                // Execute actions sequentially
-                for action in sortedActions {
-                    do {
-                        try self.executeAction(action)
-                        executedActions.append(action)
-                    } catch {
-                        failedActions.append((action, error))
-                        print("[SecurityActionsService] Failed to execute \(action): \(error)")
-                    }
-                }
+        }
+        
+        return (executedActions, failedActions)
+    }
+    
+    /// Execute a single action and update result arrays
+    private func executeActionWithResult(_ action: SecurityAction, 
+                                       resultsQueue: DispatchQueue,
+                                       executedActions: inout [SecurityAction], 
+                                       failedActions: inout [(SecurityAction, Error)]) {
+        do {
+            try executeAction(action)
+            resultsQueue.sync {
+                executedActions.append(action)
             }
-            
-            self.executingLock.lock()
-            self._isExecuting = false
-            self.executingLock.unlock()
-            
-            let result = ExecutionResult(
-                executedActions: executedActions,
-                failedActions: failedActions,
-                timestamp: startTime
-            )
-            
-            DispatchQueue.main.async {
-                completion(result)
+        } catch {
+            resultsQueue.sync {
+                failedActions.append((action, error))
             }
         }
     }

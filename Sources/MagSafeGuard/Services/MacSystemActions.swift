@@ -16,7 +16,10 @@ public class MacSystemActions: SystemActionsProtocol {
     
     private var alarmPlayer: AVAudioPlayer?
     
-    public init() {}
+    public init() {
+        // No initialization required - all actions are performed on-demand
+        // AVAudioPlayer is created lazily when alarm is triggered
+    }
     
     public func lockScreen() throws {
         // Use distributed notification center to lock screen

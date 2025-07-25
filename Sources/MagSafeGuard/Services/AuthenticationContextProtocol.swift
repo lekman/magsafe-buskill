@@ -58,7 +58,9 @@ public protocol AuthenticationContextFactoryProtocol {
 
 /// Real factory that creates LAContext instances
 public class RealAuthenticationContextFactory: AuthenticationContextFactoryProtocol {
-    public init() {}
+    public init() {
+        // No initialization required - factory simply creates LAContext instances on demand
+    }
     
     public func createContext() -> AuthenticationContextProtocol {
         return RealAuthenticationContext()
