@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 vars:
   HOOKS_PATH: .githooks
@@ -24,7 +24,7 @@ tasks:
       - |
         echo "🔍 Checking development tools..."
         missing_tools=0
-        
+
         # Check for git
         if ! command -v git &> /dev/null; then
           echo "❌ git is not installed"
@@ -32,7 +32,7 @@ tasks:
         else
           echo "✅ git $(git --version | awk '{print $3}')"
         fi
-        
+
         # Check for Swift
         if ! command -v swift &> /dev/null; then
           echo "❌ Swift is not installed"
@@ -40,7 +40,7 @@ tasks:
         else
           echo "✅ Swift $(swift --version | head -1 | awk '{print $4}')"
         fi
-        
+
         # Check for Semgrep (optional)
         if ! command -v semgrep &> /dev/null; then
           echo "⚠️  Semgrep not installed (optional but recommended)"
@@ -48,7 +48,7 @@ tasks:
         else
           echo "✅ Semgrep $(semgrep --version | head -1)"
         fi
-        
+
         if [ $missing_tools -gt 0 ]; then
           exit 1
         fi
@@ -64,13 +64,13 @@ tasks:
     cmds:
       - |
         echo "🔧 Setting up MagSafe Guard development environment..."
-        
+
         # Configure git to use our hooks directory
         git config core.hooksPath {{.HOOKS_PATH}}
         chmod +x {{.HOOKS_PATH}}/* 2>/dev/null || true
-        
+
         echo "✅ Git hooks configured"
-        
+
         # Check if Semgrep is installed
         if command -v semgrep &> /dev/null; then
           echo "✅ Semgrep is installed (version: $(semgrep --version | head -1))"
@@ -79,7 +79,7 @@ tasks:
           echo "   To install: brew install semgrep"
           echo "   Pre-commit will still run basic security checks"
         fi
-        
+
         echo ""
         echo "Git hooks will now:"
         echo "  • Check for hardcoded secrets in Swift files"
@@ -126,21 +126,21 @@ tasks:
     cmds:
       - |
         echo "🔒 Running security checks..."
-        
+
         # Basic secret scanning
         if find . -name "*.swift" -type f -exec grep -l -E "password\s*=\s*\"[^\"]+\"" {} \; 2>/dev/null | head -1 | grep -q .; then
           echo "❌ Found hardcoded passwords"
           exit 1
         fi
-        
+
         # Check for private keys
         if find . -type f \( -name "*.pem" -o -name "*.key" \) -not -path "./.git/*" | head -1 | grep -q .; then
           echo "❌ Found private key files"
           exit 1
         fi
-        
+
         echo "✅ Basic security checks passed"
-        
+
         # Run Semgrep if available
         if command -v semgrep &> /dev/null; then
           echo "Running Semgrep scan..."
@@ -174,7 +174,7 @@ tasks:
         echo "Generating coverage report..."
         PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
         EXECUTABLE=$(find .build -name 'MagSafeGuardPackageTests.xctest' -type d | head -1)/Contents/MacOS/MagSafeGuardPackageTests
-        
+
         if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
           # Generate detailed coverage report
           xcrun llvm-cov report "$EXECUTABLE" \
@@ -213,7 +213,7 @@ tasks:
       - |
         PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
         EXECUTABLE=$(find .build -name 'MagSafeGuardPackageTests.xctest' -type d | head -1)/Contents/MacOS/MagSafeGuardPackageTests
-        
+
         if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
           xcrun llvm-cov show "$EXECUTABLE" \
             -instr-profile="$PROF_DATA" \
@@ -249,7 +249,7 @@ tasks:
     cmds:
       - |
         echo "🔍 Linting Markdown files..."
-        
+
         # Check if markdownlint is installed
         if ! command -v markdownlint &> /dev/null; then
           echo "📦 markdownlint not found. Installing..."
@@ -268,7 +268,7 @@ tasks:
             exit 1
           fi
         fi
-        
+
         # Run the linter
         markdownlint '**/*.md' --ignore node_modules
 
@@ -284,7 +284,7 @@ tasks:
     cmds:
       - |
         echo "🔧 Fixing Markdown formatting issues..."
-        
+
         # Check if markdownlint is installed
         if ! command -v markdownlint &> /dev/null; then
           echo "📦 markdownlint not found. Installing..."
@@ -313,12 +313,12 @@ tasks:
           fi
           echo "✅ markdownlint installed successfully"
         fi
-        
+
         # Fix all markdown files
         echo "Running markdown formatter..."
         markdownlint '**/*.md' --ignore node_modules --fix
         echo "✅ Markdown files formatted"
-        
+
         # Show which files were modified
         echo ""
         echo "Modified files:"
@@ -342,7 +342,7 @@ tasks:
     cmds:
       - |
         echo "🚀 Building MagSafe Guard..."
-        
+
         # Try xcodebuild first for proper bundling
         if command -v xcodebuild &> /dev/null; then
           xcodebuild -project MagSafeGuard.xcodeproj \
@@ -378,7 +378,7 @@ tasks:
       - |
         echo ""
         echo "📦 Installing recommended tools..."
-        
+
         # Check if Homebrew is installed
         if command -v brew &> /dev/null; then
           echo "Installing/updating tools via Homebrew..."
@@ -459,7 +459,7 @@ tasks:
         echo "  7) chore    - Maintenance"
         echo ""
         read -p "Enter number (1-7): " type_num
-        
+
         case $type_num in
           1) type="feat";;
           2) type="fix";;
@@ -470,23 +470,97 @@ tasks:
           7) type="chore";;
           *) echo "Invalid selection"; exit 1;;
         esac
-        
+
         read -p "Enter scope (optional, press enter to skip): " scope
         read -p "Enter commit message: " message
-        
+
         if [ -n "$scope" ]; then
           commit_msg="${type}(${scope}): ${message}"
         else
           commit_msg="${type}: ${message}"
         fi
-        
+
         echo ""
         echo "Commit message: $commit_msg"
         read -p "Proceed? (y/n): " confirm
-        
+
         if [ "$confirm" = "y" ]; then
           git commit -m "$commit_msg"
         else
           echo "Commit cancelled"
         fi
     interactive: true
+
+  test:convert:
+    desc: Convert Swift coverage to SonarQube generic XML format
+    silent: true
+    cmds:
+      - |
+        echo "🔄 Converting Swift coverage to SonarQube format..."
+
+        # First, run tests with coverage if needed
+        if [ ! -d ".build" ] || [ -z "$(find .build -name 'default.profdata' -type f 2>/dev/null)" ]; then
+          echo "🧪 Running tests with coverage..."
+          swift test --enable-code-coverage
+        fi
+
+        # Find the coverage data
+        PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
+        EXECUTABLE=$(find .build -name 'MagSafeGuardPackageTests.xctest' -type d | head -1)/Contents/MacOS/MagSafeGuardPackageTests
+
+        if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
+          echo "📊 Generating SonarQube generic coverage XML..."
+          
+          # Function to convert xcov output to generic XML format
+          convert_to_xml() {
+            echo '<coverage version="1">'
+            xcrun llvm-cov show "$EXECUTABLE" \
+              -instr-profile="$PROF_DATA" \
+              -use-color=false \
+              -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*/PowerMonitorCore\.swift|.*LAContext\.swift" | \
+            awk '
+              /^[[:space:]]*[^[:space:]]+:$/ {
+                if (in_file) print "  </file>"
+                gsub(/:$/, "", $1)
+                gsub(/&/, "\\&amp;", $1)
+                print "  <file path=\"" $1 "\">"
+                in_file = 1
+                next
+              }
+              /^[[:space:]]*[0-9]+\|/ {
+                split($0, parts, "|")
+                linenum = parts[1]
+                gsub(/^[[:space:]]+/, "", linenum)
+                gsub(/[[:space:]]+$/, "", linenum)
+                
+                # Check if line is covered (has execution count)
+                if (match(parts[2], /^[[:space:]]*[0-9]+/)) {
+                  print "    <lineToCover lineNumber=\"" linenum "\" covered=\"true\"/>"
+                } else if (match(parts[2], /^[[:space:]]*0/)) {
+                  print "    <lineToCover lineNumber=\"" linenum "\" covered=\"false\"/>"
+                }
+              }
+              END {
+                if (in_file) print "  </file>"
+              }
+            '
+            echo '</coverage>'
+          }
+          
+          # Generate the coverage XML
+          convert_to_xml > coverage.xml
+          
+          if [ -f "coverage.xml" ] && [ -s "coverage.xml" ]; then
+            echo "✅ Successfully generated coverage.xml"
+            echo "   File size: $(wc -c < coverage.xml) bytes"
+            echo "   Files covered: $(grep -c '<file path=' coverage.xml || echo 0)"
+          else
+            echo "❌ Failed to create coverage.xml or file is empty"
+            exit 1
+          fi
+        else
+          echo "❌ Coverage data not found"
+          echo "PROF_DATA: $PROF_DATA"
+          echo "EXECUTABLE: $EXECUTABLE"
+          exit 1
+        fi
