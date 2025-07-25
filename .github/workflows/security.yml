@@ -16,9 +16,28 @@ permissions:
   actions: read
 
 jobs:
+  # Check if this is a release-please branch
+  check-skip:
+    name: Check Skip Conditions
+    runs-on: ubuntu-latest
+    outputs:
+      should-skip: ${{ steps.check.outputs.should-skip }}
+    steps:
+      - name: Check if release-please branch
+        id: check
+        run: |
+          if [[ "${{ github.ref_name }}" == release-please--* ]]; then
+            echo "should-skip=true" >> $GITHUB_OUTPUT
+            echo "Skipping security checks for release-please branch: ${{ github.ref_name }}"
+          else
+            echo "should-skip=false" >> $GITHUB_OUTPUT
+          fi
+
   cancel-redundant:
     name: Cancel Redundant Workflows
     runs-on: ubuntu-latest
+    needs: check-skip
+    if: needs.check-skip.outputs.should-skip != 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,7 +50,8 @@ jobs:
   basic-checks:
     name: Basic Security Checks
     runs-on: ubuntu-latest
-    needs: cancel-redundant
+    needs: [check-skip, cancel-redundant]
+    if: needs.check-skip.outputs.should-skip != 'true'
     
     steps:
     - name: Checkout repository
@@ -143,7 +163,8 @@ jobs:
     name: CodeQL Analysis
     runs-on: macos-latest
     timeout-minutes: 30
-    needs: cancel-redundant
+    needs: [check-skip, cancel-redundant]
+    if: needs.check-skip.outputs.should-skip != 'true'
     
     strategy:
       fail-fast: false
@@ -226,8 +247,8 @@ jobs:
   dependency-review:
     name: Dependency Review
     runs-on: ubuntu-latest
-    needs: cancel-redundant
-    if: github.event_name == 'pull_request'
+    needs: [check-skip, cancel-redundant]
+    if: github.event_name == 'pull_request' && needs.check-skip.outputs.should-skip != 'true'
     
     steps:
     - name: Checkout repository
@@ -247,7 +268,8 @@ jobs:
   trufflehog:
     name: Secret Scanning
     runs-on: ubuntu-latest
-    needs: cancel-redundant
+    needs: [check-skip, cancel-redundant]
+    if: needs.check-skip.outputs.should-skip != 'true'
     
     steps:
     - name: Checkout repository
@@ -267,7 +289,8 @@ jobs:
   security-policy:
     name: Security Policy Check
     runs-on: ubuntu-latest
-    needs: cancel-redundant
+    needs: [check-skip, cancel-redundant]
+    if: needs.check-skip.outputs.should-skip != 'true'
     
     steps:
     - name: Checkout repository
@@ -285,7 +308,8 @@ jobs:
   semgrep:
     name: Semgrep SAST
     runs-on: ubuntu-latest
-    needs: cancel-redundant
+    needs: [check-skip, cancel-redundant]
+    if: needs.check-skip.outputs.should-skip != 'true'
     
     steps:
     - name: Checkout repository
@@ -338,7 +362,8 @@ jobs:
   license-scan:
     name: License Compliance
     runs-on: ubuntu-latest
-    needs: cancel-redundant
+    needs: [check-skip, cancel-redundant]
+    if: needs.check-skip.outputs.should-skip != 'true'
     
     steps:
     - name: Checkout repository
@@ -354,8 +379,8 @@ jobs:
   scorecard:
     name: Security Scorecard
     runs-on: ubuntu-latest
-    needs: cancel-redundant
-    if: github.event_name != 'pull_request'
+    needs: [check-skip, cancel-redundant]
+    if: github.event_name != 'pull_request' && needs.check-skip.outputs.should-skip != 'true'
     
     permissions:
       security-events: write
@@ -385,8 +410,8 @@ jobs:
   trivy:
     name: Container Security Scan
     runs-on: ubuntu-latest
-    needs: cancel-redundant
-    if: github.event_name == 'pull_request'
+    needs: [check-skip, cancel-redundant]
+    if: github.event_name == 'pull_request' && needs.check-skip.outputs.should-skip != 'true'
     
     steps:
     - name: Checkout repository
@@ -421,7 +446,7 @@ jobs:
   security-summary:
     name: Security Summary
     runs-on: ubuntu-latest
-    needs: [cancel-redundant, basic-checks, codeql, dependency-review, trufflehog, semgrep, scorecard]
+    needs: [check-skip, cancel-redundant, basic-checks, codeql, dependency-review, trufflehog, semgrep, scorecard]
     if: always()
     
     steps:
