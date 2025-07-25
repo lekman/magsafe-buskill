@@ -431,7 +431,7 @@ FodyWeavers.xsd
 # Swift Package Manager
 .build/
 .swiftpm/
-Package.resolved
+# Package.resolved should be committed for reproducible builds and caching
 /*.xcodeproj
 
 # Xcode
@@ -481,6 +481,15 @@ fastlane/test_output
 
 # Code Injection
 iOSInjectionProject/
+
+# Coverage reports
+coverage.lcov
+sonar-coverage.lcov
+*.lcov
+.coverage/
+coverage/
+coverage-report.txt
+coverage-html/
 
 # Local scratch files
 .taskmaster

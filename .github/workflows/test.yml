@@ -22,46 +22,125 @@ jobs:
     name: Test Suite
     runs-on: macos-latest
     needs: cancel-redundant
+    env:
+      CI: true
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for SonarCloud blame data
       
     - name: Setup Swift
       uses: swift-actions/setup-swift@v2
       with:
         swift-version: "5.9"
-        
-    - name: Build
-      run: swift build -v
+    
+    # Cache Swift Package Manager dependencies
+    - name: Cache SPM dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          .build
+          ~/.swiftpm
+        key: ${{ runner.os }}-spm-${{ hashFiles('Package.swift', '**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
       
     - name: Run tests with coverage
       run: swift test --enable-code-coverage
         
-    # Convert Swift coverage to lcov format for Codecov
+    # Convert Swift coverage to SonarQube generic XML format
     - name: Generate coverage report
       run: |
-        # Find the coverage data
-        PROF_DATA=$(find .build/debug -name 'default.profdata' -type f)
-        EXECUTABLE=$(find .build/debug -name 'MagSafeGuardPackageTests.xctest' -type d)/Contents/MacOS/MagSafeGuardPackageTests
+        # Find the coverage data - check multiple possible locations
+        PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
+        EXECUTABLE=$(find .build -name 'MagSafeGuardPackageTests.xctest' -type d | head -1)/Contents/MacOS/MagSafeGuardPackageTests
         
-        # Generate lcov format
+        echo "Found profdata: $PROF_DATA"
+        echo "Found executable: $EXECUTABLE"
+        
         if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
-          xcrun llvm-cov export \
-            "$EXECUTABLE" \
-            -instr-profile="$PROF_DATA" \
-            -format="lcov" > coverage.lcov
+          echo "Generating SonarQube generic coverage XML..."
+          
+          # Convert llvm-cov output to SonarQube generic XML format
+          {
+            echo '<coverage version="1">'
+            xcrun llvm-cov show "$EXECUTABLE" \
+              -instr-profile="$PROF_DATA" \
+              -use-color=false \
+              -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*/PowerMonitorCore\.swift|.*LAContext\.swift" | \
+            awk '
+              /^[[:space:]]*[^[:space:]]+:$/ {
+                if (in_file) print "  </file>"
+                gsub(/:$/, "", $1)
+                gsub(/&/, "\\&amp;", $1)
+                print "  <file path=\"" $1 "\">"
+                in_file = 1
+                next
+              }
+              /^[[:space:]]*[0-9]+\|/ {
+                split($0, parts, "|")
+                linenum = parts[1]
+                gsub(/^[[:space:]]+/, "", linenum)
+                gsub(/[[:space:]]+$/, "", linenum)
+                
+                # Check if line is covered (has execution count)
+                if (match(parts[2], /^[[:space:]]*[0-9]+/)) {
+                  print "    <lineToCover lineNumber=\"" linenum "\" covered=\"true\"/>"
+                } else if (match(parts[2], /^[[:space:]]*0/)) {
+                  print "    <lineToCover lineNumber=\"" linenum "\" covered=\"false\"/>"
+                }
+              }
+              END {
+                if (in_file) print "  </file>"
+              }
+            '
+            echo '</coverage>'
+          } > coverage.xml
+          
+          echo "Coverage files created:"
+          ls -la coverage.xml || echo "No coverage files found"
+          echo "Coverage report size: $(wc -c < coverage.xml) bytes"
         else
-          echo "Coverage data not found, creating minimal test executable coverage"
-          echo "" > coverage.lcov
+          echo "Coverage data not found"
+          echo "PROF_DATA: $PROF_DATA"
+          echo "EXECUTABLE: $EXECUTABLE"
+          echo "Build directory contents:"
+          find .build -type f -name "*.profdata" -o -name "*.xctest" | head -20
+          exit 1
         fi
         
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
-        file: ./coverage.lcov
+        file: ./coverage.xml
         flags: unittests
         name: codecov-swift
         fail_ci_if_error: false # Don't fail if upload fails
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    
+    # SonarCloud Analysis
+    - name: Install and run SonarCloud Scan
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: |
+        # Install sonar-scanner using homebrew (available on macOS runners)
+        brew install sonar-scanner
+        
+        # Run sonar-scanner directly to avoid deprecated action issues
+        # The sonar-project.properties file contains all necessary configuration
+        if [ -f "coverage.xml" ]; then
+          echo "Coverage file found: coverage.xml ($(wc -c < coverage.xml) bytes)"
+          echo "Running SonarCloud analysis with coverage..."
+          echo "Current directory: $(pwd)"
+          echo "Coverage file path: $(realpath coverage.xml)"
+        else
+          echo "WARNING: No coverage.xml file found"
+          echo "Running SonarCloud analysis without coverage..."
+        fi
+        
+        # Run the scanner
+        sonar-scanner

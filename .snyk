@@ -1,0 +1,21 @@
+# Snyk (https://snyk.io) policy file
+version: v1.25.0
+
+# Ignore specific vulnerabilities using security rules
+ignore:
+  'swift/DeviceAuthenticationBypass':
+    - Sources/MagSafeGuard/Services/AuthenticationService.swift:
+        reason: >
+          This is a legitimate use of evaluatePolicy for a security application.
+          We require biometric authentication as part of our security model.
+          Comprehensive security measures have been implemented including:
+          rate limiting, input validation, fresh authentication contexts,
+          production security checks, and attempt tracking.
+          See docs/security/snyk-evaluatepolicy-justification.md for details.
+        expires: '2026-01-01T00:00:00.000Z'
+        created: '2025-07-25T00:00:00.000Z'
+
+# Language settings
+language-settings:
+  swift:
+    enableLinters: true
