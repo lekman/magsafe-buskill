@@ -16,9 +16,27 @@ public class MacSystemActions: SystemActionsProtocol {
     
     private var alarmPlayer: AVAudioPlayer?
     
-    public init() {
-        // No initialization required - all actions are performed on-demand
-        // AVAudioPlayer is created lazily when alarm is triggered
+    /// Configuration for system command paths
+    public struct SystemPaths {
+        let pmsetPath: String
+        let osascriptPath: String
+        let killallPath: String
+        let sudoPath: String
+        let bashPath: String
+        
+        public static let `default` = SystemPaths(
+            pmsetPath: "/usr/bin/pmset",
+            osascriptPath: "/usr/bin/osascript",
+            killallPath: "/usr/bin/killall",
+            sudoPath: "/usr/bin/sudo",
+            bashPath: "/bin/bash"
+        )
+    }
+    
+    private let systemPaths: SystemPaths
+    
+    public init(systemPaths: SystemPaths = .default) {
+        self.systemPaths = systemPaths
     }
     
     public func lockScreen() throws {
@@ -37,7 +55,7 @@ public class MacSystemActions: SystemActionsProtocol {
         
         // Alternative method using system command
         let task = Process()
-        task.launchPath = "/usr/bin/pmset"
+        task.launchPath = systemPaths.pmsetPath
         task.arguments = ["displaysleepnow"]
         
         do {
@@ -88,7 +106,7 @@ public class MacSystemActions: SystemActionsProtocol {
     public func forceLogout() throws {
         // Force logout all users
         let task = Process()
-        task.launchPath = "/usr/bin/osascript"
+        task.launchPath = systemPaths.osascriptPath
         task.arguments = ["-e", "tell application \"System Events\" to log out"]
         
         do {
@@ -107,7 +125,7 @@ public class MacSystemActions: SystemActionsProtocol {
     public func scheduleShutdown(afterSeconds: TimeInterval) throws {
         // Schedule system shutdown
         let task = Process()
-        task.launchPath = "/usr/bin/sudo"
+        task.launchPath = systemPaths.sudoPath
         task.arguments = ["-n", "shutdown", "-h", "+\(Int(afterSeconds / 60))"]
         
         do {
@@ -117,7 +135,7 @@ public class MacSystemActions: SystemActionsProtocol {
             if task.terminationStatus != 0 {
                 // Try alternative method without sudo
                 let alternativeTask = Process()
-                alternativeTask.launchPath = "/usr/bin/osascript"
+                alternativeTask.launchPath = systemPaths.osascriptPath
                 alternativeTask.arguments = ["-e", "tell application \"System Events\" to shut down"]
                 try alternativeTask.run()
                 alternativeTask.waitUntilExit()
@@ -138,7 +156,7 @@ public class MacSystemActions: SystemActionsProtocol {
         }
         
         let task = Process()
-        task.launchPath = "/bin/bash"
+        task.launchPath = systemPaths.bashPath
         task.arguments = [path]
         
         do {

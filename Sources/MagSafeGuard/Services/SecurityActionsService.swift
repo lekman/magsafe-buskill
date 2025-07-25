@@ -97,13 +97,13 @@ public class SecurityActionsService {
     private let systemActions: SystemActionsProtocol
     
     /// Flag to track if actions are currently executing
-    private var _isExecuting = false
+    private var isCurrentlyExecuting = false
     private let executingLock = NSLock()
     
     public var isExecuting: Bool {
         executingLock.lock()
         defer { executingLock.unlock() }
-        return _isExecuting
+        return isCurrentlyExecuting
     }
     
     /// Serial queue for thread safety
@@ -156,10 +156,10 @@ public class SecurityActionsService {
         executingLock.lock()
         defer { executingLock.unlock() }
         
-        if _isExecuting {
+        if isCurrentlyExecuting {
             return false
         }
-        _isExecuting = true
+        isCurrentlyExecuting = true
         return true
     }
     
@@ -167,7 +167,7 @@ public class SecurityActionsService {
     private func clearExecuting() {
         executingLock.lock()
         defer { executingLock.unlock() }
-        _isExecuting = false
+        isCurrentlyExecuting = false
     }
     
     /// Perform the actual execution of actions

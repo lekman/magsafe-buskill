@@ -146,9 +146,9 @@ public class AuthenticationService: NSObject {
     
     /// Check if biometric authentication is available
     public func isBiometricAuthenticationAvailable() -> Bool {
-        let context = contextFactory.createContext()
+        let authContext = contextFactory.createContext()
         var error: NSError?
-        let available = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
+        let available = authContext.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
         
         if let error = error {
             print("[AuthenticationService] Biometric check error: \(error.localizedDescription)")

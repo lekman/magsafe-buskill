@@ -57,20 +57,6 @@ extension AuthenticationService {
     }
     
     
-    /// Handle authentication result
-    private func handleAuthenticationResult(success: Bool, error: Error?, context: AuthenticationContextProtocol, completion: @escaping (AuthenticationResult) -> Void) {
-        if success {
-            handleAuthenticationSuccess(context: context, completion: completion)
-        } else if let error = error {
-            handleAuthenticationError(error as NSError, completion: completion)
-        } else {
-            recordAuthenticationAttempt(success: false)
-            DispatchQueue.main.async {
-                completion(.failure(AuthenticationError.unknown(NSError(domain: "AuthenticationService", code: -1, userInfo: nil))))
-            }
-        }
-    }
-    
     /// Handle successful authentication
     private func handleAuthenticationSuccess(context: AuthenticationContextProtocol, completion: @escaping (AuthenticationResult) -> Void) {
         recordAuthenticationAttempt(success: true)
