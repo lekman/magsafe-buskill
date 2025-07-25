@@ -3,8 +3,8 @@
 # Site settings
 title: MagSafe Guard Documentation
 description: "Dead-Man's Cord Theft Protection Switch for Your Mac"
-baseurl: "/magsafe-buskill" # the subpath of your site, e.g. /blog
-url: "https://lekman.github.io" # the base hostname & protocol for your site
+baseurl: "" # Leave empty since we're in /docs
+url: "https://lekman.github.io/magsafe-buskill" # Full URL
 
 # Build settings
 theme: jekyll-theme-minimal
