@@ -43,23 +43,33 @@ jobs:
     - name: Generate Coverage Report
       run: |
         # Find coverage files
+        echo "Searching for coverage data..."
         PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
         EXECUTABLE=$(find .build -name 'MagSafeGuardPackageTests.xctest' -type d | head -1)/Contents/MacOS/MagSafeGuardPackageTests
         
+        echo "Profile data: $PROF_DATA"
+        echo "Executable: $EXECUTABLE"
+        
         if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
+          # Generate coverage report including test files to get full coverage
           xcrun llvm-cov export \
             "$EXECUTABLE" \
             -instr-profile="$PROF_DATA" \
-            -format="lcov" \
-            -ignore-filename-regex=".*Tests\.swift" > coverage.lcov
+            -format="lcov" > coverage.lcov
           
           echo "Generated coverage report: $(wc -l < coverage.lcov) lines"
           
-          # Also generate XML format for better SonarCloud compatibility
-          xcrun llvm-cov export \
-            "$EXECUTABLE" \
-            -instr-profile="$PROF_DATA" \
-            -format="lcov" > sonar-coverage.lcov
+          # Debug: Show first few lines of coverage
+          echo "Coverage report preview:"
+          head -20 coverage.lcov
+          
+          # Check if coverage has source files
+          echo "Source files in coverage:"
+          grep "^SF:" coverage.lcov | head -10
+        else
+          echo "ERROR: Could not find profdata or executable"
+          echo "Build directory contents:"
+          find .build -type f -name "*.profdata" -o -name "*.xctest" | head -20
         fi
     
     - name: Install SonarScanner
@@ -71,10 +81,23 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: |
+        # Note: Automatic Analysis must be disabled in SonarCloud UI
+        # Go to: https://sonarcloud.io/project/administration/analysis_method?id=lekman_magsafe-buskill
+        # Select "With a CI-based analysis" instead of "Automatic Analysis"
+        
+        # Check if coverage file exists
+        if [ -f "coverage.lcov" ]; then
+          echo "Coverage file found: $(wc -l < coverage.lcov) lines"
+        else
+          echo "WARNING: No coverage.lcov file found"
+        fi
+        
         sonar-scanner \
           -Dsonar.host.url=https://sonarcloud.io \
           -Dsonar.projectKey=lekman_magsafe-buskill \
           -Dsonar.organization=lekman \
           -Dsonar.sources=Sources \
           -Dsonar.tests=Tests \
-          -Dsonar.swift.coverage.reportPaths=coverage.lcov,sonar-coverage.lcov
+          -Dsonar.swift.coverage.reportPaths=coverage.lcov \
+          -Dsonar.exclusions="**/*Tests.swift,.build/**,DerivedData/**" \
+          -Dsonar.coverage.exclusions="**/*Tests.swift,**/Mock*.swift,**/*Demo*.swift,**/*App.swift,**/runner.swift"
