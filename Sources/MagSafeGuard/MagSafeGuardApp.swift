@@ -6,10 +6,19 @@
 //
 
 import SwiftUI
+import AppKit
+import UserNotifications
 
 @main
 struct MagSafeGuardApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    
+    init() {
+        // Set a bundle identifier for development if needed
+        if Bundle.main.bundleIdentifier == nil {
+            print("[MagSafeGuardApp] Running in development mode without bundle identifier")
+        }
+    }
     
     var body: some Scene {
         Settings {
@@ -22,10 +31,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     private let powerMonitor = PowerMonitorService.shared
     private var isArmed = false
+    private var demoWindow: NSWindow?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Hide dock icon as this is a menu bar app
         NSApp.setActivationPolicy(.accessory)
+        
+        // Only request notification permissions if we have a valid bundle
+        if Bundle.main.bundleIdentifier != nil {
+            requestNotificationPermissions()
+        } else {
+            print("[AppDelegate] Running without bundle identifier - notifications disabled")
+        }
         
         // Create the status item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -70,6 +87,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // Settings
         menu.addItem(NSMenuItem(title: "Settings...", action: #selector(showSettings), keyEquivalent: ","))
+        
+        // Demo Window
+        menu.addItem(NSMenuItem(title: "Show Demo...", action: #selector(showDemo), keyEquivalent: "d"))
         
         menu.addItem(NSMenuItem.separator())
         
@@ -127,6 +147,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         print("Settings clicked")
     }
     
+    @objc private func showDemo() {
+        if demoWindow == nil {
+            let demoView = PowerMonitorDemoView()
+            
+            demoWindow = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 480, height: 600),
+                styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                backing: .buffered,
+                defer: false
+            )
+            
+            demoWindow?.title = "Power Monitor Demo"
+            demoWindow?.contentView = NSHostingView(rootView: demoView)
+            demoWindow?.center()
+        }
+        
+        demoWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+    
     private func triggerSecurityAction() {
         print("⚠️ SECURITY ALERT: Power disconnected while armed!")
         
@@ -142,11 +182,50 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
     
+    private func requestNotificationPermissions() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
+            if granted {
+                print("[AppDelegate] Notification permissions granted")
+            } else if let error = error {
+                print("[AppDelegate] Notification permission error: \(error)")
+            }
+        }
+    }
+    
     private func showNotification(title: String, message: String) {
-        let notification = NSUserNotification()
-        notification.title = title
-        notification.informativeText = message
-        notification.soundName = NSUserNotificationDefaultSoundName
-        NSUserNotificationCenter.default.deliver(notification)
+        // Check if we can use UNUserNotificationCenter
+        guard Bundle.main.bundleIdentifier != nil else {
+            // Fallback: Just print to console when running from Xcode
+            print("🔔 NOTIFICATION: \(title) - \(message)")
+            
+            // Alternative: Show an alert window
+            DispatchQueue.main.async {
+                let alert = NSAlert()
+                alert.messageText = title
+                alert.informativeText = message
+                alert.alertStyle = .warning
+                alert.addButton(withTitle: "OK")
+                alert.runModal()
+            }
+            return
+        }
+        
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = message
+        content.sound = UNNotificationSound.default
+        
+        // Create a unique identifier
+        let identifier = UUID().uuidString
+        
+        // Trigger immediately
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)
+        
+        // Add the request to notification center
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("[AppDelegate] Error showing notification: \(error)")
+            }
+        }
     }
 }

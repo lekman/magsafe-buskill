@@ -1,16 +1,5 @@
 # Quality Assurance Dashboard
 
-## 🎯 Quick Links to Analysis Tools
-
-| Tool                | Purpose                  | Dashboard Link                                                                             |
-| ------------------- | ------------------------ | ------------------------------------------------------------------------------------------ |
-| **GitHub Security** | GHAS, CodeQL, Dependabot | [→ Security Overview](https://github.com/lekman/magsafe-buskill/security)                  |
-| **Semgrep**         | SAST Analysis            | [→ Semgrep Dashboard](https://semgrep.dev/orgs/-/projects)                                 |
-| **Actions**         | CI/CD Workflows          | [→ Actions Dashboard](https://github.com/lekman/magsafe-buskill/actions)                   |
-| **Insights**        | Repository Analytics     | [→ Insights](https://github.com/lekman/magsafe-buskill/pulse)                              |
-| **Code Scanning**   | Security Alerts          | [→ Code Scanning Alerts](https://github.com/lekman/magsafe-buskill/security/code-scanning) |
-| **Dependabot**      | Dependency Updates       | [→ Dependabot Alerts](https://github.com/lekman/magsafe-buskill/security/dependabot)       |
-
 ## 📊 Project Status Overview
 
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/lekman/magsafe-buskill/security.yml?branch=main&label=Security%20Scan)](https://github.com/lekman/magsafe-buskill/actions/workflows/security.yml)
@@ -36,21 +25,21 @@
 
 ### Third-Party Security Tools
 
-| Tool               | Status                                                                                                                                                                                     | Dashboard                                                                 |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| **Snyk** (Free for OSS) | [![Known Vulnerabilities](https://snyk.io/test/github/lekman/magsafe-buskill/badge.svg)](https://snyk.io/test/github/lekman/magsafe-buskill)                                               | [Snyk Dashboard →](https://app.snyk.io) • [Setup →](./snyk-integration.md) |
-| **Libraries.io**   | [![Dependencies](https://img.shields.io/librariesio/github/lekman/magsafe-buskill)](https://libraries.io/github/lekman/magsafe-buskill)                                                    | [View Analysis →](https://libraries.io/github/lekman/magsafe-buskill)     |
-| **OSSF Scorecard** | [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/lekman/magsafe-buskill/badge)](https://api.securityscorecards.dev/projects/github.com/lekman/magsafe-buskill) | [View Report →](https://deps.dev/project/github/lekman%2Fmagsafe-buskill) |
+| Tool                    | Status                                                                                                                                                                                     | Dashboard                                                                                      |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| **Snyk** (Free for OSS) | [![Known Vulnerabilities](https://snyk.io/test/github/lekman/magsafe-buskill/badge.svg)](https://snyk.io/test/github/lekman/magsafe-buskill)                                               | [Snyk Dashboard →](https://app.snyk.io/org/lekman) • [Setup →](./security/snyk-integration.md) |
+| **Libraries.io**        | [![Dependencies](https://img.shields.io/librariesio/github/lekman/magsafe-buskill)](https://libraries.io/github/lekman/magsafe-buskill)                                                    | [View Analysis →](https://libraries.io/github/lekman/magsafe-buskill)                          |
+| **OSSF Scorecard**      | [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/lekman/magsafe-buskill/badge)](https://api.securityscorecards.dev/projects/github.com/lekman/magsafe-buskill) | [View Report →](https://deps.dev/project/github/lekman%2Fmagsafe-buskill)                      |
 
 ## 🎨 Code Quality
 
 ### Analysis Tools
 
-| Tool             | Status                                                                                                              | Dashboard                                                        |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| **Code Climate** (Free for OSS) | [![Maintainability](https://img.shields.io/badge/Maintainability-Setup%20Required-yellow)](https://codeclimate.com) | [Setup →](https://codeclimate.com/github/lekman/magsafe-buskill) |
-| **Codecov**      | [![codecov](https://codecov.io/gh/lekman/magsafe-buskill/graph/badge.svg?token=AshUsxKtAI)](https://codecov.io/gh/lekman/magsafe-buskill) | [Dashboard →](https://codecov.io/gh/lekman/magsafe-buskill) • [Swift Guide →](./codecov-swift.md) |
-| **SonarCloud** (Free for OSS) | [![SonarCloud](https://img.shields.io/badge/SonarCloud-Setup%20Required-yellow)](https://sonarcloud.io)             | [Setup →](https://sonarcloud.io/projects/create)                 |
+| Tool                            | Status                                                                                                                                                                                         | Dashboard                                                                                         |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Code Climate** (Free for OSS) | [![Maintainability](https://img.shields.io/badge/Maintainability-Setup%20Required-yellow)](https://codeclimate.com)                                                                            | [Setup →](https://codeclimate.com/github/lekman/magsafe-buskill)                                  |
+| **Codecov**                     | [![codecov](https://codecov.io/gh/lekman/magsafe-buskill/graph/badge.svg?token=AshUsxKtAI)](https://codecov.io/gh/lekman/magsafe-buskill)                                                      | [Dashboard →](https://codecov.io/gh/lekman/magsafe-buskill) • [Swift Guide →](./codecov-swift.md) |
+| **SonarCloud** (Free for OSS)   | [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=lekman_magsafe-buskill&metric=alert_status)](https://sonarcloud.io/summary/overall?id=lekman_magsafe-buskill) | [Dashboard →](https://sonarcloud.io/summary/overall?id=lekman_magsafe-buskill&branch=main)        |
 
 ### Language & Platform
 
@@ -64,7 +53,7 @@
 
 | Workflow           | Status                                                                                                                                                                                                                  | Details                                                                                       |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| **Tests**          | [![Tests](https://img.shields.io/github/actions/workflow/status/lekman/magsafe-buskill/test.yml?branch=main&label=Tests)](https://github.com/lekman/magsafe-buskill/actions/workflows/test.yml)                        | [View Runs →](https://github.com/lekman/magsafe-buskill/actions/workflows/test.yml)           |
+| **Tests**          | [![Tests](https://img.shields.io/github/actions/workflow/status/lekman/magsafe-buskill/test.yml?branch=main&label=Tests)](https://github.com/lekman/magsafe-buskill/actions/workflows/test.yml)                         | [View Runs →](https://github.com/lekman/magsafe-buskill/actions/workflows/test.yml)           |
 | **Security Scan**  | [![Security](https://img.shields.io/github/actions/workflow/status/lekman/magsafe-buskill/security.yml?branch=main&label=Security)](https://github.com/lekman/magsafe-buskill/actions/workflows/security.yml)           | [View Runs →](https://github.com/lekman/magsafe-buskill/actions/workflows/security.yml)       |
 | **Release Please** | [![Release](https://img.shields.io/github/actions/workflow/status/lekman/magsafe-buskill/release-please.yml?branch=main&label=Release)](https://github.com/lekman/magsafe-buskill/actions/workflows/release-please.yml) | [View Runs →](https://github.com/lekman/magsafe-buskill/actions/workflows/release-please.yml) |
 | **Security Audit** | [![Audit](https://img.shields.io/badge/Security%20Audit-Manual-blue)](https://github.com/lekman/magsafe-buskill/actions/workflows/security-audit.yml)                                                                   | [Run Audit →](https://github.com/lekman/magsafe-buskill/actions/workflows/security-audit.yml) |
@@ -93,57 +82,3 @@
 [![GitHub stars](https://img.shields.io/github/stars/lekman/magsafe-buskill?style=social)](https://github.com/lekman/magsafe-buskill/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/lekman/magsafe-buskill?style=social)](https://github.com/lekman/magsafe-buskill/network/members)
 [![GitHub watchers](https://img.shields.io/github/watchers/lekman/magsafe-buskill?style=social)](https://github.com/lekman/magsafe-buskill/watchers)
-
-## Setting Up Additional Badges
-
-### 1. Semgrep Badge
-
-1. Go to [semgrep.dev](https://semgrep.dev)
-2. Navigate to your project dashboard
-3. Click on "Settings" → "Badges"
-4. Choose badge style and copy markdown
-
-### 2. Code Coverage Badge
-
-**Codecov Setup (Free for Open Source):**
-
-1. Sign in to [codecov.io](https://codecov.io) with GitHub
-2. Add your repository
-3. The test workflow is already configured for Swift
-4. Badge will appear after first test run
-
-Alternative services:
-
-- [Coveralls](https://coveralls.io) - Also free for OSS
-- [Code Climate](https://codeclimate.com) - Free for OSS
-
-### 3. Security Badges
-
-- **Snyk**: Sign up at [snyk.io](https://snyk.io) - **Free for open source projects!**
-- **LGTM**: Use [lgtm.com](https://lgtm.com) for security analysis
-- **WhiteSource**: [whitesourcesoftware.com](https://www.whitesourcesoftware.com)
-
-### 4. Custom Badges
-
-Create custom badges using [shields.io](https://shields.io):
-
-```markdown
-![Custom Badge](https://img.shields.io/badge/Security-A+-brightgreen)
-![Custom Badge](https://img.shields.io/badge/Code%20Quality-Excellent-blue)
-```
-
-## Automation
-
-To keep badges updated:
-
-1. Most badges auto-update based on GitHub data
-2. For manual badges, update during release process
-3. Consider adding badge status to release checklist
-
-## Badge Guidelines
-
-- **Keep it relevant**: Only show badges that provide value
-- **Group logically**: Security, Quality, Build, etc.
-- **Update regularly**: Remove outdated or broken badges
-- **Link properly**: Ensure badges link to meaningful destinations
-- **Cache considerations**: Some badges cache for performance

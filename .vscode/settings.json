@@ -12,12 +12,19 @@
     "CLAUDE.md": true,
     ".vscode": true,
     ".claude": true,
-    ".taskmaster": true
+    ".taskmaster": true,
+    ".build": true,
+    ".swiftpm": true,
+    "MagSafeGuard.xcodeproj": true,
+    ".githooks": true
   },
   "search.exclude": {
     "**/node_modules": true,
     "**/bower_components": true,
-    "**/*.code-search": true
+    "**/*.code-search": true,
+    ".build/**": true,
+    ".swiftpm/**": true,
+    "MagSafeGuard.xcodeproj/**": true
   },
   "editor.formatOnSave": true,
   "editor.rulers": [80, 120],

@@ -40,7 +40,7 @@ The workflow is already configured in `.github/workflows/test.yml`:
 ```yaml
 - name: Run tests with coverage
   run: swift test --enable-code-coverage
-  
+
 - name: Generate coverage report
   run: |
     # Convert Swift coverage to lcov format
@@ -48,7 +48,7 @@ The workflow is already configured in `.github/workflows/test.yml`:
       <test-executable> \
       -instr-profile=<profdata> \
       -format="lcov" > coverage.lcov
-  
+
 - name: Upload coverage to Codecov
   uses: codecov/codecov-action@v4
   with:
@@ -62,7 +62,7 @@ After your first test run:
 1. Go to your Codecov dashboard
 2. Click "Settings" → "Badge"
 3. Copy the markdown badge
-4. Add to README.md or docs/qa.md
+4. Add to README.md or docs/QA.md
 
 Example badge (already configured):
 
@@ -94,7 +94,7 @@ Example badge (already configured):
    ```swift
    class PowerMonitor {
        private let notificationCenter: NotificationCenter
-       
+
        init(notificationCenter: NotificationCenter = .default) {
            self.notificationCenter = notificationCenter
        }
@@ -152,7 +152,7 @@ coverage:
   precision: 2
   round: down
   range: "70...100"
-  
+
   status:
     project:
       default:

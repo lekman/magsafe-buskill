@@ -1,0 +1,45 @@
+# GitHub Pages Configuration for MagSafe Guard
+
+# Site settings
+title: MagSafe Guard Documentation
+description: "Dead-Man's Cord Theft Protection Switch for Your Mac"
+baseurl: "/magsafe-buskill" # the subpath of your site, e.g. /blog
+url: "https://lekman.github.io" # the base hostname & protocol for your site
+
+# Build settings
+theme: jekyll-theme-minimal
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+# Exclude files from processing
+exclude:
+  - archive/
+  - .DS_Store
+  - "*.swp"
+  - "*~"
+
+# Plugins
+plugins:
+  - jekyll-relative-links
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# Enable relative links
+relative_links:
+  enabled: true
+  collections: true
+
+# Navigation structure (optional - for theme customization)
+navigation:
+  - title: Home
+    url: /
+  - title: Architecture
+    url: /architecture/
+  - title: Security
+    url: /security/
+  - title: DevOps
+    url: /devops/
+  - title: Maintainers
+    url: /maintainers/

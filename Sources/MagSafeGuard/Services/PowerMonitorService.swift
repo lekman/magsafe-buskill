@@ -142,11 +142,8 @@ public class PowerMonitorService: NSObject {
     /// Get current power information
     /// - Returns: Current power info or nil if unavailable
     public func getCurrentPowerInfo() -> PowerInfo? {
-        let snapshot = IOPSCopyPowerSourcesInfo()?.takeRetainedValue()
-        guard let snapshot = snapshot,
-              let sources = IOPSCopyPowerSourcesList(snapshot)?.takeRetainedValue() as? [Any] else {
-            return nil
-        }
+        let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
+        let sources = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue() as Array
         
         var state: PowerState = .disconnected
         var batteryLevel: Int?
@@ -154,31 +151,30 @@ public class PowerMonitorService: NSObject {
         var adapterWattage: Int?
         
         for source in sources {
-            guard let sourceDict = IOPSGetPowerSourceDescription(snapshot, source)?.takeUnretainedValue() as? [String: Any] else {
-                continue
-            }
-            
-            // Check power state
-            if let powerSourceState = sourceDict[kIOPSPowerSourceStateKey as String] as? String {
-                state = (powerSourceState == kIOPSACPowerValue as String) ? .connected : .disconnected
-            }
-            
-            // Get battery level
-            if let currentCapacity = sourceDict[kIOPSCurrentCapacityKey as String] as? Int,
-               let maxCapacity = sourceDict[kIOPSMaxCapacityKey as String] as? Int,
-               maxCapacity > 0 {
-                batteryLevel = (currentCapacity * 100) / maxCapacity
-            }
-            
-            // Check charging status
-            if let chargingValue = sourceDict[kIOPSIsChargingKey as String] as? Bool {
-                isCharging = chargingValue
-            }
-            
-            // Try to get adapter wattage (not always available)
-            if let adapterInfo = sourceDict["AdapterDetails"] as? [String: Any],
-               let watts = adapterInfo["Watts"] as? Int {
-                adapterWattage = watts
+            if let sourceDict = IOPSGetPowerSourceDescription(snapshot, source).takeUnretainedValue() as? [String: Any] {
+                
+                // Check power state
+                if let powerSourceState = sourceDict[kIOPSPowerSourceStateKey as String] as? String {
+                    state = (powerSourceState == kIOPSACPowerValue as String) ? .connected : .disconnected
+                }
+                
+                // Get battery level
+                if let currentCapacity = sourceDict[kIOPSCurrentCapacityKey as String] as? Int,
+                   let maxCapacity = sourceDict[kIOPSMaxCapacityKey as String] as? Int,
+                   maxCapacity > 0 {
+                    batteryLevel = (currentCapacity * 100) / maxCapacity
+                }
+                
+                // Check charging status
+                if let chargingValue = sourceDict[kIOPSIsChargingKey as String] as? Bool {
+                    isCharging = chargingValue
+                }
+                
+                // Try to get adapter wattage (not always available)
+                if let adapterInfo = sourceDict["AdapterDetails"] as? [String: Any],
+                   let watts = adapterInfo["Watts"] as? Int {
+                    adapterWattage = watts
+                }
             }
         }
         

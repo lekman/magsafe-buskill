@@ -162,8 +162,38 @@ jobs:
         # Optionally specify custom queries
         queries: security-extended,security-and-quality
         
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v3
+    - name: Set up Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: 'latest-stable'
+        
+    - name: Build Swift Project for CodeQL
+      env:
+        CODEQL_EXTRACTOR_SWIFT_LOG_LEVEL: 5
+      run: |
+        echo "Building MagSafe Guard for CodeQL analysis..."
+        echo "Current directory: $(pwd)"
+        echo "Swift version: $(swift --version)"
+        
+        # Create Package.resolved if it doesn't exist
+        if [ ! -f "Package.resolved" ]; then
+          echo "Creating Package.resolved..."
+          swift package resolve
+        fi
+        
+        # Build with swift build (CodeQL prefers this)
+        echo "Building with Swift Package Manager..."
+        swift build --configuration debug --verbose
+        
+        # List built products
+        echo ""
+        echo "Built products:"
+        find .build -name "*.swiftmodule" -o -name "*.o" | head -20
+        
+        # Ensure source files are visible
+        echo ""
+        echo "Swift source files:"
+        find Sources -name "*.swift" -type f
       
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
