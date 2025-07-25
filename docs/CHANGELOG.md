@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- This changelog is automatically maintained by release-please -->
 <!-- Do not manually edit below this line -->
 
+## [1.4.0](https://github.com/lekman/magsafe-buskill/compare/v1.3.0...v1.4.0) (2025-07-25)
+
+
+### Features
+
+* add skip condition for release-please branches in security and test workflows ([3ed0068](https://github.com/lekman/magsafe-buskill/commit/3ed0068e973e5cc411c4feac8adbe70f7c6cc7fa))
+
 ## [1.3.0](https://github.com/lekman/magsafe-buskill/compare/v1.2.0...v1.3.0) (2025-07-25)
 
 
