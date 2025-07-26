@@ -796,3 +796,170 @@ tasks:
     cmds:
       - |
         task-master sync-readme >/dev/null 2>&1
+
+  # Security Tasks
+  security:pin-actions:
+    desc: Pin all GitHub Actions to specific commit SHAs for security
+    silent: false
+    cmds:
+      - |
+        echo "🔒 Pinning GitHub Actions to commit SHAs..."
+        echo ""
+        
+        # Define the action pins (action@version -> action@sha # version)
+        declare -A pins=(
+          ["actions/checkout@v4"]="actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7"
+          ["actions/upload-artifact@v4"]="actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6"
+          ["actions/github-script@v7"]="actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1"
+          ["actions/cache@v4"]="actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2"
+          ["actions/create-github-app-token@v1"]="actions/create-github-app-token@31c86eb3b33c9b601a1f60f98dcbfd1d70f379b4 # v1.10.3"
+          ["actions/dependency-review-action@v4"]="actions/dependency-review-action@5a2ce3f5b92ee19cbb1541a4984c76d921601d7c # v4.3.4"
+          ["github/codeql-action/init@v3"]="github/codeql-action/init@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6"
+          ["github/codeql-action/analyze@v3"]="github/codeql-action/analyze@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6"
+          ["github/codeql-action/upload-sarif@v3"]="github/codeql-action/upload-sarif@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6"
+          ["codecov/codecov-action@v5"]="codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v5.0.2"
+          ["googleapis/release-please-action@v4"]="googleapis/release-please-action@7987652d64b4581673a76e33ad5e98e3dd56832f # v4.1.3"
+          ["ossf/scorecard-action@v2.4.0"]="ossf/scorecard-action@62b2cac7ed8198b15735ed49ab1e5cf35480ba46 # v2.4.0"
+          ["returntocorp/semgrep-action@v1"]="returntocorp/semgrep-action@713efdd345f3035192eaa63f56867b88e63e4e5d # v1"
+          ["fossas/fossa-action@main"]="fossas/fossa-action@47ef11b1e1e3812e88dae436ccf33b60607e3cd9 # main"
+          ["trufflesecurity/trufflehog@main"]="trufflesecurity/trufflehog@b66fe7aa95d69fd03bd6d9d2333b2e0d26130fe9 # v3.82.13"
+          ["webiny/action-conventional-commits@v1.3.0"]="webiny/action-conventional-commits@8bc41ff4e7d423d56fa72d9d5e9d0d94aab5f089 # v1.3.0"
+          ["lekman/auto-approve-action@v1"]="lekman/auto-approve-action@44fbd63e95dc166951bbde068766d178c06bdb94 # v1.0.0"
+          ["swift-actions/setup-swift@v2"]="swift-actions/setup-swift@cdbe0f7ca5fac7b0c585ad7e3366afe035d8049f # v2.3.0"
+          ["maxim-lobanov/setup-xcode@v1"]="maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd # v1.6.0"
+        )
+        
+        # Process each workflow file
+        for file in .github/workflows/*.yml; do
+          if [ -f "$file" ]; then
+            echo "📝 Processing $(basename "$file")..."
+            
+            # Create backup
+            cp "$file" "$file.bak"
+            
+            # Replace each action with its pinned version
+            for action in "${!pins[@]}"; do
+              pinned="${pins[$action]}"
+              # Escape special characters for sed
+              escaped_action=$(echo "$action" | sed 's/[[\.*^$()+?{|]/\\&/g')
+              escaped_pinned=$(echo "$pinned" | sed 's/[[\.*^$()+?{|]/\\&/g')
+              
+              # Replace the action reference
+              sed -i '' "s|uses: $escaped_action|uses: $escaped_pinned|g" "$file"
+            done
+            
+            # Remove backup if successful
+            if [ $? -eq 0 ]; then
+              rm "$file.bak"
+              echo "   ✅ Updated $(basename "$file")"
+            else
+              mv "$file.bak" "$file"
+              echo "   ❌ Failed to update $(basename "$file")"
+            fi
+          fi
+        done
+        
+        echo ""
+        echo "✅ Action pinning complete!"
+        echo ""
+        echo "💡 Next steps:"
+        echo "   1. Review the changes with: git diff .github/workflows/"
+        echo "   2. Run workflows to ensure they still work"
+        echo "   3. Set up Dependabot to keep pins updated (task security:dependabot)"
+
+  security:dependabot:
+    desc: Set up Dependabot to keep GitHub Actions updated
+    silent: false
+    cmds:
+      - |
+        echo "🤖 Setting up Dependabot for GitHub Actions..."
+        
+        mkdir -p .github
+        
+        cat > .github/dependabot.yml << 'EOF'
+        version: 2
+        updates:
+          # Maintain dependencies for GitHub Actions
+          - package-ecosystem: "github-actions"
+            directory: "/"
+            schedule:
+              interval: "weekly"
+              day: "monday"
+              time: "10:00"
+            reviewers:
+              - "@lekman"
+            labels:
+              - "dependencies"
+              - "github-actions"
+            commit-message:
+              prefix: "chore"
+              prefix-development: "chore"
+              include: "scope"
+            open-pull-requests-limit: 10
+            # Group all action updates into a single PR
+            groups:
+              github-actions:
+                patterns:
+                  - "*"
+        
+          # Maintain dependencies for Swift Package Manager
+          - package-ecosystem: "swift"
+            directory: "/"
+            schedule:
+              interval: "weekly"
+              day: "monday"
+              time: "10:00"
+            reviewers:
+              - "@lekman"
+            labels:
+              - "dependencies"
+              - "swift"
+            commit-message:
+              prefix: "chore"
+              prefix-development: "chore"
+              include: "scope"
+            open-pull-requests-limit: 10
+        EOF
+        
+        echo "✅ Created .github/dependabot.yml"
+        echo ""
+        echo "Dependabot will:"
+        echo "   • Check for updates weekly (Mondays at 10:00 UTC)"
+        echo "   • Create PRs with pinned SHA updates"
+        echo "   • Group all GitHub Actions updates together"
+        echo "   • Label PRs for easy identification"
+        echo ""
+        echo "📝 Remember to commit this file to enable Dependabot!"
+
+  security:check-pins:
+    desc: Check if all GitHub Actions are properly pinned
+    silent: false
+    cmds:
+      - |
+        echo "🔍 Checking GitHub Action pins..."
+        echo ""
+        
+        unpinned=0
+        
+        for file in .github/workflows/*.yml; do
+          if [ -f "$file" ]; then
+            # Find uses: statements that don't use SHA (40 char hex), excluding commented lines
+            unpinned_actions=$(grep -n "uses:" "$file" | grep -v "#.*uses:" | grep -v "uses: \." | grep -v -E "uses: [^@]+@[0-9a-f]{40}")
+            
+            if [ -n "$unpinned_actions" ]; then
+              echo "❌ $(basename "$file") has unpinned actions:"
+              echo "$unpinned_actions" | sed 's/^/   /'
+              echo ""
+              unpinned=$((unpinned + 1))
+            fi
+          fi
+        done
+        
+        if [ $unpinned -eq 0 ]; then
+          echo "✅ All GitHub Actions are properly pinned!"
+        else
+          echo "⚠️  Found $unpinned workflow files with unpinned actions"
+          echo ""
+          echo "Run 'task security:pin-actions' to fix this"
+          exit 1
+        fi
