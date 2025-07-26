@@ -157,18 +157,14 @@ tasks:
         swift test
 
   test:ci:
-    desc: Run tests in CI mode
-    env:
-      CI: "true"
+    desc: Run tests (same as test, kept for compatibility)
     cmds:
-      - swift test
+      - task: test
 
   test:coverage:
     desc: Run tests with coverage and ensure >80%
-    env:
-      CI: "true"
     cmds:
-      - echo "Running tests with coverage in CI mode..."
+      - echo "Running tests with coverage..."
       - swift test --enable-code-coverage
       - |
         echo "Generating coverage report..."
@@ -206,8 +202,6 @@ tasks:
 
   test:coverage:html:
     desc: Generate HTML coverage report
-    env:
-      CI: "true"
     cmds:
       - swift test --enable-code-coverage
       - |

@@ -1,132 +1,147 @@
 # Testing in CI/CD Environments
 
-## Authentication Service Tests
+## Protocol-Based Testing Strategy
 
-The `AuthenticationService` uses Apple's LocalAuthentication framework, which has specific behaviors in different environments:
+MagSafe Guard uses a protocol-based testing approach that ensures tests run identically in all environments - local development, simulators, and CI/CD pipelines.
 
-### Local Development (Real Device)
+### Key Principles
 
-- Full biometric authentication available (TouchID/FaceID)
-- Password fallback works as expected
-- All authentication policies function normally
+1. **No Real System Calls**: All system interactions are abstracted behind protocols
+2. **Mock Everything External**: Tests use mock implementations exclusively
+3. **Deterministic Behavior**: Tests produce the same results everywhere
+4. **No Environment Variables**: CI=true is no longer needed
 
-### Local Development (Simulator)
+### Authentication Service Tests
 
-- No biometric hardware available
-- Authentication attempts fail with `.biometryNotAvailable`
-- Password fallback may work depending on simulator configuration
+The `AuthenticationService` uses protocol abstractions instead of real `LAContext`:
 
-### CI Environment (GitHub Actions)
+```swift
+// Protocol for authentication context
+protocol AuthenticationContextProtocol {
+    func canEvaluatePolicy(_ policy: LAPolicy, error: NSErrorPointer) -> Bool
+    func evaluatePolicy(_ policy: LAPolicy, localizedReason: String) async throws
+    var biometryType: LABiometryType { get }
+}
 
-- Runs on `macos-latest` runners
-- No biometric hardware available
-- Authentication tests are designed to handle these limitations gracefully
+// Mock implementation for tests
+class MockAuthenticationContext: AuthenticationContextProtocol {
+    var canEvaluatePolicyResult = true
+    var evaluatePolicyShouldSucceed = true
+    // ... mock behavior configuration
+}
+```
 
-## Test Behavior in CI
+## Test Behavior Consistency
 
-### Expected Outcomes
+### Same Behavior Everywhere
+
+With protocol-based testing, tests behave identically in:
+- Local development (any Mac)
+- Xcode simulators
+- GitHub Actions CI runners
+- Any other CI/CD platform
+
+### Test Examples
 
 1. **Biometric Availability Tests**
-
-   - `isBiometricAuthenticationAvailable()` returns `false`
-   - `biometryType` returns `.none`
-   - Tests pass by expecting and handling these conditions
+   ```swift
+   mockContext.canEvaluatePolicyResult = true
+   mockContext.biometryType = .touchID
+   XCTAssertTrue(service.isBiometricAuthenticationAvailable)
+   ```
 
 2. **Authentication Flow Tests**
-
-   - Authentication attempts fail with appropriate errors
-   - Tests accept failure as valid outcome in CI
-   - Debug logging helps identify CI-specific behavior
+   ```swift
+   mockContext.evaluatePolicyShouldSucceed = true
+   service.authenticate(reason: "Test") { result in
+       XCTAssertEqual(result, .success)
+   }
+   ```
 
 3. **Error Handling Tests**
-   - All error types are tested for proper descriptions
-   - No actual authentication required
-   - Always passes in CI
+   ```swift
+   mockContext.evaluatePolicyError = LAError(.authenticationFailed)
+   service.authenticate(reason: "Test") { result in
+       XCTAssertEqual(result, .failure(.authenticationFailed))
+   }
+   ```
 
-### CI-Specific Test Features
+### Benefits
 
-```swift
-// Tests log CI-specific information
-print("[CI Test] Biometric authentication is NOT available (expected in CI)")
+1. **Predictable Results**
+   - Tests always produce the same outcome
+   - No environment-specific workarounds
+   - Easier debugging
 
-// Tests handle multiple valid outcomes
-switch result {
-case .failure(let error):
-    // Expected in CI - biometrics not available
-case .cancelled:
-    // Also acceptable
-case .success:
-    // Unlikely but not impossible
-}
-```
+2. **Fast Execution**
+   - No system dialogs or timeouts
+   - No hardware dependencies
+   - Instant mock responses
 
-### Test Strategy
+3. **Complete Coverage**
+   - Test all code paths
+   - Simulate any hardware configuration
+   - Test error conditions easily
 
-1. **Graceful Degradation**
+## Running Tests
 
-   - Tests don't fail when biometrics are unavailable
-   - Multiple acceptable outcomes for each test
-   - Clear logging for debugging CI issues
-
-2. **No Mocking Required**
-
-   - Tests work with real `LAContext`
-   - Handle actual system responses
-   - No complex mocking setup needed
-
-3. **Coverage Focus**
-   - Test error handling paths
-   - Validate service configuration
-   - Ensure graceful failure modes
-
-## Running Tests Locally
-
-To simulate CI behavior locally:
+Tests run the same way everywhere:
 
 ```bash
-# Run tests with CI environment variable
-CI=true swift test
+# Run all tests
+swift test
 
-# Run specific tests with CI flag
-CI=true swift test --filter AuthenticationServiceTests
+# Run specific tests
+swift test --filter AuthenticationServiceTests
 
-# Run without CI flag for full testing
-swift test --filter AuthenticationServiceTests -v
+# Run with coverage
+swift test --enable-code-coverage
 ```
 
-## CI Test Adaptations
+No special CI flags or environment variables needed!
 
-The authentication tests detect CI environments using the `CI` environment variable:
+## Architecture Overview
 
-```swift
-var isRunningInCI: Bool {
-    return ProcessInfo.processInfo.environment["CI"] != nil ||
-           ProcessInfo.processInfo.environment["GITHUB_ACTIONS"] != nil
-}
+### Service Layer
+```
+┌─────────────────────────────┐
+│   AuthenticationService     │ ← Business Logic
+├─────────────────────────────┤
+│  AuthenticationContext      │ ← Protocol Interface
+│       Protocol              │
+├─────────────────────────────┤
+│  MockAuthenticationContext  │ ← Test Implementation
+│    (for tests only)        │
+├─────────────────────────────┤
+│    LAContextWrapper        │ ← Real Implementation
+│  (production only)         │   (excluded from coverage)
+└─────────────────────────────┘
 ```
 
-In CI mode, tests:
+### Security Actions
+```
+┌─────────────────────────────┐
+│  SecurityActionsService     │ ← Business Logic
+├─────────────────────────────┤
+│   SystemActionsProtocol    │ ← Protocol Interface
+├─────────────────────────────┤
+│    MockSystemActions       │ ← Test Implementation
+│    (for tests only)        │
+├─────────────────────────────┤
+│     MacSystemActions       │ ← Real Implementation
+│   (production only)        │   (excluded from coverage)
+└─────────────────────────────┘
+```
 
-- Skip complex authentication flows that may hang
-- Test basic functionality instead
-- Verify that services don't crash
-- Focus on testable components
+## Coverage Strategy
 
-## Future Improvements
+1. **Test Business Logic**: 100% coverage target for service classes
+2. **Mock External Dependencies**: Use protocol-based mocks
+3. **Exclude System Integration**: Real implementations excluded from coverage
+4. **Manual Acceptance Tests**: Document in acceptance-tests.md
 
-1. **Dependency Injection**
+## See Also
 
-   - Create protocol for authentication
-   - Inject mock implementation for tests
-   - Better unit test isolation
-
-2. **UI Tests**
-
-   - Test actual authentication flow
-   - Require real device
-   - Separate test target
-
-3. **Integration Tests**
-   - Test with other services
-   - Validate complete workflows
-   - End-to-end scenarios
+- [Testing Guide](../maintainers/testing-guide.md) - Comprehensive testing strategy
+- [Test Coverage](../maintainers/test-coverage.md) - Current coverage metrics
+- [Acceptance Tests](../maintainers/acceptance-tests.md) - Manual test procedures

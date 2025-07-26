@@ -89,8 +89,8 @@ task test:coverage
 task test:coverage:html
 open .build/coverage/index.html
 
-# CI environment
-CI=true task test:coverage
+# Same command works locally and in CI
+task test:coverage
 ```
 
 ### Manual Coverage Generation
@@ -119,8 +119,6 @@ Coverage is automatically generated in CI:
 
 ```yaml
 - name: Run Tests with Coverage
-  env:
-    CI: true
   run: task test:coverage
 ```
 
