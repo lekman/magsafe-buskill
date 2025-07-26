@@ -49,7 +49,6 @@ ignore:
   # UI/System Integration files
   - "**/MagSafeGuardApp.swift"
   - "**/PowerMonitorService.swift"
-  - "**/PowerMonitorCore.swift"
   - "**/*LAContext.swift"
   - "**/MacSystemActions.swift"
   - "**/*Protocol.swift"

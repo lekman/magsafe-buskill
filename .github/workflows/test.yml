@@ -109,7 +109,7 @@ jobs:
               xcrun llvm-cov show "$EXECUTABLE" \
                 -instr-profile="$PROF_DATA" \
                 -use-color=false \
-                -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*/PowerMonitorCore\.swift|.*LAContext\.swift" | \
+                -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*LAContext\.swift|.*/MacSystemActions\.swift|.*Protocol\.swift" | \
               awk '
                 /^[[:space:]]*[^[:space:]]+:$/ {
                   if (in_file) print "  </file>"
@@ -152,11 +152,14 @@ jobs:
           fi
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
           flags: unittests
           fail_ci_if_error: true
+          name: MagSafeGuard
+          swift_project: MagSafeGuard
+          codecov_yml_path: .codecov.yml
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true # Enable verbose output for debugging
 
