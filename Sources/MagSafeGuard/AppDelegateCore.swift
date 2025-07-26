@@ -76,8 +76,8 @@ public class AppDelegateCore {
     
     /// Determines the appropriate status icon based on armed state
     public func statusIconName() -> String {
-        // Use more basic SF Symbols that are available on older macOS versions
-        return isArmed ? "lock.fill" : "lock"
+        // Use shield SF Symbols for better visual representation
+        return isArmed ? "shield.fill" : "shield"
     }
     
     // MARK: - Power Monitoring

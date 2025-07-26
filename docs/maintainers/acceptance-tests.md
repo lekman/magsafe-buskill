@@ -194,6 +194,87 @@ This guide outlines manual tests that should be performed before releases to ver
 3. Trigger security action
 4. **Expected**: Error logged, other actions still execute
 
+## Menu Bar UI and Accessibility Tests
+
+### Test 17: Menu Bar Icon Visibility
+
+**Purpose**: Verify menu bar icon appears correctly in both light and dark mode
+
+1. Run MagSafe Guard via `task run`
+2. Look for shield icon in menu bar (top right)
+3. If no icon, look for "MG" text fallback
+4. Switch between light/dark mode (System Preferences → Appearance)
+5. **Expected**: Icon/text visible and adapts color appropriately
+
+### Test 18: Menu Bar States
+
+**Purpose**: Verify icon changes with armed/disarmed state
+
+1. Click menu bar icon to open menu
+2. Note initial icon state (shield outline)
+3. Click "Arm Protection"
+4. Authenticate when prompted
+5. **Expected**: Icon changes to filled shield
+6. Click "Disarm Protection"
+7. **Expected**: Icon returns to shield outline
+
+### Test 19: Menu Interactions
+
+**Purpose**: Verify all menu items function correctly
+
+1. Click menu bar icon
+2. Verify menu contains:
+   - Arm/Disarm Protection
+   - Settings...
+   - Run Demo...
+   - Quit
+3. Test each menu item
+4. **Expected**: Each item responds appropriately
+
+### Test 20: Keyboard Navigation
+
+**Purpose**: Verify keyboard accessibility
+
+1. Click menu bar icon to open menu
+2. Use arrow keys to navigate menu items
+3. Press Return to select items
+4. Press Escape to close menu
+5. **Expected**: Full keyboard navigation works
+
+### Test 21: VoiceOver Support
+
+**Purpose**: Verify screen reader accessibility
+
+1. Enable VoiceOver (Cmd+F5)
+2. Navigate to menu bar with VO+M then arrow to MagSafe Guard
+3. Press VO+Space to open menu
+4. Navigate menu items with arrow keys
+5. **Expected**: All items properly announced with meaningful descriptions
+
+### Test 22: Demo Window
+
+**Purpose**: Verify demo window functionality
+
+1. Click menu bar icon
+2. Select "Run Demo..."
+3. Verify demo window shows:
+   - Current power status
+   - Battery level
+   - Real-time updates
+4. Unplug/replug power adapter
+5. **Expected**: Status updates in real-time
+
+### Test 23: Menu Bar Persistence
+
+**Purpose**: Verify app persists correctly
+
+1. Run MagSafe Guard
+2. Log out and log back in
+3. **Expected**: App does not auto-start (unless configured)
+4. Run app again
+5. Switch to another Space/Desktop
+6. **Expected**: Menu bar icon visible on all Spaces
+
 ## Test Report Template
 
 ```ini
@@ -228,6 +309,15 @@ Performance Tests:
 Error Handling:
 [ ] Test 15: Missing Resources - Pass/Fail
 [ ] Test 16: Permission Denied - Pass/Fail
+
+Menu Bar UI and Accessibility:
+[ ] Test 17: Icon Visibility - Pass/Fail
+[ ] Test 18: Menu Bar States - Pass/Fail
+[ ] Test 19: Menu Interactions - Pass/Fail
+[ ] Test 20: Keyboard Navigation - Pass/Fail
+[ ] Test 21: VoiceOver Support - Pass/Fail
+[ ] Test 22: Demo Window - Pass/Fail
+[ ] Test 23: Menu Bar Persistence - Pass/Fail
 
 Notes:
 _________________________________
