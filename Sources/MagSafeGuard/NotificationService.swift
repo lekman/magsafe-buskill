@@ -203,7 +203,10 @@ public class MockNotificationDelivery: NotificationDeliveryProtocol {
     public var permissionsRequested = false
     public var shouldGrantPermissions = true
     
-    public init() {}
+    public init() {
+        // Empty initializer - all properties have default values
+        // No setup required for this mock implementation
+    }
     
     public func deliver(title: String, message: String, identifier: String) {
         deliveredNotifications.append((title, message, identifier))
