@@ -798,74 +798,59 @@ tasks:
         task-master sync-readme >/dev/null 2>&1
 
   # Security Tasks
+  security:
+    desc: Run all security checks and fixes
+    cmds:
+      - task: security:check-pins
+      - task: security:scan-secrets
+      - echo "✅ All security checks passed!"
+
+  security:fix:
+    desc: Fix all security issues automatically
+    cmds:
+      - task: security:pin-actions
+      - task: security:dependabot
+      - echo "✅ Security fixes applied!"
+
   security:pin-actions:
     desc: Pin all GitHub Actions to specific commit SHAs for security
     silent: false
     cmds:
       - |
-        echo "🔒 Pinning GitHub Actions to commit SHAs..."
-        echo ""
-        
-        # Define the action pins (action@version -> action@sha # version)
-        declare -A pins=(
-          ["actions/checkout@v4"]="actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7"
-          ["actions/upload-artifact@v4"]="actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6"
-          ["actions/github-script@v7"]="actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1"
-          ["actions/cache@v4"]="actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2"
-          ["actions/create-github-app-token@v1"]="actions/create-github-app-token@31c86eb3b33c9b601a1f60f98dcbfd1d70f379b4 # v1.10.3"
-          ["actions/dependency-review-action@v4"]="actions/dependency-review-action@5a2ce3f5b92ee19cbb1541a4984c76d921601d7c # v4.3.4"
-          ["github/codeql-action/init@v3"]="github/codeql-action/init@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6"
-          ["github/codeql-action/analyze@v3"]="github/codeql-action/analyze@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6"
-          ["github/codeql-action/upload-sarif@v3"]="github/codeql-action/upload-sarif@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6"
-          ["codecov/codecov-action@v5"]="codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v5.0.2"
-          ["googleapis/release-please-action@v4"]="googleapis/release-please-action@7987652d64b4581673a76e33ad5e98e3dd56832f # v4.1.3"
-          ["ossf/scorecard-action@v2.4.0"]="ossf/scorecard-action@62b2cac7ed8198b15735ed49ab1e5cf35480ba46 # v2.4.0"
-          ["returntocorp/semgrep-action@v1"]="returntocorp/semgrep-action@713efdd345f3035192eaa63f56867b88e63e4e5d # v1"
-          ["fossas/fossa-action@main"]="fossas/fossa-action@47ef11b1e1e3812e88dae436ccf33b60607e3cd9 # main"
-          ["trufflesecurity/trufflehog@main"]="trufflesecurity/trufflehog@b66fe7aa95d69fd03bd6d9d2333b2e0d26130fe9 # v3.82.13"
-          ["webiny/action-conventional-commits@v1.3.0"]="webiny/action-conventional-commits@8bc41ff4e7d423d56fa72d9d5e9d0d94aab5f089 # v1.3.0"
-          ["lekman/auto-approve-action@v1"]="lekman/auto-approve-action@44fbd63e95dc166951bbde068766d178c06bdb94 # v1.0.0"
-          ["swift-actions/setup-swift@v2"]="swift-actions/setup-swift@cdbe0f7ca5fac7b0c585ad7e3366afe035d8049f # v2.3.0"
-          ["maxim-lobanov/setup-xcode@v1"]="maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd # v1.6.0"
-        )
-        
-        # Process each workflow file
-        for file in .github/workflows/*.yml; do
-          if [ -f "$file" ]; then
-            echo "📝 Processing $(basename "$file")..."
-            
-            # Create backup
-            cp "$file" "$file.bak"
-            
-            # Replace each action with its pinned version
-            for action in "${!pins[@]}"; do
-              pinned="${pins[$action]}"
-              # Escape special characters for sed
-              escaped_action=$(echo "$action" | sed 's/[[\.*^$()+?{|]/\\&/g')
-              escaped_pinned=$(echo "$pinned" | sed 's/[[\.*^$()+?{|]/\\&/g')
-              
-              # Replace the action reference
-              sed -i '' "s|uses: $escaped_action|uses: $escaped_pinned|g" "$file"
-            done
-            
-            # Remove backup if successful
-            if [ $? -eq 0 ]; then
-              rm "$file.bak"
-              echo "   ✅ Updated $(basename "$file")"
-            else
-              mv "$file.bak" "$file"
-              echo "   ❌ Failed to update $(basename "$file")"
-            fi
+        # Check if jq is installed (required for the script)
+        if ! command -v jq &> /dev/null; then
+          echo "📦 Installing jq (required for pinning actions)..."
+          if command -v brew &> /dev/null; then
+            brew install jq
+          else
+            echo "❌ jq is required but Homebrew is not available"
+            echo "   Please install jq manually: https://jqlang.github.io/jq/download/"
+            exit 1
           fi
-        done
+        fi
         
-        echo ""
-        echo "✅ Action pinning complete!"
-        echo ""
-        echo "💡 Next steps:"
-        echo "   1. Review the changes with: git diff .github/workflows/"
-        echo "   2. Run workflows to ensure they still work"
-        echo "   3. Set up Dependabot to keep pins updated (task security:dependabot)"
+        # Run the automated pinning script
+        ./scripts/pin-github-actions.sh
+
+  security:update-pins:
+    desc: Update GitHub Action pins to latest SHAs for pinned versions
+    silent: false
+    cmds:
+      - |
+        # Check if jq is installed (required for the script)
+        if ! command -v jq &> /dev/null; then
+          echo "📦 Installing jq (required for updating pins)..."
+          if command -v brew &> /dev/null; then
+            brew install jq
+          else
+            echo "❌ jq is required but Homebrew is not available"
+            echo "   Please install jq manually: https://jqlang.github.io/jq/download/"
+            exit 1
+          fi
+        fi
+        
+        # Run the update script
+        ./scripts/update-action-pins.sh
 
   security:dependabot:
     desc: Set up Dependabot to keep GitHub Actions updated
@@ -943,8 +928,8 @@ tasks:
         
         for file in .github/workflows/*.yml; do
           if [ -f "$file" ]; then
-            # Find uses: statements that don't use SHA (40 char hex), excluding commented lines
-            unpinned_actions=$(grep -n "uses:" "$file" | grep -v "#.*uses:" | grep -v "uses: \." | grep -v -E "uses: [^@]+@[0-9a-f]{40}")
+            # Find uses: statements that don't use SHA (40 char hex), excluding commented lines and local actions
+            unpinned_actions=$(grep -E "^\s*uses:" "$file" | grep -v "uses: \." | grep -v -E "uses: [^@]+@[0-9a-f]{40}")
             
             if [ -n "$unpinned_actions" ]; then
               echo "❌ $(basename "$file") has unpinned actions:"
@@ -961,5 +946,54 @@ tasks:
           echo "⚠️  Found $unpinned workflow files with unpinned actions"
           echo ""
           echo "Run 'task security:pin-actions' to fix this"
+          exit 1
+        fi
+
+  security:scan-secrets:
+    desc: Scan for secrets and sensitive data
+    silent: false
+    cmds:
+      - |
+        echo "🔍 Scanning for secrets and sensitive data..."
+        echo ""
+        
+        # Common patterns to check
+        patterns=(
+          "password.*=.*['\"]" 
+          "api[_-]?key.*=.*['\"]"
+          "secret.*=.*['\"]"
+          "token.*=.*['\"]"
+          "private[_-]?key"
+          "-----BEGIN.*PRIVATE KEY-----"
+          "Bearer\s+[A-Za-z0-9\-_]+"
+        )
+        
+        found_issues=0
+        
+        # Scan all files except common safe paths
+        for pattern in "${patterns[@]}"; do
+          results=$(grep -r -i -E "$pattern" . \
+            --exclude-dir=.git \
+            --exclude-dir=node_modules \
+            --exclude-dir=.build \
+            --exclude-dir=vendor \
+            --exclude="*.lock" \
+            --exclude="go.sum" \
+            2>/dev/null || true)
+          
+          if [ -n "$results" ]; then
+            echo "⚠️  Found potential secrets matching pattern: $pattern"
+            echo "$results" | head -5
+            echo ""
+            found_issues=$((found_issues + 1))
+          fi
+        done
+        
+        if [ $found_issues -eq 0 ]; then
+          echo "✅ No secrets or sensitive data found!"
+        else
+          echo "❌ Found $found_issues potential security issues"
+          echo ""
+          echo "Please review and remove any sensitive data"
           exit 1
         fi

@@ -93,6 +93,6 @@ jobs:
           echo "✅ No blocked words found in commit messages"
       
       - name: Check conventional commits format
-        uses: webiny/action-conventional-commits@8bc41ff4e7d423d56fa72d9d5e9d0d94aab5f089 # v1.3.0
+        uses: webiny/action-conventional-commits@4ae80bc67b0b2e72a4d091a7b18eb4ecc7db68c8 # v1.3.0
         with:
           allowed-commit-types: "feat,fix,docs,style,refactor,perf,test,build,ci,chore,revert"
