@@ -42,6 +42,14 @@ tasks:
           echo "✅ Swift $(swift --version | head -1 | awk '{print $4}')"
         fi
 
+        # Check for SwiftLint (required)
+        if ! command -v swiftlint &> /dev/null; then
+          echo "❌ SwiftLint is not installed"
+          missing_tools=$((missing_tools + 1))
+        else
+          echo "✅ SwiftLint $(swiftlint version)"
+        fi
+
         # Check for Semgrep (optional)
         if ! command -v semgrep &> /dev/null; then
           echo "⚠️  Semgrep not installed (optional but recommended)"
@@ -321,9 +329,18 @@ tasks:
         echo "🔍 Linting Swift files..."
         if command -v swiftlint &> /dev/null; then
           swiftlint lint --quiet
+          if [ $? -eq 0 ]; then
+            echo "✅ SwiftLint passed"
+          else
+            echo "❌ SwiftLint found issues"
+            echo ""
+            echo "Run 'task lint:swift:fix' to auto-fix what's possible"
+            exit 1
+          fi
         else
           echo "⚠️  SwiftLint not installed"
           echo "   Install with: brew install swiftlint"
+          echo "   Or run: task dev:setup"
         fi
 
   lint:markdown:
@@ -359,8 +376,30 @@ tasks:
     desc: Fix linting issues automatically
     silent: true
     cmds:
+      - task: lint:fix:swift
       - task: lint:fix:markdown
       - echo "✅ Linting fixes complete!"
+
+  lint:fix:swift:
+    desc: Fix Swift linting issues automatically
+    silent: true
+    cmds:
+      - |
+        echo "🔧 Fixing Swift linting issues..."
+        if command -v swiftlint &> /dev/null; then
+          swiftlint lint --fix --quiet
+          if [ $? -eq 0 ]; then
+            echo "✅ SwiftLint fixes applied"
+          else
+            echo "⚠️  Some issues require manual fixing"
+            echo ""
+            echo "Run 'task lint:swift' to see remaining issues"
+          fi
+        else
+          echo "⚠️  SwiftLint not installed"
+          echo "   Install with: brew install swiftlint"
+          echo "   Or run: task dev:setup"
+        fi
 
   lint:fix:markdown:
     desc: Fix Markdown formatting issues
@@ -594,9 +633,12 @@ tasks:
             brew install semgrep
           fi
           
-          # Install SwiftLint
+          # Install SwiftLint (required)
           if ! command -v swiftlint &> /dev/null; then
+            echo "Installing SwiftLint..."
             brew install swiftlint
+          else
+            echo "✅ SwiftLint already installed"
           fi
           
           # Install markdownlint

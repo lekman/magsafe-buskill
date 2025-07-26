@@ -13,14 +13,14 @@ import SwiftUI
 public struct SettingsView: View {
     @StateObject private var settingsManager = UserDefaultsManager.shared
     @State private var selectedTab = SettingsTab.general
-    
+
     private enum SettingsTab: String, CaseIterable {
         case general = "General"
         case security = "Security"
         case autoArm = "Auto-Arm"
         case notifications = "Notifications"
         case advanced = "Advanced"
-        
+
         var symbolName: String {
             switch self {
             case .general:
@@ -36,7 +36,7 @@ public struct SettingsView: View {
             }
         }
     }
-    
+
     public var body: some View {
         TabView(selection: $selectedTab) {
             GeneralSettingsView()
@@ -44,25 +44,25 @@ public struct SettingsView: View {
                     Label(SettingsTab.general.rawValue, systemImage: SettingsTab.general.symbolName)
                 }
                 .tag(SettingsTab.general)
-            
+
             SecuritySettingsView()
                 .tabItem {
                     Label(SettingsTab.security.rawValue, systemImage: SettingsTab.security.symbolName)
                 }
                 .tag(SettingsTab.security)
-            
+
             AutoArmSettingsView()
                 .tabItem {
                     Label(SettingsTab.autoArm.rawValue, systemImage: SettingsTab.autoArm.symbolName)
                 }
                 .tag(SettingsTab.autoArm)
-            
+
             NotificationSettingsView()
                 .tabItem {
                     Label(SettingsTab.notifications.rawValue, systemImage: SettingsTab.notifications.symbolName)
                 }
                 .tag(SettingsTab.notifications)
-            
+
             AdvancedSettingsView()
                 .tabItem {
                     Label(SettingsTab.advanced.rawValue, systemImage: SettingsTab.advanced.symbolName)
@@ -78,21 +78,21 @@ public struct SettingsView: View {
 
 struct GeneralSettingsView: View {
     @EnvironmentObject var settingsManager: UserDefaultsManager
-    
+
     var body: some View {
         Form {
             Section {
                 VStack(alignment: .leading, spacing: 16) {
                     gracePeriodSection
-                    
+
                     Divider()
-                    
+
                     allowCancellationToggle
-                    
+
                     Divider()
-                    
+
                     launchAtLoginToggle
-                    
+
                     showInDockToggle
                 }
                 .padding()
@@ -100,42 +100,42 @@ struct GeneralSettingsView: View {
         }
         .formStyle(.grouped)
     }
-    
+
     private var gracePeriodSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Grace Period Duration")
                 .font(.headline)
-            
+
             gracePeriodSlider
-            
+
             Text("Time before security actions execute after power disconnection")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
     }
-    
+
     private var gracePeriodSlider: some View {
         HStack {
             Text("5s")
                 .font(.caption)
                 .foregroundColor(.secondary)
-            
+
             Slider(
                 value: $settingsManager.settings.gracePeriodDuration,
                 in: 5...30,
                 step: 1
             )
-            
+
             Text("30s")
                 .font(.caption)
                 .foregroundColor(.secondary)
-            
+
             Text("\(Int(settingsManager.settings.gracePeriodDuration))s")
                 .font(.system(.body, design: .monospaced))
                 .frame(width: 40, alignment: .trailing)
         }
     }
-    
+
     private var allowCancellationToggle: some View {
         Toggle(isOn: $settingsManager.settings.allowGracePeriodCancellation) {
             VStack(alignment: .leading, spacing: 4) {
@@ -146,7 +146,7 @@ struct GeneralSettingsView: View {
             }
         }
     }
-    
+
     private var launchAtLoginToggle: some View {
         Toggle(isOn: $settingsManager.settings.launchAtLogin) {
             VStack(alignment: .leading, spacing: 4) {
@@ -161,7 +161,7 @@ struct GeneralSettingsView: View {
             print("[Settings] Launch at login: \(newValue)")
         }
     }
-    
+
     private var showInDockToggle: some View {
         Toggle(isOn: $settingsManager.settings.showInDock) {
             VStack(alignment: .leading, spacing: 4) {
@@ -179,24 +179,24 @@ struct GeneralSettingsView: View {
 struct SecuritySettingsView: View {
     @EnvironmentObject var settingsManager: UserDefaultsManager
     @State private var selectedActions = Set<SecurityActionType>()
-    
+
     var body: some View {
         VStack(spacing: 0) {
             securityActionsHeader
-            
+
             Divider()
-            
+
             // Action List
             List {
                 enabledActionsSection
                 availableActionsSection
             }
             .listStyle(.inset)
-            
+
             securityActionsFooter
         }
     }
-    
+
     private var securityActionsHeader: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Security Actions")
@@ -208,14 +208,14 @@ struct SecuritySettingsView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
     }
-    
+
     private var enabledActionsSection: some View {
         ForEach(settingsManager.settings.securityActions, id: \.self) { action in
             SecurityActionRow(action: action, isEnabled: true)
         }
         .onMove(perform: moveSecurityActions)
     }
-    
+
     private var availableActionsSection: some View {
         Section(header: Text("Available Actions")) {
             ForEach(availableActions, id: \.self) { action in
@@ -226,15 +226,15 @@ struct SecuritySettingsView: View {
             }
         }
     }
-    
+
     private var securityActionsFooter: some View {
         HStack {
             Text("\(settingsManager.settings.securityActions.count) actions selected")
                 .font(.caption)
                 .foregroundColor(.secondary)
-            
+
             Spacer()
-            
+
             Button("Reset to Defaults") {
                 settingsManager.settings.securityActions = [.lockScreen, .unmountVolumes]
             }
@@ -242,17 +242,17 @@ struct SecuritySettingsView: View {
         }
         .padding()
     }
-    
+
     private var availableActions: [SecurityActionType] {
         SecurityActionType.allCases.filter { action in
             !settingsManager.settings.securityActions.contains(action)
         }
     }
-    
+
     private func moveSecurityActions(from source: IndexSet, to destination: Int) {
         settingsManager.settings.securityActions.move(fromOffsets: source, toOffset: destination)
     }
-    
+
     private func addSecurityAction(_ action: SecurityActionType) {
         withAnimation {
             settingsManager.settings.securityActions.append(action)
@@ -263,26 +263,26 @@ struct SecuritySettingsView: View {
 struct SecurityActionRow: View {
     let action: SecurityActionType
     let isEnabled: Bool
-    
+
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: action.symbolName)
                 .font(.title3)
                 .foregroundColor(isEnabled ? .accentColor : .secondary)
                 .frame(width: 24)
-            
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(action.displayName)
                     .font(.body)
                     .foregroundColor(isEnabled ? .primary : .secondary)
-                
+
                 Text(action.description)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
-            
+
             if isEnabled {
                 Image(systemName: "line.3.horizontal")
                     .font(.caption)
@@ -303,7 +303,7 @@ struct SecurityActionRow: View {
 struct AutoArmSettingsView: View {
     @EnvironmentObject var settingsManager: UserDefaultsManager
     @State private var newNetwork = ""
-    
+
     var body: some View {
         Form {
             Section {
@@ -317,7 +317,7 @@ struct AutoArmSettingsView: View {
                 }
                 .padding(.vertical, 4)
             }
-            
+
             Section(header: Text("Auto-Arm Triggers")) {
                 Toggle(isOn: $settingsManager.settings.autoArmByLocation) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -328,7 +328,7 @@ struct AutoArmSettingsView: View {
                     }
                 }
                 .disabled(!settingsManager.settings.autoArmEnabled)
-                
+
                 Toggle(isOn: $settingsManager.settings.autoArmOnUntrustedNetwork) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Network-Based")
@@ -339,7 +339,7 @@ struct AutoArmSettingsView: View {
                 }
                 .disabled(!settingsManager.settings.autoArmEnabled)
             }
-            
+
             Section(header: Text("Trusted Networks")) {
                 if settingsManager.settings.trustedNetworks.isEmpty {
                     Text("No trusted networks configured")
@@ -348,11 +348,11 @@ struct AutoArmSettingsView: View {
                 } else {
                     trustedNetworksList
                 }
-                
+
                 HStack {
                     TextField("Network SSID", text: $newNetwork)
                         .textFieldStyle(.roundedBorder)
-                    
+
                     Button("Add") {
                         if !newNetwork.isEmpty {
                             settingsManager.settings.trustedNetworks.append(newNetwork)
@@ -366,7 +366,7 @@ struct AutoArmSettingsView: View {
         }
         .formStyle(.grouped)
     }
-    
+
     private var trustedNetworksList: some View {
         ForEach(settingsManager.settings.trustedNetworks, id: \.self) { network in
             HStack {
@@ -390,7 +390,7 @@ struct AutoArmSettingsView: View {
 
 struct NotificationSettingsView: View {
     @EnvironmentObject var settingsManager: UserDefaultsManager
-    
+
     var body: some View {
         Form {
             Section(header: Text("Status Notifications")) {
@@ -403,7 +403,7 @@ struct NotificationSettingsView: View {
                     }
                 }
             }
-            
+
             Section(header: Text("Alert Settings")) {
                 Toggle(isOn: $settingsManager.settings.playCriticalAlertSound) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -414,7 +414,7 @@ struct NotificationSettingsView: View {
                     }
                 }
             }
-            
+
             Section {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
@@ -423,7 +423,7 @@ struct NotificationSettingsView: View {
                         Text("Notification permissions are managed in System Settings")
                             .font(.caption)
                     }
-                    
+
                     Button("Open System Settings") {
                         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.notifications")!)
                     }
@@ -441,7 +441,7 @@ struct AdvancedSettingsView: View {
     @EnvironmentObject var settingsManager: UserDefaultsManager
     @State private var showingExportSuccess = false
     @State private var showingImportDialog = false
-    
+
     var body: some View {
         Form {
             Section(header: Text("Custom Scripts")) {
@@ -452,13 +452,13 @@ struct AdvancedSettingsView: View {
                 } else {
                     customScriptsList
                 }
-                
+
                 Button("Add Custom Script...") {
                     // TODO: Implement file picker for scripts
                     print("[Settings] Add custom script")
                 }
             }
-            
+
             Section(header: Text("Debug")) {
                 Toggle(isOn: $settingsManager.settings.debugLoggingEnabled) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -469,19 +469,19 @@ struct AdvancedSettingsView: View {
                     }
                 }
             }
-            
+
             Section(header: Text("Settings Management")) {
                 HStack {
                     Button("Export Settings...") {
                         exportSettings()
                     }
-                    
+
                     Button("Import Settings...") {
                         showingImportDialog = true
                     }
-                    
+
                     Spacer()
-                    
+
                     Button("Reset All Settings") {
                         settingsManager.resetToDefaults()
                     }
@@ -503,14 +503,14 @@ struct AdvancedSettingsView: View {
             handleImport(result)
         }
     }
-    
+
     private func exportSettings() {
         do {
             let data = try settingsManager.exportSettings()
             let panel = NSSavePanel()
             panel.nameFieldStringValue = "MagSafeGuard-Settings.json"
             panel.allowedContentTypes = [.json]
-            
+
             panel.begin { response in
                 handleSavePanelResponse(response: response, data: data, panel: panel)
             }
@@ -518,7 +518,7 @@ struct AdvancedSettingsView: View {
             print("[Settings] Export failed: \(error)")
         }
     }
-    
+
     private var customScriptsList: some View {
         ForEach(settingsManager.settings.customScripts, id: \.self) { script in
             HStack {
@@ -538,7 +538,7 @@ struct AdvancedSettingsView: View {
             }
         }
     }
-    
+
     private func handleSavePanelResponse(response: NSApplication.ModalResponse, data: Data, panel: NSSavePanel) {
         if response == .OK, let url = panel.url {
             do {
@@ -549,7 +549,7 @@ struct AdvancedSettingsView: View {
             }
         }
     }
-    
+
     private func handleImport(_ result: Result<[URL], Error>) {
         switch result {
         case .success(let urls):
