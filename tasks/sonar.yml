@@ -1,0 +1,443 @@
+version: "3"
+
+tasks:
+  default:
+    desc: List available SonarCloud tasks
+    silent: true
+    cmds:
+      - |
+        echo "📊 Available SonarCloud tasks:"
+        echo ""
+        echo "  task sonar:scan         - Run full SonarCloud analysis (requires token)"
+        echo "  task sonar:simulate     - Simulate analysis using SwiftLint (no token needed)"
+        echo "  task sonar:download     - Download findings from SonarCloud"
+        echo "  task sonar:view         - View latest simulation report"
+        echo "  task sonar:convert      - Convert Swift coverage to SonarQube XML format"
+        echo "  task sonar:install      - Install sonar-scanner"
+        echo ""
+        echo "📚 Documentation: docs/sonarcloud-local.md"
+
+  scan:
+    desc: Run SonarCloud scan locally
+    silent: true
+    vars:
+      REPORT_PATH: .sonarcloud
+    cmds:
+      - |
+        echo "🔍 Running SonarCloud scan locally..."
+
+        # Source .env file if it exists
+        if [ -f .env ]; then
+          echo "📄 Loading environment variables from .env"
+          set -a
+          source .env
+          set +a
+        fi
+
+        # Check if sonar-scanner is installed
+        if ! command -v sonar-scanner &> /dev/null; then
+          echo "❌ sonar-scanner is not installed"
+          echo ""
+          echo "To install on macOS:"
+          echo "  brew install sonar-scanner"
+          echo ""
+          echo "To install on Linux:"
+          echo "  Download from https://docs.sonarcloud.io/advanced-setup/ci-based-analysis/sonarscanner-cli/"
+          echo ""
+          echo "Alternative: Use 'task sonar:simulate' to simulate issues based on SwiftLint"
+          echo ""
+          exit 1
+        fi
+
+        # Check for SONAR_TOKEN
+        if [ -z "$SONAR_TOKEN" ]; then
+          echo "❌ SONAR_TOKEN environment variable is not set"
+          echo ""
+          echo "To run SonarCloud analysis, you need to:"
+          echo "1. Get your token from: https://sonarcloud.io/account/security"
+          echo "2. Add it to your .env file:"
+          echo "   echo 'SONAR_TOKEN=your-token-here' >> .env"
+          echo "3. Run this task again"
+          echo ""
+          echo "Alternative: Use 'task sonar:simulate' for local analysis without SonarCloud"
+          exit 1
+        fi
+
+        # Create report directory
+        mkdir -p {{.REPORT_PATH}}
+
+        # Run tests with coverage first
+        echo "📊 Generating coverage data..."
+        task test:coverage
+
+        # Check if coverage files exist
+        if [ ! -f "coverage.xml" ]; then
+          echo "⚠️  No coverage.xml found. Running scan without coverage data."
+        fi
+
+        # Run sonar-scanner
+        echo "🚀 Running SonarCloud analysis..."
+
+        # Full analysis with upload to SonarCloud
+        sonar-scanner \
+          -Dsonar.host.url=https://sonarcloud.io \
+          -Dsonar.token=$SONAR_TOKEN \
+          2>&1 | tee {{.REPORT_PATH}}/sonar-scanner.log
+
+        # Check result
+        if [ ${PIPESTATUS[0]} -eq 0 ]; then
+          echo ""
+          echo "✅ SonarCloud scan completed successfully"
+          echo ""
+          echo "Results saved to:"
+          echo "  - Log: {{.REPORT_PATH}}/sonar-scanner.log"
+          echo "  - View online: https://sonarcloud.io/summary/overall?id=lekman_magsafe-buskill"
+        else
+          echo ""
+          echo "❌ SonarCloud scan failed"
+          echo "Check {{.REPORT_PATH}}/sonar-scanner.log for details"
+          exit 1
+        fi
+
+  issues:
+    desc: Extract and display SonarCloud issues from local scan
+    silent: true
+    deps: [scan]
+    cmds:
+      - |
+        echo "📋 Extracting SonarCloud issues..."
+
+        REPORT_FILE=".sonarcloud/sonar-report.json"
+        LOG_FILE=".sonarcloud/sonar-scanner.log"
+
+        if [ -f "$REPORT_FILE" ]; then
+          # Parse JSON report if available
+          echo "Found report file: $REPORT_FILE"
+          # You can use jq or python to parse the JSON report
+          if command -v jq &> /dev/null; then
+            jq '.issues[] | {severity: .severity, message: .message, file: .component, line: .line}' "$REPORT_FILE"
+          else
+            echo "Install jq to parse the report: brew install jq"
+          fi
+        elif [ -f "$LOG_FILE" ]; then
+          # Extract issues from log file
+          echo "Extracting issues from log file..."
+          echo ""
+          
+          # Look for common issue patterns in the log
+          grep -E "(ERROR|WARN|INFO).*\.swift" "$LOG_FILE" | head -50 || true
+          
+          echo ""
+          echo "For detailed results, check: $LOG_FILE"
+        else
+          echo "No SonarCloud results found. Run 'task sonar:scan' first."
+        fi
+
+  simulate:
+    desc: Simulate SonarCloud analysis using SwiftLint (when sonar-scanner is not available)
+    silent: true
+    vars:
+      REPORT_PATH: .sonarcloud
+    cmds:
+      - |
+        echo "🔍 Simulating SonarCloud analysis using SwiftLint..."
+
+        # Create report directory
+        mkdir -p {{.REPORT_PATH}}
+
+        # Run tests with coverage first
+        echo "📊 Generating coverage data..."
+        task test:coverage || true
+
+        # Run SwiftLint and format as SonarCloud-like issues
+        echo "🚀 Running SwiftLint analysis..."
+
+        # First run SwiftLint to get JSON output
+        swiftlint lint --reporter json > {{.REPORT_PATH}}/swiftlint-output.json 2>/dev/null || true
+
+        # Create a formatted report
+        echo "=== SonarCloud Simulation Report ===" > {{.REPORT_PATH}}/simulation-report.txt
+        echo "Generated: $(date)" >> {{.REPORT_PATH}}/simulation-report.txt
+        echo "" >> {{.REPORT_PATH}}/simulation-report.txt
+        echo "📊 Coverage Summary:" >> {{.REPORT_PATH}}/simulation-report.txt
+
+        # Add coverage info
+        if [ -f "coverage-report.txt" ]; then
+          tail -n 20 coverage-report.txt | grep -E "(Total coverage:|Files with low coverage:)" -A 10 >> {{.REPORT_PATH}}/simulation-report.txt || true
+        else
+          echo "No coverage data available" >> {{.REPORT_PATH}}/simulation-report.txt
+        fi
+
+        echo "" >> {{.REPORT_PATH}}/simulation-report.txt
+        echo "🐛 Code Issues (from SwiftLint):" >> {{.REPORT_PATH}}/simulation-report.txt
+        echo "" >> {{.REPORT_PATH}}/simulation-report.txt
+
+        # Process SwiftLint JSON with Python script
+        python3 scripts/format_swiftlint_sonar.py >> {{.REPORT_PATH}}/simulation-report.txt
+
+        # Add metrics summary
+        echo "" >> {{.REPORT_PATH}}/simulation-report.txt
+        echo "📈 Quality Metrics:" >> {{.REPORT_PATH}}/simulation-report.txt
+        echo "- Technical Debt: Estimated based on issue count" >> {{.REPORT_PATH}}/simulation-report.txt
+        echo "- Maintainability Rating: Based on code smells" >> {{.REPORT_PATH}}/simulation-report.txt
+        echo "- Reliability Rating: Based on bugs" >> {{.REPORT_PATH}}/simulation-report.txt
+        echo "- Security Rating: Based on vulnerabilities" >> {{.REPORT_PATH}}/simulation-report.txt
+
+        # Count issues and display summary
+        ISSUE_COUNT=$(cat {{.REPORT_PATH}}/swiftlint-output.json | python3 -c "import json,sys; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
+
+        echo ""
+        echo "Total issues found: $ISSUE_COUNT"
+
+        echo ""
+        echo "✅ Simulation completed"
+        echo ""
+        echo "Results saved to:"
+        echo "  - Report: {{.REPORT_PATH}}/simulation-report.txt"
+        echo "  - SwiftLint JSON: {{.REPORT_PATH}}/swiftlint-output.json"
+        echo ""
+        echo "Note: This is a simulation using SwiftLint. For full SonarCloud analysis:"
+        echo "  1. Install sonar-scanner: brew install sonar-scanner"
+        echo "  2. Run: task sonar:scan"
+
+  view:
+    desc: View the most recent SonarCloud simulation report
+    silent: true
+    cmds:
+      - |
+        if [ -f ".sonarcloud/simulation-report.txt" ]; then
+          echo "📋 Viewing SonarCloud simulation report..."
+          echo ""
+          cat .sonarcloud/simulation-report.txt | head -100
+          echo ""
+          echo "---"
+          echo "Note: Showing first 100 lines. Full report: .sonarcloud/simulation-report.txt"
+        else
+          echo "❌ No simulation report found."
+          echo "Run 'task sonar:simulate' first to generate a report."
+        fi
+
+  download:
+    desc: Download all SonarCloud findings to a local file
+    silent: true
+    vars:
+      REPORT_PATH: .sonarcloud
+      PROJECT_KEY: lekman_magsafe-buskill
+    cmds:
+      - |
+        echo "📥 Downloading SonarCloud findings..."
+
+        # Source .env file if it exists
+        if [ -f .env ]; then
+          set -a
+          source .env
+          set +a
+        fi
+
+        # Check for SONAR_TOKEN
+        if [ -z "$SONAR_TOKEN" ]; then
+          echo "❌ SONAR_TOKEN environment variable is not set"
+          echo ""
+          echo "To download SonarCloud findings, you need to:"
+          echo "1. Get your token from: https://sonarcloud.io/account/security"
+          echo "2. Add it to your .env file:"
+          echo "   echo 'SONAR_TOKEN=your-token-here' >> .env"
+          echo "3. Run this task again"
+          exit 1
+        fi
+
+        # Create report directory
+        mkdir -p {{.REPORT_PATH}}
+
+        # Download issues from SonarCloud API
+        echo "🔍 Fetching issues from SonarCloud..."
+
+        # Fetch all issues (pagination handled)
+        PAGE=1
+        TOTAL_PAGES=1
+        > {{.REPORT_PATH}}/sonarcloud-issues.json
+
+        while [ $PAGE -le $TOTAL_PAGES ]; do
+          echo "  Fetching page $PAGE..."
+          
+          RESPONSE=$(curl -s -X GET \
+            "https://sonarcloud.io/api/issues/search?componentKeys={{.PROJECT_KEY}}&p=$PAGE&ps=500" \
+            -H "Authorization: Bearer $SONAR_TOKEN")
+          
+          # Check if request was successful
+          if [ $? -ne 0 ] || [ -z "$RESPONSE" ]; then
+            echo "❌ Failed to fetch issues from SonarCloud"
+            exit 1
+          fi
+          
+          # Extract total pages on first iteration
+          if [ $PAGE -eq 1 ]; then
+            TOTAL_PAGES=$(echo "$RESPONSE" | python3 -c "import json,sys,math; data=json.load(sys.stdin); print(math.ceil(data.get('paging',{}).get('total',0)/500))" 2>/dev/null || echo "1")
+            echo "$RESPONSE" > {{.REPORT_PATH}}/sonarcloud-issues.json
+          else
+            # Append issues from subsequent pages
+            echo "$RESPONSE" | python3 -c "import json,sys; data=json.load(sys.stdin); f=open('{{.REPORT_PATH}}/sonarcloud-issues.json','r+'); existing=json.load(f); existing['issues'].extend(data.get('issues',[])); f.seek(0); json.dump(existing,f,indent=2); f.truncate(); f.close()" 2>/dev/null || true
+          fi
+          
+          PAGE=$((PAGE + 1))
+        done
+
+        # Generate human-readable report
+        echo "📝 Generating readable report..."
+        python3 scripts/process_sonarcloud_issues.py {{.REPORT_PATH}} {{.PROJECT_KEY}} || exit 1
+
+        echo ""
+        echo "📊 Summary:"
+        python3 scripts/sonarcloud_summary.py {{.REPORT_PATH}}
+
+        echo ""
+        echo "✅ Download completed"
+        echo ""
+        echo "Results saved to:"
+        echo "  - Full JSON: {{.REPORT_PATH}}/sonarcloud-issues.json"
+        echo "  - Readable report: {{.REPORT_PATH}}/sonarcloud-findings.txt"
+        echo ""
+        echo "To view the report: cat {{.REPORT_PATH}}/sonarcloud-findings.txt | less"
+
+  convert:
+    desc: Convert Swift coverage to SonarQube generic XML format
+    silent: true
+    cmds:
+      - |
+        echo "🔄 Converting Swift coverage to SonarQube format..."
+
+        # First, run tests with coverage if needed
+        if [ ! -d ".build" ] || [ -z "$(find .build -name 'default.profdata' -type f 2>/dev/null)" ]; then
+          echo "🧪 Running tests with coverage..."
+          swift test --enable-code-coverage
+        fi
+
+        # Find the coverage data
+        PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
+        EXECUTABLE=$(find .build -name 'MagSafeGuardPackageTests.xctest' -type d | head -1)/Contents/MacOS/MagSafeGuardPackageTests
+
+        if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
+          echo "📊 Generating SonarQube generic coverage XML..."
+          
+          # Function to convert xcov output to generic XML format
+          convert_to_xml() {
+            echo '<coverage version="1">'
+            xcrun llvm-cov show "$EXECUTABLE" \
+              -instr-profile="$PROF_DATA" \
+              -use-color=false \
+              -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*/PowerMonitorCore\.swift|.*LAContext\.swift|.*/MacSystemActions\.swift|.*Protocol\.swift" | \
+            awk '
+              /^[[:space:]]*[^[:space:]]+:$/ {
+                if (in_file) print "  </file>"
+                gsub(/:$/, "", $1)
+                gsub(/&/, "\\&amp;", $1)
+                print "  <file path=\"" $1 "\">"
+                in_file = 1
+                next
+              }
+              /^[[:space:]]*[0-9]+\|/ {
+                split($0, parts, "|")
+                linenum = parts[1]
+                gsub(/^[[:space:]]+/, "", linenum)
+                gsub(/[[:space:]]+$/, "", linenum)
+                
+                # Check if line is covered (has execution count)
+                if (match(parts[2], /^[[:space:]]*[0-9]+/)) {
+                  print "    <lineToCover lineNumber=\"" linenum "\" covered=\"true\"/>"
+                } else if (match(parts[2], /^[[:space:]]*0/)) {
+                  print "    <lineToCover lineNumber=\"" linenum "\" covered=\"false\"/>"
+                }
+              }
+              END {
+                if (in_file) print "  </file>"
+              }
+            '
+            echo '</coverage>'
+          }
+          
+          # Generate the coverage XML
+          convert_to_xml > coverage.xml
+          
+          if [ -f "coverage.xml" ] && [ -s "coverage.xml" ]; then
+            echo "✅ Successfully generated coverage.xml"
+            echo "   File size: $(wc -c < coverage.xml) bytes"
+            echo "   Files covered: $(grep -c '<file path=' coverage.xml || echo 0)"
+          else
+            echo "❌ Failed to create coverage.xml or file is empty"
+            exit 1
+          fi
+        else
+          echo "❌ Coverage data not found"
+          echo "PROF_DATA: $PROF_DATA"
+          echo "EXECUTABLE: $EXECUTABLE"
+          exit 1
+        fi
+
+  install:
+    desc: Install SonarCloud scanner
+    silent: true
+    cmds:
+      - |
+        echo "🔧 Installing SonarCloud scanner..."
+
+        # Detect OS
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+
+        if [ "$OS" = "darwin" ]; then
+          # macOS
+          if command -v brew &> /dev/null; then
+            echo "📦 Installing via Homebrew..."
+            brew install sonar-scanner
+          else
+            echo "❌ Homebrew not found. Please install Homebrew first:"
+            echo "   /bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+            exit 1
+          fi
+        elif [ "$OS" = "linux" ]; then
+          # Linux
+          echo "📦 Installing SonarCloud scanner for Linux..."
+          
+          # Check if running in CI or local
+          if [ -n "$CI" ] || [ ! -w "/usr/local" ]; then
+            # Download to local directory
+            INSTALL_DIR="$HOME/.local/bin"
+            mkdir -p "$INSTALL_DIR"
+            
+            echo "⬇️  Downloading sonar-scanner..."
+            curl -sSL https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip -o /tmp/sonar-scanner.zip
+            
+            echo "📂 Extracting..."
+            unzip -q /tmp/sonar-scanner.zip -d /tmp/
+            mv /tmp/sonar-scanner-*/* "$INSTALL_DIR/"
+            rm -rf /tmp/sonar-scanner*
+            
+            echo "✅ Installed to $INSTALL_DIR"
+            echo "⚠️  Make sure $INSTALL_DIR is in your PATH"
+          else
+            # System-wide install
+            echo "⬇️  Downloading sonar-scanner..."
+            curl -sSL https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip -o /tmp/sonar-scanner.zip
+            
+            echo "📂 Extracting..."
+            sudo unzip -q /tmp/sonar-scanner.zip -d /opt/
+            sudo ln -sf /opt/sonar-scanner-*/bin/sonar-scanner /usr/local/bin/sonar-scanner
+            rm /tmp/sonar-scanner.zip
+            
+            echo "✅ Installed system-wide"
+          fi
+        else
+          echo "❌ Unsupported OS: $OS"
+          echo "Please install manually from:"
+          echo "https://docs.sonarcloud.io/advanced-setup/ci-based-analysis/sonarscanner-cli/"
+          exit 1
+        fi
+
+        # Verify installation
+        if command -v sonar-scanner &> /dev/null; then
+          echo ""
+          echo "✅ SonarCloud scanner installed successfully!"
+          sonar-scanner -v
+        else
+          echo "⚠️  Installation completed but sonar-scanner not found in PATH"
+          echo "You may need to restart your terminal or add the installation directory to PATH"
+        fi

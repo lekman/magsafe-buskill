@@ -1,0 +1,537 @@
+version: "3"
+
+vars:
+  SEMGREP_CONFIG: auto
+
+tasks:
+  default:
+    desc: List available security tasks
+    silent: true
+    cmds:
+      - |
+        echo "🔒 Available security tasks:"
+        echo ""
+        echo "  task security:scan         - Run all security checks"
+        echo "  task security:secrets      - Scan for hardcoded secrets"
+        echo "  task security:semgrep      - Run Semgrep security analysis"
+        echo "  task security:pins         - Check GitHub Action pins"
+        echo "  task security:pin-actions  - Pin all GitHub Actions to SHAs"
+        echo "  task security:update-pins  - Update pinned action SHAs"
+        echo "  task security:dependabot   - Setup Dependabot configuration"
+        echo "  task security:install      - Install security tools"
+        echo ""
+
+  scan:
+    desc: Run all security checks
+    silent: true
+    cmds:
+      - task: secrets
+      - task: semgrep
+      - task: pins
+      - echo "✅ All security checks passed!"
+
+  secrets:
+    desc: Scan for hardcoded secrets and sensitive data
+    silent: true
+    cmds:
+      - |
+        echo "🔍 Scanning for secrets and sensitive data..."
+        echo ""
+        
+        # Common patterns to check
+        patterns=(
+          "password.*=.*['\"]" 
+          "api[_-]?key.*=.*['\"]"
+          "secret.*=.*['\"]"
+          "token.*=.*['\"]"
+          "private[_-]?key"
+          "-----BEGIN.*PRIVATE KEY-----"
+          "Bearer\s+[A-Za-z0-9\-_]+"
+        )
+        
+        found_issues=0
+        
+        for pattern in "${patterns[@]}"; do
+          # Search in source files, excluding common false positives
+          results=$(find . \
+            -type f \
+            \( -name "*.swift" -o -name "*.js" -o -name "*.ts" -o -name "*.py" -o -name "*.rb" -o -name "*.java" -o -name "*.go" \) \
+            -not -path "./.build/*" \
+            -not -path "./node_modules/*" \
+            -not -path "./.git/*" \
+            -not -path "./vendor/*" \
+            -not -path "*test*" \
+            -exec grep -l -E "$pattern" {} \; 2>/dev/null || true)
+          
+          if [ -n "$results" ]; then
+            echo "⚠️  Found potential secrets matching pattern: $pattern"
+            echo "$results" | head -5
+            echo ""
+            found_issues=$((found_issues + 1))
+          fi
+        done
+        
+        # Check for .env files that might be committed
+        env_files=$(find . -name ".env*" -not -path "./.git/*" -not -path "./node_modules/*" 2>/dev/null || true)
+        if [ -n "$env_files" ]; then
+          # Check if these files are in .gitignore
+          unignored_env_files=""
+          for env_file in $env_files; do
+            # Remove leading ./ from path for git check
+            clean_path=${env_file#./}
+            if ! git check-ignore "$clean_path" >/dev/null 2>&1; then
+              unignored_env_files="$unignored_env_files$env_file\n"
+            fi
+          done
+          
+          if [ -n "$unignored_env_files" ]; then
+            echo "⚠️  Found .env files that are NOT in .gitignore:"
+            echo -e "$unignored_env_files"
+            echo ""
+            found_issues=$((found_issues + 1))
+          fi
+        fi
+        
+        if [ $found_issues -eq 0 ]; then
+          echo "✅ No secrets or sensitive data found!"
+        else
+          echo "❌ Found $found_issues potential security issues"
+          echo ""
+          echo "Please review and remove any sensitive data"
+          exit 1
+        fi
+
+  semgrep:
+    desc: Run Semgrep security analysis
+    silent: true
+    cmds:
+      - |
+        echo "🔍 Running Semgrep security analysis..."
+        
+        if ! command -v semgrep &> /dev/null; then
+          echo "⚠️  Semgrep not installed"
+          echo "   Install with: task security:install"
+          echo "   Skipping Semgrep scan..."
+          exit 0
+        fi
+        
+        # Run Semgrep with security rules
+        semgrep --config={{.SEMGREP_CONFIG}} --error --quiet . || exit 1
+        echo "✅ Semgrep scan passed"
+
+  pins:
+    desc: Check if all GitHub Actions are properly pinned
+    silent: true
+    cmds:
+      - |
+        echo "🔍 Checking GitHub Action pins..."
+        
+        unpinned=0
+        workflow_files=$(find .github/workflows -name "*.yml" -o -name "*.yaml" 2>/dev/null || true)
+        
+        if [ -z "$workflow_files" ]; then
+          echo "✅ No workflow files found"
+          exit 0
+        fi
+        
+        for file in $workflow_files; do
+          # Look for uses: statements that aren't pinned to SHA
+          if grep -E "uses:\s+[^@]+@(main|master|v[0-9]+)" "$file" >/dev/null 2>&1; then
+            echo "❌ Unpinned actions found in: $file"
+            grep -n -E "uses:\s+[^@]+@(main|master|v[0-9]+)" "$file" || true
+            unpinned=$((unpinned + 1))
+          fi
+        done
+        
+        if [ $unpinned -eq 0 ]; then
+          echo "✅ All GitHub Actions are properly pinned!"
+        else
+          echo ""
+          echo "⚠️  Found $unpinned workflow files with unpinned actions"
+          echo ""
+          echo "Run 'task security:pin-actions' to fix this"
+          exit 1
+        fi
+
+  pin-actions:
+    desc: Pin all GitHub Actions to specific commit SHAs
+    silent: true
+    cmds:
+      - |
+        # Check if jq is installed
+        if ! command -v jq &> /dev/null; then
+          echo "❌ jq is required but not installed"
+          echo "   Install with: brew install jq"
+          exit 1
+        fi
+        
+        # Check if gh CLI is installed
+        if ! command -v gh &> /dev/null; then
+          echo "❌ GitHub CLI is required but not installed"
+          echo "   Install with: brew install gh"
+          exit 1
+        fi
+        
+        echo "🔒 Pinning GitHub Actions to specific commit SHAs..."
+        echo ""
+        
+        # Function to get latest commit SHA for a tag
+        get_sha_for_tag() {
+          local repo=$1
+          local tag=$2
+          
+          # Try to get SHA from GitHub API
+          sha=$(gh api repos/$repo/git/refs/tags/$tag 2>/dev/null | jq -r '.object.sha // empty')
+          
+          if [ -z "$sha" ]; then
+            # If tag not found, try to get default branch
+            sha=$(gh api repos/$repo 2>/dev/null | jq -r '.default_branch // empty')
+            if [ -n "$sha" ]; then
+              sha=$(gh api repos/$repo/git/refs/heads/$sha 2>/dev/null | jq -r '.object.sha // empty')
+            fi
+          fi
+          
+          echo "$sha"
+        }
+        
+        # Find all workflow files
+        workflow_files=$(find .github/workflows -name "*.yml" -o -name "*.yaml" 2>/dev/null || true)
+        
+        if [ -z "$workflow_files" ]; then
+          echo "No workflow files found"
+          exit 0
+        fi
+        
+        total_pinned=0
+        
+        for file in $workflow_files; do
+          echo "Processing: $file"
+          temp_file="${file}.tmp"
+          cp "$file" "$temp_file"
+          
+          # Find all uses statements
+          while IFS= read -r line; do
+            if [[ $line =~ uses:[[:space:]]*([^@]+)@([^[:space:]]+) ]]; then
+              action="${BASH_REMATCH[1]}"
+              version="${BASH_REMATCH[2]}"
+              
+              # Skip if already pinned to SHA (40 character hex)
+              if [[ $version =~ ^[a-f0-9]{40}$ ]]; then
+                continue
+              fi
+              
+              echo "  Found: $action@$version"
+              
+              # Get the SHA for this version
+              sha=$(get_sha_for_tag "$action" "$version")
+              
+              if [ -n "$sha" ] && [ "$sha" != "null" ]; then
+                # Create the replacement with comment
+                escaped_action=$(echo "$action" | sed 's/[[\.*^$()+?{|]/\\&/g')
+                escaped_version=$(echo "$version" | sed 's/[[\.*^$()+?{|]/\\&/g')
+                
+                # Replace in temp file
+                sed -i '' "s|uses: ${escaped_action}@${escaped_version}|uses: ${action}@${sha} # ${version}|g" "$temp_file"
+                
+                echo "    ✅ Pinned to: $sha"
+                total_pinned=$((total_pinned + 1))
+              else
+                echo "    ⚠️  Could not find SHA for $action@$version"
+              fi
+            fi
+          done < "$file"
+          
+          # Move temp file back
+          mv "$temp_file" "$file"
+        done
+        
+        echo ""
+        echo "✅ Pinned $total_pinned actions to specific SHAs"
+        
+        if [ $total_pinned -gt 0 ]; then
+          echo ""
+          echo "📝 Remember to commit these changes!"
+        fi
+
+  update-pins:
+    desc: Update GitHub Action pins to latest SHAs
+    silent: true
+    cmds:
+      - |
+        # Check if jq is installed
+        if ! command -v jq &> /dev/null; then
+          echo "❌ jq is required but not installed"
+          echo "   Install with: brew install jq"
+          exit 1
+        fi
+        
+        # Check if gh CLI is installed
+        if ! command -v gh &> /dev/null; then
+          echo "❌ GitHub CLI is required but not installed"
+          echo "   Install with: brew install gh"
+          exit 1
+        fi
+        
+        echo "🔄 Updating GitHub Action pins to latest SHAs..."
+        echo ""
+        
+        # Function to get latest commit SHA for a tag
+        get_sha_for_tag() {
+          local repo=$1
+          local tag=$2
+          
+          # Try to get SHA from GitHub API
+          sha=$(gh api repos/$repo/git/refs/tags/$tag 2>/dev/null | jq -r '.object.sha // empty')
+          
+          if [ -z "$sha" ]; then
+            # If tag not found, try to get default branch
+            sha=$(gh api repos/$repo 2>/dev/null | jq -r '.default_branch // empty')
+            if [ -n "$sha" ]; then
+              sha=$(gh api repos/$repo/git/refs/heads/$sha 2>/dev/null | jq -r '.object.sha // empty')
+            fi
+          fi
+          
+          echo "$sha"
+        }
+        
+        # Find all workflow files
+        workflow_files=$(find .github/workflows -name "*.yml" -o -name "*.yaml" 2>/dev/null || true)
+        
+        if [ -z "$workflow_files" ]; then
+          echo "No workflow files found"
+          exit 0
+        fi
+        
+        total_updated=0
+        
+        for file in $workflow_files; do
+          echo "Processing: $file"
+          temp_file="${file}.tmp"
+          cp "$file" "$temp_file"
+          
+          # Find all uses statements with SHA and comment showing version
+          while IFS= read -r line; do
+            if [[ $line =~ uses:[[:space:]]*([^@]+)@([a-f0-9]{40})[[:space:]]*#[[:space:]]*([^[:space:]]+) ]]; then
+              action="${BASH_REMATCH[1]}"
+              current_sha="${BASH_REMATCH[2]}"
+              version="${BASH_REMATCH[3]}"
+              
+              echo "  Found: $action@$current_sha # $version"
+              
+              # Get the latest SHA for this version
+              new_sha=$(get_sha_for_tag "$action" "$version")
+              
+              if [ -n "$new_sha" ] && [ "$new_sha" != "null" ] && [ "$new_sha" != "$current_sha" ]; then
+                # Replace in temp file
+                escaped_action=$(echo "$action" | sed 's/[[\.*^$()+?{|]/\\&/g')
+                
+                sed -i '' "s|uses: ${escaped_action}@${current_sha} # ${version}|uses: ${action}@${new_sha} # ${version}|g" "$temp_file"
+                
+                echo "    ✅ Updated to: $new_sha"
+                total_updated=$((total_updated + 1))
+              else
+                echo "    ✓ Already up to date"
+              fi
+            fi
+          done < "$file"
+          
+          # Move temp file back
+          mv "$temp_file" "$file"
+        done
+        
+        echo ""
+        if [ $total_updated -gt 0 ]; then
+          echo "✅ Updated $total_updated action pins"
+          echo ""
+          echo "📝 Remember to commit these changes!"
+        else
+          echo "✅ All action pins are already up to date!"
+        fi
+
+  dependabot:
+    desc: Setup Dependabot configuration for security updates
+    silent: true
+    cmds:
+      - |
+        echo "🤖 Setting up Dependabot for security updates..."
+        
+        # Create .github directory if it doesn't exist
+        mkdir -p .github
+        
+        # Check if dependabot.yml already exists
+        if [ -f ".github/dependabot.yml" ]; then
+          echo "⚠️  .github/dependabot.yml already exists"
+          echo "   Current configuration:"
+          cat .github/dependabot.yml
+          echo ""
+          read -p "Overwrite? (y/N) " -n 1 -r
+          echo
+          if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Cancelled"
+            exit 0
+          fi
+        fi
+        
+        # Create dependabot.yml
+        cat > .github/dependabot.yml << 'EOF'
+        version: 2
+        updates:
+          # Maintain dependencies for GitHub Actions
+          - package-ecosystem: "github-actions"
+            directory: "/"
+            schedule:
+              interval: "weekly"
+              day: "monday"
+              time: "09:00"
+            reviewers:
+              - "@me"
+            labels:
+              - "dependencies"
+              - "github-actions"
+            commit-message:
+              prefix: "chore"
+              include: "scope"
+        
+          # Maintain dependencies for Swift Package Manager
+          - package-ecosystem: "swift"
+            directory: "/"
+            schedule:
+              interval: "weekly"
+              day: "monday"
+              time: "09:00"
+            reviewers:
+              - "@me"
+            labels:
+              - "dependencies"
+              - "swift"
+            commit-message:
+              prefix: "chore"
+              include: "scope"
+        EOF
+        
+        echo "✅ Created .github/dependabot.yml"
+        echo ""
+        echo "Dependabot will now:"
+        echo "  • Check for updates weekly (Mondays at 9 AM)"
+        echo "  • Create PRs for GitHub Actions updates"
+        echo "  • Create PRs for Swift package updates"
+        echo "  • Label PRs with 'dependencies' and ecosystem tags"
+        echo "  • Use 'chore' commit prefix"
+        echo ""
+        echo "📝 Remember to commit this file to enable Dependabot!"
+
+  install:
+    desc: Install security scanning tools
+    silent: true
+    cmds:
+      - |
+        echo "🔧 Installing security tools..."
+        
+        # Detect OS
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        
+        if [ "$OS" != "darwin" ]; then
+          echo "⚠️  This task is optimized for macOS"
+          echo "   For other platforms, please install tools manually"
+          exit 0
+        fi
+        
+        # Check for Homebrew
+        if ! command -v brew &> /dev/null; then
+          echo "❌ Homebrew not found"
+          echo "   Install from: https://brew.sh"
+          exit 1
+        fi
+        
+        # Install Semgrep
+        if ! command -v semgrep &> /dev/null; then
+          echo "📦 Installing Semgrep..."
+          brew install semgrep
+        else
+          echo "✅ Semgrep already installed"
+        fi
+        
+        # Install truffleHog (secret scanner)
+        if ! command -v trufflehog &> /dev/null; then
+          echo "📦 Installing truffleHog..."
+          brew install trufflehog
+        else
+          echo "✅ truffleHog already installed"
+        fi
+        
+        # Install gitleaks (secret scanner)
+        if ! command -v gitleaks &> /dev/null; then
+          echo "📦 Installing gitleaks..."
+          brew install gitleaks
+        else
+          echo "✅ gitleaks already installed"
+        fi
+        
+        # Install jq (for JSON parsing)
+        if ! command -v jq &> /dev/null; then
+          echo "📦 Installing jq..."
+          brew install jq
+        else
+          echo "✅ jq already installed"
+        fi
+        
+        # Install GitHub CLI (for pin operations)
+        if ! command -v gh &> /dev/null; then
+          echo "📦 Installing GitHub CLI..."
+          brew install gh
+        else
+          echo "✅ GitHub CLI already installed"
+        fi
+        
+        echo ""
+        echo "✅ Security tools installed"
+        echo ""
+        echo "Installed tools:"
+        echo "  - Semgrep: $(semgrep --version | head -1)"
+        echo "  - truffleHog: $(trufflehog --version 2>&1 | head -1)"
+        echo "  - gitleaks: $(gitleaks version 2>&1)"
+        echo "  - jq: $(jq --version)"
+        echo "  - gh: $(gh --version | head -1)"
+
+  gitleaks:
+    desc: Run gitleaks secret scanner
+    silent: true
+    cmds:
+      - |
+        echo "🔍 Running gitleaks secret scanner..."
+        
+        if ! command -v gitleaks &> /dev/null; then
+          echo "⚠️  gitleaks not installed"
+          echo "   Install with: task security:install"
+          exit 0
+        fi
+        
+        # Run gitleaks
+        if gitleaks detect --verbose --redact; then
+          echo "✅ No secrets found by gitleaks"
+        else
+          echo "❌ gitleaks found secrets!"
+          exit 1
+        fi
+
+  trufflehog:
+    desc: Run truffleHog secret scanner
+    silent: true
+    cmds:
+      - |
+        echo "🔍 Running truffleHog secret scanner..."
+        
+        if ! command -v trufflehog &> /dev/null; then
+          echo "⚠️  truffleHog not installed"
+          echo "   Install with: task security:install"
+          exit 0
+        fi
+        
+        # Run truffleHog on current directory
+        echo "Scanning filesystem..."
+        if trufflehog filesystem . --no-update --fail; then
+          echo "✅ No secrets found by truffleHog"
+        else
+          echo "❌ truffleHog found secrets!"
+          exit 1
+        fi

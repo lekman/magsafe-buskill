@@ -174,7 +174,7 @@ public class AppController: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var eventLog: [EventLogEntry] = []
     private let eventLogQueue = DispatchQueue(label: "com.magsafeguard.eventlog")
-    
+
     /// Flag to disable auto-arm in test environments
     static var isTestEnvironment = false
 
@@ -337,24 +337,24 @@ public class AppController: ObservableObject {
     }
 
     // MARK: - Auto-Arm Management
-    
+
     /// Gets the auto-arm manager instance
     /// - Returns: The auto-arm manager if available
     public func getAutoArmManager() -> AutoArmManager? {
         return autoArmManager
     }
-    
+
     /// Temporarily disables auto-arm for the specified duration
     /// - Parameter duration: How long to disable auto-arm (default: 1 hour)
     public func temporarilyDisableAutoArm(for duration: TimeInterval = 3600) {
         autoArmManager?.temporarilyDisable(for: duration)
     }
-    
+
     /// Re-enables auto-arm if it was temporarily disabled
     public func cancelAutoArmDisable() {
         autoArmManager?.cancelTemporaryDisable()
     }
-    
+
     /// Updates auto-arm settings and restarts monitoring if needed
     public func updateAutoArmSettings() {
         autoArmManager?.updateSettings()
@@ -499,14 +499,14 @@ public class AppController: ObservableObject {
             }
             .store(in: &cancellables)
     }
-    
+
     private func setupAutoArm() {
         // Skip auto-arm setup in test environment to avoid location permission issues
         guard !AppController.isTestEnvironment else { return }
-        
+
         // Initialize auto-arm manager
         autoArmManager = AutoArmManager(appController: self)
-        
+
         // Start monitoring if enabled in settings
         if settingsManager.settings.autoArmEnabled {
             autoArmManager?.startMonitoring()

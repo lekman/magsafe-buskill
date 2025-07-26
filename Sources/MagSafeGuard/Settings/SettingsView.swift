@@ -375,10 +375,12 @@ struct AutoArmSettingsView: View {
             .disabled(!settingsManager.settings.autoArmEnabled)
         }
     }
-    
+
     private var trustedLocationsSection: some View {
         Section(header: Text("Trusted Locations")) {
-            Button(action: { showingLocationManager = true }) {
+            Button {
+                showingLocationManager = true
+            } label: {
                 HStack {
                     Image(systemName: "location.circle")
                         .foregroundColor(.accentColor)
@@ -486,7 +488,7 @@ struct AutoArmSettingsView: View {
     private func removeTrustedNetwork(_ network: String) {
         settingsManager.settings.trustedNetworks.removeAll { $0 == network }
     }
-    
+
     private var autoArmStatusSection: some View {
         Section(header: Text("Auto-Arm Status")) {
             if let autoArmManager = getAutoArmManager() {
@@ -497,7 +499,7 @@ struct AutoArmSettingsView: View {
                         Text(autoArmManager.statusSummary)
                             .font(.body)
                     }
-                    
+
                     if autoArmManager.isTemporarilyDisabled {
                         Button("Cancel Temporary Disable") {
                             autoArmManager.cancelTemporaryDisable()
@@ -518,7 +520,7 @@ struct AutoArmSettingsView: View {
         }
         .disabled(!settingsManager.settings.autoArmEnabled)
     }
-    
+
     private func getAutoArmManager() -> AutoArmManager? {
         // Get the AppController instance from the app delegate
         if let appDelegate = NSApp.delegate as? AppDelegate {

@@ -1,0 +1,438 @@
+version: "3"
+
+tasks:
+  default:
+    desc: List available Swift development tasks
+    silent: true
+    cmds:
+      - |
+        echo "🔧 Available Swift tasks:"
+        echo ""
+        echo "  task swift:test          - Run Swift tests"
+        echo "  task swift:test:coverage - Run tests with coverage report"
+        echo "  task swift:test:html     - Generate HTML coverage report"
+        echo "  task swift:lint          - Run SwiftLint"
+        echo "  task swift:lint:fix      - Auto-fix SwiftLint issues"
+        echo "  task swift:format        - Format Swift code"
+        echo "  task swift:clean         - Clean build artifacts"
+        echo "  task swift:build         - Build in debug mode"
+        echo "  task swift:build:release - Build in release mode"
+        echo "  task swift:deps          - Show package dependencies"
+        echo "  task swift:update        - Update package dependencies"
+        echo "  task swift:sbom          - Generate Software Bill of Materials"
+        echo "  task swift:install:tools - Install Swift development tools"
+        echo ""
+
+  test:
+    desc: Run Swift tests
+    silent: true
+    cmds:
+      - |
+        echo "🧪 Running Swift tests..."
+        
+        # Run tests and capture output
+        set +e  # Don't exit on error
+        swift test 2>&1 | tee test-output.log
+        TEST_EXIT_CODE=${PIPESTATUS[0]}
+        
+        # Clean up
+        rm -f test-output.log
+        
+        if [ $TEST_EXIT_CODE -eq 0 ]; then
+          echo "✅ All tests passed!"
+        else
+          echo "❌ Tests failed!"
+          exit $TEST_EXIT_CODE
+        fi
+
+  test:coverage:
+    desc: Run tests with coverage report
+    silent: true
+    cmds:
+      - |
+        echo "🧪 Running tests with coverage..."
+        
+        # Build test executable with coverage
+        swift build --enable-code-coverage
+        
+        # Run tests with coverage, capturing output
+        set +e  # Don't exit on error
+        swift test --enable-code-coverage 2>&1 | tee test-output.log
+        
+        # Check if tests passed (look for the success pattern)
+        if grep -q "Test Suite .* passed" test-output.log && ! grep -q "Test Suite .* failed" test-output.log; then
+          TEST_SUCCESS=true
+          echo "✅ Tests passed - generating coverage report..."
+        else
+          TEST_SUCCESS=false
+          echo "⚠️  Some tests failed - still generating coverage report..."
+        fi
+        
+        # Clean up
+        rm -f test-output.log
+        
+        # Find the coverage data
+        PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
+        BINARY=$(find .build -name '*.xctest' -type d | head -1)/Contents/MacOS/*
+        
+        if [[ -f "$PROF_DATA" ]] && [[ -n "$BINARY" ]]; then
+          # Extract just the binary path (without wildcard)
+          BINARY=$(find .build -name '*.xctest' -type d | head -1)/Contents/MacOS/$(basename "$(find .build -name '*.xctest' -type d | head -1)" .xctest)
+          
+          if [[ -f "$BINARY" ]]; then
+            echo ""
+            echo "📊 Coverage Report:"
+            echo "=================="
+            
+            # Generate report with standard filters for Swift projects
+            xcrun llvm-cov report "$BINARY" \
+              -instr-profile="$PROF_DATA" \
+              -ignore-filename-regex=".*Tests.*|.*Mock.*|.*\.pb\.swift|.*generated.*" \
+              -use-color=false | tee coverage-report.txt
+            
+            # Extract total coverage
+            COVERAGE=$(tail -1 coverage-report.txt | awk '{print $(NF-2)}' | sed 's/%//')
+            
+            echo ""
+            if (( $(echo "$COVERAGE >= 80" | bc -l) )); then
+              echo "✅ Coverage is ${COVERAGE}% (meets 80% threshold)"
+            else
+              echo "⚠️  Coverage is ${COVERAGE}% (below 80% threshold)"
+              echo ""
+              echo "Files with low coverage:"
+              grep -E "^\S+\.swift" coverage-report.txt | grep -v "100.00%" | sort -k10 -n | head -10
+            fi
+          fi
+        else
+          echo "❌ Coverage data not found"
+          exit 1
+        fi
+        
+        # Exit based on test results
+        if [ "$TEST_SUCCESS" = false ]; then
+          echo ""
+          echo "❌ Tests failed - fix failing tests first"
+          exit 1
+        fi
+
+  test:html:
+    desc: Generate HTML coverage report
+    silent: true
+    cmds:
+      - |
+        echo "📊 Generating HTML coverage report..."
+        swift test --enable-code-coverage
+        
+        PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
+        EXECUTABLE=$(find .build -name '*.xctest' -type d | head -1)/Contents/MacOS/*
+        
+        if [[ -f "$PROF_DATA" ]] && [[ -n "$EXECUTABLE" ]]; then
+          EXECUTABLE=$(find .build -name '*.xctest' -type d | head -1)/Contents/MacOS/$(basename "$(find .build -name '*.xctest' -type d | head -1)" .xctest)
+          
+          xcrun llvm-cov show "$EXECUTABLE" \
+            -instr-profile="$PROF_DATA" \
+            -format=html \
+            -output-dir=coverage-html \
+            -ignore-filename-regex=".*Tests\.swift|.*Mock.*\.swift|.*\.pb\.swift|.*generated.*"
+          
+          echo "✅ Coverage report generated at: coverage-html/index.html"
+          
+          # Open if on macOS
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            open coverage-html/index.html
+          fi
+        else
+          echo "❌ Coverage data not found"
+          exit 1
+        fi
+
+  lint:
+    desc: Run SwiftLint
+    silent: true
+    cmds:
+      - |
+        echo "🔍 Linting Swift files..."
+        if command -v swiftlint &> /dev/null; then
+          swiftlint lint --quiet
+          if [ $? -eq 0 ]; then
+            echo "✅ SwiftLint passed"
+          else
+            echo "❌ SwiftLint found issues"
+            echo ""
+            echo "Run 'task swift:lint:fix' to auto-fix what's possible"
+            exit 1
+          fi
+        else
+          echo "⚠️  SwiftLint not installed"
+          echo "   Install with: brew install swiftlint"
+          echo "   Or run: task swift:install:tools"
+        fi
+
+  lint:fix:
+    desc: Auto-fix SwiftLint issues
+    silent: true
+    cmds:
+      - |
+        echo "🔧 Fixing Swift linting issues..."
+        if command -v swiftlint &> /dev/null; then
+          swiftlint lint --fix --quiet
+          if [ $? -eq 0 ]; then
+            echo "✅ SwiftLint fixes applied"
+          else
+            echo "⚠️  Some issues require manual fixing"
+            echo ""
+            echo "Run 'task swift:lint' to see remaining issues"
+          fi
+        else
+          echo "⚠️  SwiftLint not installed"
+          echo "   Install with: brew install swiftlint"
+          echo "   Or run: task swift:install:tools"
+        fi
+
+  format:
+    desc: Format Swift code
+    silent: true
+    cmds:
+      - |
+        echo "🎨 Formatting Swift code..."
+        
+        # Use swift-format if available
+        if command -v swift-format &> /dev/null; then
+          swift-format -i -r Sources/ Tests/
+          echo "✅ Swift code formatted with swift-format"
+        # Fall back to SwiftLint formatting
+        elif command -v swiftlint &> /dev/null; then
+          swiftlint lint --fix --quiet
+          echo "✅ Swift code formatted with SwiftLint"
+        else
+          echo "⚠️  No Swift formatter installed"
+          echo "   Install swift-format: brew install swift-format"
+          echo "   Or SwiftLint: brew install swiftlint"
+          exit 1
+        fi
+
+  clean:
+    desc: Clean Swift build artifacts
+    silent: true
+    cmds:
+      - |
+        echo "🧹 Cleaning Swift build artifacts..."
+        swift package clean
+        rm -rf .build
+        rm -rf .swiftpm
+        rm -f Package.resolved
+        echo "✅ Build artifacts cleaned"
+
+  build:
+    desc: Build Swift package in debug mode
+    silent: true
+    cmds:
+      - |
+        echo "🔨 Building Swift package (debug)..."
+        swift build
+        if [ $? -eq 0 ]; then
+          echo "✅ Build succeeded"
+        else
+          echo "❌ Build failed"
+          exit 1
+        fi
+
+  build:release:
+    desc: Build Swift package in release mode
+    silent: true
+    cmds:
+      - |
+        echo "🔨 Building Swift package (release)..."
+        swift build -c release
+        if [ $? -eq 0 ]; then
+          echo "✅ Build succeeded"
+          
+          # Show binary location
+          BINARY=$(find .build/release -name "$(swift package dump-package | jq -r '.products[] | select(.type.executable != null) | .name' | head -1)" -type f 2>/dev/null | head -1)
+          if [ -n "$BINARY" ]; then
+            echo "   Binary: $BINARY"
+            echo "   Size: $(ls -lh "$BINARY" | awk '{print $5}')"
+          fi
+        else
+          echo "❌ Build failed"
+          exit 1
+        fi
+
+  deps:
+    desc: Show Swift package dependencies
+    silent: true
+    cmds:
+      - |
+        echo "📦 Swift Package Dependencies:"
+        echo ""
+        swift package show-dependencies
+
+  deps:tree:
+    desc: Show Swift package dependency tree
+    silent: true
+    cmds:
+      - |
+        echo "📦 Swift Package Dependency Tree:"
+        echo ""
+        swift package show-dependencies --format tree
+
+  update:
+    desc: Update Swift package dependencies
+    silent: true
+    cmds:
+      - |
+        echo "📦 Updating Swift package dependencies..."
+        swift package update
+        echo "✅ Dependencies updated"
+
+  resolve:
+    desc: Resolve Swift package dependencies
+    silent: true
+    cmds:
+      - |
+        echo "📦 Resolving Swift package dependencies..."
+        swift package resolve
+        echo "✅ Dependencies resolved"
+
+  install:tools:
+    desc: Install Swift development tools
+    silent: true
+    cmds:
+      - |
+        echo "🔧 Installing Swift development tools..."
+        
+        # Detect OS
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        
+        if [ "$OS" != "darwin" ]; then
+          echo "⚠️  This task is optimized for macOS"
+          echo "   For other platforms, please install tools manually"
+          exit 0
+        fi
+        
+        # Check for Homebrew
+        if ! command -v brew &> /dev/null; then
+          echo "❌ Homebrew not found"
+          echo "   Install from: https://brew.sh"
+          exit 1
+        fi
+        
+        # Install SwiftLint
+        if ! command -v swiftlint &> /dev/null; then
+          echo "📦 Installing SwiftLint..."
+          brew install swiftlint
+        else
+          echo "✅ SwiftLint already installed"
+        fi
+        
+        # Install swift-format (optional)
+        if ! command -v swift-format &> /dev/null; then
+          echo "📦 Installing swift-format..."
+          brew install swift-format
+        else
+          echo "✅ swift-format already installed"
+        fi
+        
+        # Install SwiftGen (optional, for code generation)
+        if ! command -v swiftgen &> /dev/null; then
+          echo "📦 Installing SwiftGen..."
+          brew install swiftgen
+        else
+          echo "✅ SwiftGen already installed"
+        fi
+        
+        echo ""
+        echo "✅ Swift development tools installed"
+        echo ""
+        echo "Installed tools:"
+        echo "  - SwiftLint: $(swiftlint version)"
+        echo "  - swift-format: $(swift-format --version 2>&1 | head -1)"
+        echo "  - SwiftGen: $(swiftgen --version 2>&1 | head -1)"
+
+  docs:
+    desc: Generate Swift documentation
+    silent: true
+    cmds:
+      - |
+        echo "📚 Generating Swift documentation..."
+        
+        # Check if swift-doc is installed
+        if command -v swift-doc &> /dev/null; then
+          swift-doc generate Sources/ --module-name $(swift package dump-package | jq -r '.name') --output docs/api
+          echo "✅ Documentation generated at: docs/api"
+        else
+          echo "⚠️  swift-doc not installed"
+          echo "   Install with: brew install swiftdocorg/formulae/swift-doc"
+        fi
+
+  outdated:
+    desc: Check for outdated Swift dependencies
+    silent: true
+    cmds:
+      - |
+        echo "🔍 Checking for outdated dependencies..."
+        
+        # This is a basic implementation since Swift PM doesn't have built-in outdated check
+        echo "Current dependencies:"
+        swift package show-dependencies --format json | jq -r '.dependencies[] | "\(.name) @ \(.version // "unresolved")"'
+        
+        echo ""
+        echo "To update all dependencies, run: task swift:update"
+
+  sbom:
+    desc: Generate Software Bill of Materials (SBOM) in SPDX format
+    silent: true
+    cmds:
+      - |
+        echo "📦 Generating SBOM for Swift project..."
+
+        # Get package info
+        PACKAGE_NAME=$(swift package dump-package | jq -r '.name')
+        VERSION=$(git describe --tags --always 2>/dev/null || echo "1.0.0")
+        TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+        # Create SPDX SBOM
+        echo "SPDXVersion: SPDX-2.3" > sbom.spdx
+        echo "DataLicense: CC0-1.0" >> sbom.spdx
+        echo "SPDXID: SPDXRef-DOCUMENT" >> sbom.spdx
+        echo "DocumentName: ${PACKAGE_NAME}" >> sbom.spdx
+        echo "DocumentNamespace: https://sbom.swift/${PACKAGE_NAME}/spdx-${VERSION}-$(date +%s)" >> sbom.spdx
+        echo "Creator: Tool: swift-package-sbom-1.0.0" >> sbom.spdx
+        echo "Created: ${TIMESTAMP}" >> sbom.spdx
+        echo "" >> sbom.spdx
+
+        # Package information
+        echo "PackageName: ${PACKAGE_NAME}" >> sbom.spdx
+        echo "SPDXID: SPDXRef-Package-${PACKAGE_NAME}" >> sbom.spdx
+        echo "PackageVersion: ${VERSION}" >> sbom.spdx
+        echo "PackageSupplier: Organization: Swift Package" >> sbom.spdx
+        echo "PackageDownloadLocation: NOASSERTION" >> sbom.spdx
+        echo "FilesAnalyzed: true" >> sbom.spdx
+        echo "PackageVerificationCode: NOASSERTION" >> sbom.spdx
+        echo "PackageLicenseConcluded: NOASSERTION" >> sbom.spdx
+        echo "PackageLicenseDeclared: NOASSERTION" >> sbom.spdx
+        echo "PackageCopyrightText: NOASSERTION" >> sbom.spdx
+        echo "" >> sbom.spdx
+
+        # Dependencies
+        echo "" >> sbom.spdx
+        echo "# Dependencies" >> sbom.spdx
+        DEPS=$(swift package show-dependencies --format json | jq -r '.dependencies[]? | "PackageName: " + .name + "\nSPDXID: SPDXRef-Package-" + .identity + "\nPackageVersion: " + (.version // "unknown") + "\nPackageDownloadLocation: " + (.url // "NOASSERTION") + "\nFilesAnalyzed: false\nPackageLicenseConcluded: NOASSERTION\nPackageLicenseDeclared: NOASSERTION\nPackageCopyrightText: NOASSERTION\n\nRelationship: SPDXRef-Package-" + .identity + " DEPENDENCY_OF SPDXRef-Package-${PACKAGE_NAME}\n"' 2>/dev/null || echo "")
+
+        if [ -n "$DEPS" ]; then
+          echo "$DEPS" >> sbom.spdx
+        fi
+
+        echo "✅ Generated: sbom.spdx"
+        echo "   Project: ${PACKAGE_NAME} v${VERSION}"
+
+        # Also generate in JSON format
+        swift package show-dependencies --format json > sbom-deps.json
+
+        echo "✅ Also generated: sbom-deps.json (Swift dependencies)"
+    sources:
+      - Package.swift
+      - Sources/**/*.swift
+    generates:
+      - sbom.spdx
+      - sbom-deps.json

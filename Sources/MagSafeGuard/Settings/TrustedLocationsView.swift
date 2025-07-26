@@ -7,9 +7,9 @@
 //  UI for managing trusted locations for auto-arm functionality
 //
 
-import SwiftUI
 import CoreLocation
 import MapKit
+import SwiftUI
 
 /// View for managing trusted locations in auto-arm settings
 struct TrustedLocationsView: View {
@@ -21,10 +21,10 @@ struct TrustedLocationsView: View {
     @State private var newLocationCoordinate = CLLocationCoordinate2D()
     @State private var newLocationRadius: Double = 100.0
     @State private var showingPermissionAlert = false
-    
+
     /// Access to the auto-arm manager through AppController
     let autoArmManager: AutoArmManager?
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
@@ -42,7 +42,9 @@ struct TrustedLocationsView: View {
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button(action: { showingAddLocation = true }) {
+                    Button {
+                        showingAddLocation = true
+                    } label: {
                         Image(systemName: "plus")
                     }
                 }
@@ -63,7 +65,8 @@ struct TrustedLocationsView: View {
         }
         .alert("Location Permission Required", isPresented: $showingPermissionAlert) {
             Button("Open Settings") {
-                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices") {
+                let urlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices"
+                if let url = URL(string: urlString) {
                     NSWorkspace.shared.open(url)
                 }
             }
@@ -72,22 +75,22 @@ struct TrustedLocationsView: View {
             Text("Location-based auto-arm requires location permission. Please enable it in System Settings.")
         }
     }
-    
+
     private var emptyStateView: some View {
         VStack(spacing: 20) {
             Image(systemName: "location.slash")
                 .font(.system(size: 60))
                 .foregroundColor(.secondary)
-            
+
             Text("No Trusted Locations")
                 .font(.title2)
                 .fontWeight(.medium)
-            
+
             Text("Add locations where auto-arm should be disabled")
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-            
+
             Button("Add First Location") {
                 showingAddLocation = true
             }
@@ -96,7 +99,7 @@ struct TrustedLocationsView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
     }
-    
+
     private var locationsList: some View {
         List {
             ForEach(locations, id: \.id) { location in
@@ -106,34 +109,34 @@ struct TrustedLocationsView: View {
             }
         }
     }
-    
+
     private func loadLocations() {
         locations = autoArmManager?.getTrustedLocations() ?? []
     }
-    
+
     private func checkLocationPermission() {
         let status = CLLocationManager().authorizationStatus
         if status == .denied || status == .restricted {
             showingPermissionAlert = true
         }
     }
-    
+
     private func addLocation() {
         let location = TrustedLocation(
             name: newLocationName,
             coordinate: newLocationCoordinate,
             radius: newLocationRadius
         )
-        
+
         autoArmManager?.addTrustedLocation(location)
         locations.append(location)
-        
+
         // Reset form
         newLocationName = ""
         newLocationRadius = 100.0
         showingAddLocation = false
     }
-    
+
     private func removeLocation(_ location: TrustedLocation) {
         autoArmManager?.removeTrustedLocation(id: location.id)
         locations.removeAll { $0.id == location.id }
@@ -144,26 +147,26 @@ struct TrustedLocationsView: View {
 struct LocationRow: View {
     let location: TrustedLocation
     let onDelete: () -> Void
-    
+
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text(location.name)
                     .font(.body)
-                
+
                 HStack(spacing: 4) {
                     Image(systemName: "location.fill")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
+
                     Text("Radius: \(Int(location.radius))m")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
-            
+
             Spacer()
-            
+
             Button(action: onDelete) {
                 Image(systemName: "minus.circle.fill")
                     .foregroundColor(.red)
@@ -181,26 +184,26 @@ struct AddLocationView: View {
     @Binding var radius: Double
     let onSave: () -> Void
     let onCancel: () -> Void
-    
+
     @State private var useCurrentLocation = true
     @State private var manualLatitude = ""
     @State private var manualLongitude = ""
     @State private var isLoadingLocation = false
-    
+
     private let locationManager = CLLocationManager()
-    
+
     var body: some View {
         NavigationView {
             Form {
                 Section(header: Text("Location Details")) {
                     TextField("Location Name", text: $locationName)
-                    
+
                     Picker("Location Source", selection: $useCurrentLocation) {
                         Text("Current Location").tag(true)
                         Text("Manual Entry").tag(false)
                     }
                     .pickerStyle(.segmented)
-                    
+
                     if !useCurrentLocation {
                         HStack {
                             TextField("Latitude", text: $manualLatitude)
@@ -210,14 +213,14 @@ struct AddLocationView: View {
                         }
                     }
                 }
-                
+
                 Section(header: Text("Trust Radius")) {
                     VStack(alignment: .leading) {
                         Text("\(Int(radius)) meters")
                             .font(.headline)
-                        
+
                         Slider(value: $radius, in: 50...1000, step: 50)
-                        
+
                         Text("Area around this location where auto-arm is disabled")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -243,13 +246,13 @@ struct AddLocationView: View {
         }
         .frame(width: 500, height: 400)
     }
-    
+
     private func getCurrentLocationAndSave() {
         isLoadingLocation = true
-        
+
         // Request current location
         locationManager.requestLocation()
-        
+
         // For simplicity, we'll use a default location
         // In a real app, you'd implement CLLocationManagerDelegate
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
@@ -259,13 +262,13 @@ struct AddLocationView: View {
             onSave()
         }
     }
-    
+
     private func saveWithManualCoordinates() {
         guard let lat = Double(manualLatitude),
               let lon = Double(manualLongitude) else {
             return
         }
-        
+
         coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
         onSave()
     }

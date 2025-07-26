@@ -6,6 +6,10 @@ included:
   - Sources
 only_rules: []
 
+# Analyzer rules (requires 'swiftlint analyze')
+analyzer_rules:
+  - unused_import             # Check for unused imports
+
 # Opt-in rules (not enabled by default)
 opt_in_rules:
   - missing_docs              # Require documentation for public APIs
@@ -22,7 +26,6 @@ opt_in_rules:
   - operator_usage_whitespace
   - redundant_nil_coalescing
   - toggle_bool
-  - unused_import
   - yoda_condition
 
 # Disabled rules
@@ -55,20 +58,20 @@ line_length:
   ignores_comments: true
   ignores_urls: true
 
-# Function length (generous for SwiftUI views)
-function_body_length:
-  warning: 60
-  error: 100
+# Function length (generous for SwiftUI views) - commented out since disabled
+# function_body_length:
+#   warning: 60
+#   error: 100
 
 # Type body length
 type_body_length:
   warning: 300
   error: 400
 
-# File length
-file_length:
-  warning: 500
-  error: 800
+# File length - commented out since disabled
+# file_length:
+#   warning: 500
+#   error: 800
 
 # Cyclomatic complexity
 cyclomatic_complexity:
@@ -106,9 +109,6 @@ custom_rules:
     regex: 'print\('
     message: "Use proper logging instead of print statements"
     severity: warning
-    excluded:
-      - "**/AppDelegateCore.swift"  # Event log uses print
-      - "**/MagSafeGuardApp.swift"  # Development mode logging
     
   security_todo:
     name: "Security TODO"
