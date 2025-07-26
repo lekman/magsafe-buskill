@@ -32,6 +32,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var demoWindow: NSWindow?
     let core = AppDelegateCore()
     
+    // MARK: - Constants
+    
+    private static let appName = "MagSafe Guard"
+    
     // MARK: - Application Lifecycle
     
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -109,7 +113,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func updateStatusIcon() {
         if let button = statusItem?.button {
             let iconName = core.statusIconName()
-            let image = NSImage(systemSymbolName: iconName, accessibilityDescription: "MagSafe Guard")
+            let image = NSImage(systemSymbolName: iconName, accessibilityDescription: AppDelegate.appName)
             
             // If SF Symbol works, use it
             if let image = image {
@@ -145,7 +149,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     // Notifications are handled by AppController callback
                     break
                 case .failure(let error):
-                    self?.showNotification(title: "MagSafe Guard", message: "Failed to arm: \(error.localizedDescription)")
+                    self?.showNotification(title: AppDelegate.appName, message: "Failed to arm: \(error.localizedDescription)")
                 }
             }
         } else {
@@ -155,7 +159,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     // Notifications are handled by AppController callback
                     break
                 case .failure(let error):
-                    self?.showNotification(title: "MagSafe Guard", message: "Failed to disarm: \(error.localizedDescription)")
+                    self?.showNotification(title: AppDelegate.appName, message: "Failed to disarm: \(error.localizedDescription)")
                 }
             }
         }
