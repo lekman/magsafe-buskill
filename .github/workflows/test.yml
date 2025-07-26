@@ -163,13 +163,27 @@ jobs:
             exit 1
           fi
 
+      - name: Find LCOV files
+        id: find-lcov
+        run: |
+          # Find all .lcov files in the current directory
+          LCOV_FILES=$(find . -name "*.lcov" -type f | paste -sd "," -)
+          if [ -n "$LCOV_FILES" ]; then
+            echo "Found LCOV files: $LCOV_FILES"
+            echo "files=$LCOV_FILES" >> $GITHUB_OUTPUT
+          else
+            echo "No LCOV files found"
+            echo "files=" >> $GITHUB_OUTPUT
+          fi
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           use_oidc: true
           codecov_yml_path: .codecov.yml
           disable_search: true
-          files: ./coverage.lcov
+          files: ${{ steps.find-lcov.outputs.files }}
+        if: steps.find-lcov.outputs.files != ''
 
       - name: Install and run SonarCloud Scan
         env:
