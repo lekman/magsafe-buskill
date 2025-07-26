@@ -82,23 +82,27 @@ struct GeneralSettingsView: View {
     var body: some View {
         Form {
             Section {
-                VStack(alignment: .leading, spacing: 16) {
-                    gracePeriodSection
-
-                    Divider()
-
-                    allowCancellationToggle
-
-                    Divider()
-
-                    launchAtLoginToggle
-
-                    showInDockToggle
-                }
-                .padding()
+                generalSettingsContent
             }
         }
         .formStyle(.grouped)
+    }
+    
+    private var generalSettingsContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            gracePeriodSection
+            
+            Divider()
+            
+            allowCancellationToggle
+            
+            Divider()
+            
+            launchAtLoginToggle
+            
+            showInDockToggle
+        }
+        .padding()
     }
 
     private var gracePeriodSection: some View {
@@ -311,32 +315,42 @@ struct AutoArmSettingsView: View {
 
     var body: some View {
         Form {
-            Section {
-                Toggle(isOn: $settingsManager.settings.autoArmEnabled) {
-                    autoArmToggleLabel
-                }
-                .padding(.vertical, 4)
+            autoArmToggleSection
+            autoArmTriggersSection
+            trustedNetworksSection
+        }
+        .formStyle(.grouped)
+    }
+    
+    private var autoArmToggleSection: some View {
+        Section {
+            Toggle(isOn: $settingsManager.settings.autoArmEnabled) {
+                autoArmToggleLabel
             }
-
-            Section(header: Text("Auto-Arm Triggers")) {
-                Toggle(isOn: $settingsManager.settings.autoArmByLocation) {
-                    locationBasedToggleLabel
-                }
-                .disabled(!settingsManager.settings.autoArmEnabled)
-
-                Toggle(isOn: $settingsManager.settings.autoArmOnUntrustedNetwork) {
-                    untrustedNetworkToggleLabel
-                }
-                .disabled(!settingsManager.settings.autoArmEnabled)
+            .padding(.vertical, 4)
+        }
+    }
+    
+    private var autoArmTriggersSection: some View {
+        Section(header: Text("Auto-Arm Triggers")) {
+            Toggle(isOn: $settingsManager.settings.autoArmByLocation) {
+                locationBasedToggleLabel
             }
+            .disabled(!settingsManager.settings.autoArmEnabled)
 
-            Section(header: Text("Trusted Networks")) {
-                trustedNetworksContent
-                addNetworkRow
+            Toggle(isOn: $settingsManager.settings.autoArmOnUntrustedNetwork) {
+                untrustedNetworkToggleLabel
             }
             .disabled(!settingsManager.settings.autoArmEnabled)
         }
-        .formStyle(.grouped)
+    }
+    
+    private var trustedNetworksSection: some View {
+        Section(header: Text("Trusted Networks")) {
+            trustedNetworksContent
+            addNetworkRow
+        }
+        .disabled(!settingsManager.settings.autoArmEnabled)
     }
     
     // MARK: - Computed Properties
@@ -400,20 +414,29 @@ struct AutoArmSettingsView: View {
 
     private var trustedNetworksList: some View {
         ForEach(settingsManager.settings.trustedNetworks, id: \.self) { network in
-            HStack {
-                Image(systemName: "wifi")
-                    .foregroundColor(.secondary)
-                Text(network)
-                Spacer()
-                Button(action: {
-                    settingsManager.settings.trustedNetworks.removeAll { $0 == network }
-                }) {
-                    Image(systemName: "minus.circle.fill")
-                        .foregroundColor(.red)
-                }
-                .buttonStyle(.plain)
-            }
+            trustedNetworkRow(for: network)
         }
+    }
+    
+    @ViewBuilder
+    private func trustedNetworkRow(for network: String) -> some View {
+        HStack {
+            Image(systemName: "wifi")
+                .foregroundColor(.secondary)
+            Text(network)
+            Spacer()
+            Button(action: {
+                removeTrustedNetwork(network)
+            }) {
+                Image(systemName: "minus.circle.fill")
+                    .foregroundColor(.red)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+    
+    private func removeTrustedNetwork(_ network: String) {
+        settingsManager.settings.trustedNetworks.removeAll { $0 == network }
     }
 }
 
@@ -424,45 +447,75 @@ struct NotificationSettingsView: View {
 
     var body: some View {
         Form {
-            Section(header: Text("Status Notifications")) {
-                Toggle(isOn: $settingsManager.settings.showStatusNotifications) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Show Status Changes")
-                        Text("Display notifications when protection is armed or disarmed")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-
-            Section(header: Text("Alert Settings")) {
-                Toggle(isOn: $settingsManager.settings.playCriticalAlertSound) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Play Alert Sound")
-                        Text("Play sound for critical security alerts")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-
-            Section {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Image(systemName: "info.circle")
-                            .foregroundColor(.blue)
-                        Text("Notification permissions are managed in System Settings")
-                            .font(.caption)
-                    }
-
-                    Button("Open System Settings") {
-                        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.notifications")!)
-                    }
-                }
-                .padding(.vertical, 4)
-            }
+            statusNotificationsSection
+            alertSettingsSection
+            systemSettingsSection
         }
         .formStyle(.grouped)
+    }
+    
+    private var statusNotificationsSection: some View {
+        Section(header: Text("Status Notifications")) {
+            Toggle(isOn: $settingsManager.settings.showStatusNotifications) {
+                statusNotificationToggleLabel
+            }
+        }
+    }
+    
+    private var alertSettingsSection: some View {
+        Section(header: Text("Alert Settings")) {
+            Toggle(isOn: $settingsManager.settings.playCriticalAlertSound) {
+                alertSoundToggleLabel
+            }
+        }
+    }
+    
+    private var systemSettingsSection: some View {
+        Section {
+            systemSettingsContent
+                .padding(.vertical, 4)
+        }
+    }
+    
+    private var statusNotificationToggleLabel: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Show Status Changes")
+            Text("Display notifications when protection is armed or disarmed")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private var alertSoundToggleLabel: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Play Alert Sound")
+            Text("Play sound for critical security alerts")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private var systemSettingsContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            notificationPermissionsInfo
+            
+            Button("Open System Settings") {
+                openSystemNotificationSettings()
+            }
+        }
+    }
+    
+    private var notificationPermissionsInfo: some View {
+        HStack {
+            Image(systemName: "info.circle")
+                .foregroundColor(.blue)
+            Text("Notification permissions are managed in System Settings")
+                .font(.caption)
+        }
+    }
+    
+    private func openSystemNotificationSettings() {
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.notifications")!)
     }
 }
 
@@ -475,50 +528,9 @@ struct AdvancedSettingsView: View {
 
     var body: some View {
         Form {
-            Section(header: Text("Custom Scripts")) {
-                if settingsManager.settings.customScripts.isEmpty {
-                    Text("No custom scripts configured")
-                        .foregroundColor(.secondary)
-                        .italic()
-                } else {
-                    customScriptsList
-                }
-
-                Button("Add Custom Script...") {
-                    // TODO: Implement file picker for scripts
-                    print("[Settings] Add custom script")
-                }
-            }
-
-            Section(header: Text("Debug")) {
-                Toggle(isOn: $settingsManager.settings.debugLoggingEnabled) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Enable Debug Logging")
-                        Text("Log detailed information for troubleshooting")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-
-            Section(header: Text("Settings Management")) {
-                HStack {
-                    Button("Export Settings...") {
-                        exportSettings()
-                    }
-
-                    Button("Import Settings...") {
-                        showingImportDialog = true
-                    }
-
-                    Spacer()
-
-                    Button("Reset All Settings") {
-                        settingsManager.resetToDefaults()
-                    }
-                    .foregroundColor(.red)
-                }
-            }
+            customScriptsSection
+            debugSection
+            settingsManagementSection
         }
         .formStyle(.grouped)
         .alert("Settings Exported", isPresented: $showingExportSuccess) {
@@ -553,6 +565,76 @@ struct AdvancedSettingsView: View {
         }
     }
 
+    // MARK: - Computed Properties
+    
+    private var customScriptsSection: some View {
+        Section(header: Text("Custom Scripts")) {
+            customScriptsContent
+            
+            Button("Add Custom Script...") {
+                addCustomScript()
+            }
+        }
+    }
+    
+    private var debugSection: some View {
+        Section(header: Text("Debug")) {
+            Toggle(isOn: $settingsManager.settings.debugLoggingEnabled) {
+                debugLoggingToggleLabel
+            }
+        }
+    }
+    
+    private var settingsManagementSection: some View {
+        Section(header: Text("Settings Management")) {
+            settingsManagementButtons
+        }
+    }
+    
+    @ViewBuilder
+    private var customScriptsContent: some View {
+        if settingsManager.settings.customScripts.isEmpty {
+            Text("No custom scripts configured")
+                .foregroundColor(.secondary)
+                .italic()
+        } else {
+            customScriptsList
+        }
+    }
+    
+    private var debugLoggingToggleLabel: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Enable Debug Logging")
+            Text("Log detailed information for troubleshooting")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private var settingsManagementButtons: some View {
+        HStack {
+            Button("Export Settings...") {
+                exportSettings()
+            }
+
+            Button("Import Settings...") {
+                showingImportDialog = true
+            }
+
+            Spacer()
+
+            Button("Reset All Settings") {
+                settingsManager.resetToDefaults()
+            }
+            .foregroundColor(.red)
+        }
+    }
+    
+    private func addCustomScript() {
+        // TODO: Implement file picker for scripts
+        print("[Settings] Add custom script")
+    }
+    
     private var customScriptsList: some View {
         ForEach(settingsManager.settings.customScripts, id: \.self) { script in
             customScriptRow(for: script)
