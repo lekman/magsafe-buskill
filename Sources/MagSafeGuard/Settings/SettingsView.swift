@@ -346,21 +346,7 @@ struct AutoArmSettingsView: View {
                         .foregroundColor(.secondary)
                         .italic()
                 } else {
-                    ForEach(settingsManager.settings.trustedNetworks, id: \.self) { network in
-                        HStack {
-                            Image(systemName: "wifi")
-                                .foregroundColor(.secondary)
-                            Text(network)
-                            Spacer()
-                            Button(action: {
-                                settingsManager.settings.trustedNetworks.removeAll { $0 == network }
-                            }) {
-                                Image(systemName: "minus.circle.fill")
-                                    .foregroundColor(.red)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
+                    trustedNetworksList
                 }
                 
                 HStack {
@@ -379,6 +365,24 @@ struct AutoArmSettingsView: View {
             .disabled(!settingsManager.settings.autoArmEnabled)
         }
         .formStyle(.grouped)
+    }
+    
+    private var trustedNetworksList: some View {
+        ForEach(settingsManager.settings.trustedNetworks, id: \.self) { network in
+            HStack {
+                Image(systemName: "wifi")
+                    .foregroundColor(.secondary)
+                Text(network)
+                Spacer()
+                Button(action: {
+                    settingsManager.settings.trustedNetworks.removeAll { $0 == network }
+                }) {
+                    Image(systemName: "minus.circle.fill")
+                        .foregroundColor(.red)
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 }
 
@@ -446,23 +450,7 @@ struct AdvancedSettingsView: View {
                         .foregroundColor(.secondary)
                         .italic()
                 } else {
-                    ForEach(settingsManager.settings.customScripts, id: \.self) { script in
-                        HStack {
-                            Image(systemName: "doc.text")
-                                .foregroundColor(.secondary)
-                            Text(script)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                            Spacer()
-                            Button(action: {
-                                settingsManager.settings.customScripts.removeAll { $0 == script }
-                            }) {
-                                Image(systemName: "minus.circle.fill")
-                                    .foregroundColor(.red)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
+                    customScriptsList
                 }
                 
                 Button("Add Custom Script...") {
@@ -503,7 +491,7 @@ struct AdvancedSettingsView: View {
         }
         .formStyle(.grouped)
         .alert("Settings Exported", isPresented: $showingExportSuccess) {
-            Button("OK", role: .cancel) { }
+            Button("OK", role: .cancel) { } // Empty closure - dismisses alert automatically
         } message: {
             Text("Your settings have been exported successfully.")
         }
@@ -524,17 +512,41 @@ struct AdvancedSettingsView: View {
             panel.allowedContentTypes = [.json]
             
             panel.begin { response in
-                if response == .OK, let url = panel.url {
-                    do {
-                        try data.write(to: url)
-                        showingExportSuccess = true
-                    } catch {
-                        print("[Settings] Export failed: \(error)")
-                    }
-                }
+                handleSavePanelResponse(response: response, data: data, panel: panel)
             }
         } catch {
             print("[Settings] Export failed: \(error)")
+        }
+    }
+    
+    private var customScriptsList: some View {
+        ForEach(settingsManager.settings.customScripts, id: \.self) { script in
+            HStack {
+                Image(systemName: "doc.text")
+                    .foregroundColor(.secondary)
+                Text(script)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer()
+                Button(action: {
+                    settingsManager.settings.customScripts.removeAll { $0 == script }
+                }) {
+                    Image(systemName: "minus.circle.fill")
+                        .foregroundColor(.red)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+    
+    private func handleSavePanelResponse(response: NSApplication.ModalResponse, data: Data, panel: NSSavePanel) {
+        if response == .OK, let url = panel.url {
+            do {
+                try data.write(to: url)
+                showingExportSuccess = true
+            } catch {
+                print("[Settings] Export failed: \(error)")
+            }
         }
     }
     
