@@ -19,6 +19,7 @@ Welcome to the MagSafe Guard documentation. This directory contains all project 
 - [Menu Bar Design Guide](architecture/menu-bar-design-guide.md) - UI/UX design patterns for menu bar
 - [Power Monitor Service Guide](architecture/power-monitor-service-guide.md) - Power adapter detection service
 - [Demo Window Guide](architecture/demo-window-guide.md) - Demo interface implementation
+- [Settings and Persistence Guide](architecture/settings-persistence-guide.md) - User settings and configuration storage
 
 ## 🔧 DevOps
 

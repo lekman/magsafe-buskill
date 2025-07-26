@@ -21,7 +21,7 @@ struct MagSafeGuardApp: App {
     }
     
     var body: some Scene {
-        Settings {
+        SwiftUI.Settings {
             EmptyView()
         }
     }
@@ -30,6 +30,8 @@ struct MagSafeGuardApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     private var demoWindow: NSWindow?
+    private var settingsWindow: NSWindow?
+    private var windowDelegates: [NSWindow: WindowDelegate] = [:]
     let core = AppDelegateCore()
     
     // MARK: - Constants
@@ -166,8 +168,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @objc func showSettings() {
-        // TODO: Implement settings window
-        print("Settings clicked")
+        if settingsWindow == nil {
+            let settingsView = SettingsView()
+            
+            settingsWindow = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 600, height: 400),
+                styleMask: [.titled, .closable, .miniaturizable],
+                backing: .buffered,
+                defer: false
+            )
+            
+            settingsWindow?.title = "MagSafe Guard Settings"
+            settingsWindow?.contentView = NSHostingView(rootView: settingsView)
+            settingsWindow?.center()
+            settingsWindow?.setFrameAutosaveName("SettingsWindow")
+            
+            // Clean up when window closes
+            let delegate = WindowDelegate { [weak self] in
+                self?.settingsWindow = nil
+                if let window = self?.settingsWindow {
+                    self?.windowDelegates.removeValue(forKey: window)
+                }
+            }
+            settingsWindow?.delegate = delegate
+            windowDelegates[settingsWindow!] = delegate
+        }
+        
+        settingsWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
     
     @objc func showDemo() {
@@ -285,5 +313,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         print("[AppDelegate] Saving state: \(state.rawValue)")
         print("[AppDelegate] Recent events: \(events.count)")
+    }
+}
+
+// MARK: - Window Delegate
+
+/// Simple window delegate to handle window close events
+class WindowDelegate: NSObject, NSWindowDelegate {
+    private let onClose: () -> Void
+    
+    init(onClose: @escaping () -> Void) {
+        self.onClose = onClose
+        super.init()
+    }
+    
+    func windowWillClose(_ notification: Notification) {
+        onClose()
     }
 }

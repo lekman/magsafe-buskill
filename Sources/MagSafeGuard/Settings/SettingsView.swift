@@ -1,0 +1,528 @@
+//
+//  SettingsView.swift
+//  MagSafe Guard
+//
+//  Created on 2025-07-26.
+//
+//  Main settings window UI using SwiftUI
+//
+
+import SwiftUI
+
+/// Main settings view with tabbed interface
+public struct SettingsView: View {
+    @StateObject private var settingsManager = UserDefaultsManager.shared
+    @State private var selectedTab = SettingsTab.general
+    
+    private enum SettingsTab: String, CaseIterable {
+        case general = "General"
+        case security = "Security"
+        case autoArm = "Auto-Arm"
+        case notifications = "Notifications"
+        case advanced = "Advanced"
+        
+        var symbolName: String {
+            switch self {
+            case .general:
+                return "gear"
+            case .security:
+                return "lock.shield"
+            case .autoArm:
+                return "location.fill"
+            case .notifications:
+                return "bell.badge"
+            case .advanced:
+                return "wrench.and.screwdriver"
+            }
+        }
+    }
+    
+    public var body: some View {
+        TabView(selection: $selectedTab) {
+            GeneralSettingsView()
+                .tabItem {
+                    Label(SettingsTab.general.rawValue, systemImage: SettingsTab.general.symbolName)
+                }
+                .tag(SettingsTab.general)
+            
+            SecuritySettingsView()
+                .tabItem {
+                    Label(SettingsTab.security.rawValue, systemImage: SettingsTab.security.symbolName)
+                }
+                .tag(SettingsTab.security)
+            
+            AutoArmSettingsView()
+                .tabItem {
+                    Label(SettingsTab.autoArm.rawValue, systemImage: SettingsTab.autoArm.symbolName)
+                }
+                .tag(SettingsTab.autoArm)
+            
+            NotificationSettingsView()
+                .tabItem {
+                    Label(SettingsTab.notifications.rawValue, systemImage: SettingsTab.notifications.symbolName)
+                }
+                .tag(SettingsTab.notifications)
+            
+            AdvancedSettingsView()
+                .tabItem {
+                    Label(SettingsTab.advanced.rawValue, systemImage: SettingsTab.advanced.symbolName)
+                }
+                .tag(SettingsTab.advanced)
+        }
+        .frame(width: 600, height: 400)
+        .environmentObject(settingsManager)
+    }
+}
+
+// MARK: - General Settings Tab
+
+struct GeneralSettingsView: View {
+    @EnvironmentObject var settingsManager: UserDefaultsManager
+    
+    var body: some View {
+        Form {
+            Section {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Grace Period Slider
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Grace Period Duration")
+                            .font(.headline)
+                        
+                        HStack {
+                            Text("5s")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Slider(
+                                value: $settingsManager.settings.gracePeriodDuration,
+                                in: 5...30,
+                                step: 1
+                            )
+                            
+                            Text("30s")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Text("\(Int(settingsManager.settings.gracePeriodDuration))s")
+                                .font(.system(.body, design: .monospaced))
+                                .frame(width: 40, alignment: .trailing)
+                        }
+                        
+                        Text("Time before security actions execute after power disconnection")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Divider()
+                    
+                    // Allow Cancellation Toggle
+                    Toggle(isOn: $settingsManager.settings.allowGracePeriodCancellation) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Allow Grace Period Cancellation")
+                            Text("Permits canceling security actions during grace period with authentication")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Divider()
+                    
+                    // Launch at Login
+                    Toggle(isOn: $settingsManager.settings.launchAtLogin) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Launch at Login")
+                            Text("Automatically start MagSafe Guard when you log in")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .onChange(of: settingsManager.settings.launchAtLogin) { newValue in
+                        // TODO: Implement launch at login functionality
+                        print("[Settings] Launch at login: \(newValue)")
+                    }
+                    
+                    // Show in Dock
+                    Toggle(isOn: $settingsManager.settings.showInDock) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Show in Dock")
+                            Text("Display application icon in dock (requires restart)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .padding()
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+// MARK: - Security Settings Tab
+
+struct SecuritySettingsView: View {
+    @EnvironmentObject var settingsManager: UserDefaultsManager
+    @State private var selectedActions = Set<SecurityActionType>()
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Security Actions")
+                    .font(.headline)
+                Text("Select and order actions to execute when power is disconnected")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            
+            Divider()
+            
+            // Action List
+            List {
+                ForEach(settingsManager.settings.securityActions, id: \.self) { action in
+                    SecurityActionRow(action: action, isEnabled: true)
+                }
+                .onMove { indices, newOffset in
+                    settingsManager.settings.securityActions.move(fromOffsets: indices, toOffset: newOffset)
+                }
+                
+                Section(header: Text("Available Actions")) {
+                    ForEach(availableActions, id: \.self) { action in
+                        SecurityActionRow(action: action, isEnabled: false)
+                            .onTapGesture {
+                                withAnimation {
+                                    settingsManager.settings.securityActions.append(action)
+                                }
+                            }
+                    }
+                }
+            }
+            .listStyle(.inset)
+            
+            // Footer
+            HStack {
+                Text("\(settingsManager.settings.securityActions.count) actions selected")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Spacer()
+                
+                Button("Reset to Defaults") {
+                    settingsManager.settings.securityActions = [.lockScreen, .unmountVolumes]
+                }
+                .buttonStyle(.link)
+            }
+            .padding()
+        }
+    }
+    
+    private var availableActions: [SecurityActionType] {
+        SecurityActionType.allCases.filter { action in
+            !settingsManager.settings.securityActions.contains(action)
+        }
+    }
+}
+
+struct SecurityActionRow: View {
+    let action: SecurityActionType
+    let isEnabled: Bool
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: action.symbolName)
+                .font(.title3)
+                .foregroundColor(isEnabled ? .accentColor : .secondary)
+                .frame(width: 24)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(action.displayName)
+                    .font(.body)
+                    .foregroundColor(isEnabled ? .primary : .secondary)
+                
+                Text(action.description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            if isEnabled {
+                Image(systemName: "line.3.horizontal")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } else {
+                Image(systemName: "plus.circle")
+                    .font(.body)
+                    .foregroundColor(.accentColor)
+            }
+        }
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+    }
+}
+
+// MARK: - Auto-Arm Settings Tab
+
+struct AutoArmSettingsView: View {
+    @EnvironmentObject var settingsManager: UserDefaultsManager
+    @State private var newNetwork = ""
+    
+    var body: some View {
+        Form {
+            Section {
+                Toggle(isOn: $settingsManager.settings.autoArmEnabled) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Enable Auto-Arm")
+                        Text("Automatically arm protection based on location or network")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            
+            Section(header: Text("Auto-Arm Triggers")) {
+                Toggle(isOn: $settingsManager.settings.autoArmByLocation) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Location-Based")
+                        Text("Arm when leaving trusted locations")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .disabled(!settingsManager.settings.autoArmEnabled)
+                
+                Toggle(isOn: $settingsManager.settings.autoArmOnUntrustedNetwork) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Network-Based")
+                        Text("Arm when not connected to trusted Wi-Fi networks")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .disabled(!settingsManager.settings.autoArmEnabled)
+            }
+            
+            Section(header: Text("Trusted Networks")) {
+                if settingsManager.settings.trustedNetworks.isEmpty {
+                    Text("No trusted networks configured")
+                        .foregroundColor(.secondary)
+                        .italic()
+                } else {
+                    ForEach(settingsManager.settings.trustedNetworks, id: \.self) { network in
+                        HStack {
+                            Image(systemName: "wifi")
+                                .foregroundColor(.secondary)
+                            Text(network)
+                            Spacer()
+                            Button(action: {
+                                settingsManager.settings.trustedNetworks.removeAll { $0 == network }
+                            }) {
+                                Image(systemName: "minus.circle.fill")
+                                    .foregroundColor(.red)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                
+                HStack {
+                    TextField("Network SSID", text: $newNetwork)
+                        .textFieldStyle(.roundedBorder)
+                    
+                    Button("Add") {
+                        if !newNetwork.isEmpty {
+                            settingsManager.settings.trustedNetworks.append(newNetwork)
+                            newNetwork = ""
+                        }
+                    }
+                    .disabled(newNetwork.isEmpty)
+                }
+            }
+            .disabled(!settingsManager.settings.autoArmEnabled)
+        }
+        .formStyle(.grouped)
+    }
+}
+
+// MARK: - Notification Settings Tab
+
+struct NotificationSettingsView: View {
+    @EnvironmentObject var settingsManager: UserDefaultsManager
+    
+    var body: some View {
+        Form {
+            Section(header: Text("Status Notifications")) {
+                Toggle(isOn: $settingsManager.settings.showStatusNotifications) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Show Status Changes")
+                        Text("Display notifications when protection is armed or disarmed")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            
+            Section(header: Text("Alert Settings")) {
+                Toggle(isOn: $settingsManager.settings.playCriticalAlertSound) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Play Alert Sound")
+                        Text("Play sound for critical security alerts")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            
+            Section {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Image(systemName: "info.circle")
+                            .foregroundColor(.blue)
+                        Text("Notification permissions are managed in System Settings")
+                            .font(.caption)
+                    }
+                    
+                    Button("Open System Settings") {
+                        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.notifications")!)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+// MARK: - Advanced Settings Tab
+
+struct AdvancedSettingsView: View {
+    @EnvironmentObject var settingsManager: UserDefaultsManager
+    @State private var showingExportSuccess = false
+    @State private var showingImportDialog = false
+    
+    var body: some View {
+        Form {
+            Section(header: Text("Custom Scripts")) {
+                if settingsManager.settings.customScripts.isEmpty {
+                    Text("No custom scripts configured")
+                        .foregroundColor(.secondary)
+                        .italic()
+                } else {
+                    ForEach(settingsManager.settings.customScripts, id: \.self) { script in
+                        HStack {
+                            Image(systemName: "doc.text")
+                                .foregroundColor(.secondary)
+                            Text(script)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Spacer()
+                            Button(action: {
+                                settingsManager.settings.customScripts.removeAll { $0 == script }
+                            }) {
+                                Image(systemName: "minus.circle.fill")
+                                    .foregroundColor(.red)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                
+                Button("Add Custom Script...") {
+                    // TODO: Implement file picker for scripts
+                    print("[Settings] Add custom script")
+                }
+            }
+            
+            Section(header: Text("Debug")) {
+                Toggle(isOn: $settingsManager.settings.debugLoggingEnabled) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Enable Debug Logging")
+                        Text("Log detailed information for troubleshooting")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            
+            Section(header: Text("Settings Management")) {
+                HStack {
+                    Button("Export Settings...") {
+                        exportSettings()
+                    }
+                    
+                    Button("Import Settings...") {
+                        showingImportDialog = true
+                    }
+                    
+                    Spacer()
+                    
+                    Button("Reset All Settings") {
+                        settingsManager.resetToDefaults()
+                    }
+                    .foregroundColor(.red)
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .alert("Settings Exported", isPresented: $showingExportSuccess) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Your settings have been exported successfully.")
+        }
+        .fileImporter(
+            isPresented: $showingImportDialog,
+            allowedContentTypes: [.json],
+            allowsMultipleSelection: false
+        ) { result in
+            handleImport(result)
+        }
+    }
+    
+    private func exportSettings() {
+        do {
+            let data = try settingsManager.exportSettings()
+            let panel = NSSavePanel()
+            panel.nameFieldStringValue = "MagSafeGuard-Settings.json"
+            panel.allowedContentTypes = [.json]
+            
+            panel.begin { response in
+                if response == .OK, let url = panel.url {
+                    do {
+                        try data.write(to: url)
+                        showingExportSuccess = true
+                    } catch {
+                        print("[Settings] Export failed: \(error)")
+                    }
+                }
+            }
+        } catch {
+            print("[Settings] Export failed: \(error)")
+        }
+    }
+    
+    private func handleImport(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            do {
+                let data = try Data(contentsOf: url)
+                try settingsManager.importSettings(from: data)
+            } catch {
+                print("[Settings] Import failed: \(error)")
+            }
+        case .failure(let error):
+            print("[Settings] Import cancelled: \(error)")
+        }
+    }
+}
+
+// MARK: - Preview
+
+struct SettingsView_Previews: PreviewProvider {
+    static var previews: some View {
+        SettingsView()
+    }
+}

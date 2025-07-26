@@ -65,6 +65,12 @@ public class NotificationService {
             return
         }
         
+        // Check if status notifications are enabled in settings
+        if !UserDefaultsManager.shared.settings.showStatusNotifications {
+            print("[NotificationService] Status notifications disabled in settings")
+            return
+        }
+        
         // Request permissions if not already done (lazy initialization)
         if !permissionsGranted {
             requestPermissions()

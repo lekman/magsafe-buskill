@@ -61,8 +61,17 @@ public class AppController: ObservableObject {
     
     // MARK: - Configuration
     
-    public var gracePeriodDuration: TimeInterval = 10.0 // Default 10 seconds
-    public var allowGracePeriodCancellation: Bool = true
+    private let settingsManager = UserDefaultsManager.shared
+    
+    public var gracePeriodDuration: TimeInterval {
+        get { settingsManager.settings.gracePeriodDuration }
+        set { settingsManager.updateSetting(\.gracePeriodDuration, value: newValue) }
+    }
+    
+    public var allowGracePeriodCancellation: Bool {
+        get { settingsManager.settings.allowGracePeriodCancellation }
+        set { settingsManager.updateSetting(\.allowGracePeriodCancellation, value: newValue) }
+    }
     
     // MARK: - Private Properties
     
@@ -339,10 +348,14 @@ public class AppController: ObservableObject {
     }
     
     private func loadConfiguration() {
-        // TODO: Load from configuration file
-        // For now, use defaults
-        gracePeriodDuration = 10.0
-        allowGracePeriodCancellation = true
+        // Configuration is now loaded from UserDefaultsManager
+        // Subscribe to settings changes
+        settingsManager.$settings
+            .sink { [weak self] _ in
+                // Settings have changed, any necessary updates can be handled here
+                self?.logEventInternal(.armed, details: "Settings updated")
+            }
+            .store(in: &cancellables)
     }
     
     private func setupNotificationHandling() {
