@@ -8,6 +8,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- This changelog is automatically maintained by release-please -->
 <!-- Do not manually edit below this line -->
 
+## [1.5.0](https://github.com/lekman/magsafe-buskill/compare/v1.4.0...v1.5.0) (2025-07-26)
+
+
+### Features
+
+* Add manual acceptance test guide and update test coverage documentation ([5f6818a](https://github.com/lekman/magsafe-buskill/commit/5f6818a5539012e5fb36985257a737ee75778142))
+* Add paths filter for release-please workflow triggers ([b489e7a](https://github.com/lekman/magsafe-buskill/commit/b489e7a07ef84b25bbea59549511f2ddb95dacf3))
+* Add should-skip output for non-release-please branches in security and test workflows ([e003236](https://github.com/lekman/magsafe-buskill/commit/e003236256f25360566a2a40ce155fbd0904ff5e))
+* Enhance security workflows with improved environment variable handling and commit checks ([cd782ac](https://github.com/lekman/magsafe-buskill/commit/cd782ac9c1c3286737ecd888901d17c0707c6503))
+* Improve initialization comments in authentication and system actions classes ([dd06809](https://github.com/lekman/magsafe-buskill/commit/dd0680951f7d0c3bf01b9f7292de17de6b6a6e31))
+* Update settings to exclude additional files and improve README task status ([4fe255e](https://github.com/lekman/magsafe-buskill/commit/4fe255ef14e3e67b171367e10fa15d1088a7b633))
+
+
+### Code Refactoring
+
+* Add slug to Codecov configuration for improved reporting ([2f1cb52](https://github.com/lekman/magsafe-buskill/commit/2f1cb52f7c9b6fd586c584d925d674224c42bdd5))
+* Change require_ci_to_pass from 'yes' to 'true' in Codecov configuration ([d0a6e16](https://github.com/lekman/magsafe-buskill/commit/d0a6e166e9155a62f760c392643d68cdd165c01a))
+* Correct file input key in Codecov action and remove unnecessary parameters ([52e3d7d](https://github.com/lekman/magsafe-buskill/commit/52e3d7db440e428adce9da06a0bd3b8babc49b98))
+* Enhance CI/CD documentation and workflows for clarity and debugging ([4b22375](https://github.com/lekman/magsafe-buskill/commit/4b2237551ae6b57ee5ab479a74bf01627a3f277d))
+* Ensure thread safety in recordAuthenticationAttempt method ([7034eaf](https://github.com/lekman/magsafe-buskill/commit/7034eafb0a85ff194d0d96d500a18d5674b3072a))
+* Improve table formatting for third-party security tools in QA documentation ([c3aa1bb](https://github.com/lekman/magsafe-buskill/commit/c3aa1bb14149986c6046fae7f5b2d4db7327f40f))
+* Improve variable naming for clarity in authentication and security services ([4feb62f](https://github.com/lekman/magsafe-buskill/commit/4feb62f03120ebb726737affc83bd336e6000aa9))
+* Remove PowerMonitorCore.swift from coverage exclusions in Codecov and SonarCloud configurations ([000470b](https://github.com/lekman/magsafe-buskill/commit/000470b0602b692bf36369fd9f296bc30591a3f6))
+* Rename default configuration property for clarity ([046774e](https://github.com/lekman/magsafe-buskill/commit/046774e99d4fc3319a3ab04096a241a45d5997f3))
+* Simplify Codecov upload step by removing unnecessary parameters ([91a7b21](https://github.com/lekman/magsafe-buskill/commit/91a7b216b2ea2bceaef4a040edc097bc4abc8738))
+* Simplify table formatting for analysis tools in QA documentation ([baa284a](https://github.com/lekman/magsafe-buskill/commit/baa284a29be4f26117bd9124d3d818268a7102e8))
+* Standardize branch formatting and improve test workflow clarity ([cc291d7](https://github.com/lekman/magsafe-buskill/commit/cc291d78a338e106f9a5333eab836d01fe90d6b5))
+* Update security workflow permissions and documentation for clarity ([c7ab96d](https://github.com/lekman/magsafe-buskill/commit/c7ab96dd24c5ce738eefcb5566c5200be03a93d0))
+* Upgrade Codecov action to v5 for improved functionality ([60b0246](https://github.com/lekman/magsafe-buskill/commit/60b024604896674436f7b79960d8d9d932938642))
+
 ## [1.4.0](https://github.com/lekman/magsafe-buskill/compare/v1.3.0...v1.4.0) (2025-07-25)
 
 
