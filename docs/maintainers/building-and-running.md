@@ -241,6 +241,7 @@ task run:debug
 ```
 
 This task:
+
 - Builds the app in release mode
 - Creates a minimal app bundle with proper Info.plist
 - Sets LSUIElement to hide the dock icon
@@ -256,6 +257,7 @@ This task:
 #### Solution 3: Create Xcode Project
 
 For full Xcode integration:
+
 1. File → New → Project → macOS → App
 2. Copy source files to new project
 3. Add LSUIElement = YES to Info.plist
@@ -264,6 +266,7 @@ For full Xcode integration:
 ### Text Instead of Icon
 
 If you see "MG" text instead of the shield icon:
+
 - SF Symbols may not be available in development mode
 - The app falls back to text when icons fail to load
 - This is normal when running without a proper bundle
@@ -310,6 +313,7 @@ task sbom:install
 ```
 
 This creates:
+
 - `sbom.spdx` - SPDX 2.3 format SBOM
 - `sbom-deps.json` - Swift dependencies in JSON
 

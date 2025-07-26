@@ -36,6 +36,7 @@ class MockAuthenticationContext: AuthenticationContextProtocol {
 ### Same Behavior Everywhere
 
 With protocol-based testing, tests behave identically in:
+
 - Local development (any Mac)
 - Xcode simulators
 - GitHub Actions CI runners
@@ -44,6 +45,7 @@ With protocol-based testing, tests behave identically in:
 ### Test Examples
 
 1. **Biometric Availability Tests**
+
    ```swift
    mockContext.canEvaluatePolicyResult = true
    mockContext.biometryType = .touchID
@@ -51,6 +53,7 @@ With protocol-based testing, tests behave identically in:
    ```
 
 2. **Authentication Flow Tests**
+
    ```swift
    mockContext.evaluatePolicyShouldSucceed = true
    service.authenticate(reason: "Test") { result in
@@ -59,6 +62,7 @@ With protocol-based testing, tests behave identically in:
    ```
 
 3. **Error Handling Tests**
+
    ```swift
    mockContext.evaluatePolicyError = LAError(.authenticationFailed)
    service.authenticate(reason: "Test") { result in
@@ -102,35 +106,128 @@ No special CI flags or environment variables needed!
 
 ## Architecture Overview
 
-### Service Layer
-```
-┌─────────────────────────────┐
-│   AuthenticationService     │ ← Business Logic
-├─────────────────────────────┤
-│  AuthenticationContext      │ ← Protocol Interface
-│       Protocol              │
-├─────────────────────────────┤
-│  MockAuthenticationContext  │ ← Test Implementation
-│    (for tests only)        │
-├─────────────────────────────┤
-│    LAContextWrapper        │ ← Real Implementation
-│  (production only)         │   (excluded from coverage)
-└─────────────────────────────┘
+### C4 Context Diagram - Testing System Overview
+
+```mermaid
+graph TB
+    subgraph "Testing Ecosystem"
+        DEV[Developer]
+        CI[CI/CD System]
+        
+        subgraph "MagSafe Guard Test Suite"
+            TS[Test Suite<br/>Protocol-Based Tests]
+        end
+        
+        subgraph "External Systems"
+            GH[GitHub Actions]
+            XC[Xcode Cloud]
+            LOCAL[Local Machine]
+        end
+        
+        DEV -->|writes tests| TS
+        DEV -->|runs tests| LOCAL
+        CI -->|triggers| GH
+        CI -->|triggers| XC
+        GH -->|executes| TS
+        XC -->|executes| TS
+        LOCAL -->|executes| TS
+        
+        TS -->|produces| REP[Test Reports<br/>Coverage Metrics]
+    end
+    
+    style DEV fill:#bbdefb
+    style CI fill:#c5cae9
+    style TS fill:#c8e6c9
+    style GH fill:#ffccbc
+    style XC fill:#ffccbc
+    style LOCAL fill:#ffccbc
+    style REP fill:#fff9c4
 ```
 
-### Security Actions
+### C4 Component Diagram - Testing Architecture
+
+```mermaid
+graph TB
+    subgraph "MagSafe Guard Testing Architecture"
+        subgraph "Authentication Service Layer"
+            AS[AuthenticationService<br/>Business Logic]
+            ACP[AuthenticationContextProtocol<br/>Protocol Interface]
+            MAC[MockAuthenticationContext<br/>Test Implementation]
+            LAC[LAContextWrapper<br/>Real Implementation]
+            
+            AS -->|depends on| ACP
+            MAC -->|implements| ACP
+            LAC -->|implements| ACP
+            MAC -.->|used in tests| AS
+            LAC -.->|used in production| AS
+        end
+        
+        subgraph "Security Actions Layer"
+            SAS[SecurityActionsService<br/>Business Logic]
+            SAP[SystemActionsProtocol<br/>Protocol Interface]
+            MSA[MockSystemActions<br/>Test Implementation]
+            MAS[MacSystemActions<br/>Real Implementation]
+            
+            SAS -->|depends on| SAP
+            MSA -->|implements| SAP
+            MAS -->|implements| SAP
+            MSA -.->|used in tests| SAS
+            MAS -.->|used in production| SAS
+        end
+        
+        subgraph "Test Environment"
+            UT[Unit Tests]
+            CI[CI/CD Pipeline]
+            
+            UT -->|uses| MAC
+            UT -->|uses| MSA
+            CI -->|runs| UT
+        end
+    end
+    
+    style AS fill:#e1f5fe
+    style SAS fill:#e1f5fe
+    style ACP fill:#fff9c4
+    style SAP fill:#fff9c4
+    style MAC fill:#c8e6c9
+    style MSA fill:#c8e6c9
+    style LAC fill:#ffccbc
+    style MAS fill:#ffccbc
+    style UT fill:#f3e5f5
+    style CI fill:#f3e5f5
 ```
-┌─────────────────────────────┐
-│  SecurityActionsService     │ ← Business Logic
-├─────────────────────────────┤
-│   SystemActionsProtocol    │ ← Protocol Interface
-├─────────────────────────────┤
-│    MockSystemActions       │ ← Test Implementation
-│    (for tests only)        │
-├─────────────────────────────┤
-│     MacSystemActions       │ ← Real Implementation
-│   (production only)        │   (excluded from coverage)
-└─────────────────────────────┘
+
+### C4 Container Diagram - Test Execution Flow
+
+```mermaid
+graph LR
+    subgraph "Development Environment"
+        DEV[Developer<br/>Machine]
+        XC[Xcode]
+    end
+    
+    subgraph "CI/CD Environment"
+        GHA[GitHub Actions<br/>Runner]
+        COV[Coverage<br/>Reports]
+    end
+    
+    subgraph "Test Suite"
+        TST[Swift Tests<br/>Protocol-Based]
+        MCK[Mock<br/>Implementations]
+    end
+    
+    DEV -->|swift test| TST
+    XC -->|runs| TST
+    GHA -->|swift test| TST
+    TST -->|uses| MCK
+    TST -->|generates| COV
+    
+    style DEV fill:#e3f2fd
+    style XC fill:#e3f2fd
+    style GHA fill:#f3e5f5
+    style COV fill:#f3e5f5
+    style TST fill:#e8f5e9
+    style MCK fill:#fff9c4
 ```
 
 ## Coverage Strategy

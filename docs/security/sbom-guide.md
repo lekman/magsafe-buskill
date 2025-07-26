@@ -27,15 +27,17 @@ MagSafe Guard generates its SBOM in **SPDX 2.3** format, which is:
 When you run `task sbom`, two files are created:
 
 ### 1. `sbom.spdx` (Primary SBOM)
+
 - **Format**: SPDX 2.3 text format
 - **Location**: Repository root
-- **Contents**: 
+- **Contents**:
   - Package metadata (name, version, license)
   - Dependency information
   - Relationships between components
   - Copyright and licensing details
 
 ### 2. `sbom-deps.json` (Dependency Details)
+
 - **Format**: JSON
 - **Location**: Repository root
 - **Contents**: Raw Swift Package Manager dependency tree
@@ -45,6 +47,7 @@ When you run `task sbom`, two files are created:
 ### Prerequisites
 
 Ensure you have `jq` installed:
+
 ```bash
 brew install jq
 ```
@@ -151,11 +154,13 @@ The SBOM should be regenerated with each release:
 ## Tools and Resources
 
 ### SBOM Tools
+
 - [SPDX Tools](https://spdx.dev/tools/): Validate and convert SBOM formats
 - [SBOM Scorecard](https://github.com/eBay/sbom-scorecard): Assess SBOM quality
 - [Syft](https://github.com/anchore/syft): Alternative SBOM generator
 
 ### Standards and References
+
 - [SPDX Specification](https://spdx.github.io/spdx-spec/)
 - [NTIA SBOM Resources](https://www.ntia.gov/sbom)
 - [CISA SBOM Guide](https://www.cisa.gov/sbom)
