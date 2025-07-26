@@ -27,6 +27,9 @@ final class AppControllerTests: XCTestCase {
         // Disable notifications for testing
         NotificationService.disableForTesting = true
         
+        // Disable auto-arm for testing to avoid location permission issues
+        AppController.isTestEnvironment = true
+        
         mockAuthService = MockAuthenticationService()
         mockSecurityActions = MockSystemActions()
         mockNotificationService = MockNotificationService()
@@ -47,6 +50,9 @@ final class AppControllerTests: XCTestCase {
         
         // Re-enable notifications after testing
         NotificationService.disableForTesting = false
+        
+        // Reset test environment flag
+        AppController.isTestEnvironment = false
         
         super.tearDown()
     }

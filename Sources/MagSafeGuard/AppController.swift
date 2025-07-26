@@ -52,6 +52,8 @@ public enum AppEvent: String {
     case authenticationSucceeded
     /// Application is terminating
     case applicationTerminating
+    /// Auto-arm was triggered based on location or network
+    case autoArmTriggered
 }
 
 /// Event log entry containing timestamped application events.
@@ -140,6 +142,7 @@ public class AppController: ObservableObject {
     private let authService: AuthenticationService
     private let securityActions: SecurityActionsService
     private let notificationService: NotificationService
+    private var autoArmManager: AutoArmManager?
 
     // MARK: - Configuration
 
@@ -171,6 +174,9 @@ public class AppController: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var eventLog: [EventLogEntry] = []
     private let eventLogQueue = DispatchQueue(label: "com.magsafeguard.eventlog")
+    
+    /// Flag to disable auto-arm in test environments
+    static var isTestEnvironment = false
 
     // MARK: - Constants
 
@@ -214,6 +220,7 @@ public class AppController: ObservableObject {
         setupPowerMonitoring()
         loadConfiguration()
         setupNotificationHandling()
+        setupAutoArm()
     }
 
     // MARK: - Public Methods
@@ -327,6 +334,30 @@ public class AppController: ObservableObject {
     /// Logs an event (public for AppDelegate lifecycle)
     public func logEvent(_ event: AppEvent, details: String? = nil) {
         logEventInternal(event, details: details)
+    }
+
+    // MARK: - Auto-Arm Management
+    
+    /// Gets the auto-arm manager instance
+    /// - Returns: The auto-arm manager if available
+    public func getAutoArmManager() -> AutoArmManager? {
+        return autoArmManager
+    }
+    
+    /// Temporarily disables auto-arm for the specified duration
+    /// - Parameter duration: How long to disable auto-arm (default: 1 hour)
+    public func temporarilyDisableAutoArm(for duration: TimeInterval = 3600) {
+        autoArmManager?.temporarilyDisable(for: duration)
+    }
+    
+    /// Re-enables auto-arm if it was temporarily disabled
+    public func cancelAutoArmDisable() {
+        autoArmManager?.cancelTemporaryDisable()
+    }
+    
+    /// Updates auto-arm settings and restarts monitoring if needed
+    public func updateAutoArmSettings() {
+        autoArmManager?.updateSettings()
     }
 
     // MARK: - Private Methods
@@ -461,11 +492,25 @@ public class AppController: ObservableObject {
         // Configuration is now loaded from UserDefaultsManager
         // Subscribe to settings changes
         settingsManager.$settings
+            .dropFirst() // Skip the initial value to prevent immediate callback
             .sink { [weak self] _ in
-                // Settings have changed, any necessary updates can be handled here
-                self?.logEventInternal(.armed, details: "Settings updated")
+                // Update auto-arm settings when configuration changes
+                self?.autoArmManager?.updateSettings()
             }
             .store(in: &cancellables)
+    }
+    
+    private func setupAutoArm() {
+        // Skip auto-arm setup in test environment to avoid location permission issues
+        guard !AppController.isTestEnvironment else { return }
+        
+        // Initialize auto-arm manager
+        autoArmManager = AutoArmManager(appController: self)
+        
+        // Start monitoring if enabled in settings
+        if settingsManager.settings.autoArmEnabled {
+            autoArmManager?.startMonitoring()
+        }
     }
 
     private func setupNotificationHandling() {

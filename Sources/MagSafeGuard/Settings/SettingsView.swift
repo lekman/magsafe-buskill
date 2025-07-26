@@ -334,14 +334,23 @@ struct SecurityActionRow: View {
 struct AutoArmSettingsView: View {
     @EnvironmentObject var settingsManager: UserDefaultsManager
     @State private var newNetwork = ""
+    @State private var showingLocationManager = false
+    @State private var showingAutoArmInfo = false
 
     var body: some View {
         Form {
             autoArmToggleSection
             autoArmTriggersSection
+            trustedLocationsSection
             trustedNetworksSection
+            autoArmStatusSection
         }
         .formStyle(.grouped)
+        .sheet(isPresented: $showingLocationManager) {
+            if let autoArmManager = getAutoArmManager() {
+                TrustedLocationsView(autoArmManager: autoArmManager)
+            }
+        }
     }
 
     private var autoArmToggleSection: some View {
@@ -364,6 +373,23 @@ struct AutoArmSettingsView: View {
                 untrustedNetworkToggleLabel
             }
             .disabled(!settingsManager.settings.autoArmEnabled)
+        }
+    }
+    
+    private var trustedLocationsSection: some View {
+        Section(header: Text("Trusted Locations")) {
+            Button(action: { showingLocationManager = true }) {
+                HStack {
+                    Image(systemName: "location.circle")
+                        .foregroundColor(.accentColor)
+                    Text("Manage Trusted Locations")
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                }
+            }
+            .disabled(!settingsManager.settings.autoArmEnabled || !settingsManager.settings.autoArmByLocation)
         }
     }
 
@@ -459,6 +485,46 @@ struct AutoArmSettingsView: View {
 
     private func removeTrustedNetwork(_ network: String) {
         settingsManager.settings.trustedNetworks.removeAll { $0 == network }
+    }
+    
+    private var autoArmStatusSection: some View {
+        Section(header: Text("Auto-Arm Status")) {
+            if let autoArmManager = getAutoArmManager() {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: autoArmManager.isAutoArmConditionMet ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                            .foregroundColor(autoArmManager.isAutoArmConditionMet ? .orange : .green)
+                        Text(autoArmManager.statusSummary)
+                            .font(.body)
+                    }
+                    
+                    if autoArmManager.isTemporarilyDisabled {
+                        Button("Cancel Temporary Disable") {
+                            autoArmManager.cancelTemporaryDisable()
+                        }
+                        .buttonStyle(.link)
+                    } else if settingsManager.settings.autoArmEnabled {
+                        Button("Temporarily Disable (1 hour)") {
+                            autoArmManager.temporarilyDisable(for: 3600)
+                        }
+                        .buttonStyle(.link)
+                    }
+                }
+                .padding(.vertical, 4)
+            } else {
+                Text("Auto-arm service not available")
+                    .foregroundColor(.secondary)
+            }
+        }
+        .disabled(!settingsManager.settings.autoArmEnabled)
+    }
+    
+    private func getAutoArmManager() -> AutoArmManager? {
+        // Get the AppController instance from the app delegate
+        if let appDelegate = NSApp.delegate as? AppDelegate {
+            return appDelegate.core.appController.getAutoArmManager()
+        }
+        return nil
     }
 }
 
