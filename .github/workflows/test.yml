@@ -142,6 +142,18 @@ jobs:
             echo "Coverage files created:"
             ls -la coverage.xml || echo "No coverage files found"
             echo "Coverage report size: $(wc -c < coverage.xml) bytes"
+            
+            # Also generate LCOV format for Codecov
+            echo "Generating LCOV format..."
+            xcrun llvm-cov export "$EXECUTABLE" \
+              -instr-profile="$PROF_DATA" \
+              -format=lcov \
+              -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*LAContext\.swift|.*/MacSystemActions\.swift|.*Protocol\.swift" \
+              > coverage.lcov
+            
+            echo "LCOV file created:"
+            ls -la coverage.lcov || echo "No LCOV file found"
+            echo "LCOV report size: $(wc -c < coverage.lcov) bytes"
           else
             echo "Coverage data not found"
             echo "PROF_DATA: $PROF_DATA"
@@ -156,6 +168,8 @@ jobs:
         with:
           use_oidc: true
           codecov_yml_path: .codecov.yml
+          disable_search: true
+          files: ./coverage.lcov
 
       - name: Install and run SonarCloud Scan
         env:
