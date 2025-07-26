@@ -6,16 +6,30 @@ final class AppDelegateCoreTests: XCTestCase {
     var core: AppDelegateCore!
     var mockSystemActions: MockSystemActions!
     var mockSecurityActions: SecurityActionsService!
+    var mockAuthContext: MockAuthenticationContext!
     
     override func setUp() {
         super.setUp()
+        
+        // Disable notifications for testing
+        NotificationService.disableForTesting = true
+        
         mockSystemActions = MockSystemActions()
         mockSecurityActions = SecurityActionsService(systemActions: mockSystemActions)
-        core = AppDelegateCore(securityActions: mockSecurityActions)
+        
+        // Set up mock authentication
+        mockAuthContext = MockAuthenticationContext()
+        mockAuthContext.canEvaluatePolicyResult = true
+        mockAuthContext.evaluatePolicyShouldSucceed = true
+        let authService = AuthenticationService(contextFactory: MockAuthenticationContextFactory(mockContext: mockAuthContext))
+        
+        core = AppDelegateCore(authService: authService, securityActions: mockSecurityActions)
     }
     
     override func tearDown() {
         core = nil
+        // Re-enable notifications after testing
+        NotificationService.disableForTesting = false
         super.tearDown()
     }
     
@@ -34,72 +48,106 @@ final class AppDelegateCoreTests: XCTestCase {
     func testCreateMenu() {
         let menu = core.createMenu()
         
-        XCTAssertEqual(menu.items.count, 6) // Arm, separator, Settings, Demo, separator, Quit
+        // The new menu structure has:
+        // Status item, separator, Arm, separator, Power status, separator, Settings, Demo, Event Log, separator, Quit
+        XCTAssertGreaterThanOrEqual(menu.items.count, 11)
         
-        // Check menu items
-        XCTAssertEqual(menu.items[0].title, "Arm Protection")
-        XCTAssertTrue(menu.items[1].isSeparatorItem)
-        XCTAssertEqual(menu.items[2].title, "Settings...")
-        XCTAssertEqual(menu.items[3].title, "Run Demo...")
-        XCTAssertTrue(menu.items[4].isSeparatorItem)
-        XCTAssertEqual(menu.items[5].title, "Quit")
+        // Find items by title since positions may vary
+        let armItem = menu.items.first { $0.title.contains("Arm") && $0.action != nil }
+        let settingsItem = menu.items.first { $0.title == "Settings..." }
+        let demoItem = menu.items.first { $0.title == "Run Demo..." }
+        let quitItem = menu.items.first { $0.title == "Quit MagSafe Guard" }
+        
+        XCTAssertNotNil(armItem)
+        XCTAssertNotNil(settingsItem)
+        XCTAssertNotNil(demoItem)
+        XCTAssertNotNil(quitItem)
         
         // Check key equivalents
-        XCTAssertEqual(menu.items[2].keyEquivalent, ",")
-        XCTAssertEqual(menu.items[3].keyEquivalent, "d")
-        XCTAssertEqual(menu.items[5].keyEquivalent, "q")
+        XCTAssertEqual(armItem?.keyEquivalent, "a")
+        XCTAssertEqual(settingsItem?.keyEquivalent, ",")
+        XCTAssertEqual(demoItem?.keyEquivalent, "d")
+        XCTAssertEqual(quitItem?.keyEquivalent, "q")
     }
     
     func testMenuItemStates() {
-        let menu = core.createMenu()
+        // Initial menu - not armed
+        var menu = core.createMenu()
+        let initialArmItem = menu.items.first { $0.title.contains("Arm Protection") && $0.action != nil }
+        XCTAssertNotNil(initialArmItem)
         
-        // Initial state - not armed
-        XCTAssertEqual(menu.items[0].state, .off)
+        // Arm the system through AppController
+        let armExpectation = expectation(description: "Arm completion")
+        core.appController.arm { _ in
+            armExpectation.fulfill()
+        }
+        waitForExpectations(timeout: 1.0)
         
-        // Update armed state
-        core.isArmed = true
-        core.updateMenuItems(in: menu)
+        // Recreate menu to get updated state
+        menu = core.createMenu()
+        let armedItem = menu.items.first { $0.title.contains("Disarm Protection") && $0.action != nil }
+        XCTAssertNotNil(armedItem)
         
-        XCTAssertEqual(menu.items[0].state, .on)
+        // Disarm the system
+        let disarmExpectation = expectation(description: "Disarm completion")
+        core.appController.disarm { _ in
+            disarmExpectation.fulfill()
+        }
+        waitForExpectations(timeout: 1.0)
         
-        // Toggle back
-        core.isArmed = false
-        core.updateMenuItems(in: menu)
-        
-        XCTAssertEqual(menu.items[0].state, .off)
+        // Recreate menu again
+        menu = core.createMenu()
+        let disarmedItem = menu.items.first { $0.title.contains("Arm Protection") && $0.action != nil }
+        XCTAssertNotNil(disarmedItem)
     }
     
     func testMenuActions() {
         let menu = core.createMenu()
         
+        // Find items by title
+        let armItem = menu.items.first { $0.title.contains("Arm") && $0.action != nil }
+        let settingsItem = menu.items.first { $0.title == "Settings..." }
+        let demoItem = menu.items.first { $0.title == "Run Demo..." }
+        let quitItem = menu.items.first { $0.title == "Quit MagSafe Guard" }
+        
         // Check actions are set
-        XCTAssertNotNil(menu.items[0].action) // Arm
-        XCTAssertNotNil(menu.items[2].action) // Settings
-        XCTAssertNotNil(menu.items[3].action) // Demo
-        XCTAssertNotNil(menu.items[5].action) // Quit
+        XCTAssertNotNil(armItem?.action)
+        XCTAssertNotNil(settingsItem?.action)
+        XCTAssertNotNil(demoItem?.action)
+        XCTAssertNotNil(quitItem?.action)
         
         // Check action selectors
-        XCTAssertEqual(menu.items[0].action?.description, "toggleArmed")
-        XCTAssertEqual(menu.items[2].action?.description, "showSettings")
-        XCTAssertEqual(menu.items[3].action?.description, "showDemo")
+        XCTAssertEqual(armItem?.action?.description, "toggleArmed")
+        XCTAssertEqual(settingsItem?.action?.description, "showSettings")
+        XCTAssertEqual(demoItem?.action?.description, "showDemo")
     }
     
     // MARK: - Status Icon Tests
     
     func testStatusIconName() {
         // Not armed
-        core.isArmed = false
         XCTAssertEqual(core.statusIconName(), "shield")
         
-        // Armed
-        core.isArmed = true
+        // Arm the system
+        let armExpectation = expectation(description: "Arm completion")
+        core.appController.arm { _ in
+            armExpectation.fulfill()
+        }
+        waitForExpectations(timeout: 1.0)
+        
         XCTAssertEqual(core.statusIconName(), "shield.fill")
     }
     
     // MARK: - Power Monitoring Tests
     
     func testHandlePowerStateChangeWhileArmed() {
-        core.isArmed = true
+        // Arm the system first
+        let armExpectation = expectation(description: "Arm completion")
+        core.appController.arm { _ in
+            armExpectation.fulfill()
+        }
+        waitForExpectations(timeout: 1.0)
+        
         mockSystemActions.reset() // Ensure clean state
         
         // Configure to execute immediately without delay
@@ -129,7 +177,8 @@ final class AppDelegateCoreTests: XCTestCase {
     }
     
     func testHandlePowerStateChangeWhileDisarmed() {
-        core.isArmed = false
+        // Ensure system is disarmed (default state)
+        XCTAssertFalse(core.isArmed)
         
         // Test disconnected state
         let disconnectedInfo = PowerMonitorService.PowerInfo(
@@ -144,7 +193,12 @@ final class AppDelegateCoreTests: XCTestCase {
     }
     
     func testHandlePowerStateChangeConnected() {
-        core.isArmed = true
+        // Arm the system
+        let armExpectation = expectation(description: "Arm completion")
+        core.appController.arm { _ in
+            armExpectation.fulfill()
+        }
+        waitForExpectations(timeout: 1.0)
         
         // Test connected state
         let connectedInfo = PowerMonitorService.PowerInfo(
@@ -160,12 +214,18 @@ final class AppDelegateCoreTests: XCTestCase {
     
     // MARK: - Security Tests
     
-    func testShouldAuthenticate() {
-        core.isArmed = false
-        XCTAssertFalse(core.shouldAuthenticate())
+    func testIsArmedProperty() {
+        // Not armed
+        XCTAssertFalse(core.isArmed)
         
-        core.isArmed = true
-        XCTAssertTrue(core.shouldAuthenticate())
+        // Arm the system
+        let armExpectation = expectation(description: "Arm completion")
+        core.appController.arm { _ in
+            armExpectation.fulfill()
+        }
+        waitForExpectations(timeout: 1.0)
+        
+        XCTAssertTrue(core.isArmed)
     }
     
     func testCreateNotificationContent() {
@@ -234,8 +294,9 @@ final class AppDelegateCoreTests: XCTestCase {
         )
         
         let shouldTriggerSecurity = core.handlePowerStateChange(powerInfo)
-        XCTAssertTrue(shouldTriggerSecurity)
-        XCTAssertTrue(core.shouldAuthenticate())
+        // Now handlePowerStateChange always returns false because AppController handles it internally
+        XCTAssertFalse(shouldTriggerSecurity)
+        XCTAssertTrue(core.isArmed)
     }
     
     func testMenuUpdateWithoutArmItem() {

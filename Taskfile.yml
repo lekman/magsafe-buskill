@@ -568,6 +568,7 @@ tasks:
       - task: test:security
       - task: lint
       - task: sbom
+      - task: docs:update
       - echo "✅ All pre-push checks passed!"
       - echo "Ready to push your changes."
 
@@ -766,6 +767,7 @@ tasks:
 
   sbom:install:
     desc: Install SBOM generation dependencies
+    silent: true
     cmds:
       - |
         echo "📦 Installing SBOM dependencies..."
@@ -787,3 +789,10 @@ tasks:
 
         echo "✅ SBOM dependencies installed"
         echo "   You can now run: task sbom"
+
+  docs:update:
+    desc: Update TaskMaster progress to main README
+    silent: true
+    cmds:
+      - |
+        task-master sync-readme >/dev/null 2>&1

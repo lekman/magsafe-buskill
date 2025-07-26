@@ -10,29 +10,55 @@
 
 import Foundation
 import AppKit
+import Combine
 
 /// Core logic for AppDelegate that can be tested without NSApp dependencies
 public class AppDelegateCore {
     
     // MARK: - Properties
     
-    public var isArmed = false
-    public let powerMonitor: PowerMonitorService
-    public let securityActions: SecurityActionsService
+    public let appController: AppController
+    private var cancellables = Set<AnyCancellable>()
+    
+    // For backward compatibility
+    public var isArmed: Bool {
+        appController.currentState == .armed || appController.currentState == .gracePeriod
+    }
+    
+    public var powerMonitor: PowerMonitorService {
+        PowerMonitorService.shared
+    }
+    
+    public var securityActions: SecurityActionsService {
+        SecurityActionsService.shared
+    }
     
     // MARK: - Initialization
     
     public init() {
-        // Default initializer - uses shared instances
-        self.powerMonitor = PowerMonitorService.shared
-        self.securityActions = SecurityActionsService.shared
+        self.appController = AppController()
+        setupBindings()
+    }
+    
+    /// Initialize with custom app controller (for testing)
+    public init(appController: AppController) {
+        self.appController = appController
+        setupBindings()
     }
     
     /// Initialize with custom services (for testing)
-    public init(powerMonitor: PowerMonitorService = PowerMonitorService.shared,
-                securityActions: SecurityActionsService) {
-        self.powerMonitor = powerMonitor
-        self.securityActions = securityActions
+    public init(authService: AuthenticationService, securityActions: SecurityActionsService) {
+        self.appController = AppController(
+            authService: authService,
+            securityActions: securityActions
+        )
+        setupBindings()
+    }
+    
+    // MARK: - Setup
+    
+    private func setupBindings() {
+        // You can add any reactive bindings here if needed
     }
     
     // MARK: - Menu Configuration
@@ -41,10 +67,30 @@ public class AppDelegateCore {
     public func createMenu() -> NSMenu {
         let menu = NSMenu()
         
+        // Status item (disabled)
+        let statusItem = NSMenuItem(title: appController.statusDescription, action: nil, keyEquivalent: "")
+        statusItem.isEnabled = false
+        menu.addItem(statusItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
         // Arm/Disarm item
-        let armItem = NSMenuItem(title: "Arm Protection", action: #selector(AppDelegate.toggleArmed), keyEquivalent: "")
-        armItem.state = isArmed ? NSControl.StateValue.on : NSControl.StateValue.off
+        let armItem = NSMenuItem(title: appController.armDisarmMenuTitle, action: #selector(AppDelegate.toggleArmed), keyEquivalent: "a")
         menu.addItem(armItem)
+        
+        // Cancel grace period item (if in grace period)
+        if appController.isInGracePeriod && appController.allowGracePeriodCancellation {
+            let cancelItem = NSMenuItem(title: "Cancel Security Action", action: #selector(AppDelegate.cancelGracePeriod), keyEquivalent: "c")
+            menu.addItem(cancelItem)
+        }
+        
+        menu.addItem(NSMenuItem.separator())
+        
+        // Power status
+        let powerStatus = appController.lastPowerState == .connected ? "Power Connected" : "Running on Battery"
+        let powerItem = NSMenuItem(title: powerStatus, action: nil, keyEquivalent: "")
+        powerItem.isEnabled = false
+        menu.addItem(powerItem)
         
         menu.addItem(NSMenuItem.separator())
         
@@ -56,10 +102,14 @@ public class AppDelegateCore {
         let demoItem = NSMenuItem(title: "Run Demo...", action: #selector(AppDelegate.showDemo), keyEquivalent: "d")
         menu.addItem(demoItem)
         
+        // Event log item
+        let logItem = NSMenuItem(title: "View Event Log...", action: #selector(AppDelegate.showEventLog), keyEquivalent: "l")
+        menu.addItem(logItem)
+        
         menu.addItem(NSMenuItem.separator())
         
         // Quit item
-        let quitItem = NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "Quit MagSafe Guard", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quitItem)
         
         return menu
@@ -67,52 +117,44 @@ public class AppDelegateCore {
     
     /// Updates the menu item states based on current status
     public func updateMenuItems(in menu: NSMenu) {
-        if let armItem = menu.items.first(where: { $0.title == "Arm Protection" }) {
-            armItem.state = isArmed ? NSControl.StateValue.on : NSControl.StateValue.off
-        }
+        // The menu is recreated each time, so this is not needed anymore
+        // But kept for backward compatibility
     }
     
     // MARK: - Status Icon
     
     /// Determines the appropriate status icon based on armed state
     public func statusIconName() -> String {
-        // Use shield SF Symbols for better visual representation
-        return isArmed ? "shield.fill" : "shield"
+        return appController.statusIconName
     }
     
     // MARK: - Power Monitoring
     
-    /// Handles power state changes
+    /// Handles power state changes (for backward compatibility)
     public func handlePowerStateChange(_ powerInfo: PowerMonitorService.PowerInfo) -> Bool {
-        print("[PowerMonitor] State: \(powerInfo.state.rawValue)")
-        
-        if powerInfo.state == .disconnected && isArmed {
-            print("[PowerMonitor] ⚠️ Power disconnected while armed!")
-            
-            // Execute security actions
-            securityActions.executeActions { result in
-                if result.allSucceeded {
-                    print("[PowerMonitor] All security actions executed successfully")
-                } else {
-                    print("[PowerMonitor] Some security actions failed:")
-                    for (action, error) in result.failedActions {
-                        print("  - \(action.displayName): \(error.localizedDescription)")
-                    }
-                }
-            }
-            
-            return true // Security action triggered
-        }
-        
+        // The AppController now handles this internally
         return false
     }
     
-    // MARK: - Security Actions
+    // MARK: - Actions
     
-    /// Determines if authentication should be attempted
-    public func shouldAuthenticate() -> Bool {
-        return isArmed
+    /// Toggles the armed state
+    public func toggleArmedState() {
+        // This is now handled by arm/disarm methods in AppController
+        // This method is kept for backward compatibility
+        if appController.currentState == .disarmed {
+            appController.arm { _ in }
+        } else {
+            appController.disarm { _ in }
+        }
     }
+    
+    /// Cancels grace period
+    public func cancelGracePeriod() {
+        appController.cancelGracePeriodWithAuth { _ in }
+    }
+    
+    // MARK: - Notifications
     
     /// Creates notification content
     public func createNotificationContent(title: String, message: String) -> (title: String, informativeText: String, identifier: String) {
@@ -120,15 +162,25 @@ public class AppDelegateCore {
         return (title, message, identifier)
     }
     
-    // MARK: - State Management
-    
-    /// Toggles the armed state
-    public func toggleArmedState() {
-        isArmed.toggle()
-    }
-    
     /// Validates bundle identifier for notifications
     public func shouldRequestNotificationPermissions() -> Bool {
         return Bundle.main.bundleIdentifier != nil
+    }
+}
+
+// MARK: - AppDelegate Extension
+
+extension AppDelegate {
+    @objc func cancelGracePeriod() {
+        core.cancelGracePeriod()
+    }
+    
+    @objc func showEventLog() {
+        // TODO: Implement event log window
+        let events = core.appController.getEventLog(limit: 50)
+        print("=== Event Log ===")
+        for event in events {
+            print("[\(event.timestamp)] \(event.event.rawValue) - \(event.details ?? "No details")")
+        }
     }
 }

@@ -66,16 +66,3 @@ class MockAuthenticationContext: AuthenticationContextProtocol {
         invalidateCalled = false
     }
 }
-
-/// Mock factory for creating mock contexts
-class MockAuthenticationContextFactory: AuthenticationContextFactoryProtocol {
-    let mockContext: MockAuthenticationContext
-    
-    init(mockContext: MockAuthenticationContext) {
-        self.mockContext = mockContext
-    }
-    
-    func createContext() -> AuthenticationContextProtocol {
-        return mockContext
-    }
-}
