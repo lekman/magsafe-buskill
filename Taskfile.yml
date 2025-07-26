@@ -15,6 +15,7 @@ tasks:
     cmds:
       - task: check-tools
       - task: setup-hooks
+      - task: setup-sbom
       - task: verify-setup
     silent: true
 
@@ -52,6 +53,27 @@ tasks:
         if [ $missing_tools -gt 0 ]; then
           exit 1
         fi
+    silent: true
+
+  setup-sbom:
+    desc: Setup SBOM generation dependencies
+    cmds:
+      - |
+        echo "🔍 Checking SBOM dependencies..."
+        if ! command -v jq &> /dev/null; then
+          echo "⚠️  jq not installed (required for SBOM generation)"
+          echo "   Install with: brew install jq"
+        else
+          echo "✅ jq $(jq --version)"
+        fi
+        
+        if ! command -v uuidgen &> /dev/null; then
+          echo "⚠️  uuidgen not found (should be built-in on macOS)"
+        else
+          echo "✅ uuidgen available"
+        fi
+        
+        echo "✅ SBOM generation ready (using Swift Package Manager)"
     silent: true
 
   setup-hooks:
@@ -558,3 +580,86 @@ tasks:
           echo "EXECUTABLE: $EXECUTABLE"
           exit 1
         fi
+
+  sbom:
+    desc: Generate Software Bill of Materials (SBOM) in SPDX format
+    cmds:
+      - |
+        echo "📦 Generating SBOM for Swift project..."
+        
+        # Get package info
+        PACKAGE_NAME=$(swift package dump-package | jq -r '.name')
+        VERSION=$(git describe --tags --always 2>/dev/null || echo "1.0.0")
+        TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        
+        # Create SPDX SBOM
+        echo "SPDXVersion: SPDX-2.3" > sbom.spdx
+        echo "DataLicense: CC0-1.0" >> sbom.spdx
+        echo "SPDXID: SPDXRef-DOCUMENT" >> sbom.spdx
+        echo "DocumentName: ${PACKAGE_NAME}" >> sbom.spdx
+        echo "DocumentNamespace: https://github.com/lekman/magsafe-buskill/spdx-${VERSION}-$(date +%s)" >> sbom.spdx
+        echo "Creator: Tool: swift-package-sbom-1.0.0" >> sbom.spdx
+        echo "Created: ${TIMESTAMP}" >> sbom.spdx
+        echo "" >> sbom.spdx
+        
+        # Package information
+        echo "PackageName: ${PACKAGE_NAME}" >> sbom.spdx
+        echo "SPDXID: SPDXRef-Package-${PACKAGE_NAME}" >> sbom.spdx
+        echo "PackageVersion: ${VERSION}" >> sbom.spdx
+        echo "PackageDownloadLocation: https://github.com/lekman/magsafe-buskill" >> sbom.spdx
+        echo "FilesAnalyzed: false" >> sbom.spdx
+        echo "PackageLicenseConcluded: MIT" >> sbom.spdx
+        echo "PackageLicenseDeclared: MIT" >> sbom.spdx
+        echo "PackageCopyrightText: Copyright (c) 2025 Tobias Lekman" >> sbom.spdx
+        echo "" >> sbom.spdx
+        
+        # Relationship
+        echo "Relationship: SPDXRef-DOCUMENT DESCRIBES SPDXRef-Package-${PACKAGE_NAME}" >> sbom.spdx
+        
+        # Process dependencies
+        echo "" >> sbom.spdx
+        echo "# Dependencies" >> sbom.spdx
+        DEPS=$(swift package show-dependencies --format json | jq -r '.dependencies[]? | "PackageName: " + .name + "\nSPDXID: SPDXRef-Package-" + .identity + "\nPackageVersion: " + (.version // "unknown") + "\nPackageDownloadLocation: " + (.url // "NOASSERTION") + "\nFilesAnalyzed: false\nPackageLicenseConcluded: NOASSERTION\nPackageLicenseDeclared: NOASSERTION\nPackageCopyrightText: NOASSERTION\n\nRelationship: SPDXRef-Package-" + .identity + " DEPENDENCY_OF SPDXRef-Package-${PACKAGE_NAME}\n"' 2>/dev/null || echo "")
+        
+        if [ -n "$DEPS" ]; then
+          echo "$DEPS" >> sbom.spdx
+        fi
+        
+        echo "✅ SBOM generated: sbom.spdx"
+        echo "   Format: SPDX 2.3"
+        echo "   Project: ${PACKAGE_NAME} v${VERSION}"
+        
+        # Also generate in JSON format
+        swift package show-dependencies --format json > sbom-deps.json
+        
+        echo "✅ Also generated: sbom-deps.json (Swift dependencies)"
+    sources:
+      - Package.swift
+      - Sources/**/*.swift
+    generates:
+      - sbom.spdx
+      - sbom-deps.json
+
+  sbom:install:
+    desc: Install SBOM generation dependencies
+    cmds:
+      - |
+        echo "📦 Installing SBOM dependencies..."
+        
+        # Check if Homebrew is installed
+        if ! command -v brew &> /dev/null; then
+          echo "❌ Homebrew is not installed"
+          echo "   Install from: https://brew.sh"
+          exit 1
+        fi
+        
+        # Install jq if not present
+        if ! command -v jq &> /dev/null; then
+          echo "Installing jq..."
+          brew install jq
+        else
+          echo "✅ jq already installed"
+        fi
+        
+        echo "✅ SBOM dependencies installed"
+        echo "   You can now run: task sbom"

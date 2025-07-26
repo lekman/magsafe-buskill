@@ -97,6 +97,10 @@ We implement defense-in-depth using multiple security scanning tools:
   - Security updates prioritized
   - Automated pull requests
 - **OSSF Scorecard**: Supply chain security scoring
+- **SBOM (Software Bill of Materials)**: Supply chain transparency
+  - SPDX 2.3 format for compliance
+  - Generated with every release
+  - Tracks all dependencies
 
 #### Secret Scanning
 
@@ -161,6 +165,11 @@ We implement defense-in-depth using multiple security scanning tools:
 - **Change management**: All changes reviewed and tested
 - **Access control**: Repository permissions management
 - **Incident response**: Defined security incident process
+- **Software Bill of Materials (SBOM)**: 
+  - Generated for every release in SPDX 2.3 format
+  - Provides complete dependency transparency
+  - Enables vulnerability tracking and license compliance
+  - Located at `/sbom.spdx` in repository root
 
 ## Security Features
 

@@ -35,6 +35,7 @@ Welcome to the MagSafe Guard documentation. This directory contains all project 
 - [Security Implementation Guide](security/security-implementation-guide.md) - Security best practices
 - [Authentication Hardening](security/authentication-hardening.md) - Biometric security measures
 - [SSDLC Case Study](security/ssdlc-case-study.md) - Secure Software Development Lifecycle
+- [Software Bill of Materials (SBOM)](security/sbom-guide.md) - Supply chain transparency and compliance
 - [Semgrep Integration](security/semgrep.md) - Static security analysis
 - [Snyk Integration](security/snyk-integration.md) - Dependency vulnerability scanning
 - [Snyk Policy Justification](security/snyk-evaluatepolicy-justification.md) - Security policy rationale

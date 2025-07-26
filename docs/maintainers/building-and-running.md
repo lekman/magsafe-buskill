@@ -247,6 +247,26 @@ swift test --filter PowerMonitorServiceTests
    - Unplug and replug your power adapter to see status changes
    - View battery level and charging status
 
+## Build Artifacts
+
+### Software Bill of Materials (SBOM)
+
+Generate an SBOM for security compliance and dependency tracking:
+
+```bash
+# Generate SBOM in SPDX format
+task sbom
+
+# Install dependencies if needed
+task sbom:install
+```
+
+This creates:
+- `sbom.spdx` - SPDX 2.3 format SBOM
+- `sbom-deps.json` - Swift dependencies in JSON
+
+See the [SBOM Guide](../security/sbom-guide.md) for details.
+
 #### Testing Security Features
 
 1. From the menu bar:

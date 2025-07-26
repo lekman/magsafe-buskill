@@ -13,7 +13,8 @@ MagSafe Guard transforms your Mac's power connection into an intelligent securit
 ⏱️ **Smart Grace Period** - Prevents false alarms with configurable delay (10 seconds default)  
 🎯 **Customizable Actions** - From simple screen lock to full system shutdown  
 📍 **Location Aware** - Automatically arms in public spaces, disarms at trusted locations  
-🔌 **Universal Compatibility** - Works with any Mac power adapter (MagSafe, USB-C, or third-party)
+🔌 **Universal Compatibility** - Works with any Mac power adapter (MagSafe, USB-C, or third-party)  
+📋 **Supply Chain Transparency** - Software Bill of Materials (SBOM) included for security compliance
 
 ### How It Works
 
