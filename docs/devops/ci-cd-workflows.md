@@ -114,7 +114,7 @@ All workflows include automatic cancellation of redundant runs to optimize CI/CD
 - `security-policy`: Validates SECURITY.md exists
 - `semgrep`: Additional SAST scanning
 - `license-scan`: License compliance
-- `scorecard`: OpenSSF security scorecard (reports to GHAS only)
+- `scorecard`: OpenSSF security scorecard (reports to GHAS only, not published to dashboard)
 - `security-summary`: Aggregates all results
 
 **Required for merge**: Yes (basic-checks) ✅

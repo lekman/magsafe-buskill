@@ -157,9 +157,9 @@ jobs:
         file: ./coverage.xml
         flags: unittests
         name: codecov-swift
+        token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: false # Don't fail if upload fails
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        verbose: true # Enable verbose output for debugging
     
     # SonarCloud Analysis
     - name: Install and run SonarCloud Scan

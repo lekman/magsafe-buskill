@@ -121,11 +121,11 @@ Need help or found an issue? We're here to assist:
 
 The following tasks are used by our automated CI/CD pipeline and are not needed for normal development:
 
-```bash
+```ini
 task test           # Run all tests (CI/CD)
 task test:security  # Run security checks (CI/CD)
-task lint          # Run linters (CI/CD)
-task pre-push      # Pre-push checks (CI/CD)
+task lint           # Run linters (CI/CD)
+task pre-push       # Pre-push checks (CI/CD)
 ```
 
 ## System Requirements
@@ -136,18 +136,7 @@ task pre-push      # Pre-push checks (CI/CD)
 
 ## Security & Quality
 
-[![Security Scan](https://img.shields.io/github/actions/workflow/status/lekman/magsafe-buskill/security.yml?branch=main&label=Security%20Scan)](https://github.com/lekman/magsafe-buskill/actions/workflows/security.yml)
-[![codecov](https://codecov.io/gh/lekman/magsafe-buskill/graph/badge.svg?token=AshUsxKtAI)](https://codecov.io/gh/lekman/magsafe-buskill)
-[![Known Vulnerabilities](https://snyk.io/test/github/lekman/magsafe-buskill/badge.svg)](https://snyk.io/test/github/lekman/magsafe-buskill)
-[![License](https://img.shields.io/github/license/lekman/magsafe-buskill)](./LICENSE)
-
-Security is our top priority. We use multiple tools to ensure code quality:
-
-- **GitHub Advanced Security** - CodeQL analysis and secret scanning
-- **Semgrep** - Static analysis for security patterns
-- **Snyk** - Vulnerability scanning (protected by [Snyk](https://snyk.io))
-
-View our [Security Dashboard](docs/QA.md) for detailed status.
+View our [Quality Assurance Dashboard](docs/QA.md) for security status, code coverage, and quality metrics.
 
 ## Privacy & Security
 
@@ -164,43 +153,45 @@ For details on the project progress, planned initiatives and current status, exp
 <summary>Expand task status report</summary>
 
 <!-- TASKMASTER_EXPORT_START -->
+
 > 🎯 **Taskmaster Export** - 2025-07-25 20:20:47 UTC
 > 📋 Export: without subtasks • Status filter: none
 > 🔗 Powered by [Task Master](https://task-master.dev?utm_source=github-readme&utm_medium=readme-export&utm_campaign=magsafe-buskill&utm_content=task-export-link)
 
-| Project Dashboard |  |
-| :-                |:-|
+| Project Dashboard |                          |
+| :---------------- | :----------------------- |
 | Task Progress     | █████░░░░░░░░░░░░░░░ 27% |
-| Done | 4 |
-| In Progress | 0 |
-| Pending | 11 |
-| Deferred | 0 |
-| Cancelled | 0 |
-|-|-|
-| Subtask Progress | ████░░░░░░░░░░░░░░░░ 20% |
-| Completed | 18 |
-| In Progress | 0 |
-| Pending | 72 |
+| Done              | 4                        |
+| In Progress       | 0                        |
+| Pending           | 11                       |
+| Deferred          | 0                        |
+| Cancelled         | 0                        |
+| -                 | -                        |
+| Subtask Progress  | ████░░░░░░░░░░░░░░░░ 20% |
+| Completed         | 18                       |
+| In Progress       | 0                        |
+| Pending           | 72                       |
 
-| ID | Title | Status | Priority | Dependencies | Complexity |
-| :- | :-    | :-     | :-       | :-           | :-         |
-| 1 | Setup Project Repository and Structure | ✓&nbsp;done | high | None | ● 4 |
-| 2 | Implement Power Monitoring Service | ✓&nbsp;done | high | 1 | ● 7 |
-| 3 | Implement Authentication Service | ✓&nbsp;done | high | 1 | ● 6 |
-| 4 | Implement Security Actions Service | ✓&nbsp;done | high | 1 | ● 7 |
-| 5 | Create Menu Bar UI Component | ○&nbsp;pending | high | 1 | ● 6 |
-| 6 | Implement Core Application Logic | ○&nbsp;pending | high | 2, 3, 4, 5 | ● 8 |
-| 7 | Implement Settings UI and Persistence | ○&nbsp;pending | medium | 1, 6 | ● 6 |
-| 8 | Implement Auto-Arm Feature | ○&nbsp;pending | medium | 6, 7 | ● 7 |
-| 9 | Implement Find My Mac Integration | ○&nbsp;pending | low | 6 | ● 5 |
-| 10 | Implement Custom Script Execution | ○&nbsp;pending | low | 6, 7 | ● 6 |
-| 11 | Implement Network Actions | ○&nbsp;pending | low | 6, 7 | ● 6 |
-| 12 | Implement Data Protection Features | ○&nbsp;pending | low | 6, 7 | ● 7 |
-| 13 | Implement Accessibility Features | ○&nbsp;pending | medium | 5, 7 | ● 6 |
-| 14 | Implement Documentation and Help System | ○&nbsp;pending | medium | 1, 5, 6, 7 | ● 5 |
-| 15 | Implement Code Signing and Distribution | ○&nbsp;pending | high | 1, 2, 3, 4, 5, 6, 7 | ● 8 |
+| ID  | Title                                   | Status         | Priority | Dependencies        | Complexity |
+| :-- | :-------------------------------------- | :------------- | :------- | :------------------ | :--------- |
+| 1   | Setup Project Repository and Structure  | ✓&nbsp;done    | high     | None                | ● 4        |
+| 2   | Implement Power Monitoring Service      | ✓&nbsp;done    | high     | 1                   | ● 7        |
+| 3   | Implement Authentication Service        | ✓&nbsp;done    | high     | 1                   | ● 6        |
+| 4   | Implement Security Actions Service      | ✓&nbsp;done    | high     | 1                   | ● 7        |
+| 5   | Create Menu Bar UI Component            | ○&nbsp;pending | high     | 1                   | ● 6        |
+| 6   | Implement Core Application Logic        | ○&nbsp;pending | high     | 2, 3, 4, 5          | ● 8        |
+| 7   | Implement Settings UI and Persistence   | ○&nbsp;pending | medium   | 1, 6                | ● 6        |
+| 8   | Implement Auto-Arm Feature              | ○&nbsp;pending | medium   | 6, 7                | ● 7        |
+| 9   | Implement Find My Mac Integration       | ○&nbsp;pending | low      | 6                   | ● 5        |
+| 10  | Implement Custom Script Execution       | ○&nbsp;pending | low      | 6, 7                | ● 6        |
+| 11  | Implement Network Actions               | ○&nbsp;pending | low      | 6, 7                | ● 6        |
+| 12  | Implement Data Protection Features      | ○&nbsp;pending | low      | 6, 7                | ● 7        |
+| 13  | Implement Accessibility Features        | ○&nbsp;pending | medium   | 5, 7                | ● 6        |
+| 14  | Implement Documentation and Help System | ○&nbsp;pending | medium   | 1, 5, 6, 7          | ● 5        |
+| 15  | Implement Code Signing and Distribution | ○&nbsp;pending | high     | 1, 2, 3, 4, 5, 6, 7 | ● 8        |
 
 > 📋 **End of Taskmaster Export** - Tasks are synced from your project using the `sync-readme` command.
+
 <!-- TASKMASTER_EXPORT_END -->
 
 </details>
