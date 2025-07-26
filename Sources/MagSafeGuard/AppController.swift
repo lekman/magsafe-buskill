@@ -362,7 +362,11 @@ public class AppController: ObservableObject {
     
     @objc private func handleGracePeriodCancellationRequest() {
         if isInGracePeriod {
-            cancelGracePeriodWithAuth { _ in }
+            cancelGracePeriodWithAuth { _ in
+                // Empty completion - errors are already logged internally by cancelGracePeriodWithAuth
+                // and user notifications are shown. This is a fire-and-forget operation triggered
+                // by the notification center, so no additional error handling is needed here.
+            }
         }
     }
 }

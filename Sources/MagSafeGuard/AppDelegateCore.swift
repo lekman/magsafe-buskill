@@ -116,7 +116,7 @@ public class AppDelegateCore {
     }
     
     /// Updates the menu item states based on current status
-    public func updateMenuItems(in menu: NSMenu) {
+    public func updateMenuItems(in _: NSMenu) {
         // The menu is recreated each time, so this is not needed anymore
         // But kept for backward compatibility
     }
@@ -131,7 +131,7 @@ public class AppDelegateCore {
     // MARK: - Power Monitoring
     
     /// Handles power state changes (for backward compatibility)
-    public func handlePowerStateChange(_ powerInfo: PowerMonitorService.PowerInfo) -> Bool {
+    public func handlePowerStateChange(_ _: PowerMonitorService.PowerInfo) -> Bool {
         // The AppController now handles this internally
         return false
     }
@@ -143,15 +143,24 @@ public class AppDelegateCore {
         // This is now handled by arm/disarm methods in AppController
         // This method is kept for backward compatibility
         if appController.currentState == .disarmed {
-            appController.arm { _ in }
+            appController.arm { _ in
+                // Empty completion - errors are handled internally by AppController
+                // which shows authentication dialogs and notifications to the user
+            }
         } else {
-            appController.disarm { _ in }
+            appController.disarm { _ in
+                // Empty completion - errors are handled internally by AppController
+                // which shows authentication dialogs and notifications to the user
+            }
         }
     }
     
     /// Cancels grace period
     public func cancelGracePeriod() {
-        appController.cancelGracePeriodWithAuth { _ in }
+        appController.cancelGracePeriodWithAuth { _ in
+            // Empty completion - errors are handled internally by AppController
+            // which shows authentication dialogs and notifications to the user
+        }
     }
     
     // MARK: - Notifications
