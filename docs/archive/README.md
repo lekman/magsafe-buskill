@@ -6,6 +6,7 @@ This directory contains archived documentation from completed features and pull 
 
 ### Feature Implementation PRs
 
+- [pr.core-app-logic.md](pr.core-app-logic.md) - Core application logic implementation
 - [pr.feature-authentication.md](pr.feature-authentication.md) - Authentication service implementation
 - [pr.feature-power-monitoring.md](pr.feature-power-monitoring.md) - Power monitoring service implementation
 - [pr.menu-bar-ui.md](pr.menu-bar-ui.md) - Menu bar UI component implementation

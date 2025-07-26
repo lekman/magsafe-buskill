@@ -72,6 +72,10 @@ public class AppController: ObservableObject {
     private var eventLog: [EventLogEntry] = []
     private let eventLogQueue = DispatchQueue(label: "com.magsafeguard.eventlog")
     
+    // MARK: - Constants
+    
+    private static let userCancelledMessage = "User cancelled"
+    
     // MARK: - Callbacks
     
     public var onStateChange: ((AppState, AppState) -> Void)?
@@ -118,7 +122,7 @@ public class AppController: ObservableObject {
                 completion(.failure(error))
                 
             case .cancelled:
-                self.logEventInternal(.authenticationFailed, details: "User cancelled")
+                self.logEventInternal(.authenticationFailed, details: AppController.userCancelledMessage)
                 completion(.failure(AppControllerError.authenticationRequired))
             }
         }
@@ -152,7 +156,7 @@ public class AppController: ObservableObject {
                 completion(.failure(error))
                 
             case .cancelled:
-                self.logEventInternal(.authenticationFailed, details: "User cancelled")
+                self.logEventInternal(.authenticationFailed, details: AppController.userCancelledMessage)
                 completion(.failure(AppControllerError.authenticationRequired))
             }
         }
@@ -181,7 +185,7 @@ public class AppController: ObservableObject {
                 completion(.failure(error))
                 
             case .cancelled:
-                self.logEventInternal(.authenticationFailed, details: "User cancelled")
+                self.logEventInternal(.authenticationFailed, details: AppController.userCancelledMessage)
                 completion(.failure(AppControllerError.authenticationRequired))
             }
         }
