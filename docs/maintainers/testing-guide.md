@@ -221,8 +221,8 @@ task test:coverage:html
 # Run specific test file
 task test -- --filter SecurityActionsServiceTests
 
-# Run tests in CI mode (non-interactive)
-CI=true task test
+# Run tests
+task test
 ```
 
 ### Manual Test Commands
@@ -245,10 +245,9 @@ xcrun llvm-cov report \
 
 The test suite recognizes these environment variables:
 
-- **`CI=true`**: Enables CI mode for non-interactive testing
-  - Skips authentication dialogs
-  - Adjusts timeouts for CI environment
-  - Enables additional logging
+- **`CI=true`**: (Deprecated - no longer needed with protocol-based testing)
+  - Previously used to skip authentication dialogs
+  - No longer required since tests use mocks
 
 - **`SKIP_UI_TESTS=true`**: Skip UI-dependent tests
 
@@ -257,7 +256,7 @@ The test suite recognizes these environment variables:
 Example:
 
 ```bash
-CI=true COVERAGE_THRESHOLD=85 task test:coverage
+COVERAGE_THRESHOLD=85 task test:coverage
 ```
 
 ## Writing Effective Tests
@@ -407,7 +406,7 @@ task test:convert  # Converts LCOV to SonarQube XML
 - ✅ Mock external dependencies
 - ✅ Write tests before fixing bugs
 - ✅ Keep tests fast and isolated
-- ✅ Use `CI=true` for automated testing
+- ✅ Use proper mocks for automated testing
 
 ### DON'T
 
@@ -424,13 +423,13 @@ task test:convert  # Converts LCOV to SonarQube XML
 
 1. **"Authentication dialog appears during tests"**
    - Ensure you're using mock authentication context
-   - Check that `CI=true` is set
+   - Ensure mock authentication context is used
    - Verify mock factory is properly injected
 
 2. **"Tests timeout in CI"**
    - Add explicit timeouts to async tests
    - Mock time-dependent operations
-   - Use `CI=true` to adjust timeouts
+   - Use explicit timeouts in async tests
 
 3. **"Coverage is lower than expected"**
    - Check exclusion patterns in Taskfile
@@ -458,10 +457,8 @@ override func tearDown() {
     super.tearDown()
 }
 
-// Check CI environment
-if ProcessInfo.processInfo.environment["CI"] != nil {
-    print("Running in CI mode")
-}
+// Tests now work the same locally and in CI
+// No special environment checks needed
 ```
 
 ## Future Improvements

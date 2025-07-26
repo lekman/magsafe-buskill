@@ -62,8 +62,8 @@ jobs:
     runs-on: macos-latest
     needs: [check-skip, cancel-redundant]
     if: needs.check-skip.outputs.should-skip != 'true'
-    env:
-      CI: true
+    permissions:
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -154,7 +154,8 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
+          codecov_yml_path: .codecov.yml
 
       - name: Install and run SonarCloud Scan
         env:
