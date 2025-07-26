@@ -48,7 +48,6 @@ Welcome to the MagSafe Guard documentation. This directory contains all project 
 - [Test Coverage](maintainers/test-coverage.md) - Coverage reports and targets
 - [Maintenance Tasks](maintainers/tasks.md) - Taskfile commands and workflows
 - [Troubleshooting](maintainers/troubleshooting.md) - Common issues and solutions
-- [Figma Resources](maintainers/figma.md) - Design assets and mockups
 
 ## 📁 Directory Structure
 
