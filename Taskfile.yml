@@ -66,13 +66,13 @@ tasks:
         else
           echo "✅ jq $(jq --version)"
         fi
-        
+
         if ! command -v uuidgen &> /dev/null; then
           echo "⚠️  uuidgen not found (should be built-in on macOS)"
         else
           echo "✅ uuidgen available"
         fi
-        
+
         echo "✅ SBOM generation ready (using Swift Package Manager)"
     silent: true
 
@@ -354,37 +354,159 @@ tasks:
         echo "✅ Clean complete"
 
   run:
-    desc: Build and run MagSafe Guard
+    desc: Build and run MagSafe Guard as a menu bar app
+    silent: true
     cmds:
       - |
-        echo "🚀 Building MagSafe Guard..."
+        echo "🔨 Building MagSafe Guard..."
 
-        # Try xcodebuild first for proper bundling
-        if command -v xcodebuild &> /dev/null; then
-          xcodebuild -project MagSafeGuard.xcodeproj \
-                     -scheme MagSafeGuard \
-                     -configuration Debug \
-                     -derivedDataPath build \
-                     build
-          
-          if [ $? -eq 0 ]; then
-            echo "✅ Build successful!"
-            APP_PATH="build/Build/Products/Debug/MagSafeGuard.app"
-            if [ -d "$APP_PATH" ]; then
-              echo "Launching MagSafe Guard..."
-              open "$APP_PATH"
-              echo "Look for the lock shield icon in your menu bar."
-            fi
-          else
-            echo "❌ Build failed"
-            exit 1
-          fi
-        else
-          # Fallback to swift build
-          swift build
-          echo "✅ Build complete. Run: .build/debug/MagSafeGuard"
-          echo "Note: For proper app bundle, use Xcode."
+        # Build in release mode for better performance
+        swift build -c release
+
+        # Find the built executable
+        EXECUTABLE_PATH=".build/release/MagSafeGuard"
+
+        if [ ! -f "$EXECUTABLE_PATH" ]; then
+          echo "❌ Build failed or executable not found"
+          exit 1
         fi
+
+        echo "✅ Build complete"
+
+        # Create a minimal app bundle structure
+        APP_NAME="MagSafeGuard.app"
+        APP_PATH="/tmp/$APP_NAME"
+        CONTENTS_PATH="$APP_PATH/Contents"
+        MACOS_PATH="$CONTENTS_PATH/MacOS"
+
+        echo "📦 Creating app bundle..."
+
+        # Remove old app if exists
+        rm -rf "$APP_PATH"
+
+        # Create directory structure
+        mkdir -p "$MACOS_PATH"
+
+        # Copy executable
+        cp "$EXECUTABLE_PATH" "$MACOS_PATH/MagSafeGuard"
+
+        # Create Info.plist
+        cat > "$CONTENTS_PATH/Info.plist" <<EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>CFBundleExecutable</key>
+            <string>MagSafeGuard</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.lekman.MagSafeGuard</string>
+            <key>CFBundleName</key>
+            <string>MagSafe Guard</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0</string>
+            <key>CFBundleVersion</key>
+            <string>1</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>13.0</string>
+            <key>LSUIElement</key>
+            <true/>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+        </dict>
+        </plist>
+        EOF
+
+        echo "✅ App bundle created at: $APP_PATH"
+        echo "🚀 Launching MagSafe Guard..."
+        echo ""
+        echo "ℹ️  The app will run in the menu bar (top right of your screen)"
+        echo "ℹ️  Look for 'MG' text or a shield icon"
+        echo ""
+
+        # Launch the app
+        open "$APP_PATH"
+
+        echo ""
+        echo "✅ MagSafe Guard is now running in your menu bar!"
+        echo ""
+        echo "💡 Tips:"
+        echo "   - Look for 'MG' text or shield icon in the menu bar"
+        echo "   - Click the icon to see the menu"
+        echo "   - Select 'Arm' to enable protection"
+        echo "   - Select 'Show Demo...' to test power monitoring"
+        echo ""
+        echo "To stop the app: Click the menu bar icon and select 'Quit MagSafe Guard'"
+
+  run:debug:
+    desc: Build and run MagSafe Guard in debug mode
+    cmds:
+      - |
+        echo "🔨 Building MagSafe Guard (debug mode)..."
+
+        # Build in debug mode
+        swift build
+
+        # Find the built executable
+        EXECUTABLE_PATH=".build/debug/MagSafeGuard"
+
+        if [ ! -f "$EXECUTABLE_PATH" ]; then
+          echo "❌ Build failed or executable not found"
+          exit 1
+        fi
+
+        echo "✅ Build complete"
+
+        # Create a minimal app bundle structure
+        APP_NAME="MagSafeGuard-Debug.app"
+        APP_PATH="/tmp/$APP_NAME"
+        CONTENTS_PATH="$APP_PATH/Contents"
+        MACOS_PATH="$CONTENTS_PATH/MacOS"
+
+        echo "📦 Creating debug app bundle..."
+
+        # Remove old app if exists
+        rm -rf "$APP_PATH"
+
+        # Create directory structure
+        mkdir -p "$MACOS_PATH"
+
+        # Copy executable
+        cp "$EXECUTABLE_PATH" "$MACOS_PATH/MagSafeGuard"
+
+        # Create Info.plist
+        cat > "$CONTENTS_PATH/Info.plist" <<EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>CFBundleExecutable</key>
+            <string>MagSafeGuard</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.lekman.MagSafeGuard.debug</string>
+            <key>CFBundleName</key>
+            <string>MagSafe Guard (Debug)</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0</string>
+            <key>CFBundleVersion</key>
+            <string>1</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>13.0</string>
+            <key>LSUIElement</key>
+            <true/>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+        </dict>
+        </plist>
+        EOF
+
+        echo "✅ Debug app bundle created"
+        echo "🚀 Launching MagSafe Guard (Debug)..."
+
+        # Launch the app
+        open "$APP_PATH"
+
+        echo ""
+        echo "✅ Running in debug mode - check console for debug output"
 
   dev:setup:
     desc: Complete development setup (hooks + tools)
@@ -586,12 +708,12 @@ tasks:
     cmds:
       - |
         echo "📦 Generating SBOM for Swift project..."
-        
+
         # Get package info
         PACKAGE_NAME=$(swift package dump-package | jq -r '.name')
         VERSION=$(git describe --tags --always 2>/dev/null || echo "1.0.0")
         TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-        
+
         # Create SPDX SBOM
         echo "SPDXVersion: SPDX-2.3" > sbom.spdx
         echo "DataLicense: CC0-1.0" >> sbom.spdx
@@ -601,7 +723,7 @@ tasks:
         echo "Creator: Tool: swift-package-sbom-1.0.0" >> sbom.spdx
         echo "Created: ${TIMESTAMP}" >> sbom.spdx
         echo "" >> sbom.spdx
-        
+
         # Package information
         echo "PackageName: ${PACKAGE_NAME}" >> sbom.spdx
         echo "SPDXID: SPDXRef-Package-${PACKAGE_NAME}" >> sbom.spdx
@@ -612,26 +734,26 @@ tasks:
         echo "PackageLicenseDeclared: MIT" >> sbom.spdx
         echo "PackageCopyrightText: Copyright (c) 2025 Tobias Lekman" >> sbom.spdx
         echo "" >> sbom.spdx
-        
+
         # Relationship
         echo "Relationship: SPDXRef-DOCUMENT DESCRIBES SPDXRef-Package-${PACKAGE_NAME}" >> sbom.spdx
-        
+
         # Process dependencies
         echo "" >> sbom.spdx
         echo "# Dependencies" >> sbom.spdx
         DEPS=$(swift package show-dependencies --format json | jq -r '.dependencies[]? | "PackageName: " + .name + "\nSPDXID: SPDXRef-Package-" + .identity + "\nPackageVersion: " + (.version // "unknown") + "\nPackageDownloadLocation: " + (.url // "NOASSERTION") + "\nFilesAnalyzed: false\nPackageLicenseConcluded: NOASSERTION\nPackageLicenseDeclared: NOASSERTION\nPackageCopyrightText: NOASSERTION\n\nRelationship: SPDXRef-Package-" + .identity + " DEPENDENCY_OF SPDXRef-Package-${PACKAGE_NAME}\n"' 2>/dev/null || echo "")
-        
+
         if [ -n "$DEPS" ]; then
           echo "$DEPS" >> sbom.spdx
         fi
-        
+
         echo "✅ SBOM generated: sbom.spdx"
         echo "   Format: SPDX 2.3"
         echo "   Project: ${PACKAGE_NAME} v${VERSION}"
-        
+
         # Also generate in JSON format
         swift package show-dependencies --format json > sbom-deps.json
-        
+
         echo "✅ Also generated: sbom-deps.json (Swift dependencies)"
     sources:
       - Package.swift
@@ -645,14 +767,14 @@ tasks:
     cmds:
       - |
         echo "📦 Installing SBOM dependencies..."
-        
+
         # Check if Homebrew is installed
         if ! command -v brew &> /dev/null; then
           echo "❌ Homebrew is not installed"
           echo "   Install from: https://brew.sh"
           exit 1
         fi
-        
+
         # Install jq if not present
         if ! command -v jq &> /dev/null; then
           echo "Installing jq..."
@@ -660,6 +782,6 @@ tasks:
         else
           echo "✅ jq already installed"
         fi
-        
+
         echo "✅ SBOM dependencies installed"
         echo "   You can now run: task sbom"

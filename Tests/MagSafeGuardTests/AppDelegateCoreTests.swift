@@ -89,11 +89,11 @@ final class AppDelegateCoreTests: XCTestCase {
     func testStatusIconName() {
         // Not armed
         core.isArmed = false
-        XCTAssertEqual(core.statusIconName(), "lock")
+        XCTAssertEqual(core.statusIconName(), "shield")
         
         // Armed
         core.isArmed = true
-        XCTAssertEqual(core.statusIconName(), "lock.fill")
+        XCTAssertEqual(core.statusIconName(), "shield.fill")
     }
     
     // MARK: - Power Monitoring Tests
@@ -222,7 +222,7 @@ final class AppDelegateCoreTests: XCTestCase {
         XCTAssertEqual(menu.items[0].state, .on)
         
         // Check icon
-        XCTAssertEqual(core.statusIconName(), "lock.fill")
+        XCTAssertEqual(core.statusIconName(), "shield.fill")
         
         // Simulate power disconnect
         let powerInfo = PowerMonitorService.PowerInfo(

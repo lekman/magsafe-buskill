@@ -218,7 +218,55 @@ View print statements and logs:
 
 - Adapter wattage detection may not work on all Mac models
 - Notifications require proper app bundle (see Troubleshooting)
-- Menu bar icon may not appear immediately on some systems
+- Menu bar icon may not appear when running directly from Xcode (see Menu Bar Troubleshooting below)
+
+## Menu Bar Troubleshooting
+
+### Icon Not Showing in Xcode
+
+When running from Xcode, the menu bar icon may not appear due to missing bundle configuration. This is because:
+
+1. Swift Package Manager executables don't have Info.plist by default
+2. Menu bar apps require `LSUIElement = YES` in Info.plist
+3. Xcode needs a proper bundle identifier for menu bar apps
+
+#### Solution 1: Use Task Run Command (Recommended)
+
+```bash
+# Build and run as a proper menu bar app
+task run
+
+# Or run in debug mode
+task run:debug
+```
+
+This task:
+- Builds the app in release mode
+- Creates a minimal app bundle with proper Info.plist
+- Sets LSUIElement to hide the dock icon
+- Launches the app with proper bundle configuration
+
+#### Solution 2: Xcode Scheme Settings
+
+1. Product → Scheme → Edit Scheme
+2. Run → Options → Launch: "Wait for executable to be launched"
+3. Build and Run
+4. Manually launch from: `.build/debug/MagSafeGuard`
+
+#### Solution 3: Create Xcode Project
+
+For full Xcode integration:
+1. File → New → Project → macOS → App
+2. Copy source files to new project
+3. Add LSUIElement = YES to Info.plist
+4. Set "Application is agent" in project settings
+
+### Text Instead of Icon
+
+If you see "MG" text instead of the shield icon:
+- SF Symbols may not be available in development mode
+- The app falls back to text when icons fail to load
+- This is normal when running without a proper bundle
 
 ## Testing
 
@@ -282,7 +330,7 @@ See the [SBOM Guide](../security/sbom-guide.md) for details.
 - [ ] Menu opens on click
 - [ ] Demo window opens
 - [ ] Power detection works (unplug/replug adapter)
-- [ ] Armed mode changes icon to red
+- [ ] Armed mode changes icon to filled shield
 - [ ] Disarmed mode changes icon to outline
 - [ ] Screen locks when power disconnected while armed
 - [ ] Notifications appear (if supported)

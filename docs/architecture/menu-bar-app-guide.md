@@ -22,21 +22,23 @@ statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLeng
 
 **Icon States**:
 
-- **Disarmed**: `lock.shield` (outline icon)
-- **Armed**: `lock.shield.fill` (filled icon, red tint)
+- **Disarmed**: `shield` (outline icon)
+- **Armed**: `shield.fill` (filled icon)
 
 **Implementation**:
 
 ```swift
 private func updateStatusIcon() {
     if let button = statusItem?.button {
-        let iconName = isArmed ? "lock.shield.fill" : "lock.shield"
-        button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "MagSafe Guard")
-
-        if isArmed {
-            button.contentTintColor = .systemRed
-        } else {
-            button.contentTintColor = nil
+        let iconName = isArmed ? "shield.fill" : "shield"
+        let image = NSImage(systemSymbolName: iconName, accessibilityDescription: "MagSafe Guard")
+        
+        if let image = image {
+            // Set as template image for automatic dark/light mode adaptation
+            let templateImage = image.copy() as! NSImage
+            templateImage.isTemplate = true
+            button.image = templateImage
+            button.contentTintColor = nil  // Use system default color
         }
     }
 }

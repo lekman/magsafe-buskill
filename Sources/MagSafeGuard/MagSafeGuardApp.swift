@@ -41,19 +41,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             requestNotificationPermissions()
         } else {
             print("[AppDelegate] Running without bundle identifier - notifications disabled")
+            print("[AppDelegate] TIP: To see menu bar icon in Xcode:")
+            print("[AppDelegate]   1. Product > Scheme > Edit Scheme")
+            print("[AppDelegate]   2. Run > Options > Launch: Wait for executable to be launched")
+            print("[AppDelegate]   3. Build and Run, then manually launch from build folder")
         }
         
-        // Create the status item
+        // Create the status item - use a strong reference
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         
+        // Ensure the status item is retained
+        statusItem?.isVisible = true
+        
         if let button = statusItem?.button {
+            // Set a title first to ensure visibility
+            button.title = "MG"
+            
+            // Then try to set the icon
             updateStatusIcon()
             button.action = #selector(statusItemClicked)
             button.target = self
             
+            // Force the button to be visible
+            button.appearsDisabled = false
+            
             // Log status
             print("[AppDelegate] Status button created: \(button)")
+            print("[AppDelegate] Button frame: \(button.frame)")
+            print("[AppDelegate] Button superview: \(button.superview?.description ?? "nil")")
             print("[AppDelegate] Button image: \(button.image?.description ?? "nil")")
+            print("[AppDelegate] Button title: \(button.title)")
         } else {
             print("[AppDelegate] ERROR: Failed to create status button")
         }
@@ -75,33 +92,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let iconName = core.statusIconName()
             let image = NSImage(systemSymbolName: iconName, accessibilityDescription: "MagSafe Guard")
             
-            // If SF Symbol fails, try a fallback
-            if image == nil {
-                print("[AppDelegate] WARNING: Failed to load SF Symbol '\(iconName)', using fallback")
-                // Create a simple circle as fallback
-                let fallbackImage = NSImage(size: NSSize(width: 18, height: 18))
-                fallbackImage.lockFocus()
-                let path = NSBezierPath(ovalIn: NSRect(x: 2, y: 2, width: 14, height: 14))
-                if core.isArmed {
-                    NSColor.systemRed.setFill()
-                } else {
-                    NSColor.labelColor.setFill()
-                }
-                path.fill()
-                fallbackImage.unlockFocus()
-                button.image = fallbackImage
+            // If SF Symbol works, use it
+            if let image = image {
+                // Create a copy and set as template to ensure proper dark/light mode handling
+                let templateImage = image.copy() as! NSImage
+                templateImage.isTemplate = true
+                button.image = templateImage
+                // Clear the title when we have an icon
+                button.title = ""
+                
+                print("[AppDelegate] Icon updated: \(iconName)")
             } else {
-                button.image = image
-                // Make it a template image so it adapts to menu bar appearance
-                button.image?.isTemplate = true
+                // Fallback to text if icon fails
+                print("[AppDelegate] WARNING: Failed to load SF Symbol '\(iconName)', using text fallback")
+                button.image = nil
+                button.title = core.isArmed ? "MG!" : "MG"
             }
             
-            // Color the icon based on armed state
-            if core.isArmed {
-                button.contentTintColor = .systemRed
-            } else {
-                button.contentTintColor = nil
-            }
+            // Ensure the icon uses system appearance (no custom tint)
+            button.contentTintColor = nil
         }
     }
     
