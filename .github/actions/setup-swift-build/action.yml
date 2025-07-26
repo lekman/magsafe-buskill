@@ -1,0 +1,66 @@
+name: 'Setup Swift Build Environment'
+description: 'Sets up Swift toolchain, Xcode, and caching for efficient builds'
+
+inputs:
+  swift-version:
+    description: 'Swift version to use'
+    required: false
+    default: '5.9'
+  xcode-version:
+    description: 'Xcode version to use'
+    required: false
+    default: 'latest-stable'
+  cache-key-suffix:
+    description: 'Additional suffix for cache key'
+    required: false
+    default: ''
+
+outputs:
+  cache-hit:
+    description: 'Whether cache was hit'
+    value: ${{ steps.cache.outputs.cache-hit }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Swift
+      if: runner.os == 'Linux'
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: ${{ inputs.swift-version }}
+
+    - name: Set up Xcode
+      if: runner.os == 'macOS'
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: ${{ inputs.xcode-version }}
+
+    - name: Cache SPM dependencies
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          .build
+          ~/.swiftpm
+          ~/Library/Developer/Xcode/DerivedData
+        key: ${{ runner.os }}-spm-${{ hashFiles('Package.swift', '**/Package.resolved') }}${{ inputs.cache-key-suffix }}
+        restore-keys: |
+          ${{ runner.os }}-spm-${{ hashFiles('Package.swift', '**/Package.resolved') }}
+          ${{ runner.os }}-spm-
+
+    - name: Create Package.resolved
+      shell: bash
+      run: |
+        if [ ! -f "Package.resolved" ]; then
+          echo "Creating Package.resolved..."
+          swift package resolve
+        fi
+
+    - name: Validate Swift environment
+      shell: bash
+      run: |
+        echo "Swift version: $(swift --version)"
+        echo "Platform: $(uname -a)"
+        if [ "$RUNNER_OS" == "macOS" ]; then
+          echo "Xcode version: $(xcode-select -p)"
+        fi

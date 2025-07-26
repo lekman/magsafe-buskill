@@ -10,13 +10,20 @@ on:
       - 'feature/**'
       - 'fix/**'
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   cancel-redundant:
     name: Cancel Redundant Workflows
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - name: Cancel redundant workflow runs
         uses: ./.github/actions/cancel-redundant-workflows
         with:
@@ -26,10 +33,12 @@ jobs:
     name: Validate Commit Messages
     runs-on: ubuntu-latest
     needs: cancel-redundant
+    permissions:
+      contents: read
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 0  # Fetch all history for all branches
       
@@ -84,6 +93,6 @@ jobs:
           echo "✅ No blocked words found in commit messages"
       
       - name: Check conventional commits format
-        uses: webiny/action-conventional-commits@v1.3.0
+        uses: webiny/action-conventional-commits@4ae80bc67b0b2e72a4d091a7b18eb4ecc7db68c8 # v1.3.0
         with:
           allowed-commit-types: "feat,fix,docs,style,refactor,perf,test,build,ci,chore,revert"

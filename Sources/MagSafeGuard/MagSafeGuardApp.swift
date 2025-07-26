@@ -30,11 +30,20 @@ struct MagSafeGuardApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     private var demoWindow: NSWindow?
-    private let core = AppDelegateCore()
+    let core = AppDelegateCore()
+    
+    // MARK: - Constants
+    
+    private static let appName = "MagSafe Guard"
+    
+    // MARK: - Application Lifecycle
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Hide dock icon as this is a menu bar app
         NSApp.setActivationPolicy(.accessory)
+        
+        // Setup AppController callbacks
+        setupAppControllerCallbacks()
         
         // Only request notification permissions if we have a valid bundle
         if Bundle.main.bundleIdentifier != nil {
@@ -78,8 +87,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Create menu
         setupMenu()
         
-        // Start power monitoring
-        startPowerMonitoring()
+        // AppController now handles power monitoring internally
     }
     
     private func setupMenu() {
@@ -87,10 +95,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem?.menu = menu
     }
     
+    private func setupAppControllerCallbacks() {
+        // Handle state changes
+        core.appController.onStateChange = { [weak self] oldState, newState in
+            DispatchQueue.main.async {
+                self?.updateStatusIcon()
+                self?.setupMenu()
+            }
+        }
+        
+        // Handle notifications
+        core.appController.onNotification = { [weak self] title, message in
+            self?.showNotification(title: title, message: message)
+        }
+    }
+    
     private func updateStatusIcon() {
         if let button = statusItem?.button {
             let iconName = core.statusIconName()
-            let image = NSImage(systemSymbolName: iconName, accessibilityDescription: "MagSafe Guard")
+            let image = NSImage(systemSymbolName: iconName, accessibilityDescription: AppDelegate.appName)
             
             // If SF Symbol works, use it
             if let image = image {
@@ -114,31 +137,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     
-    private func startPowerMonitoring() {
-        core.powerMonitor.startMonitoring { [weak self] powerInfo in
-            guard let self = self else { return }
-            
-            // Update menu
-            self.setupMenu()
-            
-            // Check if we should trigger security action
-            if self.core.handlePowerStateChange(powerInfo) {
-                self.triggerSecurityAction()
-            }
-        }
-    }
-    
     @objc private func statusItemClicked(_ sender: AnyObject?) {
         // Menu will show automatically when clicked
     }
     
     @objc func toggleArmed() {
-        core.toggleArmedState()
-        updateStatusIcon()
-        core.updateMenuItems(in: statusItem?.menu ?? NSMenu())
-        
-        let message = core.isArmed ? "MagSafe Guard is now ARMED" : "MagSafe Guard is now DISARMED"
-        showNotification(title: "MagSafe Guard", message: message)
+        if core.appController.currentState == .disarmed {
+            core.appController.arm { [weak self] result in
+                switch result {
+                case .success:
+                    // Notifications are handled by AppController callback
+                    break
+                case .failure(let error):
+                    self?.showNotification(title: AppDelegate.appName, message: "Failed to arm: \(error.localizedDescription)")
+                }
+            }
+        } else {
+            core.appController.disarm { [weak self] result in
+                switch result {
+                case .success:
+                    // Notifications are handled by AppController callback
+                    break
+                case .failure(let error):
+                    self?.showNotification(title: AppDelegate.appName, message: "Failed to disarm: \(error.localizedDescription)")
+                }
+            }
+        }
     }
     
     @objc func showSettings() {
@@ -164,21 +188,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         demoWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-    }
-    
-    private func triggerSecurityAction() {
-        print("⚠️ SECURITY ALERT: Power disconnected while armed!")
-        
-        // For now, just lock the screen
-        let task = Process()
-        task.launchPath = "/usr/bin/pmset"
-        task.arguments = ["displaysleepnow"]
-        task.launch()
-        
-        showNotification(
-            title: "MagSafe Guard Alert",
-            message: "Power adapter disconnected! Security action triggered."
-        )
     }
     
     private func requestNotificationPermissions() {
@@ -225,5 +234,56 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 print("[AppDelegate] Error showing notification: \(error)")
             }
         }
+    }
+    
+    func applicationWillTerminate(_ notification: Notification) {
+        // Log application termination
+        core.appController.logEvent(.applicationTerminating, details: "App terminating")
+        
+        // Save any pending state
+        saveApplicationState()
+        
+        print("[AppDelegate] Application terminating")
+    }
+    
+    func applicationDidBecomeActive(_ notification: Notification) {
+        // Refresh menu when app becomes active
+        setupMenu()
+        
+        print("[AppDelegate] Application became active")
+    }
+    
+    func applicationDidResignActive(_ notification: Notification) {
+        print("[AppDelegate] Application resigned active")
+    }
+    
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // Check if we're in a critical state
+        if core.appController.currentState == .gracePeriod {
+            // Show alert asking user to confirm
+            let alert = NSAlert()
+            alert.messageText = "Security Action in Progress"
+            alert.informativeText = "A security action is currently in progress. Are you sure you want to quit?"
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "Cancel")
+            alert.addButton(withTitle: "Quit Anyway")
+            
+            let response = alert.runModal()
+            if response == .alertFirstButtonReturn {
+                return .terminateCancel
+            }
+        }
+        
+        return .terminateNow
+    }
+    
+    private func saveApplicationState() {
+        // TODO: Implement state persistence
+        // For now, just log the current state
+        let state = core.appController.currentState
+        let events = core.appController.getEventLog(limit: 10)
+        
+        print("[AppDelegate] Saving state: \(state.rawValue)")
+        print("[AppDelegate] Recent events: \(events.count)")
     }
 }

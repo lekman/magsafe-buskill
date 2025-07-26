@@ -1,0 +1,68 @@
+name: "CodeQL Analysis"
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '30 1 * * 1'  # Run weekly on Mondays at 1:30 AM UTC
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    timeout-minutes: ${{ (matrix.language == 'swift' && 30) || 360 }}
+    
+    permissions:
+      # Required for all workflows
+      security-events: write
+      # Required to fetch internal or private CodeQL packs
+      packages: read
+      # Required to upload the results to code-scanning dashboard
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - language: swift
+          build-mode: manual
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+    # Initializes the CodeQL tools for scanning
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@6ba5c05dce207b48ae07f8791b4313069c63fc2b # v3.26.6
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+        queries: security-extended,security-and-quality
+
+    # Set up Swift build environment
+    - name: Setup Swift Build Environment
+      if: matrix.language == 'swift'
+      uses: ./.github/actions/setup-swift-build
+      with:
+        cache-key-suffix: "-codeql"
+
+    # Manual build for Swift since it's not auto-detected
+    - name: Build Swift Project
+      if: matrix.build-mode == 'manual'
+      run: |
+        echo "Building Swift project for CodeQL analysis..."
+        swift build --configuration debug
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@6ba5c05dce207b48ae07f8791b4313069c63fc2b # v3.26.6
+      with:
+        category: "/language:${{matrix.language}}"
+        upload: true

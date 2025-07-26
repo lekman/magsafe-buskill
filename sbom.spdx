@@ -2,13 +2,13 @@ SPDXVersion: SPDX-2.3
 DataLicense: CC0-1.0
 SPDXID: SPDXRef-DOCUMENT
 DocumentName: MagSafeGuard
-DocumentNamespace: https://github.com/lekman/magsafe-buskill/spdx-v1.5.0-2-gd014072-1753512285
+DocumentNamespace: https://github.com/lekman/magsafe-buskill/spdx-v1.6.0-9-ge8589d2-1753525823
 Creator: Tool: swift-package-sbom-1.0.0
-Created: 2025-07-26T06:44:45Z
+Created: 2025-07-26T10:30:23Z
 
 PackageName: MagSafeGuard
 SPDXID: SPDXRef-Package-MagSafeGuard
-PackageVersion: v1.5.0-2-gd014072
+PackageVersion: v1.6.0-9-ge8589d2
 PackageDownloadLocation: https://github.com/lekman/magsafe-buskill
 FilesAnalyzed: false
 PackageLicenseConcluded: MIT

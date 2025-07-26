@@ -6,11 +6,17 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   # Check if this is a release-please branch
   check-skip:
     name: Check Skip Conditions
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       should-skip: ${{ steps.check.outputs.should-skip }}
     steps:
@@ -49,9 +55,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: check-skip
     if: needs.check-skip.outputs.should-skip != 'true'
+    permissions:
+      contents: read
+      actions: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - name: Cancel redundant workflow runs
         uses: ./.github/actions/cancel-redundant-workflows
         with:
@@ -63,29 +72,26 @@ jobs:
     needs: [check-skip, cancel-redundant]
     if: needs.check-skip.outputs.should-skip != 'true'
     permissions:
+      contents: read
       id-token: write
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 0 # Full history for SonarCloud blame data
 
-      - name: Setup Swift
-        uses: swift-actions/setup-swift@v2
+      - name: Setup Swift Build Environment
+        uses: ./.github/actions/setup-swift-build
         with:
           swift-version: "5.9"
+          cache-key-suffix: "-test-v2"  # Increment this to bust cache
 
-      # Cache Swift Package Manager dependencies
-      - name: Cache SPM dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            .build
-            ~/.swiftpm
-          key: ${{ runner.os }}-spm-${{ hashFiles('Package.swift', '**/Package.resolved') }}
-          restore-keys: |
-            ${{ runner.os }}-spm-
+      - name: Clean build artifacts
+        run: |
+          echo "Cleaning build artifacts..."
+          swift package clean
+          rm -rf .build
 
       - name: Run tests with coverage
         run: swift test --enable-code-coverage
@@ -177,7 +183,7 @@ jobs:
           fi
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@a2f73fb6db51fcd2e0aa085dfb36dea90c5e3689 # v5.0.2
         with:
           use_oidc: true
           codecov_yml_path: .codecov.yml

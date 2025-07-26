@@ -102,6 +102,9 @@ Need help or found an issue? We're here to assist:
    ```bash
    # Open in Xcode (recommended)
    open MagSafeGuard.xcodeproj
+
+   # Run direct from command line
+   task run
    ```
 
    In Xcode:
@@ -154,23 +157,23 @@ For details on the project progress, planned initiatives and current status, exp
 <summary>Expand task status report</summary>
 
 <!-- TASKMASTER_EXPORT_START -->
-> 🎯 **Taskmaster Export** - 2025-07-26 07:14:13 UTC
+> 🎯 **Taskmaster Export** - 2025-07-26 11:55:38 UTC
 > 📋 Export: without subtasks • Status filter: none
 > 🔗 Powered by [Task Master](https://task-master.dev?utm_source=github-readme&utm_medium=readme-export&utm_campaign=magsafe-buskill&utm_content=task-export-link)
 
 | Project Dashboard |  |
 | :-                |:-|
-| Task Progress     | ███████░░░░░░░░░░░░░ 33% |
-| Done | 5 |
+| Task Progress     | ████████░░░░░░░░░░░░ 40% |
+| Done | 6 |
 | In Progress | 0 |
-| Pending | 10 |
+| Pending | 9 |
 | Deferred | 0 |
 | Cancelled | 0 |
 |-|-|
-| Subtask Progress | █████░░░░░░░░░░░░░░░ 27% |
-| Completed | 24 |
+| Subtask Progress | ███████░░░░░░░░░░░░░ 36% |
+| Completed | 32 |
 | In Progress | 0 |
-| Pending | 66 |
+| Pending | 58 |
 
 
 | ID | Title | Status | Priority | Dependencies | Complexity |
@@ -180,7 +183,7 @@ For details on the project progress, planned initiatives and current status, exp
 | 3 | Implement Authentication Service | ✓&nbsp;done | high | 1 | ● 6 |
 | 4 | Implement Security Actions Service | ✓&nbsp;done | high | 1 | ● 7 |
 | 5 | Create Menu Bar UI Component | ✓&nbsp;done | high | 1 | ● 6 |
-| 6 | Implement Core Application Logic | ○&nbsp;pending | high | 2, 3, 4, 5 | ● 8 |
+| 6 | Implement Core Application Logic | ✓&nbsp;done | high | 2, 3, 4, 5 | ● 8 |
 | 7 | Implement Settings UI and Persistence | ○&nbsp;pending | medium | 1, 6 | ● 6 |
 | 8 | Implement Auto-Arm Feature | ○&nbsp;pending | medium | 6, 7 | ● 7 |
 | 9 | Implement Find My Mac Integration | ○&nbsp;pending | low | 6 | ● 5 |

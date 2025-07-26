@@ -7,7 +7,7 @@ on:
     branches: [main]
   schedule:
     # Run security scans daily at 2 AM UTC
-    - cron: '0 2 * * *'
+    - cron: "0 2 * * *"
   workflow_dispatch:
 
 permissions:
@@ -19,6 +19,8 @@ jobs:
   check-skip:
     name: Check Skip Conditions
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       should-skip: ${{ steps.check.outputs.should-skip }}
     steps:
@@ -35,7 +37,7 @@ jobs:
           echo "Ref: $REF"
           echo "Head ref: $HEAD_REF"
           echo "Base ref: $BASE_REF"
-          
+
           # For pull requests, check the head branch name
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
             if [[ "$HEAD_REF" == release-please--* ]]; then
@@ -57,9 +59,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: check-skip
     if: needs.check-skip.outputs.should-skip != 'true'
+    permissions:
+      contents: read
+      actions: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - name: Cancel redundant workflow runs
         uses: ./.github/actions/cancel-redundant-workflows
         with:
@@ -71,201 +76,113 @@ jobs:
     runs-on: ubuntu-latest
     needs: [check-skip, cancel-redundant]
     if: needs.check-skip.outputs.should-skip != 'true'
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        
-    - name: Check for secrets in code
-      run: |
-        echo "🔍 Checking for potential secrets in source code..."
-        
-        # Initialize counter
-        found_issues=0
-        
-        # Check Swift files for hardcoded secrets
-        echo "Checking Swift files..."
-        swift_files=$(find . -name "*.swift" -type f 2>/dev/null || true)
-        
-        if [ -n "$swift_files" ]; then
-          for file in $swift_files; do
-            # Check for obvious secret patterns
-            if grep -q -i -E 'password\s*=\s*"[^"]+"' "$file" 2>/dev/null; then
-              echo "⚠️  Potential hardcoded password in: $file"
-              found_issues=$((found_issues + 1))
-            fi
-            if grep -q -i -E 'api_?key\s*=\s*"[^"]+"' "$file" 2>/dev/null; then
-              echo "⚠️  Potential hardcoded API key in: $file"
-              found_issues=$((found_issues + 1))
-            fi
-            if grep -q -i -E 'secret\s*=\s*"[^"]+"' "$file" 2>/dev/null; then
-              echo "⚠️  Potential hardcoded secret in: $file"
-              found_issues=$((found_issues + 1))
-            fi
-          done
-        fi
-        
-        # Check for private key files
-        echo ""
-        echo "Checking for private key files..."
-        key_files=$(find . -type f \( -name "*.pem" -o -name "*.key" -o -name "*.p12" -o -name "id_rsa*" \) -not -path "./.git/*" 2>/dev/null || true)
-        if [ -n "$key_files" ]; then
-          echo "⚠️  Found private key files:"
-          echo "$key_files"
-          found_issues=$((found_issues + 1))
-        fi
-        
-        # Check for .env files
-        echo ""
-        echo "Checking for .env files..."
-        env_files=$(find . -name ".env*" -type f -not -name ".env.example" -not -path "./.git/*" 2>/dev/null || true)
-        if [ -n "$env_files" ]; then
-          echo "⚠️  Found .env files that might contain secrets:"
-          echo "$env_files"
-          found_issues=$((found_issues + 1))
-        fi
-        
-        # Summary
-        echo ""
-        if [ $found_issues -gt 0 ]; then
-          echo "❌ Found $found_issues potential security issues."
-          echo ""
-          echo "If these are false positives:"
-          echo "- Example passwords in documentation are okay"
-          echo "- GitHub Actions secrets (\${{ secrets.XXX }}) are safe"
-          echo "- .env.example files are acceptable"
-          exit 1
-        else
-          echo "✅ No obvious secrets found in source code."
-        fi
-        
-    - name: Check file permissions
-      run: |
-        echo ""
-        echo "🔍 Checking for overly permissive files..."
-        
-        # Find files with world-writable permissions
-        permissive_files=$(find . -type f -perm -o+w -not -path "./.git/*" 2>/dev/null || true)
-        
-        if [ -n "$permissive_files" ]; then
-          echo "⚠️  Warning: Found world-writable files:"
-          echo "$permissive_files"
-          echo ""
-          echo "Fix with: chmod o-w <filename>"
-        else
-          echo "✅ No overly permissive files found."
-        fi
-        
-    - name: Security TODOs check
-      run: |
-        echo ""
-        echo "🔍 Checking for security-related TODOs..."
-        
-        security_todos=$(grep -r -i -E "TODO.*security|FIXME.*security|XXX.*security|HACK.*security" . \
-          --exclude-dir=.git \
-          --exclude-dir=node_modules \
-          --exclude="*.md" 2>/dev/null || true)
-        
-        if [ -n "$security_todos" ]; then
-          echo "📝 Found security-related TODOs (review these):"
-          echo "$security_todos" | head -10
-          echo ""
-          echo "Note: Security TODOs should be tracked in issues, not code."
-        else
-          echo "✅ No security TODOs found."
-        fi
-
-  # CodeQL Analysis for code scanning
-  codeql:
-    name: CodeQL Analysis
-    runs-on: macos-latest
-    timeout-minutes: 30
-    needs: [check-skip, cancel-redundant]
-    if: needs.check-skip.outputs.should-skip != 'true'
-    
     permissions:
-      actions: read
       contents: read
-      security-events: write
-    
-    strategy:
-      fail-fast: false
-      matrix:
-        language: ['swift']
-        # Add more languages as needed: ['swift', 'javascript', 'python']
-    
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: ${{ matrix.language }}
-        # Optionally specify custom queries
-        queries: security-extended,security-and-quality
-        
-    - name: Set up Xcode
-      uses: maxim-lobanov/setup-xcode@v1
-      with:
-        xcode-version: 'latest-stable'
-    
-    # Cache Swift Package Manager dependencies and build artifacts
-    - name: Cache SPM dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          .build
-          ~/Library/Developer/Xcode/DerivedData
-          ~/.swiftpm
-        key: ${{ runner.os }}-spm-${{ hashFiles('Package.swift', '**/Package.resolved') }}-${{ hashFiles('Sources/**/*.swift') }}
-        restore-keys: |
-          ${{ runner.os }}-spm-${{ hashFiles('Package.swift', '**/Package.resolved') }}-
-          ${{ runner.os }}-spm-
-    
-        
-    - name: Build Swift Project for CodeQL
-      env:
-        CODEQL_EXTRACTOR_SWIFT_LOG_LEVEL: 5
-      run: |
-        echo "Building MagSafe Guard for CodeQL analysis..."
-        echo "Current directory: $(pwd)"
-        echo "Swift version: $(swift --version)"
-        
-        # Create Package.resolved if it doesn't exist
-        if [ ! -f "Package.resolved" ]; then
-          echo "Creating Package.resolved..."
-          swift package resolve
-        fi
-        
-        # Check if we have a cached build
-        if [ -d ".build/debug" ] && [ -f ".build/debug/MagSafeGuard" ]; then
-          echo "Found cached build, verifying..."
-          # Touch source files to ensure CodeQL sees them
-          find Sources -name "*.swift" -exec touch {} \;
-          # Do a quick incremental build
-          swift build --configuration debug
-        else
-          echo "No cached build found, building from scratch..."
-          swift build --configuration debug --verbose
-        fi
-        
-        # List built products
-        echo ""
-        echo "Built products:"
-        find .build -name "*.swiftmodule" -o -name "*.o" | head -20
-        
-        # Ensure source files are visible
-        echo ""
-        echo "Swift source files:"
-        find Sources -name "*.swift" -type f
-      
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
-      with:
-        category: "/language:${{matrix.language}}"
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0
+
+      - name: Check for secrets in code
+        run: |
+          echo "🔍 Checking for potential secrets in source code..."
+
+          # Initialize counter
+          found_issues=0
+
+          # Check Swift files for hardcoded secrets
+          echo "Checking Swift files..."
+          swift_files=$(find . -name "*.swift" -type f 2>/dev/null || true)
+
+          if [ -n "$swift_files" ]; then
+            for file in $swift_files; do
+              # Check for obvious secret patterns
+              if grep -q -i -E 'password\s*=\s*"[^"]+"' "$file" 2>/dev/null; then
+                echo "⚠️  Potential hardcoded password in: $file"
+                found_issues=$((found_issues + 1))
+              fi
+              if grep -q -i -E 'api_?key\s*=\s*"[^"]+"' "$file" 2>/dev/null; then
+                echo "⚠️  Potential hardcoded API key in: $file"
+                found_issues=$((found_issues + 1))
+              fi
+              if grep -q -i -E 'secret\s*=\s*"[^"]+"' "$file" 2>/dev/null; then
+                echo "⚠️  Potential hardcoded secret in: $file"
+                found_issues=$((found_issues + 1))
+              fi
+            done
+          fi
+
+          # Check for private key files
+          echo ""
+          echo "Checking for private key files..."
+          key_files=$(find . -type f \( -name "*.pem" -o -name "*.key" -o -name "*.p12" -o -name "id_rsa*" \) -not -path "./.git/*" 2>/dev/null || true)
+          if [ -n "$key_files" ]; then
+            echo "⚠️  Found private key files:"
+            echo "$key_files"
+            found_issues=$((found_issues + 1))
+          fi
+
+          # Check for .env files
+          echo ""
+          echo "Checking for .env files..."
+          env_files=$(find . -name ".env*" -type f -not -name ".env.example" -not -path "./.git/*" 2>/dev/null || true)
+          if [ -n "$env_files" ]; then
+            echo "⚠️  Found .env files that might contain secrets:"
+            echo "$env_files"
+            found_issues=$((found_issues + 1))
+          fi
+
+          # Summary
+          echo ""
+          if [ $found_issues -gt 0 ]; then
+            echo "❌ Found $found_issues potential security issues."
+            echo ""
+            echo "If these are false positives:"
+            echo "- Example passwords in documentation are okay"
+            echo "- GitHub Actions secrets (\${{ secrets.XXX }}) are safe"
+            echo "- .env.example files are acceptable"
+            exit 1
+          else
+            echo "✅ No obvious secrets found in source code."
+          fi
+
+      - name: Check file permissions
+        run: |
+          echo ""
+          echo "🔍 Checking for overly permissive files..."
+
+          # Find files with world-writable permissions
+          permissive_files=$(find . -type f -perm -o+w -not -path "./.git/*" 2>/dev/null || true)
+
+          if [ -n "$permissive_files" ]; then
+            echo "⚠️  Warning: Found world-writable files:"
+            echo "$permissive_files"
+            echo ""
+            echo "Fix with: chmod o-w <filename>"
+          else
+            echo "✅ No overly permissive files found."
+          fi
+
+      - name: Security TODOs check
+        run: |
+          echo ""
+          echo "🔍 Checking for security-related TODOs..."
+
+          security_todos=$(grep -r -i -E "TODO.*security|FIXME.*security|XXX.*security|HACK.*security" . \
+            --exclude-dir=.git \
+            --exclude-dir=node_modules \
+            --exclude="*.md" 2>/dev/null || true)
+
+          if [ -n "$security_todos" ]; then
+            echo "📝 Found security-related TODOs (review these):"
+            echo "$security_todos" | head -10
+            echo ""
+            echo "Note: Security TODOs should be tracked in issues, not code."
+          else
+            echo "✅ No security TODOs found."
+          fi
 
   # Dependency scanning
   dependency-review:
@@ -273,20 +190,23 @@ jobs:
     runs-on: ubuntu-latest
     needs: [check-skip, cancel-redundant]
     if: github.event_name == 'pull_request' && needs.check-skip.outputs.should-skip != 'true'
-    
+    permissions:
+      contents: read
+      pull-requests: write
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Dependency Review
-      uses: actions/dependency-review-action@v4
-      with:
-        # Fail on high severity vulnerabilities
-        fail-on-severity: high
-        # Check for license issues
-        license-check: true
-        # Allowed licenses (customize based on your needs)
-        allow-licenses: MIT, Apache-2.0, BSD-3-Clause, BSD-2-Clause, ISC, MPL-2.0, AGPL-3.0, LGPL-3.0
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@5a2ce3f5b92ee19cbb1541a4984c76d921601d7c # v4.3.4
+        with:
+          # Fail on high severity vulnerabilities
+          fail-on-severity: high
+          # Check for license issues
+          license-check: true
+          # Allowed licenses (customize based on your needs)
+          allow-licenses: MIT, Apache-2.0, BSD-3-Clause, BSD-2-Clause, ISC, MPL-2.0, AGPL-3.0, LGPL-3.0
 
   # Secret scanning with TruffleHog
   trufflehog:
@@ -294,45 +214,47 @@ jobs:
     runs-on: ubuntu-latest
     needs: [check-skip, cancel-redundant]
     if: needs.check-skip.outputs.should-skip != 'true'
-    
+    permissions:
+      contents: read
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Fetch all history for scanning
-        
-    - name: TruffleHog OSS
-      id: trufflehog
-      uses: trufflesecurity/trufflehog@main
-      with:
-        path: ./
-        base: ${{ github.event.repository.default_branch }}
-        head: HEAD
-        extra_args: --debug --only-verified
-      continue-on-error: true
-        
-    - name: Check TruffleHog Results
-      env:
-        TRUFFLEHOG_OUTCOME: ${{ steps.trufflehog.outcome }}
-        DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-      run: |
-        if [[ "$TRUFFLEHOG_OUTCOME" == "failure" ]]; then
-          echo "TruffleHog scan failed. Checking if it's due to BASE==HEAD..."
-          
-          # Get the default branch commit
-          BASE_COMMIT=$(git rev-parse "origin/${DEFAULT_BRANCH}" 2>/dev/null || echo "")
-          HEAD_COMMIT=$(git rev-parse HEAD)
-          
-          if [[ "$BASE_COMMIT" == "$HEAD_COMMIT" ]]; then
-            echo "✅ BASE and HEAD commits are the same. This is expected for direct pushes to ${DEFAULT_BRANCH}."
-            echo "No incremental scan needed - all secrets would have been caught in previous scans."
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0 # Fetch all history for scanning
+
+      - name: TruffleHog OSS
+        id: trufflehog
+        uses: trufflesecurity/trufflehog@1aa1871f9ae24a8c8a3a48a9345514acf42beb39 # v3.82.13
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified
+        continue-on-error: true
+
+      - name: Check TruffleHog Results
+        env:
+          TRUFFLEHOG_OUTCOME: ${{ steps.trufflehog.outcome }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if [[ "$TRUFFLEHOG_OUTCOME" == "failure" ]]; then
+            echo "TruffleHog scan failed. Checking if it's due to BASE==HEAD..."
+            
+            # Get the default branch commit
+            BASE_COMMIT=$(git rev-parse "origin/${DEFAULT_BRANCH}" 2>/dev/null || echo "")
+            HEAD_COMMIT=$(git rev-parse HEAD)
+            
+            if [[ "$BASE_COMMIT" == "$HEAD_COMMIT" ]]; then
+              echo "✅ BASE and HEAD commits are the same. This is expected for direct pushes to ${DEFAULT_BRANCH}."
+              echo "No incremental scan needed - all secrets would have been caught in previous scans."
+            else
+              echo "❌ TruffleHog failed for another reason. Please check the logs above."
+              exit 1
+            fi
           else
-            echo "❌ TruffleHog failed for another reason. Please check the logs above."
-            exit 1
+            echo "✅ TruffleHog scan completed successfully"
           fi
-        else
-          echo "✅ TruffleHog scan completed successfully"
-        fi
 
   # Security Policy Check
   security-policy:
@@ -340,18 +262,20 @@ jobs:
     runs-on: ubuntu-latest
     needs: [check-skip, cancel-redundant]
     if: needs.check-skip.outputs.should-skip != 'true'
-    
+    permissions:
+      contents: read
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Check for security policy
-      run: |
-        if [ ! -f "docs/SECURITY.md" ] && [ ! -f ".github/SECURITY.md" ] && [ ! -f "SECURITY.md" ]; then
-          echo "::warning::No SECURITY.md file found. Consider adding a security policy."
-          echo "Creating a basic SECURITY.md file..."
-          exit 1
-        fi
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Check for security policy
+        run: |
+          if [ ! -f "docs/SECURITY.md" ] && [ ! -f ".github/SECURITY.md" ] && [ ! -f "SECURITY.md" ]; then
+            echo "::warning::No SECURITY.md file found. Consider adding a security policy."
+            echo "Creating a basic SECURITY.md file..."
+            exit 1
+          fi
 
   # SAST with Semgrep
   semgrep:
@@ -359,32 +283,32 @@ jobs:
     runs-on: ubuntu-latest
     needs: [check-skip, cancel-redundant]
     if: needs.check-skip.outputs.should-skip != 'true'
-    
+
     permissions:
       actions: read
       contents: read
       security-events: write
-    
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    # Run Semgrep - automatically uses cloud rules if SEMGREP_APP_TOKEN is set
-    - name: Run Semgrep
-      uses: returntocorp/semgrep-action@v1
-      env:
-        # If token is set, Semgrep will use cloud configuration
-        # If not set, it will use the default rules
-        SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
-      continue-on-error: true
-      
-    # Upload Semgrep results to GitHub Security tab
-    - name: Upload SARIF results
-      uses: github/codeql-action/upload-sarif@v3
-      if: always() # Upload even if Semgrep step fails
-      with:
-        sarif_file: semgrep.sarif
-      continue-on-error: true
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      # Run Semgrep - automatically uses cloud rules if SEMGREP_APP_TOKEN is set
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@713efdd345f3035192eaa63f56867b88e63e4e5d # v1
+        env:
+          # If token is set, Semgrep will use cloud configuration
+          # If not set, it will use the default rules
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+        continue-on-error: true
+
+      # Upload Semgrep results to GitHub Security tab
+      - name: Upload SARIF results
+        uses: github/codeql-action/upload-sarif@6ba5c05dce207b48ae07f8791b4313069c63fc2b # v3.26.6
+        if: always() # Upload even if Semgrep step fails
+        with:
+          sarif_file: semgrep.sarif
+        continue-on-error: true
 
   # Snyk Security Scanning (Free for Open Source)
   # TODO: Enable once SNYK_TOKEN is configured
@@ -392,11 +316,11 @@ jobs:
   #   name: Snyk Security
   #   runs-on: ubuntu-latest
   #   if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
-  #   
+  #
   #   steps:
   #   - name: Checkout repository
-  #     uses: actions/checkout@v4
-  #     
+  #     uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+  #
   #   - name: Run Snyk to check for vulnerabilities
   #     uses: snyk/actions/swift@master
   #     env:
@@ -404,9 +328,9 @@ jobs:
   #     with:
   #       args: --severity-threshold=high
   #     continue-on-error: true  # Don't fail if Snyk is not configured
-  #     
+  #
   #   - name: Upload Snyk results to GitHub Code Scanning
-  #     uses: github/codeql-action/upload-sarif@v3
+  #     uses: github/codeql-action/upload-sarif@6ba5c05dce207b48ae07f8791b4313069c63fc2b # v3.26.6
   #     if: always() && env.SNYK_TOKEN != ''
   #     with:
   #       sarif_file: snyk.sarif
@@ -418,16 +342,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: [check-skip, cancel-redundant]
     if: needs.check-skip.outputs.should-skip != 'true'
-    
+    permissions:
+      contents: read
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Run License Scan
-      uses: fossas/fossa-action@main
-      with:
-        api-key: ${{ secrets.FOSSA_API_KEY }}
-      continue-on-error: true  # Don't fail if FOSSA is not configured
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Run License Scan
+        uses: fossas/fossa-action@af5662f6f8877dad2ea85109ee5444f4ca3b0fe2 # main
+        with:
+          api-key: ${{ secrets.FOSSA_API_KEY }}
+        continue-on-error: true # Don't fail if FOSSA is not configured
 
   # Security Scorecard
   scorecard:
@@ -435,81 +361,86 @@ jobs:
     runs-on: ubuntu-latest
     needs: [check-skip, cancel-redundant]
     if: github.event_name != 'pull_request' && needs.check-skip.outputs.should-skip != 'true'
-    
+
     permissions:
       security-events: write
       id-token: write
       contents: read
       actions: read
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        persist-credentials: false
-        
-    - name: Run Scorecard
-      uses: ossf/scorecard-action@v2.4.0
-      with:
-        results_file: results.sarif
-        results_format: sarif
-        publish_results: false
-        
-    - name: Upload results to code scanning
-      uses: github/codeql-action/upload-sarif@v3
-      with:
-        sarif_file: results.sarif
 
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
+
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@ff5dd8929f96a8a4dc67d13f32b8c75057829621 # v2.4.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: false
+
+      - name: Upload results to code scanning
+        uses: github/codeql-action/upload-sarif@6ba5c05dce207b48ae07f8791b4313069c63fc2b # v3.26.6
+        with:
+          sarif_file: results.sarif
 
   # Summary job
   security-summary:
     name: Security Summary
     runs-on: ubuntu-latest
-    needs: [check-skip, cancel-redundant, basic-checks, codeql, dependency-review, trufflehog, semgrep, scorecard]
+    needs:
+      [
+        check-skip,
+        cancel-redundant,
+        basic-checks,
+        dependency-review,
+        trufflehog,
+        semgrep,
+        scorecard,
+      ]
     if: always()
-    
+    permissions:
+      contents: read
+
     steps:
-    - name: Security Scan Summary
-      env:
-        BASIC_CHECKS_RESULT: ${{ needs.basic-checks.result }}
-        CODEQL_RESULT: ${{ needs.codeql.result }}
-        DEPENDENCY_REVIEW_RESULT: ${{ needs.dependency-review.result }}
-        TRUFFLEHOG_RESULT: ${{ needs.trufflehog.result }}
-        SEMGREP_RESULT: ${{ needs.semgrep.result }}
-      run: |
-        echo "## Security Scan Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        
-        # Check job statuses
-        if [ "$BASIC_CHECKS_RESULT" == "success" ]; then
-          echo "✅ Basic Security Checks: Passed" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ Basic Security Checks: Failed" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        if [ "$CODEQL_RESULT" == "success" ]; then
-          echo "✅ CodeQL Analysis: Passed" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ CodeQL Analysis: Failed" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        if [ "$DEPENDENCY_REVIEW_RESULT" == "success" ] || [ "$DEPENDENCY_REVIEW_RESULT" == "skipped" ]; then
-          echo "✅ Dependency Review: Passed" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ Dependency Review: Failed" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        if [ "$TRUFFLEHOG_RESULT" == "success" ]; then
-          echo "✅ Secret Scanning: Passed" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ Secret Scanning: Failed" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        if [ "$SEMGREP_RESULT" == "success" ]; then
-          echo "✅ SAST (Semgrep): Passed" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ SAST (Semgrep): Failed" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "View detailed results in the Security tab." >> $GITHUB_STEP_SUMMARY
+      - name: Security Scan Summary
+        env:
+          BASIC_CHECKS_RESULT: ${{ needs.basic-checks.result }}
+          DEPENDENCY_REVIEW_RESULT: ${{ needs.dependency-review.result }}
+          TRUFFLEHOG_RESULT: ${{ needs.trufflehog.result }}
+          SEMGREP_RESULT: ${{ needs.semgrep.result }}
+        run: |
+          echo "## Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check job statuses
+          if [ "$BASIC_CHECKS_RESULT" == "success" ]; then
+            echo "✅ Basic Security Checks: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Basic Security Checks: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "🔍 CodeQL Analysis: Running in dedicated workflow (.github/workflows/codeql.yml)" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$DEPENDENCY_REVIEW_RESULT" == "success" ] || [ "$DEPENDENCY_REVIEW_RESULT" == "skipped" ]; then
+            echo "✅ Dependency Review: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Dependency Review: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "$TRUFFLEHOG_RESULT" == "success" ]; then
+            echo "✅ Secret Scanning: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Secret Scanning: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "$SEMGREP_RESULT" == "success" ]; then
+            echo "✅ SAST (Semgrep): Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ SAST (Semgrep): Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "View detailed results in the Security tab." >> $GITHUB_STEP_SUMMARY
