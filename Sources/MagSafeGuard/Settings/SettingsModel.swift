@@ -303,10 +303,10 @@ public enum SecurityActionType: String, Codable, CaseIterable {
 public protocol SettingsMigrator {
     /// The source version this migrator upgrades from.
     var fromVersion: Int { get }
-    
+
     /// The target version this migrator upgrades to.
     var toVersion: Int { get }
-    
+
     /// Migrates settings from the source format to the target format.
     /// - Parameter settings: Raw settings dictionary to migrate
     /// - Returns: Migrated settings dictionary

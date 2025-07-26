@@ -115,19 +115,19 @@ public class AppController: ObservableObject {
     /// system transitions between states. UI components can observe this property
     /// to update their appearance and behavior.
     @Published public private(set) var currentState: AppState = .disarmed
-    
+
     /// Whether the grace period is currently active.
     ///
     /// Published property indicating if users can authenticate to cancel pending
     /// security actions. Used by UI to show grace period controls and countdown.
     @Published public private(set) var isInGracePeriod: Bool = false
-    
+
     /// Remaining time in the grace period countdown.
     ///
     /// Updated approximately every 100ms during grace period to provide smooth
     /// countdown displays. Value is 0 when grace period is not active.
     @Published public private(set) var gracePeriodRemaining: TimeInterval = 0
-    
+
     /// Last known power adapter connection state.
     ///
     /// Tracks the most recent power state for debugging and state management.
@@ -183,7 +183,7 @@ public class AppController: ObservableObject {
     /// Optional closure called whenever the application transitions between states.
     /// Receives the old state and new state for comparison and logging.
     public var onStateChange: ((AppState, AppState) -> Void)?
-    
+
     /// Callback for notification requests.
     ///
     /// Optional closure called when the controller wants to display a notification.

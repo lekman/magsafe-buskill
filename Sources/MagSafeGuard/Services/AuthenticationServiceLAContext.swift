@@ -15,7 +15,11 @@ extension AuthenticationService {
 
     /// Perform the actual authentication using LAContext
     /// - Note: This method is excluded from coverage as it requires device authentication
-    internal func performAuthenticationWithLAContext(reason: String, policy: AuthenticationPolicy, completion: @escaping (AuthenticationResult) -> Void) {
+    internal func performAuthenticationWithLAContext(
+        reason: String,
+        policy: AuthenticationPolicy,
+        completion: @escaping (AuthenticationResult) -> Void
+    ) {
         let authContext = contextFactory.createContext()
         self.context = authContext
 

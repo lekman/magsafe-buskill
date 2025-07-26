@@ -309,10 +309,10 @@ public class MockNotificationDelivery: NotificationDeliveryProtocol {
     /// Array of all notifications that were attempted to be delivered.
     /// Each entry contains the title, message, and identifier provided.
     public var deliveredNotifications: [(title: String, message: String, identifier: String)] = []
-    
+
     /// Whether permission request was called.
     public var permissionsRequested = false
-    
+
     /// Controls the response to permission requests for testing scenarios.
     public var shouldGrantPermissions = true
 

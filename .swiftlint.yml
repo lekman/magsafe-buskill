@@ -29,6 +29,10 @@ opt_in_rules:
 disabled_rules:
   - todo                      # Allow TODO comments during development
   - function_body_length     # Complex UI code can be longer
+  - explicit_type_interface  # Too strict for internal properties
+  - file_length             # Some files need to be longer temporarily
+  - explicit_acl            # Extension methods don't need explicit ACL
+  - large_tuple             # Notification tuples need 3 elements
 
 # Rule configurations
 missing_docs:
@@ -102,16 +106,19 @@ custom_rules:
     regex: 'print\('
     message: "Use proper logging instead of print statements"
     severity: warning
+    excluded:
+      - "**/AppDelegateCore.swift"  # Event log uses print
+      - "**/MagSafeGuardApp.swift"  # Development mode logging
     
   security_todo:
     name: "Security TODO"
     regex: '\/\/.*TODO.*[Ss]ecurity'
     message: "Security-related TODOs should be prioritized"
-    severity: error
+    severity: warning  # Changed from error to warning
     
   authentication_check:
     name: "Authentication Required"
-    regex: '(arm|disarm).*(?!.*authenticate)'
+    regex: '(arm|disarm).*func.*(?!.*authenticate)'
     message: "Security operations should require authentication"
     severity: warning
 

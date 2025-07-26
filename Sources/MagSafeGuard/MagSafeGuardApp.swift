@@ -120,7 +120,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // If SF Symbol works, use it
             if let image = image {
                 // Create a copy and set as template to ensure proper dark/light mode handling
-                let templateImage = image.copy() as! NSImage
+                guard let templateImage = image.copy() as? NSImage else { return }
                 templateImage.isTemplate = true
                 button.image = templateImage
                 // Clear the title when we have an icon
