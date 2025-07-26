@@ -2,11 +2,11 @@
 
 ## Design Tool Setup
 
-### 1. Figma Setup
+### 1. Design Resources
 
-1. Create free account at [figma.com](https://figma.com)
-2. Download [Apple Design Resources](https://developer.apple.com/design/resources/)
-3. Import the macOS UI Kit into your Figma workspace
+1. Download [Apple Design Resources](https://developer.apple.com/design/resources/)
+2. Use any design tool of your choice (Sketch, Adobe XD, or even code directly)
+3. Follow Apple's Human Interface Guidelines for macOS
 
 ### 2. Design Specifications
 

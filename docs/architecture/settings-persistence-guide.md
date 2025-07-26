@@ -29,12 +29,14 @@ The settings system provides a comprehensive UI for configuring application beha
 ## Settings Categories
 
 ### General Settings
+
 - **Grace Period Duration**: 5-30 seconds slider
 - **Allow Grace Period Cancellation**: Toggle for authentication during grace period
 - **Launch at Login**: Auto-start application
 - **Show in Dock**: Display dock icon (vs menu bar only)
 
 ### Security Settings
+
 - **Security Actions**: Ordered list of actions to execute
   - Lock Screen
   - Log Out
@@ -46,17 +48,20 @@ The settings system provides a comprehensive UI for configuring application beha
 - Add/remove actions dynamically
 
 ### Auto-Arm Settings
+
 - **Enable Auto-Arm**: Master toggle
 - **Location-Based**: Arm when leaving trusted locations
 - **Network-Based**: Arm on untrusted Wi-Fi networks
 - **Trusted Networks**: List of safe Wi-Fi SSIDs
 
 ### Notification Settings
+
 - **Show Status Changes**: Notifications for arm/disarm
 - **Play Alert Sound**: Critical alert sounds
 - Link to system notification preferences
 
 ### Advanced Settings
+
 - **Custom Scripts**: Shell scripts for security actions
 - **Debug Logging**: Verbose logging for troubleshooting
 - **Import/Export**: Settings backup and restore
@@ -138,16 +143,19 @@ private static func migrateSettings(_ settings: Settings, from version: Int) -> 
 ## UI/UX Considerations
 
 ### TabView Navigation
+
 - Clear section organization
 - Keyboard shortcuts for tab switching
 - Visual indicators for active sections
 
 ### Form Validation
+
 - Real-time validation feedback
 - Disabled states for dependent settings
 - Helpful descriptions for each option
 
 ### Accessibility
+
 - Full VoiceOver support
 - Keyboard navigation
 - High contrast mode compatibility
@@ -193,12 +201,14 @@ windowDelegates[settingsWindow!] = delegate  // Retain delegate
 ## Testing
 
 ### Unit Tests
+
 - **SettingsModelTests**: Model validation and encoding
 - **UserDefaultsManagerTests**: Persistence and migration
 - Coverage for all validation rules
 - Import/export functionality
 
 ### Integration Tests
+
 - Settings window presentation
 - Tab navigation
 - Form submission and validation
