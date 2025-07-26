@@ -265,11 +265,13 @@ public class AuthenticationService: NSObject {
     
     /// Record an authentication attempt
     internal func recordAuthenticationAttempt(success: Bool) {
-        authenticationAttempts.append((date: Date(), success: success))
-        
-        // Keep only recent attempts to prevent memory growth
-        let cutoffTime = Date().addingTimeInterval(-3600) // Keep 1 hour of history
-        authenticationAttempts.removeAll { $0.date < cutoffTime }
+        queue.sync {
+            authenticationAttempts.append((date: Date(), success: success))
+            
+            // Keep only recent attempts to prevent memory growth
+            let cutoffTime = Date().addingTimeInterval(-3600) // Keep 1 hour of history
+            authenticationAttempts.removeAll { $0.date < cutoffTime }
+        }
     }
     
     /// Map LAError to AuthenticationError
