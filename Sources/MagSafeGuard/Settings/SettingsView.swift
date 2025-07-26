@@ -83,78 +83,94 @@ struct GeneralSettingsView: View {
         Form {
             Section {
                 VStack(alignment: .leading, spacing: 16) {
-                    // Grace Period Slider
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Grace Period Duration")
-                            .font(.headline)
-                        
-                        HStack {
-                            Text("5s")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            Slider(
-                                value: $settingsManager.settings.gracePeriodDuration,
-                                in: 5...30,
-                                step: 1
-                            )
-                            
-                            Text("30s")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            Text("\(Int(settingsManager.settings.gracePeriodDuration))s")
-                                .font(.system(.body, design: .monospaced))
-                                .frame(width: 40, alignment: .trailing)
-                        }
-                        
-                        Text("Time before security actions execute after power disconnection")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+                    gracePeriodSection
                     
                     Divider()
                     
-                    // Allow Cancellation Toggle
-                    Toggle(isOn: $settingsManager.settings.allowGracePeriodCancellation) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Allow Grace Period Cancellation")
-                            Text("Permits canceling security actions during grace period with authentication")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
+                    allowCancellationToggle
                     
                     Divider()
                     
-                    // Launch at Login
-                    Toggle(isOn: $settingsManager.settings.launchAtLogin) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Launch at Login")
-                            Text("Automatically start MagSafe Guard when you log in")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .onChange(of: settingsManager.settings.launchAtLogin) { newValue in
-                        // TODO: Implement launch at login functionality
-                        print("[Settings] Launch at login: \(newValue)")
-                    }
+                    launchAtLoginToggle
                     
-                    // Show in Dock
-                    Toggle(isOn: $settingsManager.settings.showInDock) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Show in Dock")
-                            Text("Display application icon in dock (requires restart)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
+                    showInDockToggle
                 }
                 .padding()
             }
         }
         .formStyle(.grouped)
+    }
+    
+    private var gracePeriodSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Grace Period Duration")
+                .font(.headline)
+            
+            gracePeriodSlider
+            
+            Text("Time before security actions execute after power disconnection")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private var gracePeriodSlider: some View {
+        HStack {
+            Text("5s")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            Slider(
+                value: $settingsManager.settings.gracePeriodDuration,
+                in: 5...30,
+                step: 1
+            )
+            
+            Text("30s")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            Text("\(Int(settingsManager.settings.gracePeriodDuration))s")
+                .font(.system(.body, design: .monospaced))
+                .frame(width: 40, alignment: .trailing)
+        }
+    }
+    
+    private var allowCancellationToggle: some View {
+        Toggle(isOn: $settingsManager.settings.allowGracePeriodCancellation) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Allow Grace Period Cancellation")
+                Text("Permits canceling security actions during grace period with authentication")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+    
+    private var launchAtLoginToggle: some View {
+        Toggle(isOn: $settingsManager.settings.launchAtLogin) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Launch at Login")
+                Text("Automatically start MagSafe Guard when you log in")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .onChange(of: settingsManager.settings.launchAtLogin) { newValue in
+            // TODO: Implement launch at login functionality
+            print("[Settings] Launch at login: \(newValue)")
+        }
+    }
+    
+    private var showInDockToggle: some View {
+        Toggle(isOn: $settingsManager.settings.showInDock) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Show in Dock")
+                Text("Display application icon in dock (requires restart)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
     }
 }
 
@@ -166,61 +182,80 @@ struct SecuritySettingsView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Security Actions")
-                    .font(.headline)
-                Text("Select and order actions to execute when power is disconnected")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
+            securityActionsHeader
             
             Divider()
             
             // Action List
             List {
-                ForEach(settingsManager.settings.securityActions, id: \.self) { action in
-                    SecurityActionRow(action: action, isEnabled: true)
-                }
-                .onMove { indices, newOffset in
-                    settingsManager.settings.securityActions.move(fromOffsets: indices, toOffset: newOffset)
-                }
-                
-                Section(header: Text("Available Actions")) {
-                    ForEach(availableActions, id: \.self) { action in
-                        SecurityActionRow(action: action, isEnabled: false)
-                            .onTapGesture {
-                                withAnimation {
-                                    settingsManager.settings.securityActions.append(action)
-                                }
-                            }
-                    }
-                }
+                enabledActionsSection
+                availableActionsSection
             }
             .listStyle(.inset)
             
-            // Footer
-            HStack {
-                Text("\(settingsManager.settings.securityActions.count) actions selected")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                Spacer()
-                
-                Button("Reset to Defaults") {
-                    settingsManager.settings.securityActions = [.lockScreen, .unmountVolumes]
-                }
-                .buttonStyle(.link)
-            }
-            .padding()
+            securityActionsFooter
         }
+    }
+    
+    private var securityActionsHeader: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Security Actions")
+                .font(.headline)
+            Text("Select and order actions to execute when power is disconnected")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+    }
+    
+    private var enabledActionsSection: some View {
+        ForEach(settingsManager.settings.securityActions, id: \.self) { action in
+            SecurityActionRow(action: action, isEnabled: true)
+        }
+        .onMove(perform: moveSecurityActions)
+    }
+    
+    private var availableActionsSection: some View {
+        Section(header: Text("Available Actions")) {
+            ForEach(availableActions, id: \.self) { action in
+                SecurityActionRow(action: action, isEnabled: false)
+                    .onTapGesture {
+                        addSecurityAction(action)
+                    }
+            }
+        }
+    }
+    
+    private var securityActionsFooter: some View {
+        HStack {
+            Text("\(settingsManager.settings.securityActions.count) actions selected")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            Spacer()
+            
+            Button("Reset to Defaults") {
+                settingsManager.settings.securityActions = [.lockScreen, .unmountVolumes]
+            }
+            .buttonStyle(.link)
+        }
+        .padding()
     }
     
     private var availableActions: [SecurityActionType] {
         SecurityActionType.allCases.filter { action in
             !settingsManager.settings.securityActions.contains(action)
+        }
+    }
+    
+    private func moveSecurityActions(from source: IndexSet, to destination: Int) {
+        settingsManager.settings.securityActions.move(fromOffsets: source, toOffset: destination)
+    }
+    
+    private func addSecurityAction(_ action: SecurityActionType) {
+        withAnimation {
+            settingsManager.settings.securityActions.append(action)
         }
     }
 }
