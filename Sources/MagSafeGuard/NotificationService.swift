@@ -99,9 +99,10 @@ public class NotificationService {
 private class UserNotificationDelivery: NotificationDeliveryProtocol {
     
     func deliver(title: String, message: String, identifier: String) {
-        // Check if we're in a test environment
-        guard Bundle.main.bundleIdentifier != nil else {
-            print("[UserNotificationDelivery] Skipping delivery - test environment")
+        // Check if we're in a test environment or Xcode Agents
+        let bundleURL = Bundle.main.bundleURL.path
+        if Bundle.main.bundleIdentifier == nil || bundleURL.contains("Xcode") || bundleURL.contains("Developer") {
+            print("[UserNotificationDelivery] Skipping delivery - test/development environment")
             return
         }
         
@@ -127,9 +128,10 @@ private class UserNotificationDelivery: NotificationDeliveryProtocol {
     }
     
     func requestPermissions(completion: @escaping (Bool) -> Void) {
-        // Check if we're in a test environment
-        guard Bundle.main.bundleIdentifier != nil else {
-            print("[UserNotificationDelivery] Skipping permissions - test environment")
+        // Check if we're in a test environment or Xcode Agents
+        let bundleURL = Bundle.main.bundleURL.path
+        if Bundle.main.bundleIdentifier == nil || bundleURL.contains("Xcode") || bundleURL.contains("Developer") {
+            print("[UserNotificationDelivery] Skipping permissions - test/development environment")
             completion(false)
             return
         }

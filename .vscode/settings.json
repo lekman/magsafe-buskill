@@ -24,7 +24,9 @@
     "coverage": true,
     ".snyk": true,
     ".codecov.yml": true,
-    "coverage.xml": true
+    "coverage.xml": true,
+    "sbom.spdx": true,
+    "sbom-deps.json": true
   },
   "search.exclude": {
     "**/node_modules": true,
