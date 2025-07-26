@@ -14,8 +14,7 @@ on:
       - '**/package-lock.json'
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   cancel-redundant:
