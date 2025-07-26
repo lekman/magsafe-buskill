@@ -65,7 +65,7 @@ jobs:
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
       - name: Auto-approve Release PR
-        uses: lekman/auto-approve-action@44fbd63e95dc166951bbde068766d178c06bdb94 # v1.0.0
+        uses: lekman/auto-approve-action@25d5b39fc1a1e8a04ad7473a47f1a9ecd9748fa3 # v1.0.0
         with:
           allowed-authors: "app/lekman-release-please-bot"
           github-token: ${{ secrets.APPROVE_TOKEN }}

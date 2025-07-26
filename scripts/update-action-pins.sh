@@ -4,6 +4,11 @@
 
 set -euo pipefail
 
+# Source .env if it exists for GITHUB_TOKEN
+if [ -f .env ]; then
+    source .env
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -23,13 +28,24 @@ get_action_sha() {
     # Remove any path from repo (e.g., codeql-action/init -> codeql-action)
     repo="${repo%%/*}"
     
+    # Set up curl options with auth if available
+    local curl_opts="-s"
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+        curl_opts="$curl_opts -H 'Authorization: token $GITHUB_TOKEN'"
+    fi
+    
     # Handle version tags vs branch names
     if [[ "$version" =~ ^v[0-9] ]]; then
-        # It's a version tag
-        local sha=$(curl -s "https://api.github.com/repos/$owner/$repo/git/refs/tags/$version" | jq -r '.object.sha // empty' 2>/dev/null)
+        # It's a version tag - try multiple formats
+        local sha=$(eval "curl $curl_opts 'https://api.github.com/repos/$owner/$repo/git/refs/tags/$version'" | jq -r '.object.sha // empty' 2>/dev/null)
+        
+        # If not found, try with repo name prefix (e.g., auto-approve-action@v1.0.0)
+        if [ -z "$sha" ] || [ "$sha" = "null" ]; then
+            sha=$(eval "curl $curl_opts 'https://api.github.com/repos/$owner/$repo/git/refs/tags/$repo@$version'" | jq -r '.object.sha // empty' 2>/dev/null)
+        fi
     else
         # It's a branch name
-        local sha=$(curl -s "https://api.github.com/repos/$owner/$repo/git/refs/heads/$version" | jq -r '.object.sha // empty' 2>/dev/null)
+        local sha=$(eval "curl $curl_opts 'https://api.github.com/repos/$owner/$repo/git/refs/heads/$version'" | jq -r '.object.sha // empty' 2>/dev/null)
     fi
     
     if [ -z "$sha" ] || [ "$sha" = "null" ]; then
@@ -41,6 +57,12 @@ get_action_sha() {
 
 # Main execution
 echo -e "${BLUE}🔄 Updating GitHub Action pins to latest SHAs...${NC}"
+if [ -n "${GITHUB_TOKEN:-}" ]; then
+    echo -e "${GREEN}✓ Using GitHub authentication${NC}"
+else
+    echo -e "${YELLOW}⚠ No GITHUB_TOKEN found. API rate limits may apply.${NC}"
+    echo -e "${YELLOW}  Set GITHUB_TOKEN in .env file for better performance.${NC}"
+fi
 echo ""
 
 # Check if we have GitHub API access

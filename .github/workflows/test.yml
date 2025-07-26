@@ -177,7 +177,7 @@ jobs:
           fi
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v5.0.2
+        uses: codecov/codecov-action@a2f73fb6db51fcd2e0aa085dfb36dea90c5e3689 # v5.0.2
         with:
           use_oidc: true
           codecov_yml_path: .codecov.yml

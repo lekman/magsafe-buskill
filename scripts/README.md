@@ -58,6 +58,27 @@ The Taskfile.yml includes several security-related tasks:
 - **curl** - For making GitHub API requests (pre-installed on macOS)
 - **bash** - Version 4.0 or higher
 
+## Authentication
+
+The scripts support GitHub authentication via the `GITHUB_TOKEN` environment variable. This is recommended to:
+- Avoid GitHub API rate limits (60 requests/hour for unauthenticated, 5000/hour for authenticated)
+- Access private repositories
+- Get better performance
+
+### Setting up Authentication
+
+1. Create a `.env` file in your project root:
+   ```bash
+   echo "GITHUB_TOKEN=your_github_token_here" > .env
+   ```
+
+2. Or export it in your shell:
+   ```bash
+   export GITHUB_TOKEN=your_github_token_here
+   ```
+
+The scripts will automatically source the `.env` file if it exists.
+
 ## Security Benefits
 
 1. **Supply Chain Security**: Pinning actions to SHAs prevents supply chain attacks where an action's tag could be moved to malicious code
