@@ -26,7 +26,8 @@
     ".codecov.yml": true,
     "coverage.xml": true,
     "sbom.spdx": true,
-    "sbom-deps.json": true
+    "sbom-deps.json": true,
+    ".swiftlint.yml": true
   },
   "search.exclude": {
     "**/node_modules": true,

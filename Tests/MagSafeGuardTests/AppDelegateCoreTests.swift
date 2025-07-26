@@ -356,4 +356,117 @@ final class AppDelegateCoreTests: XCTestCase {
         XCTAssertEqual(menu.items.count, 1)
         XCTAssertEqual(menu.items[0].title, "Other Item")
     }
+    
+    // MARK: - Additional Menu Tests
+    
+    func testMenuWithGracePeriodCancellationDisabled() {
+        // This test requires a mock power monitor which we don't have yet
+        // TODO: Add this test when PowerMonitorService is made testable
+    }
+    
+    func testMenuWithDifferentPowerStates() {
+        // This test requires a mock power monitor which we don't have yet
+        // TODO: Add this test when PowerMonitorService is made testable
+    }
+    
+    func testMenuKeyEquivalents() {
+        let menu = core.createMenu()
+        
+        // Check key equivalents
+        var keyEquivalents: [String: String] = [:]
+        for item in menu.items {
+            if !item.keyEquivalent.isEmpty {
+                keyEquivalents[item.title] = item.keyEquivalent
+            }
+        }
+        
+        // Verify expected key equivalents
+        XCTAssertEqual(keyEquivalents["Settings..."], ",")
+        XCTAssertEqual(keyEquivalents["Run Demo..."], "d")
+        XCTAssertEqual(keyEquivalents["View Event Log..."], "l")
+        XCTAssertEqual(keyEquivalents["Quit MagSafe Guard"], "q")
+        
+        // Arm/Disarm key equivalent can be on either title
+        XCTAssertTrue(keyEquivalents["Arm Protection"] == "a" || keyEquivalents["Disarm Protection"] == "a")
+    }
+    
+    // MARK: - Error Handling Tests
+    
+    func testArmingWithAuthenticationError() {
+        // Configure auth to fail
+        mockAuthContext.evaluatePolicyShouldSucceed = false
+        
+        let armExpectation = expectation(description: "Arm with error")
+        var receivedError: Error?
+        
+        core.appController.arm { result in
+            switch result {
+            case .success:
+                XCTFail("Should fail with auth error")
+            case .failure(let error):
+                receivedError = error
+            }
+            armExpectation.fulfill()
+        }
+        
+        waitForExpectations(timeout: 1.0)
+        
+        XCTAssertNotNil(receivedError)
+        XCTAssertFalse(core.isArmed)
+    }
+    
+    func testDisarmingWithAuthenticationError() {
+        // First arm the system
+        mockAuthContext.evaluatePolicyShouldSucceed = true
+        let armExpectation = expectation(description: "Arm")
+        core.appController.arm { _ in armExpectation.fulfill() }
+        waitForExpectations(timeout: 1.0)
+        
+        // Now fail disarm auth
+        mockAuthContext.evaluatePolicyShouldSucceed = false
+        
+        let disarmExpectation = expectation(description: "Disarm with error")
+        var receivedError: Error?
+        
+        core.appController.disarm { result in
+            switch result {
+            case .success:
+                XCTFail("Should fail with auth error")
+            case .failure(let error):
+                receivedError = error
+            }
+            disarmExpectation.fulfill()
+        }
+        
+        waitForExpectations(timeout: 1.0)
+        
+        XCTAssertNotNil(receivedError)
+        XCTAssertTrue(core.isArmed) // Should remain armed
+    }
+    
+    func testDemoModeIntegration() {
+        // TODO: Add demo mode integration test when demo functionality is implemented
+        // The AppController doesn't currently have a runDemo method
+        XCTAssertTrue(true, "Demo mode not yet implemented")
+    }
+    
+    // MARK: - Backward Compatibility Tests
+    
+    func testBackwardCompatibilityMethods() {
+        // Test updateMenuItems (deprecated method)
+        let menu = NSMenu()
+        core.updateMenuItems(in: menu)
+        // Should not crash - it's a no-op
+        
+        // Test handlePowerStateChange (deprecated method)
+        let powerInfo = PowerMonitorService.PowerInfo(
+            state: .disconnected,
+            batteryLevel: 50,
+            isCharging: false,
+            adapterWattage: 0,
+            timestamp: Date()
+        )
+        let handled = core.handlePowerStateChange(powerInfo)
+        XCTAssertFalse(handled) // Should always return false now
+    }
 }

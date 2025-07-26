@@ -26,6 +26,76 @@ final class NotificationServiceTests: XCTestCase {
         XCTAssertTrue(instance1 === instance2, "Should return the same shared instance")
     }
     
+    // MARK: - Settings Integration Tests
+    
+    func testNotificationDisabledBySetting() {
+        // Save current setting
+        let originalSetting = UserDefaultsManager.shared.settings.showStatusNotifications
+        
+        // Disable notifications in settings
+        UserDefaultsManager.shared.updateSetting(\.showStatusNotifications, value: false)
+        
+        let mockDelivery = MockNotificationDelivery()
+        let service = NotificationService(deliveryMethod: mockDelivery)
+        
+        service.showNotification(title: "Test", message: "This should not be delivered")
+        
+        XCTAssertTrue(mockDelivery.deliveredNotifications.isEmpty)
+        XCTAssertFalse(mockDelivery.permissionsRequested)
+        
+        // Restore setting
+        UserDefaultsManager.shared.updateSetting(\.showStatusNotifications, value: originalSetting)
+    }
+    
+    func testNotificationEnabledBySetting() {
+        // Save current setting
+        let originalSetting = UserDefaultsManager.shared.settings.showStatusNotifications
+        
+        // Enable notifications in settings
+        UserDefaultsManager.shared.updateSetting(\.showStatusNotifications, value: true)
+        
+        let mockDelivery = MockNotificationDelivery()
+        let service = NotificationService(deliveryMethod: mockDelivery)
+        
+        service.showNotification(title: "Test", message: "This should be delivered")
+        
+        XCTAssertEqual(mockDelivery.deliveredNotifications.count, 1)
+        XCTAssertTrue(mockDelivery.permissionsRequested)
+        
+        // Restore setting
+        UserDefaultsManager.shared.updateSetting(\.showStatusNotifications, value: originalSetting)
+    }
+    
+    // MARK: - Critical Alert Fallback Tests
+    
+    func testCriticalAlertWithPermissions() {
+        let mockDelivery = MockNotificationDelivery()
+        mockDelivery.shouldGrantPermissions = true
+        let service = NotificationService(deliveryMethod: mockDelivery)
+        
+        // Request permissions first
+        service.requestPermissions()
+        
+        // Show critical alert
+        service.showCriticalAlert(title: "Critical", message: "Important alert")
+        
+        XCTAssertEqual(mockDelivery.deliveredNotifications.count, 1)
+        XCTAssertEqual(mockDelivery.deliveredNotifications.first?.title, "Critical")
+    }
+    
+    func testCriticalAlertWithoutPermissions() {
+        // This test simulates the behavior when permissions are not granted
+        let mockDelivery = MockNotificationDelivery()
+        mockDelivery.shouldGrantPermissions = false
+        let service = NotificationService(deliveryMethod: mockDelivery)
+        
+        // Don't request permissions explicitly - the service will still try to deliver
+        service.showCriticalAlert(title: "Critical", message: "Important alert")
+        
+        // Even without permissions, it should try to deliver via normal flow
+        XCTAssertEqual(mockDelivery.deliveredNotifications.count, 1)
+    }
+    
     // MARK: - Permission Tests
     
     func testRequestPermissionsWhenDisabled() {

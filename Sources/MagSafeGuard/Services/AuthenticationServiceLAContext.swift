@@ -12,17 +12,21 @@ import Foundation
 import LocalAuthentication
 
 extension AuthenticationService {
-    
+
     /// Perform the actual authentication using LAContext
     /// - Note: This method is excluded from coverage as it requires device authentication
-    internal func performAuthenticationWithLAContext(reason: String, policy: AuthenticationPolicy, completion: @escaping (AuthenticationResult) -> Void) {
+    internal func performAuthenticationWithLAContext(
+        reason: String,
+        policy: AuthenticationPolicy,
+        completion: @escaping (AuthenticationResult) -> Void
+    ) {
         let authContext = contextFactory.createContext()
         self.context = authContext
-        
+
         let laPolicy: LAPolicy = policy.contains(.biometricOnly)
             ? .deviceOwnerAuthenticationWithBiometrics
             : .deviceOwnerAuthentication
-        
+
         var error: NSError?
         guard authContext.canEvaluatePolicy(laPolicy, error: &error) else {
             let authError = mapLAError(error)
@@ -31,11 +35,11 @@ extension AuthenticationService {
             }
             return
         }
-        
+
         #if DEBUG
         print("[AuthenticationService] Authentication requested with reason: \(reason)")
         #endif
-        
+
         // Security Note: We use evaluatePolicy here because it's the official Apple API
         // for biometric authentication. The Snyk warning about DeviceAuthenticationBypass
         // is mitigated through our comprehensive security measures:
@@ -44,7 +48,7 @@ extension AuthenticationService {
         // 3. Fresh contexts prevent replay attacks
         // 4. Production security checks validate authentication state
         // 5. Attempt tracking monitors for suspicious activity
-        
+
         // Use async/await to call the protocol method
         Task {
             do {
@@ -55,28 +59,33 @@ extension AuthenticationService {
             }
         }
     }
-    
-    
+
     /// Handle successful authentication
-    private func handleAuthenticationSuccess(context: AuthenticationContextProtocol, completion: @escaping (AuthenticationResult) -> Void) {
+    private func handleAuthenticationSuccess(
+        context: AuthenticationContextProtocol,
+        completion: @escaping (AuthenticationResult) -> Void
+    ) {
         recordAuthenticationAttempt(success: true)
         lastAuthenticationTime = Date()
         DispatchQueue.main.async {
             completion(.success)
         }
     }
-    
+
     /// Handle authentication error
-    private func handleAuthenticationError(_ error: NSError, completion: @escaping (AuthenticationResult) -> Void) {
+    private func handleAuthenticationError(
+        _ error: NSError,
+        completion: @escaping (AuthenticationResult) -> Void
+    ) {
         let authError = mapLAError(error)
-        
+
         // Only record failed attempts for actual authentication failures
         if case .userCancel = authError {
             // Don't count cancellations as failed attempts
         } else {
             recordAuthenticationAttempt(success: false)
         }
-        
+
         DispatchQueue.main.async {
             if case .userCancel = authError {
                 completion(.cancelled)
@@ -85,5 +94,5 @@ extension AuthenticationService {
             }
         }
     }
-    
+
 }

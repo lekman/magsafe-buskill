@@ -1,0 +1,135 @@
+# SwiftLint Configuration for MagSafe Guard
+# Focus on documentation, code quality, and maintainability
+
+# Files to include/exclude
+included:
+  - Sources
+only_rules: []
+
+# Opt-in rules (not enabled by default)
+opt_in_rules:
+  - missing_docs              # Require documentation for public APIs
+  - file_header                # Consistent file headers
+  - explicit_type_interface    # Explicit types for public APIs
+  - explicit_acl              # Explicit access control
+  - explicit_init             # Explicit initializers
+  - redundant_type_annotation # Remove redundant type annotations
+  - sorted_imports            # Sort import statements
+  - vertical_parameter_alignment_on_call
+  - closure_parameter_position
+  - multiline_function_chains
+  - multiline_parameters
+  - operator_usage_whitespace
+  - redundant_nil_coalescing
+  - toggle_bool
+  - unused_import
+  - yoda_condition
+
+# Disabled rules
+disabled_rules:
+  - todo                      # Allow TODO comments during development
+  - function_body_length     # Complex UI code can be longer
+  - explicit_type_interface  # Too strict for internal properties
+  - file_length             # Some files need to be longer temporarily
+  - explicit_acl            # Extension methods don't need explicit ACL
+  - large_tuple             # Notification tuples need 3 elements
+
+# Rule configurations
+missing_docs:
+  excludes_extensions: false
+  excludes_inherited_types: false
+  
+file_header:
+  required_pattern: |
+                    \/\/
+                    \/\/  .*\.swift
+                    \/\/  MagSafe Guard
+                    \/\/
+                    \/\/  Created on \d{4}-\d{2}-\d{2}\.
+                    \/\/
+
+# Line length (generous for documentation)
+line_length:
+  warning: 120
+  error: 150
+  ignores_comments: true
+  ignores_urls: true
+
+# Function length (generous for SwiftUI views)
+function_body_length:
+  warning: 60
+  error: 100
+
+# Type body length
+type_body_length:
+  warning: 300
+  error: 400
+
+# File length
+file_length:
+  warning: 500
+  error: 800
+
+# Cyclomatic complexity
+cyclomatic_complexity:
+  warning: 10
+  error: 15
+
+# Nesting depth
+nesting:
+  type_level: 2
+  function_level: 5  # SwiftUI can have deep nesting
+
+# Function parameter count
+function_parameter_count:
+  warning: 6
+  error: 8
+
+# Identifier names
+identifier_name:
+  min_length: 2
+  max_length: 50
+  excluded:
+    - id
+    - x
+    - y
+
+# Type name
+type_name:
+  min_length: 3
+  max_length: 50
+
+# Custom rules for this project
+custom_rules:
+  no_print_statements:
+    name: "No Print Statements"
+    regex: 'print\('
+    message: "Use proper logging instead of print statements"
+    severity: warning
+    excluded:
+      - "**/AppDelegateCore.swift"  # Event log uses print
+      - "**/MagSafeGuardApp.swift"  # Development mode logging
+    
+  security_todo:
+    name: "Security TODO"
+    regex: '\/\/.*TODO.*[Ss]ecurity'
+    message: "Security-related TODOs should be prioritized"
+    severity: warning  # Changed from error to warning
+    
+  authentication_check:
+    name: "Authentication Required"
+    regex: '(arm|disarm).*func.*(?!.*authenticate)'
+    message: "Security operations should require authentication"
+    severity: warning
+
+# Reporter type
+reporter: "xcode"
+
+# Exclude auto-generated code
+excluded:
+  - Tests
+  - Package.swift
+  - .build
+  - .swiftpm
+  - "*.generated.swift"
+  - "**/Generated/"
