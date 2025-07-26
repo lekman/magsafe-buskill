@@ -219,12 +219,17 @@ struct SecuritySettingsView: View {
     private var availableActionsSection: some View {
         Section(header: Text("Available Actions")) {
             ForEach(availableActions, id: \.self) { action in
-                SecurityActionRow(action: action, isEnabled: false)
-                    .onTapGesture {
-                        addSecurityAction(action)
-                    }
+                availableActionRow(for: action)
             }
         }
+    }
+    
+    @ViewBuilder
+    private func availableActionRow(for action: SecurityActionType) -> some View {
+        SecurityActionRow(action: action, isEnabled: false)
+            .onTapGesture {
+                addSecurityAction(action)
+            }
     }
 
     private var securityActionsFooter: some View {
@@ -308,63 +313,89 @@ struct AutoArmSettingsView: View {
         Form {
             Section {
                 Toggle(isOn: $settingsManager.settings.autoArmEnabled) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Enable Auto-Arm")
-                        Text("Automatically arm protection based on location or network")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+                    autoArmToggleLabel
                 }
                 .padding(.vertical, 4)
             }
 
             Section(header: Text("Auto-Arm Triggers")) {
                 Toggle(isOn: $settingsManager.settings.autoArmByLocation) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Location-Based")
-                        Text("Arm when leaving trusted locations")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+                    locationBasedToggleLabel
                 }
                 .disabled(!settingsManager.settings.autoArmEnabled)
 
                 Toggle(isOn: $settingsManager.settings.autoArmOnUntrustedNetwork) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Network-Based")
-                        Text("Arm when not connected to trusted Wi-Fi networks")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+                    untrustedNetworkToggleLabel
                 }
                 .disabled(!settingsManager.settings.autoArmEnabled)
             }
 
             Section(header: Text("Trusted Networks")) {
-                if settingsManager.settings.trustedNetworks.isEmpty {
-                    Text("No trusted networks configured")
-                        .foregroundColor(.secondary)
-                        .italic()
-                } else {
-                    trustedNetworksList
-                }
-
-                HStack {
-                    TextField("Network SSID", text: $newNetwork)
-                        .textFieldStyle(.roundedBorder)
-
-                    Button("Add") {
-                        if !newNetwork.isEmpty {
-                            settingsManager.settings.trustedNetworks.append(newNetwork)
-                            newNetwork = ""
-                        }
-                    }
-                    .disabled(newNetwork.isEmpty)
-                }
+                trustedNetworksContent
+                addNetworkRow
             }
             .disabled(!settingsManager.settings.autoArmEnabled)
         }
         .formStyle(.grouped)
+    }
+    
+    // MARK: - Computed Properties
+    
+    private var autoArmToggleLabel: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Enable Auto-Arm")
+            Text("Automatically arm protection based on location or network")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private var locationBasedToggleLabel: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Location-Based")
+            Text("Arm when leaving trusted locations")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private var untrustedNetworkToggleLabel: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Network-Based")
+            Text("Arm when not connected to trusted Wi-Fi networks")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    @ViewBuilder
+    private var trustedNetworksContent: some View {
+        if settingsManager.settings.trustedNetworks.isEmpty {
+            Text("No trusted networks configured")
+                .foregroundColor(.secondary)
+                .italic()
+        } else {
+            trustedNetworksList
+        }
+    }
+    
+    private var addNetworkRow: some View {
+        HStack {
+            TextField("Network SSID", text: $newNetwork)
+                .textFieldStyle(.roundedBorder)
+
+            Button("Add") {
+                addTrustedNetwork()
+            }
+            .disabled(newNetwork.isEmpty)
+        }
+    }
+    
+    private func addTrustedNetwork() {
+        if !newNetwork.isEmpty {
+            settingsManager.settings.trustedNetworks.append(newNetwork)
+            newNetwork = ""
+        }
     }
 
     private var trustedNetworksList: some View {
@@ -491,7 +522,10 @@ struct AdvancedSettingsView: View {
         }
         .formStyle(.grouped)
         .alert("Settings Exported", isPresented: $showingExportSuccess) {
-            Button("OK", role: .cancel) { } // Empty closure - dismisses alert automatically
+            Button("OK", role: .cancel) { 
+                // No action needed - SwiftUI automatically dismisses the alert
+                // when a button with .cancel role is tapped
+            }
         } message: {
             Text("Your settings have been exported successfully.")
         }
@@ -521,22 +555,31 @@ struct AdvancedSettingsView: View {
 
     private var customScriptsList: some View {
         ForEach(settingsManager.settings.customScripts, id: \.self) { script in
-            HStack {
-                Image(systemName: "doc.text")
-                    .foregroundColor(.secondary)
-                Text(script)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Spacer()
-                Button(action: {
-                    settingsManager.settings.customScripts.removeAll { $0 == script }
-                }) {
-                    Image(systemName: "minus.circle.fill")
-                        .foregroundColor(.red)
-                }
-                .buttonStyle(.plain)
-            }
+            customScriptRow(for: script)
         }
+    }
+    
+    @ViewBuilder
+    private func customScriptRow(for script: String) -> some View {
+        HStack {
+            Image(systemName: "doc.text")
+                .foregroundColor(.secondary)
+            Text(script)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer()
+            Button(action: {
+                removeCustomScript(script)
+            }) {
+                Image(systemName: "minus.circle.fill")
+                    .foregroundColor(.red)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+    
+    private func removeCustomScript(_ script: String) {
+        settingsManager.settings.customScripts.removeAll { $0 == script }
     }
 
     private func handleSavePanelResponse(response: NSApplication.ModalResponse, data: Data, panel: NSSavePanel) {
