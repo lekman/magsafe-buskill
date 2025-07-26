@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- This changelog is automatically maintained by release-please -->
 <!-- Do not manually edit below this line -->
 
+## [1.6.0](https://github.com/lekman/magsafe-buskill/compare/v1.5.0...v1.6.0) (2025-07-26)
+
+
+### Features
+
+* Add LCOV format generation for Codecov coverage reports ([94c19c2](https://github.com/lekman/magsafe-buskill/commit/94c19c2053cbe17329de5e17bc33b10295439766))
+* Add Software Bill of Materials (SBOM) support for security compliance and dependency tracking ([f7b6c97](https://github.com/lekman/magsafe-buskill/commit/f7b6c97dfbcda4c622eea0a944be09b529163411))
+* Add step to find LCOV files for coverage upload ([d014072](https://github.com/lekman/magsafe-buskill/commit/d0140724accd41fe90258ad015ec3bbb66372a77))
+* Enhance documentation with new tests for menu bar UI and accessibility features ([65cc92a](https://github.com/lekman/magsafe-buskill/commit/65cc92a65db860715da68cd178d73b14b28e6461))
+* Update status icon to use shield SF Symbols for better visual representation ([f0febe7](https://github.com/lekman/magsafe-buskill/commit/f0febe7671637a5f0a41a9bcdb71d553372ee30d))
+
 ## [1.5.0](https://github.com/lekman/magsafe-buskill/compare/v1.4.0...v1.5.0) (2025-07-26)
 
 
