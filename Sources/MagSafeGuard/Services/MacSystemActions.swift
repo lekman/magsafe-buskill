@@ -24,6 +24,7 @@ public class MacSystemActions: SystemActionsProtocol {
         let sudoPath: String
         let bashPath: String
 
+        /// Default system paths for macOS standard locations
         public static let `default` = SystemPaths(
             pmsetPath: "/usr/bin/pmset",
             osascriptPath: "/usr/bin/osascript",
@@ -35,10 +36,14 @@ public class MacSystemActions: SystemActionsProtocol {
 
     private let systemPaths: SystemPaths
 
+    /// Initialize with custom system paths for testing
+    /// - Parameter systemPaths: Custom paths to system utilities
     public init(systemPaths: SystemPaths = .default) {
         self.systemPaths = systemPaths
     }
 
+    /// Locks the screen using distributed notification center
+    /// - Throws: SystemActionError if the operation fails
     public func lockScreen() throws {
         // Use distributed notification center to lock screen
         let notificationName = "com.apple.screenIsLocked" as CFString
@@ -71,6 +76,9 @@ public class MacSystemActions: SystemActionsProtocol {
         }
     }
 
+    /// Plays an alarm sound at the specified volume
+    /// - Parameter volume: Volume level from 0.0 to 1.0
+    /// - Throws: SystemActionError if playback fails
     public func playAlarm(volume: Float) throws {
         // Play alarm sound
         guard let soundURL = Bundle.main.url(forResource: "alarm", withExtension: "wav") else {
@@ -98,11 +106,14 @@ public class MacSystemActions: SystemActionsProtocol {
         }
     }
 
+    /// Stops the currently playing alarm sound
     public func stopAlarm() {
         alarmPlayer?.stop()
         alarmPlayer = nil
     }
 
+    /// Forces logout of all users using AppleScript
+    /// - Throws: SystemActionError if the operation fails
     public func forceLogout() throws {
         // Force logout all users
         let task = Process()
@@ -122,6 +133,9 @@ public class MacSystemActions: SystemActionsProtocol {
         }
     }
 
+    /// Schedules system shutdown after specified delay
+    /// - Parameter afterSeconds: Delay before shutdown in seconds
+    /// - Throws: SystemActionError if scheduling fails
     public func scheduleShutdown(afterSeconds: TimeInterval) throws {
         // Schedule system shutdown
         let task = Process()
@@ -150,6 +164,9 @@ public class MacSystemActions: SystemActionsProtocol {
         }
     }
 
+    /// Executes a shell script at the specified path
+    /// - Parameter path: Path to the script file
+    /// - Throws: SystemActionError if script doesn't exist or execution fails
     public func executeScript(at path: String) throws {
         guard FileManager.default.fileExists(atPath: path) else {
             throw SystemActionError.scriptNotFound

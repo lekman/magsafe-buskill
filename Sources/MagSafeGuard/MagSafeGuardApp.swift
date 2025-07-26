@@ -151,7 +151,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     // Notifications are handled by AppController callback
                     break
                 case .failure(let error):
-                    self?.showNotification(title: AppDelegate.appName, message: "Failed to arm: \(error.localizedDescription)")
+                    self?.showNotification(
+                        title: AppDelegate.appName,
+                        message: "Failed to arm: \(error.localizedDescription)"
+                    )
                 }
             }
         } else {
@@ -161,7 +164,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     // Notifications are handled by AppController callback
                     break
                 case .failure(let error):
-                    self?.showNotification(title: AppDelegate.appName, message: "Failed to disarm: \(error.localizedDescription)")
+                    self?.showNotification(
+                        title: AppDelegate.appName,
+                        message: "Failed to disarm: \(error.localizedDescription)"
+                    )
                 }
             }
         }

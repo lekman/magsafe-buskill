@@ -61,7 +61,10 @@ extension AuthenticationService {
     }
 
     /// Handle successful authentication
-    private func handleAuthenticationSuccess(context: AuthenticationContextProtocol, completion: @escaping (AuthenticationResult) -> Void) {
+    private func handleAuthenticationSuccess(
+        context: AuthenticationContextProtocol,
+        completion: @escaping (AuthenticationResult) -> Void
+    ) {
         recordAuthenticationAttempt(success: true)
         lastAuthenticationTime = Date()
         DispatchQueue.main.async {
@@ -70,7 +73,10 @@ extension AuthenticationService {
     }
 
     /// Handle authentication error
-    private func handleAuthenticationError(_ error: NSError, completion: @escaping (AuthenticationResult) -> Void) {
+    private func handleAuthenticationError(
+        _ error: NSError,
+        completion: @escaping (AuthenticationResult) -> Void
+    ) {
         let authError = mapLAError(error)
 
         // Only record failed attempts for actual authentication failures

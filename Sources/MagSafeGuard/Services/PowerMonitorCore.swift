@@ -81,9 +81,9 @@ public class PowerMonitorCore {
     /// security monitoring and triggering protective actions.
     public enum PowerState: String, Equatable {
         /// External power adapter is connected
-        case connected = "connected"
+        case connected
         /// Running on battery power (adapter disconnected)
-        case disconnected = "disconnected"
+        case disconnected
 
         /// Human-readable description of the power state.
         public var description: String {

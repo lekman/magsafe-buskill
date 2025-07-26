@@ -70,16 +70,26 @@ public class AuthenticationService: NSObject {
     /// Provides specific error cases for different authentication failures,
     /// enabling appropriate user messaging and error handling strategies.
     public enum AuthenticationError: LocalizedError, Equatable {
+        /// Device does not support biometric authentication
         case biometryNotAvailable
+        /// User has not enrolled any biometric credentials
         case biometryNotEnrolled
+        /// Biometry is locked out due to too many failed attempts
         case biometryLockout
+        /// User explicitly cancelled the authentication dialog
         case userCancel
+        /// User chose to use password/passcode instead of biometry
         case userFallback
+        /// System cancelled authentication (e.g., app moved to background)
         case systemCancel
+        /// Device does not have a passcode set
         case passcodeNotSet
+        /// Authentication attempt failed (wrong credentials)
         case authenticationFailed
+        /// An unknown error occurred during authentication
         case unknown(Error)
 
+        /// Compares two authentication errors for equality
         public static func == (lhs: AuthenticationError, rhs: AuthenticationError) -> Bool {
             switch (lhs, rhs) {
             case (.biometryNotAvailable, .biometryNotAvailable),
@@ -99,6 +109,7 @@ public class AuthenticationService: NSObject {
             }
         }
 
+        /// Provides a localized description of the authentication error
         public var errorDescription: String? {
             switch self {
             case .biometryNotAvailable:
@@ -128,8 +139,10 @@ public class AuthenticationService: NSObject {
     /// Allows customization of authentication requirements and fallback options
     /// based on security needs and user experience requirements.
     public struct AuthenticationPolicy: OptionSet {
+        /// The raw value of the authentication policy option
         public let rawValue: Int
 
+        /// Creates a new authentication policy with the specified raw value
         public init(rawValue: Int) {
             self.rawValue = rawValue
         }
@@ -249,7 +262,12 @@ public class AuthenticationService: NSObject {
         queue.async { [weak self] in
             guard let self = self else {
                 DispatchQueue.main.async {
-                    completion(.failure(AuthenticationError.unknown(NSError(domain: "AuthenticationService", code: -3, userInfo: nil))))
+                    let error = NSError(
+                        domain: "AuthenticationService",
+                        code: -3,
+                        userInfo: nil
+                    )
+                    completion(.failure(AuthenticationError.unknown(error)))
                 }
                 return
             }
@@ -270,7 +288,10 @@ public class AuthenticationService: NSObject {
     // MARK: - Authentication Helper Methods
 
     /// Perform pre-authentication security checks
-    internal func performPreAuthenticationChecks(reason: String, policy: AuthenticationPolicy) -> AuthenticationResult? {
+    internal func performPreAuthenticationChecks(
+        reason: String,
+        policy: AuthenticationPolicy
+    ) -> AuthenticationResult? {
         // Check rate limiting
         if isRateLimited() {
             return .failure(AuthenticationError.biometryLockout)
@@ -293,7 +314,11 @@ public class AuthenticationService: NSObject {
     }
 
     /// Perform the actual authentication
-    private func performAuthentication(reason: String, policy: AuthenticationPolicy, completion: @escaping (AuthenticationResult) -> Void) {
+    private func performAuthentication(
+        reason: String,
+        policy: AuthenticationPolicy,
+        completion: @escaping (AuthenticationResult) -> Void
+    ) {
         // Delegate to LAContext-specific implementation
         performAuthenticationWithLAContext(reason: reason, policy: policy, completion: completion)
     }

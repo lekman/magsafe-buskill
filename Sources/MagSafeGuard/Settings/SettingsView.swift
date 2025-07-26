@@ -37,35 +37,51 @@ public struct SettingsView: View {
         }
     }
 
+    /// The main view body containing the tabbed settings interface
     public var body: some View {
         TabView(selection: $selectedTab) {
             GeneralSettingsView()
                 .tabItem {
-                    Label(SettingsTab.general.rawValue, systemImage: SettingsTab.general.symbolName)
+                    Label(
+                        SettingsTab.general.rawValue,
+                        systemImage: SettingsTab.general.symbolName
+                    )
                 }
                 .tag(SettingsTab.general)
 
             SecuritySettingsView()
                 .tabItem {
-                    Label(SettingsTab.security.rawValue, systemImage: SettingsTab.security.symbolName)
+                    Label(
+                        SettingsTab.security.rawValue,
+                        systemImage: SettingsTab.security.symbolName
+                    )
                 }
                 .tag(SettingsTab.security)
 
             AutoArmSettingsView()
                 .tabItem {
-                    Label(SettingsTab.autoArm.rawValue, systemImage: SettingsTab.autoArm.symbolName)
+                    Label(
+                        SettingsTab.autoArm.rawValue,
+                        systemImage: SettingsTab.autoArm.symbolName
+                    )
                 }
                 .tag(SettingsTab.autoArm)
 
             NotificationSettingsView()
                 .tabItem {
-                    Label(SettingsTab.notifications.rawValue, systemImage: SettingsTab.notifications.symbolName)
+                    Label(
+                        SettingsTab.notifications.rawValue,
+                        systemImage: SettingsTab.notifications.symbolName
+                    )
                 }
                 .tag(SettingsTab.notifications)
 
             AdvancedSettingsView()
                 .tabItem {
-                    Label(SettingsTab.advanced.rawValue, systemImage: SettingsTab.advanced.symbolName)
+                    Label(
+                        SettingsTab.advanced.rawValue,
+                        systemImage: SettingsTab.advanced.symbolName
+                    )
                 }
                 .tag(SettingsTab.advanced)
         }
@@ -87,19 +103,19 @@ struct GeneralSettingsView: View {
         }
         .formStyle(.grouped)
     }
-    
+
     private var generalSettingsContent: some View {
         VStack(alignment: .leading, spacing: 16) {
             gracePeriodSection
-            
+
             Divider()
-            
+
             allowCancellationToggle
-            
+
             Divider()
-            
+
             launchAtLoginToggle
-            
+
             showInDockToggle
         }
         .padding()
@@ -144,7 +160,10 @@ struct GeneralSettingsView: View {
         Toggle(isOn: $settingsManager.settings.allowGracePeriodCancellation) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Allow Grace Period Cancellation")
-                Text("Permits canceling security actions during grace period with authentication")
+                Text("Permits canceling security actions during grace period")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text("with authentication")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -227,7 +246,7 @@ struct SecuritySettingsView: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private func availableActionRow(for action: SecurityActionType) -> some View {
         SecurityActionRow(action: action, isEnabled: false)
@@ -259,7 +278,10 @@ struct SecuritySettingsView: View {
     }
 
     private func moveSecurityActions(from source: IndexSet, to destination: Int) {
-        settingsManager.settings.securityActions.move(fromOffsets: source, toOffset: destination)
+        settingsManager.settings.securityActions.move(
+            fromOffsets: source,
+            toOffset: destination
+        )
     }
 
     private func addSecurityAction(_ action: SecurityActionType) {
@@ -321,7 +343,7 @@ struct AutoArmSettingsView: View {
         }
         .formStyle(.grouped)
     }
-    
+
     private var autoArmToggleSection: some View {
         Section {
             Toggle(isOn: $settingsManager.settings.autoArmEnabled) {
@@ -330,7 +352,7 @@ struct AutoArmSettingsView: View {
             .padding(.vertical, 4)
         }
     }
-    
+
     private var autoArmTriggersSection: some View {
         Section(header: Text("Auto-Arm Triggers")) {
             Toggle(isOn: $settingsManager.settings.autoArmByLocation) {
@@ -344,7 +366,7 @@ struct AutoArmSettingsView: View {
             .disabled(!settingsManager.settings.autoArmEnabled)
         }
     }
-    
+
     private var trustedNetworksSection: some View {
         Section(header: Text("Trusted Networks")) {
             trustedNetworksContent
@@ -352,9 +374,9 @@ struct AutoArmSettingsView: View {
         }
         .disabled(!settingsManager.settings.autoArmEnabled)
     }
-    
+
     // MARK: - Computed Properties
-    
+
     private var autoArmToggleLabel: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Enable Auto-Arm")
@@ -363,7 +385,7 @@ struct AutoArmSettingsView: View {
                 .foregroundColor(.secondary)
         }
     }
-    
+
     private var locationBasedToggleLabel: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Location-Based")
@@ -372,7 +394,7 @@ struct AutoArmSettingsView: View {
                 .foregroundColor(.secondary)
         }
     }
-    
+
     private var untrustedNetworkToggleLabel: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Network-Based")
@@ -381,7 +403,7 @@ struct AutoArmSettingsView: View {
                 .foregroundColor(.secondary)
         }
     }
-    
+
     @ViewBuilder
     private var trustedNetworksContent: some View {
         if settingsManager.settings.trustedNetworks.isEmpty {
@@ -392,7 +414,7 @@ struct AutoArmSettingsView: View {
             trustedNetworksList
         }
     }
-    
+
     private var addNetworkRow: some View {
         HStack {
             TextField("Network SSID", text: $newNetwork)
@@ -404,7 +426,7 @@ struct AutoArmSettingsView: View {
             .disabled(newNetwork.isEmpty)
         }
     }
-    
+
     private func addTrustedNetwork() {
         if !newNetwork.isEmpty {
             settingsManager.settings.trustedNetworks.append(newNetwork)
@@ -417,7 +439,7 @@ struct AutoArmSettingsView: View {
             trustedNetworkRow(for: network)
         }
     }
-    
+
     @ViewBuilder
     private func trustedNetworkRow(for network: String) -> some View {
         HStack {
@@ -427,14 +449,14 @@ struct AutoArmSettingsView: View {
             Spacer()
             Button(action: {
                 removeTrustedNetwork(network)
-            }) {
+            }, label: {
                 Image(systemName: "minus.circle.fill")
                     .foregroundColor(.red)
-            }
+            })
             .buttonStyle(.plain)
         }
     }
-    
+
     private func removeTrustedNetwork(_ network: String) {
         settingsManager.settings.trustedNetworks.removeAll { $0 == network }
     }
@@ -453,7 +475,7 @@ struct NotificationSettingsView: View {
         }
         .formStyle(.grouped)
     }
-    
+
     private var statusNotificationsSection: some View {
         Section(header: Text("Status Notifications")) {
             Toggle(isOn: $settingsManager.settings.showStatusNotifications) {
@@ -461,7 +483,7 @@ struct NotificationSettingsView: View {
             }
         }
     }
-    
+
     private var alertSettingsSection: some View {
         Section(header: Text("Alert Settings")) {
             Toggle(isOn: $settingsManager.settings.playCriticalAlertSound) {
@@ -469,14 +491,14 @@ struct NotificationSettingsView: View {
             }
         }
     }
-    
+
     private var systemSettingsSection: some View {
         Section {
             systemSettingsContent
                 .padding(.vertical, 4)
         }
     }
-    
+
     private var statusNotificationToggleLabel: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Show Status Changes")
@@ -485,7 +507,7 @@ struct NotificationSettingsView: View {
                 .foregroundColor(.secondary)
         }
     }
-    
+
     private var alertSoundToggleLabel: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Play Alert Sound")
@@ -494,17 +516,17 @@ struct NotificationSettingsView: View {
                 .foregroundColor(.secondary)
         }
     }
-    
+
     private var systemSettingsContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             notificationPermissionsInfo
-            
+
             Button("Open System Settings") {
                 openSystemNotificationSettings()
             }
         }
     }
-    
+
     private var notificationPermissionsInfo: some View {
         HStack {
             Image(systemName: "info.circle")
@@ -513,9 +535,12 @@ struct NotificationSettingsView: View {
                 .font(.caption)
         }
     }
-    
+
     private func openSystemNotificationSettings() {
-        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.notifications")!)
+        let prefsURL = "x-apple.systempreferences:com.apple.preference.notifications"
+        if let url = URL(string: prefsURL) {
+            NSWorkspace.shared.open(url)
+        }
     }
 }
 
@@ -533,21 +558,22 @@ struct AdvancedSettingsView: View {
             settingsManagementSection
         }
         .formStyle(.grouped)
-        .alert("Settings Exported", isPresented: $showingExportSuccess) {
-            Button("OK", role: .cancel) { 
+        .alert("Settings Exported", isPresented: $showingExportSuccess, actions: {
+            Button("OK", role: .cancel) {
                 // No action needed - SwiftUI automatically dismisses the alert
                 // when a button with .cancel role is tapped
             }
-        } message: {
+        }, message: {
             Text("Your settings have been exported successfully.")
-        }
+        })
         .fileImporter(
             isPresented: $showingImportDialog,
             allowedContentTypes: [.json],
-            allowsMultipleSelection: false
-        ) { result in
-            handleImport(result)
-        }
+            allowsMultipleSelection: false,
+            onCompletion: { result in
+                handleImport(result)
+            }
+        )
     }
 
     private func exportSettings() {
@@ -558,7 +584,11 @@ struct AdvancedSettingsView: View {
             panel.allowedContentTypes = [.json]
 
             panel.begin { response in
-                handleSavePanelResponse(response: response, data: data, panel: panel)
+                handleSavePanelResponse(
+                    response: response,
+                    data: data,
+                    panel: panel
+                )
             }
         } catch {
             print("[Settings] Export failed: \(error)")
@@ -566,17 +596,17 @@ struct AdvancedSettingsView: View {
     }
 
     // MARK: - Computed Properties
-    
+
     private var customScriptsSection: some View {
         Section(header: Text("Custom Scripts")) {
             customScriptsContent
-            
+
             Button("Add Custom Script...") {
                 addCustomScript()
             }
         }
     }
-    
+
     private var debugSection: some View {
         Section(header: Text("Debug")) {
             Toggle(isOn: $settingsManager.settings.debugLoggingEnabled) {
@@ -584,13 +614,13 @@ struct AdvancedSettingsView: View {
             }
         }
     }
-    
+
     private var settingsManagementSection: some View {
         Section(header: Text("Settings Management")) {
             settingsManagementButtons
         }
     }
-    
+
     @ViewBuilder
     private var customScriptsContent: some View {
         if settingsManager.settings.customScripts.isEmpty {
@@ -601,7 +631,7 @@ struct AdvancedSettingsView: View {
             customScriptsList
         }
     }
-    
+
     private var debugLoggingToggleLabel: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Enable Debug Logging")
@@ -610,7 +640,7 @@ struct AdvancedSettingsView: View {
                 .foregroundColor(.secondary)
         }
     }
-    
+
     private var settingsManagementButtons: some View {
         HStack {
             Button("Export Settings...") {
@@ -629,18 +659,18 @@ struct AdvancedSettingsView: View {
             .foregroundColor(.red)
         }
     }
-    
+
     private func addCustomScript() {
         // TODO: Implement file picker for scripts
         print("[Settings] Add custom script")
     }
-    
+
     private var customScriptsList: some View {
         ForEach(settingsManager.settings.customScripts, id: \.self) { script in
             customScriptRow(for: script)
         }
     }
-    
+
     @ViewBuilder
     private func customScriptRow(for script: String) -> some View {
         HStack {
@@ -652,19 +682,23 @@ struct AdvancedSettingsView: View {
             Spacer()
             Button(action: {
                 removeCustomScript(script)
-            }) {
+            }, label: {
                 Image(systemName: "minus.circle.fill")
                     .foregroundColor(.red)
-            }
+            })
             .buttonStyle(.plain)
         }
     }
-    
+
     private func removeCustomScript(_ script: String) {
         settingsManager.settings.customScripts.removeAll { $0 == script }
     }
 
-    private func handleSavePanelResponse(response: NSApplication.ModalResponse, data: Data, panel: NSSavePanel) {
+    private func handleSavePanelResponse(
+        response: NSApplication.ModalResponse,
+        data: Data,
+        panel: NSSavePanel
+    ) {
         if response == .OK, let url = panel.url {
             do {
                 try data.write(to: url)

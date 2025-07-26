@@ -330,7 +330,9 @@ public class SecurityActionsService {
     }
 
     /// Execute actions in parallel
-    private func executeActionsInParallel(_ actions: [SecurityAction]) -> ([SecurityAction], [(SecurityAction, Error)]) {
+    private func executeActionsInParallel(
+        _ actions: [SecurityAction]
+    ) -> ([SecurityAction], [(SecurityAction, Error)]) {
         var executedActions: [SecurityAction] = []
         var failedActions: [(SecurityAction, Error)] = []
         let group = DispatchGroup()
@@ -339,9 +341,12 @@ public class SecurityActionsService {
         for action in actions {
             group.enter()
             queue.async {
-                self.executeActionWithResult(action, resultsQueue: resultsQueue,
-                                           executedActions: &executedActions,
-                                           failedActions: &failedActions)
+                self.executeActionWithResult(
+                    action,
+                    resultsQueue: resultsQueue,
+                    executedActions: &executedActions,
+                    failedActions: &failedActions
+                )
                 group.leave()
             }
         }
@@ -351,7 +356,9 @@ public class SecurityActionsService {
     }
 
     /// Execute actions sequentially
-    private func executeActionsSequentially(_ actions: [SecurityAction]) -> ([SecurityAction], [(SecurityAction, Error)]) {
+    private func executeActionsSequentially(
+        _ actions: [SecurityAction]
+    ) -> ([SecurityAction], [(SecurityAction, Error)]) {
         var executedActions: [SecurityAction] = []
         var failedActions: [(SecurityAction, Error)] = []
 
@@ -369,10 +376,12 @@ public class SecurityActionsService {
     }
 
     /// Execute a single action and update result arrays
-    private func executeActionWithResult(_ action: SecurityAction,
-                                       resultsQueue: DispatchQueue,
-                                       executedActions: inout [SecurityAction],
-                                       failedActions: inout [(SecurityAction, Error)]) {
+    private func executeActionWithResult(
+        _ action: SecurityAction,
+        resultsQueue: DispatchQueue,
+        executedActions: inout [SecurityAction],
+        failedActions: inout [(SecurityAction, Error)]
+    ) {
         do {
             try executeAction(action)
             resultsQueue.sync {
@@ -469,6 +478,7 @@ public class SecurityActionsService {
 
 // MARK: - Objective-C Compatibility
 
+/// Objective-C compatible extension for SecurityActionsService
 @objc public extension SecurityActionsService {
     /// Execute security actions with simple boolean completion.
     ///
