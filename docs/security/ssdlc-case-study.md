@@ -198,7 +198,8 @@ task test:security || exit 1
 - **What**: Security best practices scoring
 - **Coverage**: 18 security checks
 - **Integration**: GitHub Actions
-- **Features**: Automated scoring, badges
+- **Features**: Automated scoring, GHAS integration
+- **Configuration**: Set to report to GitHub Security tab only
 
 ##### SLSA Framework
 
@@ -206,6 +207,22 @@ task test:security || exit 1
 - **Coverage**: Build provenance
 - **Integration**: GitHub Actions
 - **Features**: Signed attestations
+
+#### Recent Security Enhancements
+
+##### Shell Injection Prevention
+
+- **What**: Secure GitHub Actions workflows
+- **Implementation**: Environment variables for GitHub contexts
+- **Coverage**: All workflow files
+- **Features**: Prevents command injection attacks
+
+##### Protocol-Based Testing
+
+- **What**: Separation of system calls from business logic
+- **Implementation**: Protocol abstractions for testability
+- **Coverage**: Authentication and Security Actions
+- **Features**: 100% test coverage without system side effects
 
 ### Integration Architecture
 
@@ -260,6 +277,23 @@ jobs:
     strategy:
       matrix:
         scan: [codeql, semgrep, snyk]
+```
+
+### Security Workflow Permissions
+
+Following the principle of least privilege:
+
+```yaml
+# Global permissions (read-only)
+permissions:
+  contents: read
+  actions: read
+
+# Job-specific elevated permissions
+jobs:
+  codeql:
+    permissions:
+      security-events: write  # Only for SARIF upload
 ```
 
 ### Pre-commit Integration
@@ -368,6 +402,10 @@ We provide:
 3. **Document everything** with examples
 4. **Make security visible** with badges
 5. **Celebrate security wins** in release notes
+6. **Use environment variables** for GitHub contexts in workflows
+7. **Apply least privilege** to workflow permissions
+8. **Separate system calls** from business logic for testing
+9. **Remove unused tools** (e.g., Trivy for non-container projects)
 
 ## Reusable Templates
 
