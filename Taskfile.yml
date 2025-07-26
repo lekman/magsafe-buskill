@@ -567,6 +567,7 @@ tasks:
       - task: test:coverage
       - task: test:security
       - task: lint
+      - task: sbom
       - echo "✅ All pre-push checks passed!"
       - echo "Ready to push your changes."
 
@@ -705,6 +706,7 @@ tasks:
 
   sbom:
     desc: Generate Software Bill of Materials (SBOM) in SPDX format
+    silent: true
     cmds:
       - |
         echo "📦 Generating SBOM for Swift project..."

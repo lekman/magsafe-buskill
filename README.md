@@ -172,7 +172,6 @@ For details on the project progress, planned initiatives and current status, exp
 | In Progress | 0 |
 | Pending | 66 |
 
-
 | ID | Title | Status | Priority | Dependencies | Complexity |
 | :- | :-    | :-     | :-       | :-           | :-         |
 | 1 | Setup Project Repository and Structure | ✓&nbsp;done | high | None | ● 4 |
@@ -193,6 +192,5 @@ For details on the project progress, planned initiatives and current status, exp
 
 > 📋 **End of Taskmaster Export** - Tasks are synced from your project using the `sync-readme` command.
 <!-- TASKMASTER_EXPORT_END -->
-
 
 </details>
