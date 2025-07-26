@@ -154,14 +154,12 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          file: ./coverage.xml
+          files: ./coverage.xml
           flags: unittests
           fail_ci_if_error: true
           name: MagSafeGuard
-          swift_project: MagSafeGuard
-          codecov_yml_path: .codecov.yml
-          slug: lekman/magsafe-buskill
           token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
 
       # SonarCloud Analysis
       - name: Install and run SonarCloud Scan
