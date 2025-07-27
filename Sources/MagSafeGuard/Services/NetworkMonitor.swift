@@ -239,7 +239,7 @@ public class NetworkMonitor {
 
             // Check if network changed
             if ssid != previousSSID {
-                Log.info("Connected to network: \(ssid) (trusted: \(isOnTrustedNetwork))", category: .network)
+                Log.infoSensitive("Connected to network", value: "\(ssid) (trusted: \(isOnTrustedNetwork))", category: .network)
 
                 if isOnTrustedNetwork {
                     delegate?.networkMonitorDidConnectToTrustedNetwork(ssid)

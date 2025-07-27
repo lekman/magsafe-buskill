@@ -37,7 +37,7 @@ extension AuthenticationService {
         }
 
         #if DEBUG
-        Log.debug("Authentication requested with reason: \(reason)", category: .authentication)
+        Log.debugSensitive("Authentication requested", value: reason, category: .authentication)
         #endif
 
         // Security Note: We use evaluatePolicy here because it's the official Apple API

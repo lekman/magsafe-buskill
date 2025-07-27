@@ -305,14 +305,14 @@ extension LocationManager: CLLocationManagerDelegate {
 
     /// Called when entering a monitored region
     public func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
-        Log.info("Entered region: \(region.identifier)", category: .location)
+        Log.infoSensitive("Entered region", value: region.identifier, category: .location)
         isInTrustedLocation = true
         delegate?.locationManagerDidEnterTrustedLocation()
     }
 
     /// Called when exiting a monitored region
     public func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
-        Log.info("Exited region: \(region.identifier)", category: .location)
+        Log.infoSensitive("Exited region", value: region.identifier, category: .location)
 
         // Check if we're still in any other trusted location
         isInTrustedLocation = checkIfInTrustedLocation()

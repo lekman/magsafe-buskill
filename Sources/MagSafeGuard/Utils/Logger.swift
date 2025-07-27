@@ -33,18 +33,54 @@ public struct Log {
     // MARK: - Public Methods
 
     /// Log debug information (only visible with debug flag)
+    /// - Parameters:
+    ///   - message: The message to log (treated as public by default)
+    ///   - category: The log category
     public static func debug(_ message: String, category: LogCategory = .general) {
         category.logger.debug("\(message, privacy: .public)")
     }
 
+    /// Log debug information with sensitive data
+    /// - Parameters:
+    ///   - message: The public message prefix
+    ///   - sensitiveValue: The sensitive value to log (will be redacted in logs)
+    ///   - category: The log category
+    public static func debugSensitive(_ message: String, value: String, category: LogCategory = .general) {
+        category.logger.debug("\(message, privacy: .public): \(value, privacy: .private)")
+    }
+
     /// Log general information
+    /// - Parameters:
+    ///   - message: The message to log (treated as public by default)
+    ///   - category: The log category
     public static func info(_ message: String, category: LogCategory = .general) {
         category.logger.info("\(message, privacy: .public)")
     }
 
+    /// Log information with sensitive data
+    /// - Parameters:
+    ///   - message: The public message prefix
+    ///   - sensitiveValue: The sensitive value to log (will be redacted in logs)
+    ///   - category: The log category
+    public static func infoSensitive(_ message: String, value: String, category: LogCategory = .general) {
+        category.logger.info("\(message, privacy: .public): \(value, privacy: .private)")
+    }
+
     /// Log normal but significant events (default level)
+    /// - Parameters:
+    ///   - message: The message to log (treated as public by default)
+    ///   - category: The log category
     public static func notice(_ message: String, category: LogCategory = .general) {
         category.logger.notice("\(message, privacy: .public)")
+    }
+
+    /// Log notice with sensitive data
+    /// - Parameters:
+    ///   - message: The public message prefix
+    ///   - sensitiveValue: The sensitive value to log (will be redacted in logs)
+    ///   - category: The log category
+    public static func noticeSensitive(_ message: String, value: String, category: LogCategory = .general) {
+        category.logger.notice("\(message, privacy: .public): \(value, privacy: .private)")
     }
 
     /// Log warnings

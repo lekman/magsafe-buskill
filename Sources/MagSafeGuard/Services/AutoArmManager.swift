@@ -117,7 +117,7 @@ public class AutoArmManager: NSObject {
             networkMonitor.startMonitoring()
         }
 
-        Log.info("Started monitoring (location: \(settings.autoArmByLocation), network: \(settings.autoArmOnUntrustedNetwork))", category: .autoArm)
+        Log.infoSensitive("Started monitoring", value: "location: \(settings.autoArmByLocation), network: \(settings.autoArmOnUntrustedNetwork)", category: .autoArm)
     }
 
     /// Stops all auto-arm monitoring
@@ -145,7 +145,7 @@ public class AutoArmManager: NSObject {
             Log.info("Temporary disable expired", category: .autoArm)
         }
 
-        Log.info("Temporarily disabled for \(Int(duration / 60)) minutes", category: .autoArm)
+        Log.infoSensitive("Temporarily disabled", value: "\(Int(duration / 60)) minutes", category: .autoArm)
 
         // Show notification
         NotificationService.shared.showNotification(
@@ -240,7 +240,7 @@ public class AutoArmManager: NSObject {
             self?.appController.arm { result in
                 switch result {
                 case .success:
-                    Log.notice("Successfully auto-armed: \(reason)", category: .autoArm)
+                    Log.noticeSensitive("Successfully auto-armed", value: reason, category: .autoArm)
                 case .failure(let error):
                     Log.error("Failed to auto-arm", error: error, category: .autoArm)
                     NotificationService.shared.showNotification(
@@ -276,7 +276,7 @@ extension AutoArmManager: LocationManagerDelegate {
     /// Called when location authorization status changes
     /// - Parameter status: The new authorization status
     public func locationManager(didChangeAuthorization status: CLAuthorizationStatus) {
-        Log.info("Location authorization changed: \(status.rawValue)", category: .autoArm)
+        Log.infoSensitive("Location authorization changed", value: "\(status.rawValue)", category: .autoArm)
 
         if status == .denied || status == .restricted {
             NotificationService.shared.showNotification(
@@ -294,7 +294,7 @@ extension AutoArmManager: NetworkMonitorDelegate {
     /// Called when connecting to an untrusted network
     /// - Parameter ssid: The SSID of the untrusted network
     public func networkMonitorDidConnectToUntrustedNetwork(_ ssid: String) {
-        Log.info("Connected to untrusted network: \(ssid)", category: .autoArm)
+        Log.infoSensitive("Connected to untrusted network", value: ssid, category: .autoArm)
 
         let settings = settingsManager.settings
         guard settings.autoArmEnabled && settings.autoArmOnUntrustedNetwork else { return }
@@ -315,14 +315,14 @@ extension AutoArmManager: NetworkMonitorDelegate {
     /// Called when connecting to a trusted network
     /// - Parameter ssid: The SSID of the trusted network
     public func networkMonitorDidConnectToTrustedNetwork(_ ssid: String) {
-        Log.info("Connected to trusted network: \(ssid)", category: .autoArm)
+        Log.infoSensitive("Connected to trusted network", value: ssid, category: .autoArm)
         // Could potentially auto-disarm here if desired
     }
 
     /// Called when network connectivity changes
     /// - Parameter isConnected: Whether the device is connected to any network
     public func networkMonitor(didChangeConnectivity isConnected: Bool) {
-        Log.info("Network connectivity changed: \(isConnected)", category: .autoArm)
+        Log.infoSensitive("Network connectivity changed", value: "\(isConnected)", category: .autoArm)
 
         if !isConnected {
             // Lost all network connectivity
