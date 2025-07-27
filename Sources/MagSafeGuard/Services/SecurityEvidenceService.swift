@@ -407,16 +407,26 @@ public class SecurityEvidenceService: NSObject {
 // MARK: - CLLocationManagerDelegate
 
 extension SecurityEvidenceService: CLLocationManagerDelegate {
+    /// Called when the location manager receives updated location data.
+    /// - Parameters:
+    ///   - manager: The location manager providing the update
+    ///   - locations: Array of CLLocation objects containing the location data
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         currentLocation = location
         Log.debug("Updated location: \(location.coordinate.latitude), \(location.coordinate.longitude)", category: .general)
     }
 
+    /// Called when the location manager fails to retrieve location data.
+    /// - Parameters:
+    ///   - manager: The location manager that failed
+    ///   - error: The error that occurred
     public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         Log.error("Location manager error", error: error, category: .general)
     }
 
+    /// Called when the app's authorization to use location services changes.
+    /// - Parameter manager: The location manager reporting the authorization change
     public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         switch manager.authorizationStatus {
         case .authorizedAlways, .authorizedWhenInUse:
@@ -432,6 +442,11 @@ extension SecurityEvidenceService: CLLocationManagerDelegate {
 // MARK: - AVCapturePhotoCaptureDelegate
 
 extension SecurityEvidenceService: AVCapturePhotoCaptureDelegate {
+    /// Called when photo capture is complete.
+    /// - Parameters:
+    ///   - output: The photo output that captured the photo
+    ///   - photo: The captured photo object
+    ///   - error: An error if photo capture failed, nil otherwise
     public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         if let error = error {
             Log.error("Error capturing photo", error: error, category: .general)
@@ -527,9 +542,13 @@ public protocol SecurityEvidenceServiceDelegate: AnyObject {
 
 /// Represents collected security evidence
 public struct SecurityEvidence: Codable {
+    /// The timestamp when the evidence was collected
     public let timestamp: Date
+    /// The location where the evidence was collected
     public let location: CLLocation?
+    /// The photo data captured as evidence
     public let photoData: Data?
+    /// Information about the device that collected the evidence
     public let deviceInfo: String
 
     enum CodingKeys: String, CodingKey {
@@ -538,6 +557,12 @@ public struct SecurityEvidence: Codable {
         case photoData
     }
 
+    /// Initialize a new SecurityEvidence instance.
+    /// - Parameters:
+    ///   - timestamp: When the evidence was collected
+    ///   - location: Where the evidence was collected
+    ///   - photoData: Photo data captured as evidence
+    ///   - deviceInfo: Information about the device
     public init(timestamp: Date, location: CLLocation?, photoData: Data?, deviceInfo: String) {
         self.timestamp = timestamp
         self.location = location
@@ -545,6 +570,9 @@ public struct SecurityEvidence: Codable {
         self.deviceInfo = deviceInfo
     }
 
+    /// Initialize SecurityEvidence from decoded data.
+    /// - Parameter decoder: The decoder to read data from
+    /// - Throws: DecodingError if decoding fails
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         timestamp = try container.decode(Date.self, forKey: .timestamp)
@@ -567,6 +595,9 @@ public struct SecurityEvidence: Codable {
         }
     }
 
+    /// Encode the SecurityEvidence instance.
+    /// - Parameter encoder: The encoder to write data to
+    /// - Throws: EncodingError if encoding fails
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(timestamp, forKey: .timestamp)
@@ -586,17 +617,28 @@ public struct SecurityEvidence: Codable {
 
 /// Errors that can occur during evidence collection
 public enum EvidenceError: LocalizedError {
+    /// Evidence collection feature is disabled in settings
     case featureDisabled
+    /// Camera is not available on this device
     case cameraUnavailable
+    /// Failed to configure camera input
     case cameraInputError
+    /// Camera input is not compatible with capture session
     case invalidCameraInput
+    /// Camera output is not compatible with capture session
     case invalidCameraOutput
+    /// Location data is required but not available
     case missingLocationData
+    /// Backup email address is not configured in settings
     case backupEmailNotConfigured
+    /// Failed to send evidence via email
     case emailSendingFailed
+    /// Failed to encrypt evidence data
     case encryptionFailed
+    /// Failed to store or retrieve evidence from storage
     case storageError
 
+    /// Localized description of the error for user display.
     public var errorDescription: String? {
         switch self {
         case .featureDisabled:
