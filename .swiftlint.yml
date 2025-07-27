@@ -116,12 +116,6 @@ custom_rules:
     regex: '\/\/.*TODO.*[Ss]ecurity'
     message: "Security-related TODOs should be prioritized"
     severity: warning  # Changed from error to warning
-    
-  authentication_check:
-    name: "Authentication Required"
-    regex: '(arm|disarm).*func.*(?!.*authenticate)'
-    message: "Security operations should require authentication"
-    severity: warning
 
 # Reporter type
 reporter: "xcode"

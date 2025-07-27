@@ -160,7 +160,7 @@ public enum LogCategory {
     /// User interface and interaction logs
     case ui
     /// Auto-arm feature logs
-    case autoArm  // swiftlint:disable:this authentication_check
+    case autoArm
     /// Network connectivity and monitoring logs
     case network
     /// Location services and geofencing logs
@@ -180,7 +180,7 @@ public enum LogCategory {
         case .settings: return "Settings"
         case .security: return "Security"
         case .ui: return "UI"
-        case .autoArm: return "AutoArm"  // swiftlint:disable:this authentication_check
+        case .autoArm: return "AutoArm"
         case .network: return "Network"
         case .location: return "Location"
         }
@@ -214,7 +214,8 @@ private class FileLogger {
             try FileManager.default.createDirectory(at: logsDir, withIntermediateDirectories: true, attributes: nil)
         } catch {
             // If we can't create the directory, logging is not available
-            print("Warning: Cannot create log directory: \(error)")
+            // Using os.Logger for system messages since file logging isn't available yet
+            os.Logger(subsystem: "com.lekman.MagSafeGuard", category: "System").error("Cannot create log directory: \(error)")
             return nil
         }
 
@@ -250,8 +251,8 @@ private class FileLogger {
                         try data.write(to: self.logFileURL, options: .atomic)
                     }
                 } catch {
-                    // If we can't write to the log file, just print to console
-                    print("Log: \(logLine.trimmingCharacters(in: .newlines))")
+                    // If we can't write to the log file, use os.Logger as fallback
+                    os.Logger(subsystem: "com.lekman.MagSafeGuard", category: "System").log("\(logLine.trimmingCharacters(in: .newlines))")
                 }
             }
         }

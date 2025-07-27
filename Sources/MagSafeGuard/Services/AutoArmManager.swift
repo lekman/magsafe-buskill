@@ -4,7 +4,7 @@
 //
 //  Created on 2025-07-26.
 //
-//  Manages automatic arming based on location and network conditions  // swiftlint:disable:this authentication_check
+//  Manages automatic arming based on location and network conditions
 //
 
 import CoreLocation
