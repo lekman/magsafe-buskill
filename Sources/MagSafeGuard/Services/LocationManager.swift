@@ -328,10 +328,8 @@ extension LocationManager: CLLocationManagerDelegate {
         delegate?.locationManager(didChangeAuthorization: status)
 
         // Start monitoring if we just got permission
-        if status == .authorizedAlways {
-            if !isMonitoring {
-                beginLocationMonitoring()
-            }
+        if status == .authorizedAlways && !isMonitoring {
+            beginLocationMonitoring()
         }
     }
 

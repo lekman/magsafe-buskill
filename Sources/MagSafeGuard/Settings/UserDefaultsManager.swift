@@ -100,9 +100,7 @@ public class UserDefaultsManager: ObservableObject {
             self.saveSettings()
         }
 
-        // Set up auto-save on changes
-        // Disabled auto-save to prevent conflicts with SwiftUI bindings
-        // setupAutoSave()
+        // Auto-save disabled to prevent conflicts with SwiftUI bindings
 
         // Mark first launch
         if !userDefaults.bool(forKey: Keys.hasLaunchedBefore) {
@@ -195,17 +193,6 @@ public class UserDefaultsManager: ObservableObject {
 
     // MARK: - Private Methods
 
-    private func setupAutoSave() {
-        // Auto-save when settings change
-        $settings
-            .dropFirst() // Skip initial value
-            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.saveSettings()
-            }
-            .store(in: &cancellables)
-    }
-
     private func saveSettings() {
         do {
             let data = try encoder.encode(settings)
@@ -218,10 +205,9 @@ public class UserDefaultsManager: ObservableObject {
             Log.error("Failed to save settings", error: error, category: .settings)
             // Try to at least log what went wrong
             if let encodingError = error as? EncodingError {
-                switch encodingError {
-                case .invalidValue(let value, let context):
+                if case .invalidValue(let value, let context) = encodingError {
                     Log.error("Invalid value \(value) at \(context.codingPath)", category: .settings)
-                default:
+                } else {
                     Log.error("Encoding error: \(encodingError)", category: .settings)
                 }
             }

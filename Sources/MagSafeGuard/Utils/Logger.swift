@@ -218,8 +218,10 @@ private class FileLogger {
             return nil
         }
 
-        // Create log file with date
-        let fileName = "errors-\(DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .none).replacingOccurrences(of: "/", with: "-")).log"
+        // Create log file with date - use a date formatter that doesn't include path delimiters
+        let filenameDateFormatter = DateFormatter()
+        filenameDateFormatter.dateFormat = "dd-MM-yyyy"
+        let fileName = "errors-\(filenameDateFormatter.string(from: Date())).log"
         logFileURL = logsDir.appendingPathComponent(fileName)
 
         // Configure date formatter

@@ -36,18 +36,7 @@ struct TrustedLocationsView: View {
             }
             .navigationTitle("Trusted Locations")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showingAddLocation = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                }
+                toolbarContent
             }
         }
         .onAppear {
@@ -70,7 +59,9 @@ struct TrustedLocationsView: View {
                     NSWorkspace.shared.open(url)
                 }
             }
-            Button("Cancel", role: .cancel) { }
+            Button("Cancel", role: .cancel) {
+                // Cancel action
+            }
         } message: {
             Text("Location-based auto-arm requires location permission. Please enable it in System Settings.")
         }
@@ -98,6 +89,22 @@ struct TrustedLocationsView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
+    }
+    
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            Button("Done") {
+                dismiss()
+            }
+        }
+        ToolbarItem(placement: .primaryAction) {
+            Button {
+                showingAddLocation = true
+            } label: {
+                Image(systemName: "plus")
+            }
+        }
     }
 
     private var locationsList: some View {
@@ -150,30 +157,39 @@ struct LocationRow: View {
 
     var body: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(location.name)
-                    .font(.body)
-
-                HStack(spacing: 4) {
-                    Image(systemName: "location.fill")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    Text("Radius: \(Int(location.radius))m")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-
+            locationInfo
             Spacer()
-
-            Button(action: onDelete) {
-                Image(systemName: "minus.circle.fill")
-                    .foregroundColor(.red)
-            }
-            .buttonStyle(.plain)
+            deleteButton
         }
         .padding(.vertical, 4)
+    }
+    
+    private var locationInfo: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(location.name)
+                .font(.body)
+            locationDetails
+        }
+    }
+    
+    private var locationDetails: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "location.fill")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            Text("Radius: \(Int(location.radius))m")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private var deleteButton: some View {
+        Button(action: onDelete) {
+            Image(systemName: "minus.circle.fill")
+                .foregroundColor(.red)
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -205,43 +221,17 @@ struct AddLocationView: View {
                     .pickerStyle(.segmented)
 
                     if !useCurrentLocation {
-                        HStack {
-                            TextField("Latitude", text: $manualLatitude)
-                                .textFieldStyle(.roundedBorder)
-                            TextField("Longitude", text: $manualLongitude)
-                                .textFieldStyle(.roundedBorder)
-                        }
+                        manualLocationFields
                     }
                 }
 
                 Section(header: Text("Trust Radius")) {
-                    VStack(alignment: .leading) {
-                        Text("\(Int(radius)) meters")
-                            .font(.headline)
-
-                        Slider(value: $radius, in: 50...1000, step: 50)
-
-                        Text("Area around this location where auto-arm is disabled")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+                    trustRadiusContent
                 }
             }
             .navigationTitle("Add Trusted Location")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", action: onCancel)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        if useCurrentLocation {
-                            getCurrentLocationAndSave()
-                        } else {
-                            saveWithManualCoordinates()
-                        }
-                    }
-                    .disabled(locationName.isEmpty || isLoadingLocation)
-                }
+                addLocationToolbar
             }
         }
         .frame(width: 500, height: 400)
@@ -271,6 +261,45 @@ struct AddLocationView: View {
 
         coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
         onSave()
+    }
+    
+    private var manualLocationFields: some View {
+        HStack {
+            TextField("Latitude", text: $manualLatitude)
+                .textFieldStyle(.roundedBorder)
+            TextField("Longitude", text: $manualLongitude)
+                .textFieldStyle(.roundedBorder)
+        }
+    }
+    
+    private var trustRadiusContent: some View {
+        VStack(alignment: .leading) {
+            Text("\(Int(radius)) meters")
+                .font(.headline)
+
+            Slider(value: $radius, in: 50...1000, step: 50)
+
+            Text("Area around this location where auto-arm is disabled")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    @ToolbarContentBuilder
+    private var addLocationToolbar: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            Button("Cancel", action: onCancel)
+        }
+        ToolbarItem(placement: .confirmationAction) {
+            Button("Save") {
+                if useCurrentLocation {
+                    getCurrentLocationAndSave()
+                } else {
+                    saveWithManualCoordinates()
+                }
+            }
+            .disabled(locationName.isEmpty || isLoadingLocation)
+        }
     }
 }
 

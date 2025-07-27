@@ -25,20 +25,30 @@ public class MacSystemActions: SystemActionsProtocol {
         let bashPath: String
 
         /// Default system paths for macOS standard locations
-        public static let `default` = SystemPaths(
-            pmsetPath: "/usr/bin/pmset",
-            osascriptPath: "/usr/bin/osascript",
-            killallPath: "/usr/bin/killall",
-            sudoPath: "/usr/bin/sudo",
-            bashPath: "/bin/bash"
+        /// These can be overridden via environment variables for testing or custom configurations
+        public static let standard = SystemPaths(
+            pmsetPath: ProcessInfo.processInfo.environment["MAGSAFE_PMSET_PATH"] ?? "/usr/bin/pmset",
+            osascriptPath: ProcessInfo.processInfo.environment["MAGSAFE_OSASCRIPT_PATH"] ?? "/usr/bin/osascript",
+            killallPath: ProcessInfo.processInfo.environment["MAGSAFE_KILLALL_PATH"] ?? "/usr/bin/killall",
+            sudoPath: ProcessInfo.processInfo.environment["MAGSAFE_SUDO_PATH"] ?? "/usr/bin/sudo",
+            bashPath: ProcessInfo.processInfo.environment["MAGSAFE_BASH_PATH"] ?? "/bin/bash"
         )
+        
+        /// Initialize with custom paths
+        public init(pmsetPath: String, osascriptPath: String, killallPath: String, sudoPath: String, bashPath: String) {
+            self.pmsetPath = pmsetPath
+            self.osascriptPath = osascriptPath
+            self.killallPath = killallPath
+            self.sudoPath = sudoPath
+            self.bashPath = bashPath
+        }
     }
 
     private let systemPaths: SystemPaths
 
     /// Initialize with custom system paths for testing
     /// - Parameter systemPaths: Custom paths to system utilities
-    public init(systemPaths: SystemPaths = .default) {
+    public init(systemPaths: SystemPaths = .standard) {
         self.systemPaths = systemPaths
     }
 

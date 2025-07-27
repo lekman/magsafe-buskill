@@ -406,17 +406,21 @@ struct AutoArmSettingsView: View {
             Button {
                 showingLocationManager = true
             } label: {
-                HStack {
-                    Image(systemName: "location.circle")
-                        .foregroundColor(.accentColor)
-                    Text("Manage Trusted Locations")
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.secondary)
-                        .font(.caption)
-                }
+                trustedLocationsButtonLabel
             }
             .disabled(!settingsManager.settings.autoArmEnabled || !settingsManager.settings.autoArmByLocation)
+        }
+    }
+    
+    private var trustedLocationsButtonLabel: some View {
+        HStack {
+            Image(systemName: "location.circle")
+                .foregroundColor(.accentColor)
+            Text("Manage Trusted Locations")
+            Spacer()
+            Image(systemName: "chevron.right")
+                .foregroundColor(.secondary)
+                .font(.caption)
         }
     }
 
@@ -520,34 +524,47 @@ struct AutoArmSettingsView: View {
 
     private var autoArmStatusSection: some View {
         Section(header: Text("Auto-Arm Status")) {
-            if let autoArmManager = getAutoArmManager() {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: autoArmManager.isAutoArmConditionMet ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
-                            .foregroundColor(autoArmManager.isAutoArmConditionMet ? .orange : .green)
-                        Text(autoArmManager.statusSummary)
-                            .font(.body)
-                    }
-
-                    if autoArmManager.isTemporarilyDisabled {
-                        Button("Cancel Temporary Disable") {
-                            autoArmManager.cancelTemporaryDisable()
-                        }
-                        .buttonStyle(.link)
-                    } else if settingsManager.settings.autoArmEnabled {
-                        Button("Temporarily Disable (1 hour)") {
-                            autoArmManager.temporarilyDisable(for: 3600)
-                        }
-                        .buttonStyle(.link)
-                    }
-                }
-                .padding(.vertical, 4)
-            } else {
-                Text("Auto-arm service not available")
-                    .foregroundColor(.secondary)
-            }
+            autoArmStatusContent
         }
         .disabled(!settingsManager.settings.autoArmEnabled)
+    }
+    
+    @ViewBuilder
+    private var autoArmStatusContent: some View {
+        if let autoArmManager = getAutoArmManager() {
+            VStack(alignment: .leading, spacing: 8) {
+                autoArmStatusRow(autoArmManager)
+                autoArmActionButton(autoArmManager)
+            }
+            .padding(.vertical, 4)
+        } else {
+            Text("Auto-arm service not available")
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private func autoArmStatusRow(_ autoArmManager: AutoArmManager) -> some View {
+        HStack {
+            Image(systemName: autoArmManager.isAutoArmConditionMet ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                .foregroundColor(autoArmManager.isAutoArmConditionMet ? .orange : .green)
+            Text(autoArmManager.statusSummary)
+                .font(.body)
+        }
+    }
+    
+    @ViewBuilder
+    private func autoArmActionButton(_ autoArmManager: AutoArmManager) -> some View {
+        if autoArmManager.isTemporarilyDisabled {
+            Button("Cancel Temporary Disable") {
+                autoArmManager.cancelTemporaryDisable()
+            }
+            .buttonStyle(.link)
+        } else if settingsManager.settings.autoArmEnabled {
+            Button("Temporarily Disable (1 hour)") {
+                autoArmManager.temporarilyDisable(for: 3600)
+            }
+            .buttonStyle(.link)
+        }
     }
 
     private func getAutoArmManager() -> AutoArmManager? {
