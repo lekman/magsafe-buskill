@@ -79,7 +79,7 @@ Need help or found an issue? We're here to assist:
 
 ## Development
 
-> **Note:** MagSafe Guard is an Xcode project. For the best development experience, use Xcode for building, running, and testing. The command-line tools mentioned below are primarily for CI/CD automation.
+> **Note:** MagSafe Guard is a Swift Package project. You can use either Xcode or command-line tools for development. The menu bar app requires special handling - use `task run` for the best experience.
 
 ### Quick Start
 
@@ -100,26 +100,60 @@ Need help or found an issue? We're here to assist:
 3. **Build and Run**:
 
    ```bash
-   # Open in Xcode (recommended)
-   open MagSafeGuard.xcodeproj
-
-   # Run direct from command line
+   # Run the menu bar app
    task run
    ```
 
-   In Xcode:
+   Look for the lock shield icon in your menu bar.
 
-   - Press `⌘B` to build
-   - Press `⌘R` to run
-   - Look for the lock shield icon in your menu bar
+   **For Debugging:**
+
+   Since MagSafe Guard is a menu bar app, it requires special handling in Xcode:
+
+   1. **Run the app first:**
+
+      ```bash
+      task run
+      ```
+
+   2. **Attach debugger from Xcode:**
+
+      - Open the project in Xcode: `open Package.swift`
+      - Once the app is running, go to **Debug → Attach to Process**
+      - Select **MagSafeGuard** from the list
+      - Now you can set breakpoints and debug normally
+
+   3. **Alternative: Debug mode with console output:**
+
+      ```bash
+      task run:debug
+      ```
+
+      This shows detailed logs in the terminal for troubleshooting.
 
 ### Testing
 
 **For Development Testing:**
 
-- Use Xcode's Test Navigator (`⌘5`)
+```bash
+# Run all tests
+task test
+
+# Run tests with coverage
+task test:coverage
+```
+
+**In Xcode:**
+
+- Open the package: `open Package.swift`
+- Use Test Navigator (`⌘5`)
 - Press `⌘U` to run all tests
-- Use the demo window in the app to test power detection
+
+**Testing Power Detection:**
+
+- Run the app: `task run`
+- Click the menu bar icon → Demo
+- Use the demo window to simulate power events
 
 **For CI/CD Automation:**
 
