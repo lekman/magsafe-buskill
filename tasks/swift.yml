@@ -2,26 +2,10 @@ version: "3"
 
 tasks:
   default:
-    desc: List available Swift development tasks
+    desc: List all Swift tasks
     silent: true
     cmds:
-      - |
-        echo "🔧 Available Swift tasks:"
-        echo ""
-        echo "  task swift:test          - Run Swift tests"
-        echo "  task swift:test:coverage - Run tests with coverage report"
-        echo "  task swift:test:html     - Generate HTML coverage report"
-        echo "  task swift:lint          - Run SwiftLint"
-        echo "  task swift:lint:fix      - Auto-fix SwiftLint issues"
-        echo "  task swift:format        - Format Swift code"
-        echo "  task swift:clean         - Clean build artifacts"
-        echo "  task swift:build         - Build in debug mode"
-        echo "  task swift:build:release - Build in release mode"
-        echo "  task swift:deps          - Show package dependencies"
-        echo "  task swift:update        - Update package dependencies"
-        echo "  task swift:sbom          - Generate Software Bill of Materials"
-        echo "  task swift:install:tools - Install Swift development tools"
-        echo ""
+      - task --list | grep "^\\* swift:" | grep -v "::" || true
 
   test:
     desc: Run Swift tests
@@ -29,19 +13,19 @@ tasks:
     cmds:
       - |
         echo "🧪 Running Swift tests..."
-        
+
         # Run tests with --parallel flag to work around initialization hang
         # See: https://github.com/apple/swift/issues/71044
         set +e  # Don't exit on error
         swift test --parallel --num-workers 1 > test-output.log 2>&1
         TEST_EXIT_CODE=$?
-        
+
         # Display output without standalone numbers that cause shell errors
         grep -v "^[0-9]*$" test-output.log || true
-        
+
         # Clean up
         rm -f test-output.log
-        
+
         if [ $TEST_EXIT_CODE -eq 0 ]; then
           echo "✅ All tests passed!"
         else
@@ -55,16 +39,16 @@ tasks:
     cmds:
       - |
         echo "🧪 Running tests with coverage..."
-        
+
         # Build test executable with coverage
         swift build --enable-code-coverage
-        
+
         # Run tests with coverage, capturing output
         # Using --parallel to work around initialization hang
         set +e  # Don't exit on error
         swift test --enable-code-coverage --parallel --num-workers 1 > test-output.log 2>&1
         TEST_EXIT_CODE=$?
-        
+
         # Check if tests passed based on exit code (more reliable than parsing output)
         if [ $TEST_EXIT_CODE -eq 0 ]; then
           TEST_SUCCESS=true
@@ -73,14 +57,14 @@ tasks:
           TEST_SUCCESS=false
           echo "⚠️  Some tests failed - still generating coverage report..."
         fi
-        
+
         # Clean up
         rm -f test-output.log
-        
+
         # Find the coverage data
         PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
         BINARY=$(find .build -name '*.xctest' -type d | head -1)/Contents/MacOS/*
-        
+
         if [[ -f "$PROF_DATA" ]] && [[ -n "$BINARY" ]]; then
           # Extract just the binary path (without wildcard)
           BINARY=$(find .build -name '*.xctest' -type d | head -1)/Contents/MacOS/$(basename "$(find .build -name '*.xctest' -type d | head -1)" .xctest)
@@ -113,7 +97,7 @@ tasks:
           echo "❌ Coverage data not found"
           exit 1
         fi
-        
+
         # Exit based on test results
         if [ "$TEST_SUCCESS" = false ]; then
           echo ""
@@ -128,10 +112,10 @@ tasks:
       - |
         echo "📊 Generating HTML coverage report..."
         swift test --enable-code-coverage --parallel --num-workers 1
-        
+
         PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
         EXECUTABLE=$(find .build -name '*.xctest' -type d | head -1)/Contents/MacOS/*
-        
+
         if [[ -f "$PROF_DATA" ]] && [[ -n "$EXECUTABLE" ]]; then
           EXECUTABLE=$(find .build -name '*.xctest' -type d | head -1)/Contents/MacOS/$(basename "$(find .build -name '*.xctest' -type d | head -1)" .xctest)
           
@@ -201,7 +185,7 @@ tasks:
     cmds:
       - |
         echo "🎨 Formatting Swift code..."
-        
+
         # Use swift-format if available
         if command -v swift-format &> /dev/null; then
           swift-format -i -r Sources/ Tests/
@@ -306,23 +290,23 @@ tasks:
     cmds:
       - |
         echo "🔧 Installing Swift development tools..."
-        
+
         # Detect OS
         OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-        
+
         if [ "$OS" != "darwin" ]; then
           echo "⚠️  This task is optimized for macOS"
           echo "   For other platforms, please install tools manually"
           exit 0
         fi
-        
+
         # Check for Homebrew
         if ! command -v brew &> /dev/null; then
           echo "❌ Homebrew not found"
           echo "   Install from: https://brew.sh"
           exit 1
         fi
-        
+
         # Install SwiftLint
         if ! command -v swiftlint &> /dev/null; then
           echo "📦 Installing SwiftLint..."
@@ -330,7 +314,7 @@ tasks:
         else
           echo "✅ SwiftLint already installed"
         fi
-        
+
         # Install swift-format (optional)
         if ! command -v swift-format &> /dev/null; then
           echo "📦 Installing swift-format..."
@@ -338,7 +322,7 @@ tasks:
         else
           echo "✅ swift-format already installed"
         fi
-        
+
         # Install SwiftGen (optional, for code generation)
         if ! command -v swiftgen &> /dev/null; then
           echo "📦 Installing SwiftGen..."
@@ -346,7 +330,7 @@ tasks:
         else
           echo "✅ SwiftGen already installed"
         fi
-        
+
         echo ""
         echo "✅ Swift development tools installed"
         echo ""
@@ -356,19 +340,80 @@ tasks:
         echo "  - SwiftGen: $(swiftgen --version 2>&1 | head -1)"
 
   docs:
-    desc: Generate Swift documentation
+    desc: Generate Swift API documentation using Swift-DocC
     silent: true
+    vars:
+      OUTPUT_PATH: '{{.OUTPUT_PATH | default "docs/api"}}'
     cmds:
       - |
-        echo "📚 Generating Swift documentation..."
-        
-        # Check if swift-doc is installed
-        if command -v swift-doc &> /dev/null; then
-          swift-doc generate Sources/ --module-name $(swift package dump-package | jq -r '.name') --output docs/api
-          echo "✅ Documentation generated at: docs/api"
+        echo "📚 Generating Swift API documentation..."
+
+        # Ensure output directory exists
+        mkdir -p {{.OUTPUT_PATH}}
+
+        # Check if we're in a Swift package
+        if [ ! -f "Package.swift" ]; then
+          echo "❌ Not a Swift package. Package.swift not found."
+          exit 1
+        fi
+
+        # Get package name
+        PACKAGE_NAME=$(swift package dump-package | jq -r '.name')
+
+        # Check Swift version for DocC support (5.5+)
+        SWIFT_VERSION=$(swift --version | grep -oE '[0-9]+\.[0-9]+' | head -1)
+        MAJOR_VERSION=$(echo $SWIFT_VERSION | cut -d. -f1)
+        MINOR_VERSION=$(echo $SWIFT_VERSION | cut -d. -f2)
+
+        if [ "$MAJOR_VERSION" -lt 5 ] || ([ "$MAJOR_VERSION" -eq 5 ] && [ "$MINOR_VERSION" -lt 5 ]); then
+          echo "⚠️  Swift-DocC requires Swift 5.5 or later. Current version: $SWIFT_VERSION"
+          echo ""
+          echo "Alternative: Install and use jazzy or swift-doc:"
+          echo "  gem install jazzy"
+          echo "  brew install swiftdocorg/formulae/swift-doc"
+          exit 1
+        fi
+
+        echo "🔨 Building documentation for $PACKAGE_NAME..."
+
+        # Generate documentation
+        if swift package generate-documentation \
+          --target MagSafeGuard \
+          --disable-indexing \
+          --transform-for-static-hosting \
+          --hosting-base-path "/$PACKAGE_NAME" \
+          --output-path {{.OUTPUT_PATH}} 2>/dev/null; then
+          
+          echo "✅ Documentation generated successfully!"
+          echo ""
+          echo "📂 Output location: {{.OUTPUT_PATH}}"
+          echo ""
+          echo "To view locally:"
+          echo "  1. cd {{.OUTPUT_PATH}}"
+          echo "  2. python3 -m http.server 8000"
+          echo "  3. Open http://localhost:8000/documentation/$PACKAGE_NAME"
+          echo ""
+          echo "To preview with live updates:"
+          echo "  swift package --disable-sandbox preview-documentation --target MagSafeGuard"
+          
         else
-          echo "⚠️  swift-doc not installed"
-          echo "   Install with: brew install swiftdocorg/formulae/swift-doc"
+          # Fallback to simpler generation without static hosting
+          echo "⚠️  Static hosting generation failed, trying simple generation..."
+          
+          if swift package generate-documentation --target MagSafeGuard --output-path {{.OUTPUT_PATH}}; then
+            echo "✅ Documentation generated (without static hosting transforms)"
+            echo "📂 Output location: {{.OUTPUT_PATH}}"
+          else
+            echo "❌ Documentation generation failed"
+            echo ""
+            echo "Common issues:"
+            echo "  - Missing documentation comments (use /// or /** */)"
+            echo "  - Build errors in the code"
+            echo "  - Missing target specification"
+            echo ""
+            echo "Try building first: swift build"
+            exit 1
+          fi
         fi
 
   outdated:
@@ -377,11 +422,11 @@ tasks:
     cmds:
       - |
         echo "🔍 Checking for outdated dependencies..."
-        
+
         # This is a basic implementation since Swift PM doesn't have built-in outdated check
         echo "Current dependencies:"
         swift package show-dependencies --format json | jq -r '.dependencies[] | "\(.name) @ \(.version // "unresolved")"'
-        
+
         echo ""
         echo "To update all dependencies, run: task swift:update"
 

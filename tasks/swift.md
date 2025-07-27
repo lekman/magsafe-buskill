@@ -13,6 +13,7 @@ task swift:test:html     # Generate HTML coverage report
 task swift:lint          # Run SwiftLint
 task swift:lint:fix      # Auto-fix SwiftLint issues
 task swift:clean         # Clean build artifacts
+task swift:docs          # Generate API documentation
 task swift:sbom          # Generate Software Bill of Materials
 ```
 
@@ -91,6 +92,31 @@ Removes build artifacts:
 - Deletes `.build/` directory
 - Cleans SPM cache
 - Frees disk space
+
+### API Documentation (`task swift:docs`)
+
+Generates API documentation using Swift-DocC:
+
+- Uses Apple's official documentation compiler
+- Creates static website for hosting
+- Supports custom output directory
+- Includes all public APIs
+
+**Usage:**
+```bash
+# Generate to default location (docs/api)
+task swift:docs
+
+# Generate to custom location
+task swift:docs OUTPUT_PATH=./build/docs
+
+# Preview with live reload
+swift package --disable-sandbox preview-documentation --target MagSafeGuard
+```
+
+**Requirements:**
+- Swift 5.5 or later
+- Documentation comments using `///` or `/** */`
 
 ### SBOM Generation (`task swift:sbom`)
 

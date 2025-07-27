@@ -8,18 +8,7 @@ tasks:
     desc: List available security tasks
     silent: true
     cmds:
-      - |
-        echo "🔒 Available security tasks:"
-        echo ""
-        echo "  task security:scan         - Run all security checks"
-        echo "  task security:secrets      - Scan for hardcoded secrets"
-        echo "  task security:semgrep      - Run Semgrep security analysis"
-        echo "  task security:pins         - Check GitHub Action pins"
-        echo "  task security:pin-actions  - Pin all GitHub Actions to SHAs"
-        echo "  task security:update-pins  - Update pinned action SHAs"
-        echo "  task security:dependabot   - Setup Dependabot configuration"
-        echo "  task security:install      - Install security tools"
-        echo ""
+      - task --list | grep "^\\* security:" | grep -v "::" || true
 
   scan:
     desc: Run all security checks

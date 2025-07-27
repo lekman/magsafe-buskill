@@ -51,12 +51,13 @@ The task system is organized into modules for better maintainability:
 
 ### 📦 [Swift Tasks](swift.md)
 
-Swift development tasks including building, testing, linting, and code coverage.
+Swift development tasks including building, testing, linting, code coverage, and API documentation.
 
 ```bash
 task swift:         # Show available Swift tasks
 task swift:test     # Run tests
 task swift:lint     # Run SwiftLint
+task swift:docs     # Generate API documentation
 ```
 
 ### 🔒 [Security Tasks](security.md)

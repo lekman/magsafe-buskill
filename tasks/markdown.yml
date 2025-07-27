@@ -5,13 +5,7 @@ tasks:
     desc: List available Markdown tasks
     silent: true
     cmds:
-      - |
-        echo "📝 Available Markdown tasks:"
-        echo ""
-        echo "  task markdown:lint        - Lint Markdown files"
-        echo "  task markdown:lint:fix    - Auto-fix Markdown issues"
-        echo "  task markdown:install     - Install markdownlint"
-        echo ""
+      - task --list | grep "^\\* markdown:" | grep -v "::" || true
 
   lint:
     desc: Lint Markdown files

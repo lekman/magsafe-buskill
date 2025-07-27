@@ -5,17 +5,7 @@ tasks:
     desc: List available SonarCloud tasks
     silent: true
     cmds:
-      - |
-        echo "📊 Available SonarCloud tasks:"
-        echo ""
-        echo "  task sonar:scan         - Run full SonarCloud analysis (requires token)"
-        echo "  task sonar:simulate     - Simulate analysis using SwiftLint (no token needed)"
-        echo "  task sonar:download     - Download findings from SonarCloud"
-        echo "  task sonar:view         - View latest simulation report"
-        echo "  task sonar:convert      - Convert Swift coverage to SonarQube XML format"
-        echo "  task sonar:install      - Install sonar-scanner"
-        echo ""
-        echo "📚 Documentation: tasks/sonar.md"
+      - task --list | grep "^\\* sonar:" | grep -v "::" || true
 
   scan:
     desc: Run SonarCloud scan locally
