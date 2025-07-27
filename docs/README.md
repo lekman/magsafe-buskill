@@ -58,7 +58,6 @@ docs/
 ├── devops/                 # CI/CD and automation
 ├── security/               # Security documentation
 ├── maintainers/            # Developer guides
-└── archive/                # Deprecated documentation (excluded from index)
 ```
 
 ## 🔍 Finding Documentation
