@@ -63,9 +63,10 @@ tasks:
         # Using --parallel to work around initialization hang
         set +e  # Don't exit on error
         swift test --enable-code-coverage --parallel --num-workers 1 > test-output.log 2>&1
+        TEST_EXIT_CODE=$?
         
-        # Check if tests passed (look for the success pattern)
-        if grep -q "Test Suite .* passed" test-output.log && ! grep -q "Test Suite .* failed" test-output.log; then
+        # Check if tests passed based on exit code (more reliable than parsing output)
+        if [ $TEST_EXIT_CODE -eq 0 ]; then
           TEST_SUCCESS=true
           echo "✅ Tests passed - generating coverage report..."
         else
