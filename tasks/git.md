@@ -43,6 +43,7 @@ task git:prl
 ```
 
 **Features:**
+
 - Shows PR number, title, state, author, branches, and date
 - Indicates draft PRs with 📝 emoji
 - Truncates long titles for readability
@@ -51,6 +52,7 @@ task git:prl
 #### Download Pull Request Comments (`task git:pr:comments`)
 
 Downloads all comments from a pull request including:
+
 - General PR comments
 - Code review comments (inline)
 - Review approvals/rejections
@@ -75,6 +77,7 @@ task git:pr:comments PR=21 OUTPUT=./reports/pr-comments
 ```
 
 **Output Files:**
+
 - `pr-{number}-metadata.json` - PR details
 - `pr-{number}-issue-comments.json` - General comments
 - `pr-{number}-review-comments.json` - Code review comments
@@ -83,6 +86,7 @@ task git:pr:comments PR=21 OUTPUT=./reports/pr-comments
 - `pr-{number}-report.md` - Consolidated markdown report
 
 **Features:**
+
 - Extracts GHAS/CodeQL security findings
 - Organized markdown report with all comments
 - Automatic report opening in VS Code
@@ -164,6 +168,7 @@ task git:cve:analyze MIN_SEVERITY=critical
 ```
 
 **Output:**
+
 - Summary report with CVE details
 - Filtered JSON data
 - Raw API response
@@ -188,9 +193,10 @@ All GitHub-related tasks require authentication. The tasks will automatically ch
 2. **GitHub CLI** - If authenticated with `gh`, uses its token
 3. **Error with instructions** - If neither is available, shows detailed setup instructions
 
-#### Setting up authentication:
+#### Setting up authentication
 
 **Option 1: Using .env file (simple)**:
+
 ```bash
 # Create a GitHub personal access token at:
 # https://github.com/settings/tokens/new
@@ -201,6 +207,7 @@ echo 'GITHUB_TOKEN=ghp_your_token_here' >> .env
 ```
 
 **Option 2: Using GitHub CLI (recommended)**:
+
 ```bash
 # Install GitHub CLI
 brew install gh
@@ -219,6 +226,7 @@ The tasks will automatically load the `.env` file if present, or use the GitHub 
 - **curl** - API calls (fallback)
 
 Install GitHub CLI:
+
 ```bash
 # macOS
 brew install gh
@@ -324,16 +332,19 @@ Use in GitHub Actions:
 If you get authentication errors:
 
 1. Check gh CLI status:
+
    ```bash
    gh auth status
    ```
 
 2. Verify token in .env:
+
    ```bash
    cat .env | grep GITHUB_TOKEN
    ```
 
 3. Test API access:
+
    ```bash
    gh api user
    ```
