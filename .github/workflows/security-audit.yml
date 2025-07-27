@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
     inputs:
       audit_type:
-        description: 'Type of security audit to run'
+        description: "Type of security audit to run"
         required: true
-        default: 'full'
+        default: "full"
         type: choice
         options:
           - full

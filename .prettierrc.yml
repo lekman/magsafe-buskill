@@ -1,0 +1,46 @@
+# Prettier configuration
+# Aligns with yamllint rules for consistent formatting
+
+# General settings
+printWidth: 120
+tabWidth: 2
+useTabs: false
+semi: true
+singleQuote: false
+trailingComma: "es5"
+bracketSpacing: true
+arrowParens: "avoid"
+endOfLine: "lf"
+
+# YAML-specific settings
+overrides:
+  - files: "*.{yml,yaml}"
+    options:
+      # Preserve multiline strings and don't reformat them
+      proseWrap: preserve
+      # Keep single quotes where used
+      singleQuote: false
+      # Don't enforce quotes on keys unless necessary
+      quoteProps: "preserve"
+      # Bracket spacing in flow sequences
+      bracketSpacing: true
+
+  # Markdown-specific settings
+  - files: "*.md"
+    options:
+      proseWrap: "preserve"
+      printWidth: 120
+
+  # JSON-specific settings
+  - files: "*.json"
+    options:
+      printWidth: 120
+      bracketSpacing: true
+      trailingComma: "none"
+
+  # Taskfile-specific settings to preserve multiline scripts
+  - files: "**/Taskfile.{yml,yaml}"
+    options:
+      # Extra wide to avoid reformatting long scripts
+      printWidth: 200
+      proseWrap: preserve

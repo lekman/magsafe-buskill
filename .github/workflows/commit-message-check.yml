@@ -6,8 +6,8 @@ on:
     branches:
       - main
       - develop
-      - 'feature/**'
-      - 'fix/**'
+      - "feature/**"
+      - "fix/**"
 permissions:
   contents: read
 jobs:

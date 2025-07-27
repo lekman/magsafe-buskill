@@ -32,7 +32,11 @@
     ".sonarcloud": true,
     ".task": true,
     "coverage-report.txt": true,
-    ".github/pr-comments": true
+    ".github/pr-comments": true,
+    ".prettierignore": true,
+    ".prettierrc.yml": true,
+    ".eslintrc.yml": true,
+    ".yamllint.yml": true,
   },
   "search.exclude": {
     "**/node_modules": true,

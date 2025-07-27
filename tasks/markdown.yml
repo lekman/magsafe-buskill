@@ -10,19 +10,141 @@ tasks:
     desc: Lint Markdown files
     silent: true
     cmds:
-      - "echo \"\U0001F50D Linting Markdown files...\"\n\n# Check if markdownlint is installed\nif ! command -v markdownlint &> /dev/null; then\n  echo \"⚠️  markdownlint not installed\"\n  echo \"   Run: task markdown:setup\"\n  exit 1\nfi\n\n# Run the linter\nif markdownlint '**/*.md' --ignore node_modules --ignore .build; then\n  echo \"✅ Markdown lint passed\"\nelse\n  echo \"❌ Markdown lint found issues\"\n  echo \"\"\n  echo \"Run 'task markdown:lint:fix' to auto-fix what's possible\"\n  exit 1\nfi\n"
+      - |
+        echo "\U0001F50D Linting Markdown files..."
+
+        # Check if markdownlint is installed
+        if ! command -v markdownlint &> /dev/null; then
+          echo "⚠️  markdownlint not installed"
+          echo "   Run: task markdown:setup"
+          exit 1
+        fi
+
+        # Run the linter
+        if markdownlint '**/*.md' --ignore node_modules --ignore .build; then
+          echo "✅ Markdown lint passed"
+        else
+          echo "❌ Markdown lint found issues"
+          echo ""
+          echo "Run 'task markdown:lint:fix' to auto-fix what's possible"
+          exit 1
+        fi
+
   lint:fix:
     desc: Fix Markdown formatting issues automatically
     silent: true
     cmds:
-      - "echo \"\U0001F527 Fixing Markdown formatting issues...\"\n\n# Check if markdownlint is installed\nif ! command -v markdownlint &> /dev/null; then\n  echo \"⚠️  markdownlint not installed\"\n  echo \"   Run: task markdown:setup\"\n  exit 1\nfi\n\n# Fix all markdown files\necho \"Running markdown formatter...\"\nmarkdownlint '**/*.md' --ignore node_modules --ignore .build --fix\necho \"✅ Markdown files formatted\"\n\n# Show which files were modified\necho \"\"\necho \"Modified files:\"\ngit diff --name-only | grep '\\.md$' || echo \"  No changes needed\"\n"
+      - |
+        echo "\U0001F527 Fixing Markdown formatting issues..."
+
+        # Check if markdownlint is installed
+        if ! command -v markdownlint &> /dev/null; then
+          echo "⚠️  markdownlint not installed"
+          echo "   Run: task markdown:setup"
+          exit 1
+        fi
+
+        # Fix all markdown files
+        echo "Running markdown formatter..."
+        markdownlint '**/*.md' --ignore node_modules --ignore .build --fix
+        echo "✅ Markdown files formatted"
+
+        # Show which files were modified
+        echo ""
+        echo "Modified files:"
+        git diff --name-only | grep '\\.md$' || echo "  No changes needed"
+
   setup:
     desc: Setup markdownlint CLI tool
     silent: true
     cmds:
-      - "echo \"\U0001F527 Setting up markdownlint...\"\n\n# Detect OS\nOS=$(uname -s | tr '[:upper:]' '[:lower:]')\n\nif [ \"$OS\" != \"darwin\" ]; then\n  echo \"⚠️  This task is optimized for macOS\"\n  echo \"   For other platforms, please install markdownlint manually\"\n  exit 0\nfi\n\n# Check if already installed\nif command -v markdownlint &> /dev/null; then\n  echo \"✅ markdownlint is already installed ($(markdownlint --version))\"\n  \n  # Check for updates\n  if command -v npm &> /dev/null && npm list -g markdownlint-cli &>/dev/null; then\n    CURRENT_VERSION=$(markdownlint --version | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)\n    LATEST_VERSION=$(npm view markdownlint-cli version 2>/dev/null)\n    if [ \"$CURRENT_VERSION\" != \"$LATEST_VERSION\" ] && [ -n \"$LATEST_VERSION\" ]; then\n      echo \"\U0001F4E6 Update available: $CURRENT_VERSION → $LATEST_VERSION\"\n      echo \"   Updating markdownlint...\"\n      npm update -g markdownlint-cli\n    fi\n  elif command -v brew &> /dev/null && brew list markdownlint-cli &>/dev/null; then\n    if brew outdated | grep -q \"^markdownlint-cli\"; then\n      echo \"\U0001F4E6 Updating markdownlint...\"\n      brew upgrade markdownlint-cli\n    fi\n  fi\n  exit 0\nfi\n\n# Try to install with npm first (most universal)\nif command -v npm &> /dev/null; then\n  echo \"\U0001F4E6 Installing markdownlint with npm...\"\n  if npm install -g markdownlint-cli 2>/dev/null; then\n    echo \"✅ markdownlint installed successfully with npm\"\n  else\n    echo \"⚠️  Failed to install with npm - trying with sudo...\"\n    echo \"You may be prompted for your password:\"\n    if sudo npm install -g markdownlint-cli; then\n      echo \"✅ markdownlint installed successfully with sudo\"\n    else\n      echo \"❌ Failed to install markdownlint with npm\"\n      echo \"\"\n      echo \"Alternative: Install to user directory:\"\n      echo \"  npm install --prefix ~/.npm-global markdownlint-cli\"\n      echo \"  export PATH=~/.npm-global/bin:\\$PATH\"\n      exit 1\n    fi\n  fi\n# Try Homebrew as fallback\nelif command -v brew &> /dev/null; then\n  echo \"\U0001F4E6 Installing markdownlint with Homebrew...\"\n  brew install markdownlint-cli\nelse\n  echo \"❌ Neither npm nor Homebrew found\"\n  echo \"\"\n  echo \"Please install Node.js or Homebrew first:\"\n  echo \"  - Node.js: https://nodejs.org/\"\n  echo \"  - Homebrew: https://brew.sh/\"\n  exit 1\nfi\n\n# Verify installation\nif command -v markdownlint &> /dev/null; then\n  echo \"\"\n  echo \"✅ markdownlint installed successfully!\"\n  echo \"   Version: $(markdownlint --version)\"\nelse\n  echo \"❌ Installation failed\"\n  exit 1\nfi\n"
+      - |
+        echo "\U0001F527 Setting up markdownlint..."
+
+        # Detect OS
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+
+        if [ "$OS" != "darwin" ]; then
+          echo "⚠️  This task is optimized for macOS"
+          echo "   For other platforms, please install markdownlint manually"
+          exit 0
+        fi
+
+        # Check if already installed
+        if command -v markdownlint &> /dev/null; then
+          echo "✅ markdownlint is already installed ($(markdownlint --version))"
+          
+          # Check for updates
+          if command -v npm &> /dev/null && npm list -g markdownlint-cli &>/dev/null; then
+            CURRENT_VERSION=$(markdownlint --version | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)
+            LATEST_VERSION=$(npm view markdownlint-cli version 2>/dev/null)
+            if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ] && [ -n "$LATEST_VERSION" ]; then
+              echo "\U0001F4E6 Update available: $CURRENT_VERSION → $LATEST_VERSION"
+              echo "   Updating markdownlint..."
+              npm update -g markdownlint-cli
+            fi
+          elif command -v brew &> /dev/null && brew list markdownlint-cli &>/dev/null; then
+            if brew outdated | grep -q "^markdownlint-cli"; then
+              echo "\U0001F4E6 Updating markdownlint..."
+              brew upgrade markdownlint-cli
+            fi
+          fi
+          exit 0
+        fi
+
+        # Try to install with npm first (most universal)
+        if command -v npm &> /dev/null; then
+          echo "\U0001F4E6 Installing markdownlint with npm..."
+          if npm install -g markdownlint-cli 2>/dev/null; then
+            echo "✅ markdownlint installed successfully with npm"
+          else
+            echo "⚠️  Failed to install with npm - trying with sudo..."
+            echo "You may be prompted for your password:"
+            if sudo npm install -g markdownlint-cli; then
+              echo "✅ markdownlint installed successfully with sudo"
+            else
+              echo "❌ Failed to install markdownlint with npm"
+              echo ""
+              echo "Alternative: Install to user directory:"
+              echo "  npm install --prefix ~/.npm-global markdownlint-cli"
+              echo "  export PATH=~/.npm-global/bin:\\$PATH"
+              exit 1
+            fi
+          fi
+        # Try Homebrew as fallback
+        elif command -v brew &> /dev/null; then
+          echo "\U0001F4E6 Installing markdownlint with Homebrew..."
+          brew install markdownlint-cli
+        else
+          echo "❌ Neither npm nor Homebrew found"
+          echo ""
+          echo "Please install Node.js or Homebrew first:"
+          echo "  - Node.js: https://nodejs.org/"
+          echo "  - Homebrew: https://brew.sh/"
+          exit 1
+        fi
+
+        # Verify installation
+        if command -v markdownlint &> /dev/null; then
+          echo ""
+          echo "✅ markdownlint installed successfully!"
+          echo "   Version: $(markdownlint --version)"
+        else
+          echo "❌ Installation failed"
+          exit 1
+        fi
+
   pr:fix:
     desc: Fix PR documentation formatting
     silent: true
     cmds:
-      - "echo \"\U0001F4DD Fixing PR documentation...\"\npr_file=$(find . -name \"pr.*.md\" | head -1)\nif [ -n \"$pr_file\" ]; then\n  echo \"Found PR file: $pr_file\"\n  markdownlint \"$pr_file\" --fix\n  echo \"✅ PR documentation fixed\"\nelse\n  echo \"No PR documentation found (pr.*.md)\"\nfi"
+      - |
+        echo "\U0001F4DD Fixing PR documentation..."
+        pr_file=$(find . -name "pr.*.md" | head -1)
+        if [ -n "$pr_file" ]; then
+          echo "Found PR file: $pr_file"
+          markdownlint "$pr_file" --fix
+          echo "✅ PR documentation fixed"
+        else
+          echo "No PR documentation found (pr.*.md)"
+        fi

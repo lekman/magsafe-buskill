@@ -1,0 +1,56 @@
+# Prettier ignore file
+
+# Build directories
+.build/
+build/
+dist/
+out/
+
+# Dependencies
+node_modules/
+vendor/
+Pods/
+
+# Generated files
+*.generated.*
+*.min.*
+coverage/
+coverage.*
+*.lcov
+sbom.*
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.xcodeproj/
+*.xcworkspace/
+
+# Documentation
+docs/api/
+
+# Archives
+*.zip
+*.tar
+*.gz
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Git
+.git/
+
+# Test snapshots
+__snapshots__/
+
+# Other config files that might have specific formatting
+.gitignore
+.gitattributes
