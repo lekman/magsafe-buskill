@@ -11,7 +11,7 @@ task sonar:simulate # Simulate analysis using SwiftLint
 task sonar:download # Download findings from SonarCloud
 task sonar:view     # View latest simulation report
 task sonar:convert  # Convert Swift coverage to SonarQube XML
-task sonar:install  # Install sonar-scanner
+task sonar:setup    # Install sonar-scanner
 ```
 
 ## Task Details
@@ -76,7 +76,7 @@ Converts Swift coverage to SonarQube format:
 - Compatible with SonarCloud
 - Excludes test files
 
-### Install Scanner (`task sonar:install`)
+### Install Scanner (`task sonar:setup`)
 
 Installs sonar-scanner tool:
 
@@ -206,7 +206,7 @@ Install sonar-scanner:
 
 ```bash
 # Using task
-task sonar:install
+task sonar:setup
 
 # Or manually on macOS
 brew install sonar-scanner

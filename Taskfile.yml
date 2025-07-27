@@ -56,8 +56,17 @@ tasks:
     cmds:
       - task: check-tools
       - task: setup-hooks
-      - task: sonar:install
+      - task: setup
       - task: verify-setup
+    silent: true
+
+  setup:
+    desc: Install all development tools and dependencies
+    cmds:
+      - task: swift:setup
+      - task: security:setup
+      - task: sonar:setup
+      - task: markdown:setup
     silent: true
 
   check-tools:

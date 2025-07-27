@@ -99,7 +99,7 @@ tasks:
         
         if ! command -v semgrep &> /dev/null; then
           echo "⚠️  Semgrep not installed"
-          echo "   Install with: task security:install"
+          echo "   Install with: task security:setup"
           echo "   Skipping Semgrep scan..."
           exit 0
         fi
@@ -409,8 +409,8 @@ tasks:
         echo ""
         echo "📝 Remember to commit this file to enable Dependabot!"
 
-  install:
-    desc: Install security scanning tools
+  setup:
+    desc: Setup security scanning tools
     silent: true
     cmds:
       - |
@@ -491,7 +491,7 @@ tasks:
         
         if ! command -v gitleaks &> /dev/null; then
           echo "⚠️  gitleaks not installed"
-          echo "   Install with: task security:install"
+          echo "   Install with: task security:setup"
           exit 0
         fi
         
@@ -512,7 +512,7 @@ tasks:
         
         if ! command -v trufflehog &> /dev/null; then
           echo "⚠️  truffleHog not installed"
-          echo "   Install with: task security:install"
+          echo "   Install with: task security:setup"
           exit 0
         fi
         

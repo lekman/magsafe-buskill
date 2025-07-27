@@ -155,7 +155,7 @@ tasks:
         else
           echo "⚠️  SwiftLint not installed"
           echo "   Install with: brew install swiftlint"
-          echo "   Or run: task swift:install:tools"
+          echo "   Or run: task swift:setup"
         fi
 
   lint:fix:
@@ -176,7 +176,7 @@ tasks:
         else
           echo "⚠️  SwiftLint not installed"
           echo "   Install with: brew install swiftlint"
-          echo "   Or run: task swift:install:tools"
+          echo "   Or run: task swift:setup"
         fi
 
   format:
@@ -284,8 +284,8 @@ tasks:
         swift package resolve
         echo "✅ Dependencies resolved"
 
-  install:tools:
-    desc: Install Swift development tools
+  setup:
+    desc: Setup Swift development tools
     silent: true
     cmds:
       - |
@@ -331,6 +331,14 @@ tasks:
           echo "✅ SwiftGen already installed"
         fi
 
+        # Install jazzy (for documentation generation)
+        if ! command -v jazzy &> /dev/null; then
+          echo "📦 Installing jazzy..."
+          gem install jazzy
+        else
+          echo "✅ jazzy already installed"
+        fi
+
         echo ""
         echo "✅ Swift development tools installed"
         echo ""
@@ -338,82 +346,105 @@ tasks:
         echo "  - SwiftLint: $(swiftlint version)"
         echo "  - swift-format: $(swift-format --version 2>&1 | head -1)"
         echo "  - SwiftGen: $(swiftgen --version 2>&1 | head -1)"
+        echo "  - jazzy: $(jazzy --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
 
   docs:
-    desc: Generate Swift API documentation using Swift-DocC
+    desc: Generate Swift API documentation
     silent: true
     vars:
       OUTPUT_PATH: '{{.OUTPUT_PATH | default "docs/api"}}'
     cmds:
       - |
         echo "📚 Generating Swift API documentation..."
-
+        
         # Ensure output directory exists
         mkdir -p {{.OUTPUT_PATH}}
-
+        
         # Check if we're in a Swift package
         if [ ! -f "Package.swift" ]; then
           echo "❌ Not a Swift package. Package.swift not found."
           exit 1
         fi
-
+        
         # Get package name
         PACKAGE_NAME=$(swift package dump-package | jq -r '.name')
-
-        # Check Swift version for DocC support (5.5+)
-        SWIFT_VERSION=$(swift --version | grep -oE '[0-9]+\.[0-9]+' | head -1)
-        MAJOR_VERSION=$(echo $SWIFT_VERSION | cut -d. -f1)
-        MINOR_VERSION=$(echo $SWIFT_VERSION | cut -d. -f2)
-
-        if [ "$MAJOR_VERSION" -lt 5 ] || ([ "$MAJOR_VERSION" -eq 5 ] && [ "$MINOR_VERSION" -lt 5 ]); then
-          echo "⚠️  Swift-DocC requires Swift 5.5 or later. Current version: $SWIFT_VERSION"
-          echo ""
-          echo "Alternative: Install and use jazzy or swift-doc:"
-          echo "  gem install jazzy"
-          echo "  brew install swiftdocorg/formulae/swift-doc"
-          exit 1
-        fi
-
-        echo "🔨 Building documentation for $PACKAGE_NAME..."
-
-        # Generate documentation
-        if swift package generate-documentation \
-          --target MagSafeGuard \
-          --disable-indexing \
-          --transform-for-static-hosting \
-          --hosting-base-path "/$PACKAGE_NAME" \
-          --output-path {{.OUTPUT_PATH}} 2>/dev/null; then
+        
+        echo "🔍 Checking available documentation tools..."
+        
+        # Option 1: Try jazzy if installed (most reliable)
+        if command -v jazzy &> /dev/null; then
+          echo "✅ Found jazzy - generating documentation..."
           
-          echo "✅ Documentation generated successfully!"
-          echo ""
-          echo "📂 Output location: {{.OUTPUT_PATH}}"
-          echo ""
-          echo "To view locally:"
-          echo "  1. cd {{.OUTPUT_PATH}}"
-          echo "  2. python3 -m http.server 8000"
-          echo "  3. Open http://localhost:8000/documentation/$PACKAGE_NAME"
-          echo ""
-          echo "To preview with live updates:"
-          echo "  swift package --disable-sandbox preview-documentation --target MagSafeGuard"
-          
-        else
-          # Fallback to simpler generation without static hosting
-          echo "⚠️  Static hosting generation failed, trying simple generation..."
-          
-          if swift package generate-documentation --target MagSafeGuard --output-path {{.OUTPUT_PATH}}; then
-            echo "✅ Documentation generated (without static hosting transforms)"
+          jazzy \
+            --clean \
+            --author "MagSafe Guard" \
+            --module MagSafeGuard \
+            --source-directory Sources \
+            --output {{.OUTPUT_PATH}} \
+            --theme apple \
+            --documentation "*.md" \
+            --readme README.md
+            
+          if [ $? -eq 0 ]; then
+            echo "✅ Documentation generated successfully!"
             echo "📂 Output location: {{.OUTPUT_PATH}}"
+            echo ""
+            echo "To view: open {{.OUTPUT_PATH}}/index.html"
           else
-            echo "❌ Documentation generation failed"
-            echo ""
-            echo "Common issues:"
-            echo "  - Missing documentation comments (use /// or /** */)"
-            echo "  - Build errors in the code"
-            echo "  - Missing target specification"
-            echo ""
-            echo "Try building first: swift build"
+            echo "❌ Jazzy generation failed"
             exit 1
           fi
+          
+        # Option 2: Try swift-doc if installed
+        elif command -v swift-doc &> /dev/null; then
+          echo "✅ Found swift-doc - generating documentation..."
+          
+          swift-doc generate Sources/MagSafeGuard \
+            --module-name MagSafeGuard \
+            --output {{.OUTPUT_PATH}} \
+            --format html
+            
+          if [ $? -eq 0 ]; then
+            echo "✅ Documentation generated successfully!"
+            echo "📂 Output location: {{.OUTPUT_PATH}}"
+            echo ""
+            echo "To view: open {{.OUTPUT_PATH}}/index.html"
+          else
+            echo "❌ swift-doc generation failed"
+            exit 1
+          fi
+          
+        # Option 3: Check if in Xcode environment
+        elif command -v xcodebuild &> /dev/null && [ -d "MagSafeGuard.xcodeproj" ]; then
+          echo "✅ Found Xcode - attempting to generate documentation..."
+          echo ""
+          echo "Note: Xcode documentation generation requires manual steps:"
+          echo "  1. Open MagSafeGuard.xcodeproj in Xcode"
+          echo "  2. Product → Build Documentation"
+          echo "  3. Right-click on MagSafeGuard in documentation window"
+          echo "  4. Export Documentation..."
+          echo ""
+          echo "For now, building project to ensure it compiles..."
+          xcodebuild -scheme MagSafeGuard -configuration Release build
+          
+        else
+          # No documentation tool found
+          echo "❌ No documentation generator found!"
+          echo ""
+          echo "Please install one of the following:"
+          echo ""
+          echo "Option 1: Jazzy (Recommended)"
+          echo "  gem install jazzy"
+          echo ""
+          echo "Option 2: swift-doc"
+          echo "  brew install swiftdocorg/formulae/swift-doc"
+          echo ""
+          echo "Option 3: Use Xcode"
+          echo "  Open the project in Xcode and use Product → Build Documentation"
+          echo ""
+          echo "Note: Swift 6.0+ requires external tools for documentation generation."
+          echo "The 'swift package generate-documentation' command has been removed."
+          exit 1
         fi
 
   outdated:

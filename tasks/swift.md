@@ -103,6 +103,7 @@ Generates API documentation using Swift-DocC:
 - Includes all public APIs
 
 **Usage:**
+
 ```bash
 # Generate to default location (docs/api)
 task swift:docs
@@ -115,6 +116,7 @@ swift package --disable-sandbox preview-documentation --target MagSafeGuard
 ```
 
 **Requirements:**
+
 - Swift 5.5 or later
 - Documentation comments using `///` or `/** */`
 

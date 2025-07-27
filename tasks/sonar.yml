@@ -363,8 +363,8 @@ tasks:
           exit 1
         fi
 
-  install:
-    desc: Install SonarCloud scanner
+  setup:
+    desc: Setup SonarCloud scanner
     silent: true
     cmds:
       - |

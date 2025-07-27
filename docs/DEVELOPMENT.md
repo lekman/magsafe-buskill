@@ -452,7 +452,7 @@ task run              # Build and run app
 ```bash
 task docs:update      # Update documentation
 task test:coverage    # Generate coverage report
-task sbom             # Generate software bill of materials
+task swift:sbom       # Generate software bill of materials
 ```
 
 ### Security Commands

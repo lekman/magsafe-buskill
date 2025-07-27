@@ -17,7 +17,7 @@ tasks:
         # Check if markdownlint is installed
         if ! command -v markdownlint &> /dev/null; then
           echo "⚠️  markdownlint not installed"
-          echo "   Run: task markdown:install"
+          echo "   Run: task markdown:setup"
           exit 1
         fi
 
@@ -41,7 +41,7 @@ tasks:
         # Check if markdownlint is installed
         if ! command -v markdownlint &> /dev/null; then
           echo "⚠️  markdownlint not installed"
-          echo "   Run: task markdown:install"
+          echo "   Run: task markdown:setup"
           exit 1
         fi
 
@@ -55,8 +55,8 @@ tasks:
         echo "Modified files:"
         git diff --name-only | grep '\.md$' || echo "  No changes needed"
 
-  install:
-    desc: Install markdownlint CLI tool
+  setup:
+    desc: Setup markdownlint CLI tool
     silent: true
     cmds:
       - |
