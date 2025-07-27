@@ -88,9 +88,9 @@ public struct EventLogEntry {
 /// controller.arm { result in
 ///     switch result {
 ///     case .success:
-///         print("System armed successfully")
+///         Log.info("System armed successfully", category: .authentication)
 ///     case .failure(let error):
-///         print("Failed to arm: \(error)")
+///         Log.error("Failed to arm", error, category: .authentication)
 ///     }
 /// }
 /// ```
@@ -484,7 +484,7 @@ public class AppController: ObservableObject {
             }
 
             // Debug logging
-            print("[AppController] Event: \(event.rawValue) | State: \(self.currentState.rawValue) | Details: \(details ?? "none")")
+            Log.debug("Event: \(event.rawValue) | State: \(self.currentState.rawValue) | Details: \(details ?? "none")")
         }
     }
 

@@ -132,6 +132,177 @@ To enable verbose logging:
 
 3. **Activity Monitor**: Check resource usage
 
+## Logging and Diagnostics
+
+### Understanding macOS Logging
+
+MagSafe Guard uses Apple's native logging frameworks. Here's how to access and understand the logs:
+
+#### 1. **os.log (Unified Logging System)** - Recommended
+
+The modern logging system stores logs in a centralized database:
+
+- **Storage Location**: `/var/db/diagnostics/` and `/var/db/uuidtext/` (binary format)
+- **Retention**: 3-7 days (system-managed)
+
+##### Accessing Logs via Console.app (Easiest)
+
+1. Open `/Applications/Utilities/Console.app`
+2. Select your Mac in the sidebar
+3. Use these filters:
+   - Subsystem: `com.magsafeguard` or `com.lekman.MagSafeGuard`
+   - Process: `MagSafeGuard`
+   - Category: `PowerMonitor`, `Authentication`, `Settings`, etc.
+
+##### Accessing Logs via Terminal
+
+```bash
+# Stream live logs from MagSafe Guard
+log stream --predicate 'subsystem == "com.lekman.MagSafeGuard"'
+
+# Stream with debug level
+log stream --predicate 'subsystem == "com.lekman.MagSafeGuard"' --level debug
+
+# Show logs from last hour
+log show --predicate 'subsystem == "com.lekman.MagSafeGuard"' --last 1h
+
+# Show logs with all levels
+log show --predicate 'subsystem == "com.lekman.MagSafeGuard"' --info --debug --last 1h
+
+# Export logs to file
+log show --predicate 'subsystem == "com.lekman.MagSafeGuard"' --last 1d > magsafe-logs.txt
+
+# Filter by category
+log stream --predicate 'subsystem == "com.lekman.MagSafeGuard" AND category == "PowerMonitor"'
+
+# Search for specific text
+log stream --predicate 'subsystem == "com.lekman.MagSafeGuard" AND eventMessage CONTAINS "power"'
+```
+
+#### 2. **print() Statements** (Development Only)
+
+- **Location**: Only visible in Xcode's debug console
+- **Not persisted** in system logs
+- **Access**: Only during Xcode debugging sessions
+
+#### 3. **Custom Log Files**
+
+If the app writes custom logs:
+
+- **Location**: `~/Library/Logs/MagSafeGuard/`
+- **Access**: Open in any text editor
+
+### Log Levels and Their Meanings
+
+| Level | Usage | Visibility |
+|-------|-------|------------|
+| `.debug` | Detailed debugging info | Only with debug flag |
+| `.info` | General information | Always visible |
+| `.notice` | Normal but significant | Default level |
+| `.error` | Errors needing attention | Always visible |
+| `.fault` | Critical failures | Always visible |
+
+### Common Log Patterns to Look For
+
+#### Power Monitoring Issues
+
+```bash
+log stream --predicate 'subsystem == "com.lekman.MagSafeGuard" AND category == "PowerMonitor"'
+```
+
+Look for:
+
+- "Power source changed"
+- "Battery level"
+- "AC Power connected/disconnected"
+
+#### Authentication Problems
+
+```bash
+log stream --predicate 'subsystem == "com.lekman.MagSafeGuard" AND category == "Authentication"'
+```
+
+Look for:
+
+- "Authentication failed"
+- "TouchID not available"
+- "User cancelled"
+
+#### Settings Issues
+
+```bash
+log stream --predicate 'subsystem == "com.lekman.MagSafeGuard" AND category == "Settings"'
+```
+
+Look for:
+
+- "Failed to save settings"
+- "Settings migration"
+- "Invalid configuration"
+
+### Enabling Verbose Logging
+
+1. **For Current Session**:
+
+   ```bash
+   # Set environment variable before running
+   MAGSAFE_DEBUG=1 /Applications/MagSafeGuard.app/Contents/MacOS/MagSafeGuard
+   ```
+
+2. **In Settings**: Enable "Debug Logging" in Advanced tab
+
+3. **For Development**: Build with DEBUG flag
+
+### Privacy in Logs
+
+The app uses privacy markers for sensitive data:
+
+- User locations are marked as `.private`
+- Network names may be redacted
+- No passwords or authentication tokens are logged
+
+### Troubleshooting with Logs
+
+1. **App Won't Start**:
+
+   ```bash
+   log show --predicate 'process == "MagSafeGuard"' --last 5m --info
+   ```
+
+2. **Feature Not Working**:
+
+   ```bash
+   # Replace FEATURE with PowerMonitor, AutoArm, etc.
+   log stream --predicate 'subsystem == "com.lekman.MagSafeGuard" AND category == "FEATURE"'
+   ```
+
+3. **Crash Analysis**:
+   - Check `~/Library/Logs/DiagnosticReports/` for crash reports
+   - Look for `MagSafeGuard*.crash` files
+
+### Exporting Logs for Bug Reports
+
+When filing an issue, include:
+
+```bash
+# Create a diagnostic bundle
+mkdir ~/Desktop/magsafe-diagnostics
+cd ~/Desktop/magsafe-diagnostics
+
+# Export recent logs
+log show --predicate 'subsystem == "com.lekman.MagSafeGuard"' --last 1h > system-logs.txt
+
+# Copy crash reports if any
+cp ~/Library/Logs/DiagnosticReports/MagSafeGuard*.crash . 2>/dev/null
+
+# System info
+system_profiler SPSoftwareDataType SPHardwareDataType > system-info.txt
+
+# Create archive
+cd ..
+zip -r magsafe-diagnostics.zip magsafe-diagnostics/
+```
+
 ## Getting Help
 
 If issues persist:

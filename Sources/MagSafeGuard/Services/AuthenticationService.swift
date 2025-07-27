@@ -216,7 +216,7 @@ public class AuthenticationService: NSObject {
         let available = authContext.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
 
         if let error = error {
-            print("[AuthenticationService] Biometric check error: \(error.localizedDescription)")
+            Log.error("Biometric check error", error: error, category: .authentication)
         }
 
         return available

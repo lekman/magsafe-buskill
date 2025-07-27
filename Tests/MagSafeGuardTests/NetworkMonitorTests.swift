@@ -99,7 +99,7 @@ final class NetworkMonitorTests: XCTestCase {
     func testLoadTrustedNetworksFromSettings() {
         // Set up trusted networks in settings
         let settingsManager = UserDefaultsManager.shared
-        settingsManager.settings.trustedNetworks = ["Network1", "Network2"]
+        settingsManager.updateSetting(\.trustedNetworks, value: ["Network1", "Network2"])
         
         // Create new monitor to test loading
         let newMonitor = NetworkMonitor()

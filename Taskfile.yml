@@ -104,7 +104,6 @@ tasks:
         fi
     silent: true
 
-
   setup-hooks:
     # Internal task - configures git hooks for development
     vars:
@@ -478,8 +477,6 @@ tasks:
           echo "Commit cancelled"
         fi
     interactive: true
-
-
 
   docs:update:
     desc: Update TaskMaster progress to main README

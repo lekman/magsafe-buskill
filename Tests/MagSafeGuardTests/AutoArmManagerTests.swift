@@ -51,8 +51,8 @@ final class AutoArmManagerTests: XCTestCase {
     
     func testStartMonitoringWhenEnabled() {
         // Enable auto-arm in settings
-        settingsManager.settings.autoArmEnabled = true
-        settingsManager.settings.autoArmByLocation = true
+        settingsManager.updateSetting(\.autoArmEnabled, value: true)
+        settingsManager.updateSetting(\.autoArmByLocation, value: true)
         
         autoArmManager.startMonitoring()
         
@@ -61,7 +61,7 @@ final class AutoArmManagerTests: XCTestCase {
     
     func testStartMonitoringWhenDisabled() {
         // Disable auto-arm in settings
-        settingsManager.settings.autoArmEnabled = false
+        settingsManager.updateSetting(\.autoArmEnabled, value: false)
         
         autoArmManager.startMonitoring()
         
@@ -70,7 +70,7 @@ final class AutoArmManagerTests: XCTestCase {
     
     func testStopMonitoring() {
         // Start monitoring first
-        settingsManager.settings.autoArmEnabled = true
+        settingsManager.updateSetting(\.autoArmEnabled, value: true)
         autoArmManager.startMonitoring()
         
         // Then stop
@@ -101,12 +101,12 @@ final class AutoArmManagerTests: XCTestCase {
     
     func testUpdateSettings() {
         // Enable auto-arm and start monitoring
-        settingsManager.settings.autoArmEnabled = true
+        settingsManager.updateSetting(\.autoArmEnabled, value: true)
         autoArmManager.startMonitoring()
         XCTAssertTrue(autoArmManager.isMonitoring)
         
         // Disable auto-arm and update
-        settingsManager.settings.autoArmEnabled = false
+        settingsManager.updateSetting(\.autoArmEnabled, value: false)
         autoArmManager.updateSettings()
         
         // Should stop monitoring
@@ -148,14 +148,14 @@ final class AutoArmManagerTests: XCTestCase {
     // MARK: - Status Tests
     
     func testStatusSummaryWhenDisabled() {
-        settingsManager.settings.autoArmEnabled = false
+        settingsManager.updateSetting(\.autoArmEnabled, value: false)
         
         let status = autoArmManager.statusSummary
         XCTAssertEqual(status, "Auto-arm disabled")
     }
     
     func testStatusSummaryWhenTemporarilyDisabled() {
-        settingsManager.settings.autoArmEnabled = true
+        settingsManager.updateSetting(\.autoArmEnabled, value: true)
         autoArmManager.temporarilyDisable(for: 60)
         
         let status = autoArmManager.statusSummary
@@ -167,8 +167,8 @@ final class AutoArmManagerTests: XCTestCase {
         XCTAssertFalse(autoArmManager.isAutoArmConditionMet)
         
         // Enable location-based auto-arm
-        settingsManager.settings.autoArmEnabled = true
-        settingsManager.settings.autoArmByLocation = true
+        settingsManager.updateSetting(\.autoArmEnabled, value: true)
+        settingsManager.updateSetting(\.autoArmByLocation, value: true)
         
         // Without being in a trusted location, condition should be met
         // (This is a simplified test - in real usage, LocationManager would determine this)

@@ -239,7 +239,7 @@ public class NetworkMonitor {
 
             // Check if network changed
             if ssid != previousSSID {
-                print("[NetworkMonitor] Connected to network: \(ssid) (trusted: \(isOnTrustedNetwork))")
+                Log.info("Connected to network: \(ssid) (trusted: \(isOnTrustedNetwork))", category: .network)
 
                 if isOnTrustedNetwork {
                     delegate?.networkMonitorDidConnectToTrustedNetwork(ssid)
@@ -272,9 +272,7 @@ public class NetworkMonitor {
         userDefaults.set(Array(trustedNetworks), forKey: trustedNetworksKey)
 
         // Also update the Settings
-        var settings = UserDefaultsManager.shared.settings
-        settings.trustedNetworks = Array(trustedNetworks)
-        UserDefaultsManager.shared.settings = settings
+        UserDefaultsManager.shared.updateSetting(\.trustedNetworks, value: Array(trustedNetworks))
     }
 }
 

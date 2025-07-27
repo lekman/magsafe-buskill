@@ -251,7 +251,7 @@ public class LocationManager: NSObject {
     private func startMonitoringRegion(for location: TrustedLocation) {
         // Check if region monitoring is available
         guard CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self) else {
-            print("[LocationManager] Region monitoring not available")
+            Log.warning("Region monitoring not available", category: .location)
             return
         }
 
@@ -305,14 +305,14 @@ extension LocationManager: CLLocationManagerDelegate {
 
     /// Called when entering a monitored region
     public func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
-        print("[LocationManager] Entered region: \(region.identifier)")
+        Log.info("Entered region: \(region.identifier)", category: .location)
         isInTrustedLocation = true
         delegate?.locationManagerDidEnterTrustedLocation()
     }
 
     /// Called when exiting a monitored region
     public func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
-        print("[LocationManager] Exited region: \(region.identifier)")
+        Log.info("Exited region: \(region.identifier)", category: .location)
 
         // Check if we're still in any other trusted location
         isInTrustedLocation = checkIfInTrustedLocation()
@@ -337,6 +337,6 @@ extension LocationManager: CLLocationManagerDelegate {
 
     /// Called when location manager encounters an error
     public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("[LocationManager] Location error: \(error.localizedDescription)")
+        Log.error("Location error", error: error, category: .location)
     }
 }

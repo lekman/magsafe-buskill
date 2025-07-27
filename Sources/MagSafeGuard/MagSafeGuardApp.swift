@@ -16,7 +16,7 @@ struct MagSafeGuardApp: App {
     init() {
         // Set a bundle identifier for development if needed
         if Bundle.main.bundleIdentifier == nil {
-            print("[MagSafeGuardApp] Running in development mode without bundle identifier")
+            Log.info("Running in development mode without bundle identifier")
         }
     }
 
@@ -51,11 +51,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if Bundle.main.bundleIdentifier != nil {
             requestNotificationPermissions()
         } else {
-            print("[AppDelegate] Running without bundle identifier - notifications disabled")
-            print("[AppDelegate] TIP: To see menu bar icon in Xcode:")
-            print("[AppDelegate]   1. Product > Scheme > Edit Scheme")
-            print("[AppDelegate]   2. Run > Options > Launch: Wait for executable to be launched")
-            print("[AppDelegate]   3. Build and Run, then manually launch from build folder")
+            Log.warning("Running without bundle identifier - notifications disabled", category: .ui)
+            Log.info("TIP: To see menu bar icon in Xcode:", category: .ui)
+            Log.info("  1. Product > Scheme > Edit Scheme", category: .ui)
+            Log.info("  2. Run > Options > Launch: Wait for executable to be launched", category: .ui)
+            Log.info("  3. Build and Run, then manually launch from build folder", category: .ui)
         }
 
         // Create the status item - use a strong reference
@@ -77,13 +77,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.appearsDisabled = false
 
             // Log status
-            print("[AppDelegate] Status button created: \(button)")
-            print("[AppDelegate] Button frame: \(button.frame)")
-            print("[AppDelegate] Button superview: \(button.superview?.description ?? "nil")")
-            print("[AppDelegate] Button image: \(button.image?.description ?? "nil")")
-            print("[AppDelegate] Button title: \(button.title)")
+            Log.debug("Status button created: \(button)", category: .ui)
+            Log.debug("Button frame: \(button.frame)", category: .ui)
+            Log.debug("Button superview: \(button.superview?.description ?? "nil")", category: .ui)
+            Log.debug("Button image: \(button.image?.description ?? "nil")", category: .ui)
+            Log.debug("Button title: \(button.title)", category: .ui)
         } else {
-            print("[AppDelegate] ERROR: Failed to create status button")
+            Log.fault("Failed to create status button", category: .ui)
         }
 
         // Create menu
@@ -126,10 +126,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 // Clear the title when we have an icon
                 button.title = ""
 
-                print("[AppDelegate] Icon updated: \(iconName)")
+                Log.debug("Icon updated: \(iconName)", category: .ui)
             } else {
                 // Fallback to text if icon fails
-                print("[AppDelegate] WARNING: Failed to load SF Symbol '\(iconName)', using text fallback")
+                Log.warning("Failed to load SF Symbol '\(iconName)', using text fallback", category: .ui)
                 button.image = nil
                 button.title = core.isArmed ? "MG!" : "MG"
             }
@@ -227,9 +227,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func requestNotificationPermissions() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
             if granted {
-                print("[AppDelegate] Notification permissions granted")
+                Log.info("Notification permissions granted", category: .ui)
             } else if let error = error {
-                print("[AppDelegate] Notification permission error: \(error)")
+                Log.error("Notification permission error", error: error, category: .ui)
             }
         }
     }
@@ -240,7 +240,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Check if we can use UNUserNotificationCenter
         guard Bundle.main.bundleIdentifier != nil else {
             // Fallback: Just print to console when running from Xcode
-            print("🔔 NOTIFICATION: \(notificationTitle) - \(text)")
+            Log.info("🔔 NOTIFICATION: \(notificationTitle) - \(text)", category: .ui)
 
             // Alternative: Show an alert window
             DispatchQueue.main.async {
@@ -265,7 +265,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Add the request to notification center
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
-                print("[AppDelegate] Error showing notification: \(error)")
+                Log.error("Error showing notification", error: error, category: .ui)
             }
         }
     }
@@ -277,18 +277,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Save any pending state
         saveApplicationState()
 
-        print("[AppDelegate] Application terminating")
+        Log.info("Application terminating", category: .ui)
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
         // Refresh menu when app becomes active
         setupMenu()
 
-        print("[AppDelegate] Application became active")
+        Log.info("Application became active", category: .ui)
     }
 
     func applicationDidResignActive(_ notification: Notification) {
-        print("[AppDelegate] Application resigned active")
+        Log.info("Application resigned active", category: .ui)
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -317,8 +317,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let state = core.appController.currentState
         let events = core.appController.getEventLog(limit: 10)
 
-        print("[AppDelegate] Saving state: \(state.rawValue)")
-        print("[AppDelegate] Recent events: \(events.count)")
+        Log.debug("Saving state: \(state.rawValue)", category: .ui)
+        Log.debug("Recent events: \(events.count)", category: .ui)
     }
 }
 

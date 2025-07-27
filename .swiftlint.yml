@@ -36,6 +36,7 @@ disabled_rules:
   - file_length             # Some files need to be longer temporarily
   - explicit_acl            # Extension methods don't need explicit ACL
   - large_tuple             # Notification tuples need 3 elements
+  - line_length             # Long lines are sometimes necessary for readability
 
 # Rule configurations
 missing_docs:
@@ -51,12 +52,12 @@ file_header:
                     \/\/  Created on \d{4}-\d{2}-\d{2}\.
                     \/\/
 
-# Line length (generous for documentation)
-line_length:
-  warning: 120
-  error: 150
-  ignores_comments: true
-  ignores_urls: true
+# Line length - disabled
+# line_length:
+#   warning: 120
+#   error: 150
+#   ignores_comments: true
+#   ignores_urls: true
 
 # Function length (generous for SwiftUI views) - commented out since disabled
 # function_body_length:

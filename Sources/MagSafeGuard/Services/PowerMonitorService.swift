@@ -127,7 +127,7 @@ public class PowerMonitorService: NSObject {
             guard let self = self else { return }
 
             if self.isMonitoring {
-                print("[PowerMonitorService] Already monitoring")
+                Log.debug("Already monitoring", category: .powerMonitor)
                 return
             }
 
@@ -154,7 +154,7 @@ public class PowerMonitorService: NSObject {
                 }
             }
 
-            print("[PowerMonitorService] Started monitoring (mode: \(self.useNotifications ? "notifications" : "polling"))")
+            Log.info("Started monitoring (mode: \(self.useNotifications ? "notifications" : "polling"))", category: .powerMonitor)
         }
     }
 
@@ -170,7 +170,7 @@ public class PowerMonitorService: NSObject {
             guard let self = self else { return }
 
             if !self.isMonitoring {
-                print("[PowerMonitorService] Not currently monitoring")
+                Log.debug("Not currently monitoring", category: .powerMonitor)
                 return
             }
 
@@ -185,7 +185,7 @@ public class PowerMonitorService: NSObject {
             }
 
             self.stateChangeCallback = nil
-            print("[PowerMonitorService] Stopped monitoring")
+            Log.info("Stopped monitoring", category: .powerMonitor)
         }
     }
 
@@ -248,7 +248,7 @@ public class PowerMonitorService: NSObject {
                     }
                 }
 
-                print("[PowerMonitorService] Power state changed to: \(newPowerInfo.state.description)")
+                Log.notice("Power state changed to: \(newPowerInfo.state.description)", category: .powerMonitor)
             }
         }
     }
@@ -269,9 +269,9 @@ public class PowerMonitorService: NSObject {
 
         if let source = runLoopSource {
             CFRunLoopAddSource(CFRunLoopGetMain(), source, .defaultMode)
-            print("[PowerMonitorService] IOKit notifications setup complete")
+            Log.info("IOKit notifications setup complete", category: .powerMonitor)
         } else {
-            print("[PowerMonitorService] Failed to create IOKit notification source, falling back to polling")
+            Log.warning("Failed to create IOKit notification source, falling back to polling", category: .powerMonitor)
             // Fallback to polling
             DispatchQueue.main.async { [weak self] in
                 self?.startPollingTimer()
@@ -283,7 +283,7 @@ public class PowerMonitorService: NSObject {
         if let source = runLoopSource {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .defaultMode)
             runLoopSource = nil
-            print("[PowerMonitorService] IOKit notifications removed")
+            Log.info("IOKit notifications removed", category: .powerMonitor)
         }
     }
 
@@ -300,7 +300,7 @@ public class PowerMonitorService: NSObject {
                     }
                 }
 
-                print("[PowerMonitorService] Power state changed via notification: \(newPowerInfo.state.description)")
+                Log.notice("Power state changed via notification: \(newPowerInfo.state.description)", category: .powerMonitor)
             }
         }
     }

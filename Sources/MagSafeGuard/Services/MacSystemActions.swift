@@ -71,7 +71,7 @@ public class MacSystemActions: SystemActionsProtocol {
                 throw SystemActionError.screenLockFailed
             }
         } catch {
-            print("[MacSystemActions] Screen lock failed: \(error)")
+            Log.error("Screen lock failed", error: error, category: .security)
             throw SystemActionError.screenLockFailed
         }
     }
@@ -99,7 +99,7 @@ public class MacSystemActions: SystemActionsProtocol {
             alarmPlayer?.numberOfLoops = -1 // Loop indefinitely
             alarmPlayer?.play()
         } catch {
-            print("[MacSystemActions] Failed to play alarm sound: \(error)")
+            Log.error("Failed to play alarm sound", error: error, category: .security)
             // Fallback to system beep
             NSSound.beep()
             throw SystemActionError.alarmPlaybackFailed
@@ -128,7 +128,7 @@ public class MacSystemActions: SystemActionsProtocol {
                 throw SystemActionError.logoutFailed
             }
         } catch {
-            print("[MacSystemActions] Force logout failed: \(error)")
+            Log.error("Force logout failed", error: error, category: .security)
             throw SystemActionError.logoutFailed
         }
     }
@@ -159,7 +159,7 @@ public class MacSystemActions: SystemActionsProtocol {
                 }
             }
         } catch {
-            print("[MacSystemActions] Shutdown failed: \(error)")
+            Log.error("Shutdown failed", error: error, category: .security)
             throw SystemActionError.shutdownFailed
         }
     }
@@ -187,7 +187,7 @@ public class MacSystemActions: SystemActionsProtocol {
             if let systemError = error as? SystemActionError {
                 throw systemError
             }
-            print("[MacSystemActions] Custom script execution failed: \(error)")
+            Log.error("Custom script execution failed", error: error, category: .security)
             throw SystemActionError.scriptExecutionFailed(exitCode: -1)
         }
     }

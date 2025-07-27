@@ -65,7 +65,7 @@ public class UserDefaultsManager: ObservableObject {
     /// This property is published and automatically triggers UI updates
     /// when settings change. Settings are validated and persisted
     /// automatically when modified through the manager's methods.
-    @Published public var settings: Settings
+    @Published public private(set) var settings: Settings
 
     private let userDefaults: UserDefaults
     private let encoder = JSONEncoder()
@@ -101,7 +101,8 @@ public class UserDefaultsManager: ObservableObject {
         }
 
         // Set up auto-save on changes
-        setupAutoSave()
+        // Disabled auto-save to prevent conflicts with SwiftUI bindings
+        // setupAutoSave()
 
         // Mark first launch
         if !userDefaults.bool(forKey: Keys.hasLaunchedBefore) {
@@ -211,7 +212,7 @@ public class UserDefaultsManager: ObservableObject {
             userDefaults.set(data, forKey: Keys.settings)
             userDefaults.set(currentSettingsVersion, forKey: Keys.settingsVersion)
         } catch {
-            print("[UserDefaultsManager] Failed to save settings: \(error)")
+            Log.error("Failed to save settings", error: error, category: .settings)
         }
     }
 
@@ -232,7 +233,7 @@ public class UserDefaultsManager: ObservableObject {
 
             return settings.validated()
         } catch {
-            print("[UserDefaultsManager] Failed to load settings: \(error)")
+            Log.error("Failed to load settings", error: error, category: .settings)
             return nil
         }
     }

@@ -102,7 +102,7 @@ public class AutoArmManager: NSObject {
 
         let settings = settingsManager.settings
         guard settings.autoArmEnabled else {
-            print("[AutoArmManager] Auto-arm is disabled in settings")
+            Log.info("Auto-arm is disabled in settings", category: .autoArm)
             return
         }
 
@@ -117,7 +117,7 @@ public class AutoArmManager: NSObject {
             networkMonitor.startMonitoring()
         }
 
-        print("[AutoArmManager] Started monitoring (location: \(settings.autoArmByLocation), network: \(settings.autoArmOnUntrustedNetwork))")
+        Log.info("Started monitoring (location: \(settings.autoArmByLocation), network: \(settings.autoArmOnUntrustedNetwork))", category: .autoArm)
     }
 
     /// Stops all auto-arm monitoring
@@ -128,7 +128,7 @@ public class AutoArmManager: NSObject {
         locationManager.stopMonitoring()
         networkMonitor.stopMonitoring()
 
-        print("[AutoArmManager] Stopped monitoring")
+        Log.info("Stopped monitoring", category: .autoArm)
     }
 
     /// Temporarily disables auto-arm for the specified duration
@@ -142,10 +142,10 @@ public class AutoArmManager: NSObject {
         // Set new timer
         disableTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
             self?.isTemporarilyDisabled = false
-            print("[AutoArmManager] Temporary disable expired")
+            Log.info("Temporary disable expired", category: .autoArm)
         }
 
-        print("[AutoArmManager] Temporarily disabled for \(Int(duration / 60)) minutes")
+        Log.info("Temporarily disabled for \(Int(duration / 60)) minutes", category: .autoArm)
 
         // Show notification
         NotificationService.shared.showNotification(
@@ -162,7 +162,7 @@ public class AutoArmManager: NSObject {
         disableTimer?.invalidate()
         disableTimer = nil
 
-        print("[AutoArmManager] Temporary disable cancelled")
+        Log.info("Temporary disable cancelled", category: .autoArm)
     }
 
     /// Updates settings and restarts monitoring if needed
@@ -199,20 +199,20 @@ public class AutoArmManager: NSObject {
     private func shouldTriggerAutoArm() -> Bool {
         // Check if temporarily disabled
         if isTemporarilyDisabled {
-            print("[AutoArmManager] Auto-arm skipped - temporarily disabled")
+            Log.debug("Auto-arm skipped - temporarily disabled", category: .autoArm)
             return false
         }
 
         // Check if already armed
         if appController.currentState != .disarmed {
-            print("[AutoArmManager] Auto-arm skipped - already armed")
+            Log.debug("Auto-arm skipped - already armed", category: .autoArm)
             return false
         }
 
         // Check cooldown period
         if let lastTime = lastAutoArmTime,
            Date().timeIntervalSince(lastTime) < autoArmCooldown {
-            print("[AutoArmManager] Auto-arm skipped - cooldown period")
+            Log.debug("Auto-arm skipped - cooldown period", category: .autoArm)
             return false
         }
 
@@ -240,9 +240,9 @@ public class AutoArmManager: NSObject {
             self?.appController.arm { result in
                 switch result {
                 case .success:
-                    print("[AutoArmManager] Successfully auto-armed: \(reason)")
+                    Log.notice("Successfully auto-armed: \(reason)", category: .autoArm)
                 case .failure(let error):
-                    print("[AutoArmManager] Failed to auto-arm: \(error)")
+                    Log.error("Failed to auto-arm", error: error, category: .autoArm)
                     NotificationService.shared.showNotification(
                         title: "Auto-Arm Failed",
                         message: "Could not arm system: \(error.localizedDescription)"
@@ -257,8 +257,9 @@ public class AutoArmManager: NSObject {
 
 extension AutoArmManager: LocationManagerDelegate {
 
+    /// Called when the user leaves a trusted location
     public func locationManagerDidLeaveTrustedLocation() {
-        print("[AutoArmManager] Left trusted location")
+        Log.info("Left trusted location", category: .autoArm)
 
         let settings = settingsManager.settings
         guard settings.autoArmEnabled && settings.autoArmByLocation else { return }
@@ -266,13 +267,16 @@ extension AutoArmManager: LocationManagerDelegate {
         triggerAutoArm(reason: "Left trusted location")
     }
 
+    /// Called when the user enters a trusted location
     public func locationManagerDidEnterTrustedLocation() {
-        print("[AutoArmManager] Entered trusted location")
+        Log.info("Entered trusted location", category: .autoArm)
         // Could potentially auto-disarm here if desired
     }
 
+    /// Called when location authorization status changes
+    /// - Parameter status: The new authorization status
     public func locationManager(didChangeAuthorization status: CLAuthorizationStatus) {
-        print("[AutoArmManager] Location authorization changed: \(status.rawValue)")
+        Log.info("Location authorization changed: \(status.rawValue)", category: .autoArm)
 
         if status == .denied || status == .restricted {
             NotificationService.shared.showNotification(
@@ -287,8 +291,10 @@ extension AutoArmManager: LocationManagerDelegate {
 
 extension AutoArmManager: NetworkMonitorDelegate {
 
+    /// Called when connecting to an untrusted network
+    /// - Parameter ssid: The SSID of the untrusted network
     public func networkMonitorDidConnectToUntrustedNetwork(_ ssid: String) {
-        print("[AutoArmManager] Connected to untrusted network: \(ssid)")
+        Log.info("Connected to untrusted network: \(ssid)", category: .autoArm)
 
         let settings = settingsManager.settings
         guard settings.autoArmEnabled && settings.autoArmOnUntrustedNetwork else { return }
@@ -296,8 +302,9 @@ extension AutoArmManager: NetworkMonitorDelegate {
         triggerAutoArm(reason: "Connected to untrusted network: \(ssid)")
     }
 
+    /// Called when disconnecting from a trusted network
     public func networkMonitorDidDisconnectFromTrustedNetwork() {
-        print("[AutoArmManager] Disconnected from trusted network")
+        Log.info("Disconnected from trusted network", category: .autoArm)
 
         let settings = settingsManager.settings
         guard settings.autoArmEnabled && settings.autoArmOnUntrustedNetwork else { return }
@@ -305,13 +312,17 @@ extension AutoArmManager: NetworkMonitorDelegate {
         triggerAutoArm(reason: "Disconnected from trusted network")
     }
 
+    /// Called when connecting to a trusted network
+    /// - Parameter ssid: The SSID of the trusted network
     public func networkMonitorDidConnectToTrustedNetwork(_ ssid: String) {
-        print("[AutoArmManager] Connected to trusted network: \(ssid)")
+        Log.info("Connected to trusted network: \(ssid)", category: .autoArm)
         // Could potentially auto-disarm here if desired
     }
 
+    /// Called when network connectivity changes
+    /// - Parameter isConnected: Whether the device is connected to any network
     public func networkMonitor(didChangeConnectivity isConnected: Bool) {
-        print("[AutoArmManager] Network connectivity changed: \(isConnected)")
+        Log.info("Network connectivity changed: \(isConnected)", category: .autoArm)
 
         if !isConnected {
             // Lost all network connectivity
@@ -325,6 +336,7 @@ extension AutoArmManager: NetworkMonitorDelegate {
 
 // MARK: - Public Status Extension
 
+/// Public status and state extensions
 public extension AutoArmManager {
 
     /// Current auto-arm status summary

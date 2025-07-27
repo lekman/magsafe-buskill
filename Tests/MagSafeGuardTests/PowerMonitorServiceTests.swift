@@ -186,10 +186,10 @@ final class PowerMonitorServiceTests: XCTestCase {
         
         if let info = powerInfo {
             // These properties might be nil depending on the test environment
-            print("Power state: \(info.state)")
-            print("Battery level: \(info.batteryLevel ?? -1)")
-            print("Is charging: \(info.isCharging)")
-            print("Adapter wattage: \(info.adapterWattage ?? 0)")
+            Log.debug("Power state: \(info.state)", category: .powerMonitor)
+            Log.debug("Battery level: \(info.batteryLevel ?? -1)", category: .powerMonitor)
+            Log.debug("Is charging: \(info.isCharging)", category: .powerMonitor)
+            Log.debug("Adapter wattage: \(info.adapterWattage ?? 0)", category: .powerMonitor)
         }
         
         XCTAssertNotNil(powerInfo)
