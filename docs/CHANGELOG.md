@@ -8,6 +8,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- This changelog is automatically maintained by release-please -->
 <!-- Do not manually edit below this line -->
 
+## [1.7.0](https://github.com/lekman/magsafe-buskill/compare/v1.6.0...v1.7.0) (2025-07-27)
+
+
+### Features
+
+* Add AppController for managing application state and security actions ([48bdcd6](https://github.com/lekman/magsafe-buskill/commit/48bdcd6e57a7193fef00a7b4124a567dcca374a0))
+* Add SonarCloud and Swift development tasks ([143d097](https://github.com/lekman/magsafe-buskill/commit/143d09766f576bff903c370905f9c6a0cd960995))
+* Add support for Software Bill of Materials (SBOM) generation and update related files during pre-push hook ([5af2943](https://github.com/lekman/magsafe-buskill/commit/5af2943bf88ae2ec424fa993e8df17ed537a23d4))
+* enhance action pinning scripts with GitHub authentication ([ecf87e5](https://github.com/lekman/magsafe-buskill/commit/ecf87e5f452ca94c69d78b8e0eb7a74ca5f38ff1))
+* Enhance GitHub Actions workflows and security measures ([607748e](https://github.com/lekman/magsafe-buskill/commit/607748e9022ee44b020d1130fa863bfcc5dced8d))
+* Enhance logging privacy by implementing sensitive logging methods and updating documentation ([1593758](https://github.com/lekman/magsafe-buskill/commit/15937585f6b61c710b05b1bd07cd92389df19948))
+* Enhance task documentation and streamline task listings for Swift, security, and markdown tasks; add API documentation generation task ([14b640a](https://github.com/lekman/magsafe-buskill/commit/14b640a698f6bef88791a51b4892984da17cbc17))
+* Enhance test execution and coverage reporting with parallel execution and improved logging ([84c7f38](https://github.com/lekman/magsafe-buskill/commit/84c7f38ad90ecdbc5c6274cc5cc19d4e471c19c5))
+* Implement location-based auto-arm functionality with LocationManager and trusted locations management ([8cf5d34](https://github.com/lekman/magsafe-buskill/commit/8cf5d34029037e29a628bfa0588cc39f8c24070a))
+* implement Settings UI and Persistence (Task 7) ([9f76d55](https://github.com/lekman/magsafe-buskill/commit/9f76d55e585b6f2f3cb822aef25f0b841dbfbc09))
+* Implement unified logging system using os.log for MagSafe Guard ([86fe601](https://github.com/lekman/magsafe-buskill/commit/86fe601f106f69ab4c3495a7658d04d40c8cc61d))
+* Refactor LocationManager and MacSystemActions for improved path handling; enhance TrustedLocationsView and UserDefaultsManager for better UI and functionality ([491ec2d](https://github.com/lekman/magsafe-buskill/commit/491ec2dcff32fb4c2b0af1c4c956e87bf222a7bd))
+* **settings:** enhance SettingsView and UserDefaultsManager with improved documentation and code quality ([7e27151](https://github.com/lekman/magsafe-buskill/commit/7e27151df38077238c3b07693a834a4e72613b8d))
+* Simplify error handling in AuthenticationService and add swiftlint disable comments for auto-arm related files ([7dedcc7](https://github.com/lekman/magsafe-buskill/commit/7dedcc7ce19d8546013b0a1fcebd213e8322b1cc))
+* Update documentation and task files for improved clarity and organization; remove outdated security and sonarcloud guides; enhance markdown and swift task descriptions ([f21d077](https://github.com/lekman/magsafe-buskill/commit/f21d077364b4cc43fed446e363318e7bdc1280ff))
+* Update documentation and task files for improved clarity; rename install tasks to setup and enhance SBOM generation instructions ([14d3854](https://github.com/lekman/magsafe-buskill/commit/14d3854dfe57a7f8cf848938ec8ab0012de56466))
+* Update documentation, remove obsolete scripts, and add comprehensive tests for NotificationService ([4ff710f](https://github.com/lekman/magsafe-buskill/commit/4ff710f0f5086c244d673baa7a25a76b42352921))
+* Update README and SPDX file with new export timestamps and versioning; enhance test task reliability ([ebe0de9](https://github.com/lekman/magsafe-buskill/commit/ebe0de91b2bbb9353b066956bae9e2997db40ce6))
+
+
+### Bug Fixes
+
+* add explanatory comment for empty MockNotificationDelivery init ([714dc57](https://github.com/lekman/magsafe-buskill/commit/714dc57ebd46c93b828fb30a395d1ace8e997840))
+* address SonarCloud code quality issues ([1b6689f](https://github.com/lekman/magsafe-buskill/commit/1b6689f658e48a3a4f372580ba34be032292a5ca))
+* correct template image handling in AppDelegate ([12da8f2](https://github.com/lekman/magsafe-buskill/commit/12da8f2410e895c35398115e09d6ddbe4e586bbd))
+* correct webiny action SHA and add automated security tooling ([664ef86](https://github.com/lekman/magsafe-buskill/commit/664ef86acd4c849966fe41c2234907a9c2f9d4d0))
+* define constant for duplicated app name literal ([f00c2bf](https://github.com/lekman/magsafe-buskill/commit/f00c2bfc95176d9fb53f880cbea9a1cfcec97466))
+* Improve comments and enhance exclusions in SonarCloud configuration for better scan performance ([5554714](https://github.com/lekman/magsafe-buskill/commit/55547149598f686649cc186caa3b2678b771f34b))
+* remove top-level write permissions from GitHub workflows ([96d08e2](https://github.com/lekman/magsafe-buskill/commit/96d08e2c92d8d725e47f11cd8664f61b5143b3da))
+* Remove unnecessary whitespace in MacSystemActions, SettingsView, and TrustedLocationsView; update SPDX file with new document namespace and creation timestamp ([edfe9b1](https://github.com/lekman/magsafe-buskill/commit/edfe9b166ce524f9a8d8e14abf12ecf57b1ed6af))
+* replace duplicated literal with constant in AppController ([2649de2](https://github.com/lekman/magsafe-buskill/commit/2649de2fe30109180651a6f133730cbdf1f38e70))
+* update AppDelegateCoreTests to work with AppController integration ([e8589d2](https://github.com/lekman/magsafe-buskill/commit/e8589d2ede7dd5d1a83af7d3f5c889ee6339a59a))
+* Update Taskmaster export timestamp and adjust SPDX document namespace and creation timestamp ([3441066](https://github.com/lekman/magsafe-buskill/commit/3441066176defa02929b84b744055b79df3ba73f))
+* Update Taskmaster export timestamp and enhance coverage report filters in Swift tasks ([2f492dc](https://github.com/lekman/magsafe-buskill/commit/2f492dc4b65693354022ae45f458db221cbbe573))
+
+
+### Documentation
+
+* update SPDX document namespace and creation timestamp ([12da8f2](https://github.com/lekman/magsafe-buskill/commit/12da8f2410e895c35398115e09d6ddbe4e586bbd))
+* update task status and adjust progress metrics in README ([7e73cd8](https://github.com/lekman/magsafe-buskill/commit/7e73cd8ae740450008f69ff1661379022c749670))
+* update task status and progress metrics in README ([1a7b298](https://github.com/lekman/magsafe-buskill/commit/1a7b29864a2a4cdfb6aa04b8152cf402c3ffc226))
+* update task status and remove Figma resources from documentation ([1a6006d](https://github.com/lekman/magsafe-buskill/commit/1a6006d9e5dec8530de1e59d8c085f5e61138810))
+
+
+### Code Refactoring
+
+* Clean up authentication_check disabling comments and update SPDX file with new document namespace and creation timestamp ([6a081ac](https://github.com/lekman/magsafe-buskill/commit/6a081acf5fb1b2728fc52e48386f604008205e27))
+* clean up whitespace in various files for consistency ([12da8f2](https://github.com/lekman/magsafe-buskill/commit/12da8f2410e895c35398115e09d6ddbe4e586bbd))
+* enhance readability of authentication method parameters ([12da8f2](https://github.com/lekman/magsafe-buskill/commit/12da8f2410e895c35398115e09d6ddbe4e586bbd))
+* extract trusted networks and custom scripts list into separate views for improved readability ([d3f9856](https://github.com/lekman/magsafe-buskill/commit/d3f9856e49c104d60cd1d7bbd6968a5abb9b97ab))
+* modularize General and Security settings UI components for improved readability ([9244369](https://github.com/lekman/magsafe-buskill/commit/92443696e18240d68360c30d0751313813d88684))
+* **settings:** modularize available actions and auto-arm settings for improved readability ([7ce5d68](https://github.com/lekman/magsafe-buskill/commit/7ce5d6876a7a010671cdc632ffc0dfb8a78ccd38))
+* **settings:** modularize General and Auto-Arm settings views for improved readability ([e636c5f](https://github.com/lekman/magsafe-buskill/commit/e636c5f9669be481a6f20bd6e16413e0b1927d2c))
+* update SwiftLint rules and configurations for improved code quality ([12da8f2](https://github.com/lekman/magsafe-buskill/commit/12da8f2410e895c35398115e09d6ddbe4e586bbd))
+
+
+### Tests
+
+* enhance AppController and NotificationService tests for grace period and settings integration ([6da63fc](https://github.com/lekman/magsafe-buskill/commit/6da63fce582a59c8ace3f757b54e6ffba2af620c))
+
 ## [1.6.0](https://github.com/lekman/magsafe-buskill/compare/v1.5.0...v1.6.0) (2025-07-26)
 
 
