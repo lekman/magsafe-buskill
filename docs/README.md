@@ -46,7 +46,7 @@ Welcome to the MagSafe Guard documentation. This directory contains all project 
 - [Building and Running](maintainers/building-and-running.md) - Development setup guide
 - [Testing Guide](maintainers/testing-guide.md) - Unit and integration testing
 - [Test Coverage](maintainers/test-coverage.md) - Coverage reports and targets
-- [Maintenance Tasks](maintainers/tasks.md) - Taskfile commands and workflows
+- [Maintenance Tasks](../tasks/README.md) - Taskfile commands and workflows
 - [Troubleshooting](maintainers/troubleshooting.md) - Common issues and solutions
 
 ## 📁 Directory Structure

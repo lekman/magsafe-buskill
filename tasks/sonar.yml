@@ -15,7 +15,7 @@ tasks:
         echo "  task sonar:convert      - Convert Swift coverage to SonarQube XML format"
         echo "  task sonar:install      - Install sonar-scanner"
         echo ""
-        echo "📚 Documentation: docs/sonarcloud-local.md"
+        echo "📚 Documentation: tasks/sonar.md"
 
   scan:
     desc: Run SonarCloud scan locally
@@ -68,7 +68,7 @@ tasks:
 
         # Run tests with coverage first
         echo "📊 Generating coverage data..."
-        task test:coverage
+        task swift:test:coverage
 
         # Check if coverage files exist
         if [ ! -f "coverage.xml" ]; then
@@ -147,7 +147,7 @@ tasks:
 
         # Run tests with coverage first
         echo "📊 Generating coverage data..."
-        task test:coverage || true
+        task swift:test:coverage || true
 
         # Run SwiftLint and format as SonarCloud-like issues
         echo "🚀 Running SwiftLint analysis..."
