@@ -37,6 +37,7 @@ public class MacSystemActions: SystemActionsProtocol {
         internal static let defaultBasePath = "/usr/bin"
 
         /// Default base path for bash
+        // NOSONAR: This default path is customizable via MAGSAFE_BASH_BASE_PATH environment variable
         internal static let defaultBashBasePath = "/bin"
 
         /// System utility configuration with default paths

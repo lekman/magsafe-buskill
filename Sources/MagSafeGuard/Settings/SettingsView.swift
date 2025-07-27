@@ -267,10 +267,7 @@ struct SecuritySettingsView: View {
 
                 Spacer()
 
-                Toggle("", isOn: Binding(
-                    get: { settingsManager.settings.evidenceCollectionEnabled },
-                    set: { settingsManager.updateSetting(\.evidenceCollectionEnabled, value: $0) }
-                ))
+                Toggle("", isOn: evidenceCollectionBinding)
                     .toggleStyle(.switch)
             }
             .padding(.vertical, 4)
@@ -327,6 +324,15 @@ struct SecuritySettingsView: View {
         SecurityActionType.allCases.filter { action in
             !settingsManager.settings.securityActions.contains(action)
         }
+    }
+    
+    // MARK: - Bindings
+    
+    private var evidenceCollectionBinding: Binding<Bool> {
+        Binding(
+            get: { settingsManager.settings.evidenceCollectionEnabled },
+            set: { settingsManager.updateSetting(\.evidenceCollectionEnabled, value: $0) }
+        )
     }
 
     private func moveSecurityActions(from source: IndexSet, to destination: Int) {

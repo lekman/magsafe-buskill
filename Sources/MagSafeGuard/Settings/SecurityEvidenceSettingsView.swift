@@ -55,9 +55,7 @@ struct SecurityEvidenceSettingsView: View {
                         .font(.title2)
                         .fontWeight(.semibold)
                     Spacer()
-                    Button("Done") {
-                        dismiss()
-                    }
+                    doneButton
                 }
                 Text("Configure how evidence is collected and stored when theft is detected")
                     .font(.subheadline)
@@ -99,10 +97,7 @@ struct SecurityEvidenceSettingsView: View {
                     .foregroundColor(cameraPermissionColor)
                     .font(.caption)
                 if !hasCameraPermission {
-                    Button("Request") {
-                        requestCameraPermission()
-                    }
-                    .buttonStyle(.link)
+                    cameraRequestButton
                 }
             }
 
@@ -114,10 +109,7 @@ struct SecurityEvidenceSettingsView: View {
                     .foregroundColor(locationPermissionColor)
                     .font(.caption)
                 if !hasLocationPermission {
-                    Button("Request") {
-                        requestLocationPermission()
-                    }
-                    .buttonStyle(.link)
+                    locationRequestButton
                 }
             }
         }
@@ -126,10 +118,7 @@ struct SecurityEvidenceSettingsView: View {
     private var emailSection: some View {
         Section("Backup Email") {
             VStack(alignment: .leading, spacing: 8) {
-                TextField("Email Address", text: Binding(
-                    get: { settingsManager.settings.backupEmailAddress },
-                    set: { settingsManager.updateSetting(\.backupEmailAddress, value: $0) }
-                ))
+                TextField("Email Address", text: emailBinding)
                     .textFieldStyle(.roundedBorder)
                     .disableAutocorrection(true)
 
@@ -157,10 +146,7 @@ struct SecurityEvidenceSettingsView: View {
                         .font(.subheadline)
                 }
 
-                Button("View Evidence Folder") {
-                    openEvidenceFolder()
-                }
-                .buttonStyle(.link)
+                viewEvidenceFolderButton
             }
         }
     }
@@ -173,10 +159,7 @@ struct SecurityEvidenceSettingsView: View {
                     .foregroundColor(.secondary)
 
                 HStack {
-                    Button("Test Evidence Collection") {
-                        testEvidenceCollection()
-                    }
-                    .disabled(testInProgress || !settingsManager.settings.evidenceCollectionEnabled)
+                    testEvidenceButton
 
                     if testInProgress {
                         ProgressView()
@@ -193,6 +176,13 @@ struct SecurityEvidenceSettingsView: View {
                 }
             }
         }
+    }
+    
+    private var testEvidenceButton: some View {
+        Button("Test Evidence Collection") {
+            testEvidenceCollection()
+        }
+        .disabled(testInProgress || !settingsManager.settings.evidenceCollectionEnabled)
     }
 
     // MARK: - Permission Status
@@ -246,6 +236,44 @@ struct SecurityEvidenceSettingsView: View {
         hasLocationPermission ? .green : .orange
     }
 
+    // MARK: - Bindings
+    
+    private var emailBinding: Binding<String> {
+        Binding(
+            get: { settingsManager.settings.backupEmailAddress },
+            set: { settingsManager.updateSetting(\.backupEmailAddress, value: $0) }
+        )
+    }
+    
+    // MARK: - Button Views
+    
+    private var doneButton: some View {
+        Button("Done") {
+            dismiss()
+        }
+    }
+    
+    private var cameraRequestButton: some View {
+        Button("Request") {
+            requestCameraPermission()
+        }
+        .buttonStyle(.link)
+    }
+    
+    private var locationRequestButton: some View {
+        Button("Request") {
+            requestLocationPermission()
+        }
+        .buttonStyle(.link)
+    }
+    
+    private var viewEvidenceFolderButton: some View {
+        Button("View Evidence Folder") {
+            openEvidenceFolder()
+        }
+        .buttonStyle(.link)
+    }
+    
     // MARK: - Actions
 
     private func requestCameraPermission() {
