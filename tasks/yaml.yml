@@ -1,0 +1,103 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: "3"
+# YAML Linting Tasks
+# This file provides YAML validation and linting for all YAML files in the project.
+#
+# Configuration:
+# - Uses yamllint for validation
+# - Configurable via .yamllint.yml
+# - Supports custom file patterns
+vars:
+  DEFAULT_PATTERNS: "*.yml,*.yaml,.github/**/*.yml,.github/**/*.yaml,tasks/*.yml"
+  YAMLLINT_CONFIG: ".yamllint.yml"
+tasks:
+  default:
+    desc: List available YAML tasks
+    silent: true
+    cmds:
+      - task --list | grep "^\\* yaml:" | grep -v "::" || true
+  lint:
+    desc: Lint YAML files (use FILES="pattern1,pattern2" to specify files)
+    silent: true
+    vars:
+      FILE_PATTERNS: "{{.FILES | default .DEFAULT_PATTERNS}}"
+    cmds:
+      - "echo \"\U0001F4CB Linting YAML files...\"\n\n# Check if yamllint is installed\nif ! command -v yamllint &> /dev/null; then\n  echo \"❌ yamllint is not installed\"\n  echo \"\"\n  echo \"To install on macOS:\"\n  echo \"  brew install yamllint\"\n  echo \"\"\n  echo \"To install with pip:\"\n  echo \"  pip install yamllint\"\n  echo \"\"\n  echo \"Alternative: Use 'task yaml:validate' for basic syntax checking\"\n  exit 1\nfi\n\n# Check for config file\nCONFIG_ARG=\"\"\nif [ -f \"{{.YAMLLINT_CONFIG}}\" ]; then\n  CONFIG_ARG=\"-c {{.YAMLLINT_CONFIG}}\"\n  echo \"\U0001F4C4 Using config: {{.YAMLLINT_CONFIG}}\"\nelse\n  echo \"ℹ️  No .yamllint.yml found, using default rules\"\nfi\n\n# Convert comma-separated patterns to space-separated for shell expansion\nPATTERNS=$(echo \"{{.FILE_PATTERNS}}\" | tr ',' ' ')\n\n# Find all YAML files matching patterns\nFILES=\"\"\nfor pattern in $PATTERNS; do\n  # Use find for recursive patterns\n  if [[ \"$pattern\" == *\"**\"* ]]; then\n    # Handle recursive glob patterns\n    BASE_DIR=$(echo \"$pattern\" | cut -d'*' -f1)\n    FILENAME=$(echo \"$pattern\" | rev | cut -d'/' -f1 | rev)\n    if [ -d \"$BASE_DIR\" ]; then\n      FILES=\"$FILES $(find \"$BASE_DIR\" -name \"$FILENAME\" -type f 2>/dev/null || true)\"\n    fi\n  else\n    # Handle simple patterns\n    FILES=\"$FILES $(ls $pattern 2>/dev/null || true)\"\n  fi\ndone\n\n# Remove duplicates and empty entries\nFILES=$(echo $FILES | tr ' ' '\\n' | sort -u | grep -v '^$' | tr '\\n' ' ')\n\nif [ -z \"$FILES\" ]; then\n  echo \"⚠️  No YAML files found matching patterns: {{.FILE_PATTERNS}}\"\n  exit 0\nfi\n\n# Count files\nFILE_COUNT=$(echo $FILES | wc -w | tr -d ' ')\necho \"\U0001F50D Found $FILE_COUNT YAML files to lint\"\necho \"\"\n\n# Run yamllint\nFAILED=0\nfor file in $FILES; do\n  if ! yamllint $CONFIG_ARG \"$file\" 2>&1; then\n    FAILED=$((FAILED + 1))\n  fi\ndone\n\necho \"\"\nif [ $FAILED -eq 0 ]; then\n  echo \"✅ All YAML files passed linting!\"\nelse\n  echo \"❌ $FAILED files have linting issues\"\n  exit 1\nfi\n"
+  lint:fix:
+    desc: Auto-fix YAML files where possible
+    silent: true
+    vars:
+      FILE_PATTERNS: "{{.FILES | default .DEFAULT_PATTERNS}}"
+    cmds:
+      - "echo \"\U0001F527 Auto-fixing YAML files...\"\n\n# Check if prettier is installed (best for auto-fixing)\nif command -v prettier &> /dev/null; then\n  echo \"\U0001F4E6 Using prettier for auto-formatting...\"\n  \n  # Convert patterns and find files (same as lint task)\n  PATTERNS=$(echo \"{{.FILE_PATTERNS}}\" | tr ',' ' ')\n  FILES=\"\"\n  for pattern in $PATTERNS; do\n    if [[ \"$pattern\" == *\"**\"* ]]; then\n      BASE_DIR=$(echo \"$pattern\" | cut -d'*' -f1)\n      FILENAME=$(echo \"$pattern\" | rev | cut -d'/' -f1 | rev)\n      if [ -d \"$BASE_DIR\" ]; then\n        FILES=\"$FILES $(find \"$BASE_DIR\" -name \"$FILENAME\" -type f 2>/dev/null || true)\"\n      fi\n    else\n      FILES=\"$FILES $(ls $pattern 2>/dev/null || true)\"\n    fi\n  done\n  \n  FILES=$(echo $FILES | tr ' ' '\\n' | sort -u | grep -v '^$' | tr '\\n' ' ')\n  \n  if [ -n \"$FILES\" ]; then\n    prettier --write $FILES\n    echo \"✅ Auto-formatting complete\"\n  else\n    echo \"⚠️  No YAML files found\"\n  fi\nelse\n  echo \"ℹ️  prettier not installed, checking for other formatters...\"\n  \n  # Try yq if available\n  if command -v yq &> /dev/null; then\n    echo \"\U0001F4E6 Using yq for formatting...\"\n    echo \"Note: yq formatting is limited compared to prettier\"\n    \n    # Process files\n    PATTERNS=$(echo \"{{.FILE_PATTERNS}}\" | tr ',' ' ')\n    for pattern in $PATTERNS; do\n      for file in $(ls $pattern 2>/dev/null || true); do\n        if [ -f \"$file\" ]; then\n          # Format with yq (read and write back)\n          yq eval '.' \"$file\" > \"$file.tmp\" && mv \"$file.tmp\" \"$file\"\n          echo \"  ✓ Formatted: $file\"\n        fi\n      done\n    done\n    echo \"✅ Formatting complete\"\n  else\n    echo \"❌ No YAML formatter found\"\n    echo \"\"\n    echo \"To install prettier (recommended):\"\n    echo \"  npm install -g prettier\"\n    echo \"\"\n    echo \"To install yq:\"\n    echo \"  brew install yq\"\n    exit 1\n  fi\nfi\n"
+  validate:
+    desc: Validate YAML syntax (basic check without linting rules)
+    silent: true
+    vars:
+      FILE_PATTERNS: "{{.FILES | default .DEFAULT_PATTERNS}}"
+    cmds:
+      - |
+        echo "✓ Validating YAML syntax..."
+
+        # Convert patterns
+        PATTERNS=$(echo "{{.FILE_PATTERNS}}" | tr ',' ' ')
+
+        # Find all YAML files
+        FILES=""
+        for pattern in $PATTERNS; do
+          if [[ "$pattern" == *"**"* ]]; then
+            BASE_DIR=$(echo "$pattern" | cut -d'*' -f1)
+            FILENAME=$(echo "$pattern" | rev | cut -d'/' -f1 | rev)
+            if [ -d "$BASE_DIR" ]; then
+              FILES="$FILES $(find "$BASE_DIR" -name "$FILENAME" -type f 2>/dev/null || true)"
+            fi
+          else
+            FILES="$FILES $(ls $pattern 2>/dev/null || true)"
+          fi
+        done
+
+        FILES=$(echo $FILES | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
+
+        if [ -z "$FILES" ]; then
+          echo "⚠️  No YAML files found"
+          exit 0
+        fi
+
+        # Validate each file using Python
+        FAILED=0
+        for file in $FILES; do
+          if ! python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>/dev/null; then
+            echo "❌ Invalid YAML syntax: $file"
+            FAILED=$((FAILED + 1))
+          else
+            echo "✓ Valid: $file"
+          fi
+        done
+
+        echo ""
+        if [ $FAILED -eq 0 ]; then
+          echo "✅ All YAML files have valid syntax!"
+        else
+          echo "❌ $FAILED files have syntax errors"
+          exit 1
+        fi
+  setup:
+    desc: Install yamllint and create default config
+    silent: true
+    cmds:
+      - "echo \"\U0001F527 Setting up YAML linting...\"\n\n# Check if yamllint is installed\nif command -v yamllint &> /dev/null; then\n  echo \"✅ yamllint already installed ($(yamllint --version))\"\nelse\n  # Detect OS and install\n  OS=$(uname -s | tr '[:upper:]' '[:lower:]')\n  \n  if [ \"$OS\" = \"darwin\" ]; then\n    if command -v brew &> /dev/null; then\n      echo \"\U0001F4E6 Installing yamllint via Homebrew...\"\n      brew install yamllint\n    else\n      echo \"\U0001F4E6 Installing yamllint via pip...\"\n      pip install yamllint\n    fi\n  else\n    # Linux or other\n    if command -v pip &> /dev/null; then\n      echo \"\U0001F4E6 Installing yamllint via pip...\"\n      pip install yamllint\n    else\n      echo \"❌ pip not found. Please install Python and pip first.\"\n      exit 1\n    fi\n  fi\nfi\n\n# Create default config if it doesn't exist\nif [ ! -f \"{{.YAMLLINT_CONFIG}}\" ]; then\n  echo \"\"\n  echo \"\U0001F4DD Creating default .yamllint.yml config...\"\n  cat > {{.YAMLLINT_CONFIG}} << 'EOF'\n---\nextends: default\n\nrules:\n  line-length:\n    max: 120\n    level: warning\n  \n  # Allow multiple spaces after colon for alignment\n  colons:\n    max-spaces-after: -1\n  \n  # Don't require document start marker\n  document-start: disable\n  \n  # Allow both single and double quotes\n  quoted-strings:\n    quote-type: any\n    required: false\n  \n  # Relax indentation rules for complex structures\n  indentation:\n    spaces: consistent\n    indent-sequences: true\n  \n  # Don't complain about truthy values\n  truthy:\n    allowed-values: ['true', 'false', 'on', 'off', 'yes', 'no']\n\n# Ignore certain files\nignore: |\n  .git/\n  node_modules/\n  vendor/\n  .build/\n  *.min.yml\n  *.min.yaml\nEOF\n  echo \"✅ Created {{.YAMLLINT_CONFIG}}\"\nelse\n  echo \"ℹ️  Config already exists: {{.YAMLLINT_CONFIG}}\"\nfi\n\n# Also suggest prettier for auto-fixing\nif ! command -v prettier &> /dev/null; then\n  echo \"\"\n  echo \"\U0001F4A1 TIP: Install prettier for auto-formatting:\"\n  echo \"   npm install -g prettier\"\nfi\n"
+  ci:
+    desc: Run YAML linting in CI mode (with GitHub annotations)
+    silent: true
+    vars:
+      FILE_PATTERNS: "{{.FILES | default .DEFAULT_PATTERNS}}"
+    cmds:
+      - "echo \"\U0001F50D Running YAML linting in CI mode...\"\n\n# Check if yamllint is installed\nif ! command -v yamllint &> /dev/null; then\n  echo \"::error::yamllint is not installed\"\n  exit 1\nfi\n\n# Config\nCONFIG_ARG=\"\"\nif [ -f \"{{.YAMLLINT_CONFIG}}\" ]; then\n  CONFIG_ARG=\"-c {{.YAMLLINT_CONFIG}}\"\nfi\n\n# Convert patterns and find files\nPATTERNS=$(echo \"{{.FILE_PATTERNS}}\" | tr ',' ' ')\nFILES=\"\"\nfor pattern in $PATTERNS; do\n  if [[ \"$pattern\" == *\"**\"* ]]; then\n    BASE_DIR=$(echo \"$pattern\" | cut -d'*' -f1)\n    FILENAME=$(echo \"$pattern\" | rev | cut -d'/' -f1 | rev)\n    if [ -d \"$BASE_DIR\" ]; then\n      FILES=\"$FILES $(find \"$BASE_DIR\" -name \"$FILENAME\" -type f 2>/dev/null || true)\"\n    fi\n  else\n    FILES=\"$FILES $(ls $pattern 2>/dev/null || true)\"\n  fi\ndone\n\nFILES=$(echo $FILES | tr ' ' '\\n' | sort -u | grep -v '^$' | tr '\\n' ' ')\n\nif [ -z \"$FILES\" ]; then\n  echo \"::warning::No YAML files found matching patterns: {{.FILE_PATTERNS}}\"\n  exit 0\nfi\n\n# Run yamllint with parseable format for CI\nFAILED=0\nfor file in $FILES; do\n  if ! yamllint -f parsable $CONFIG_ARG \"$file\" 2>&1 | while IFS=: read -r file line col level message; do\n    # Convert to GitHub annotation format\n    if [ -n \"$file\" ] && [ -n \"$line\" ]; then\n      echo \"::${level:-error} file=$file,line=$line,col=${col:-1}::$message\"\n    fi\n  done; then\n    FAILED=$((FAILED + 1))\n  fi\ndone\n\nif [ $FAILED -gt 0 ]; then\n  echo \"::error::YAML linting failed for $FAILED files\"\n  exit 1\nelse\n  echo \"✅ All YAML files passed linting\"\nfi\n"
+  report:
+    desc: Generate YAML linting report in JSON format
+    silent: true
+    vars:
+      FILE_PATTERNS: "{{.FILES | default .DEFAULT_PATTERNS}}"
+      OUTPUT_FILE: '{{.OUTPUT | default "yaml-lint-report.json"}}'
+    cmds:
+      - "echo \"\U0001F4CA Generating YAML linting report...\"\n\n# Check if yamllint is installed\nif ! command -v yamllint &> /dev/null; then\n  echo '{\"error\": \"yamllint is not installed\"}' > {{.OUTPUT_FILE}}\n  exit 1\nfi\n\n# Config\nCONFIG_ARG=\"\"\nif [ -f \"{{.YAMLLINT_CONFIG}}\" ]; then\n  CONFIG_ARG=\"-c {{.YAMLLINT_CONFIG}}\"\nfi\n\n# Find files (same pattern as other tasks)\nPATTERNS=$(echo \"{{.FILE_PATTERNS}}\" | tr ',' ' ')\nFILES=\"\"\nfor pattern in $PATTERNS; do\n  if [[ \"$pattern\" == *\"**\"* ]]; then\n    BASE_DIR=$(echo \"$pattern\" | cut -d'*' -f1)\n    FILENAME=$(echo \"$pattern\" | rev | cut -d'/' -f1 | rev)\n    if [ -d \"$BASE_DIR\" ]; then\n      FILES=\"$FILES $(find \"$BASE_DIR\" -name \"$FILENAME\" -type f 2>/dev/null || true)\"\n    fi\n  else\n    FILES=\"$FILES $(ls $pattern 2>/dev/null || true)\"\n  fi\ndone\n\nFILES=$(echo $FILES | tr ' ' '\\n' | sort -u | grep -v '^$' | tr '\\n' ' ')\n\n# Generate JSON report\necho '{\"files\": [' > {{.OUTPUT_FILE}}\n\nFIRST=true\nfor file in $FILES; do\n  if [ \"$FIRST\" = \"false\" ]; then\n    echo \",\" >> {{.OUTPUT_FILE}}\n  fi\n  FIRST=false\n  \n  echo -n '  {\"file\": \"'$file'\", \"issues\": [' >> {{.OUTPUT_FILE}}\n  \n  # Run yamllint and convert to JSON\n  ISSUE_FIRST=true\n  yamllint -f parsable $CONFIG_ARG \"$file\" 2>&1 | while IFS=: read -r f line col level message; do\n    if [ -n \"$line\" ]; then\n      if [ \"$ISSUE_FIRST\" = \"false\" ]; then\n        echo -n \", \" >> {{.OUTPUT_FILE}}\n      fi\n      ISSUE_FIRST=false\n      \n      echo -n '{\"line\": '$line', \"column\": '${col:-1}', \"level\": \"'${level:-error}'\", \"message\": \"'$(echo $message | sed 's/\"/\\\\\"/g')'\"}'\n    fi\n  done >> {{.OUTPUT_FILE}}\n  \n  echo -n \"]}\" >> {{.OUTPUT_FILE}}\ndone\n\necho \"\" >> {{.OUTPUT_FILE}}\necho \"]}\" >> {{.OUTPUT_FILE}}\n\necho \"✅ Report saved to: {{.OUTPUT_FILE}}\""

@@ -1,5 +1,4 @@
 version: "3"
-
 includes:
   sonar:
     taskfile: ./tasks/sonar.yml
@@ -13,44 +12,21 @@ includes:
   markdown:
     taskfile: ./tasks/markdown.yml
     optional: false
-
+  yaml:
+    taskfile: ./tasks/yaml.yml
+    optional: false
+  git:
+    taskfile: ./tasks/git.yml
+    optional: false
 vars:
   HOOKS_PATH: .githooks
   SEMGREP_CONFIG: auto
-
 tasks:
   default:
     desc: Show available tasks
     cmds:
-      - |
-        echo "🚀 MagSafe Guard Development Tasks"
-        echo "================================="
-        echo ""
-        echo "🔧 Core Commands:"
-        echo "  task init          - Initialize development environment"
-        echo "  task run           - Build and run MagSafe Guard"
-        echo "  task test          - Run all tests"
-        echo "  task clean         - Clean build artifacts"
-        echo ""
-        echo "✅ Quality Assurance:"
-        echo "  task qa            - Run standard QA checks"
-        echo "  task qa:quick      - Quick checks (for git hooks)"
-        echo "  task qa:fix        - Auto-fix all fixable issues"
-        echo "  task qa:full       - Full QA with SonarCloud"
-        echo ""
-        echo "📦 Module Commands:"
-        echo "  task swift:        - Swift development tasks"
-        echo "  task security:     - Security scanning tasks"
-        echo "  task sonar:        - SonarCloud analysis"
-        echo "  task markdown:     - Markdown linting"
-        echo ""
-        echo "💡 Tips:"
-        echo "  • Use 'task <module>:' to see module-specific tasks"
-        echo "  • Use 'task --list' to see all available tasks"
-        echo "  • Most commands have a '--help' option"
-        echo ""
+      - "echo \"\U0001F680 MagSafe Guard Development Tasks\"\necho \"=================================\"\necho \"\"\necho \"\U0001F527 Core Commands:\"\necho \"  task init          - Initialize development environment\"\necho \"  task run           - Build and run MagSafe Guard\"\necho \"  task test          - Run all tests\"\necho \"  task clean         - Clean build artifacts\"\necho \"\"\necho \"✅ Quality Assurance:\"\necho \"  task qa            - Run standard QA checks\"\necho \"  task qa:quick      - Quick checks (for git hooks)\"\necho \"  task qa:fix        - Auto-fix all fixable issues\"\necho \"  task qa:full       - Full QA with SonarCloud\"\necho \"\"\necho \"\U0001F4E6 Module Commands:\"\necho \"  task swift:        - Swift development tasks\"\necho \"  task security:     - Security scanning tasks\"\necho \"  task sonar:        - SonarCloud analysis\"\necho \"  task markdown:     - Markdown linting\"\necho \"  task yaml:         - YAML validation and linting\"\necho \"\"\necho \"\U0001F4A1 Tips:\"\necho \"  • Use 'task <module>:' to see module-specific tasks\"\necho \"  • Use 'task --list' to see all available tasks\"\necho \"  • Most commands have a '--help' option\"\necho \"\"\n"
     silent: true
-
   init:
     desc: Initialize development environment
     cmds:
@@ -59,7 +35,6 @@ tasks:
       - task: setup
       - task: verify-setup
     silent: true
-
   setup:
     desc: Install all development tools and dependencies
     cmds:
@@ -68,51 +43,11 @@ tasks:
       - task: sonar:setup
       - task: markdown:setup
     silent: true
-
   check-tools:
     # Internal task - checks required development tools
     cmds:
-      - |
-        echo "🔍 Checking development tools..."
-        missing_tools=0
-
-        # Check for git
-        if ! command -v git &> /dev/null; then
-          echo "❌ git is not installed"
-          missing_tools=$((missing_tools + 1))
-        else
-          echo "✅ git $(git --version | awk '{print $3}')"
-        fi
-
-        # Check for Swift
-        if ! command -v swift &> /dev/null; then
-          echo "❌ Swift is not installed"
-          missing_tools=$((missing_tools + 1))
-        else
-          echo "✅ Swift $(swift --version | head -1 | awk '{print $4}')"
-        fi
-
-        # Check for SwiftLint (required)
-        if ! command -v swiftlint &> /dev/null; then
-          echo "❌ SwiftLint is not installed"
-          missing_tools=$((missing_tools + 1))
-        else
-          echo "✅ SwiftLint $(swiftlint version)"
-        fi
-
-        # Check for Semgrep (optional)
-        if ! command -v semgrep &> /dev/null; then
-          echo "⚠️  Semgrep not installed (optional but recommended)"
-          echo "   Install with: brew install semgrep"
-        else
-          echo "✅ Semgrep $(semgrep --version | head -1)"
-        fi
-
-        if [ $missing_tools -gt 0 ]; then
-          exit 1
-        fi
+      - "echo \"\U0001F50D Checking development tools...\"\nmissing_tools=0\n\n# Check for git\nif ! command -v git &> /dev/null; then\n  echo \"❌ git is not installed\"\n  missing_tools=$((missing_tools + 1))\nelse\n  echo \"✅ git $(git --version | awk '{print $3}')\"\nfi\n\n# Check for Swift\nif ! command -v swift &> /dev/null; then\n  echo \"❌ Swift is not installed\"\n  missing_tools=$((missing_tools + 1))\nelse\n  echo \"✅ Swift $(swift --version | head -1 | awk '{print $4}')\"\nfi\n\n# Check for SwiftLint (required)\nif ! command -v swiftlint &> /dev/null; then\n  echo \"❌ SwiftLint is not installed\"\n  missing_tools=$((missing_tools + 1))\nelse\n  echo \"✅ SwiftLint $(swiftlint version)\"\nfi\n\n# Check for Semgrep (optional)\nif ! command -v semgrep &> /dev/null; then\n  echo \"⚠️  Semgrep not installed (optional but recommended)\"\n  echo \"   Install with: brew install semgrep\"\nelse\n  echo \"✅ Semgrep $(semgrep --version | head -1)\"\nfi\n\nif [ $missing_tools -gt 0 ]; then\n  exit 1\nfi\n"
     silent: true
-
   setup-hooks:
     # Internal task - configures git hooks for development
     vars:
@@ -121,57 +56,13 @@ tasks:
     status:
       - test "{{.CURRENT_HOOKS_PATH}}" = "{{.HOOKS_PATH}}"
     cmds:
-      - |
-        echo "🔧 Setting up MagSafe Guard development environment..."
-
-        # Configure git to use our hooks directory
-        git config core.hooksPath {{.HOOKS_PATH}}
-        chmod +x {{.HOOKS_PATH}}/* 2>/dev/null || true
-
-        echo "✅ Git hooks configured"
-
-        # Check if Semgrep is installed
-        if command -v semgrep &> /dev/null; then
-          echo "✅ Semgrep is installed (version: $(semgrep --version | head -1))"
-        else
-          echo "ℹ️  Semgrep not installed (optional but recommended)"
-          echo "   To install: brew install semgrep"
-          echo "   Pre-commit will still run basic security checks"
-        fi
-
-        echo ""
-        echo "Git hooks will now:"
-        echo "  • Check for hardcoded secrets in Swift files"
-        echo "  • Detect private key files"
-        echo "  • Prevent committing .env files"
-        echo "  • Run Semgrep scan (if installed)"
-        echo "  • Validate commit message format (Conventional Commits)"
-        echo "  • Block certain words in commit messages"
-        echo ""
-        echo "To bypass hooks in emergencies: git commit --no-verify"
-        echo "To skip Semgrep only: SKIP_SEMGREP=1 git commit"
+      - "echo \"\U0001F527 Setting up MagSafe Guard development environment...\"\n\n# Configure git to use our hooks directory\ngit config core.hooksPath {{.HOOKS_PATH}}\nchmod +x {{.HOOKS_PATH}}/* 2>/dev/null || true\n\necho \"✅ Git hooks configured\"\n\n# Check if Semgrep is installed\nif command -v semgrep &> /dev/null; then\n  echo \"✅ Semgrep is installed (version: $(semgrep --version | head -1))\"\nelse\n  echo \"ℹ️  Semgrep not installed (optional but recommended)\"\n  echo \"   To install: brew install semgrep\"\n  echo \"   Pre-commit will still run basic security checks\"\nfi\n\necho \"\"\necho \"Git hooks will now:\"\necho \"  • Check for hardcoded secrets in Swift files\"\necho \"  • Detect private key files\"\necho \"  • Prevent committing .env files\"\necho \"  • Run Semgrep scan (if installed)\"\necho \"  • Validate commit message format (Conventional Commits)\"\necho \"  • Block certain words in commit messages\"\necho \"\"\necho \"To bypass hooks in emergencies: git commit --no-verify\"\necho \"To skip Semgrep only: SKIP_SEMGREP=1 git commit\"\n"
     silent: true
-
   verify-setup:
     # Internal task - verifies development setup
     cmds:
-      - |
-        echo ""
-        echo "🎉 Development environment ready!"
-        echo ""
-        echo "Git hooks installed:"
-        hooks_path=$(git config core.hooksPath)
-        if [ -n "$hooks_path" ]; then
-          echo "  • Pre-commit: Security scanning"
-          echo "  • Commit-msg: Conventional commits validation"
-        fi
-        echo ""
-        echo "Next steps:"
-        echo "  1. Make changes to the code"
-        echo "  2. Commit with conventional format: git commit -m 'feat: description'"
-        echo "  3. Run 'task test' before pushing"
+      - "echo \"\"\necho \"\U0001F389 Development environment ready!\"\necho \"\"\necho \"Git hooks installed:\"\nhooks_path=$(git config core.hooksPath)\nif [ -n \"$hooks_path\" ]; then\n  echo \"  • Pre-commit: Security scanning\"\n  echo \"  • Commit-msg: Conventional commits validation\"\nfi\necho \"\"\necho \"Next steps:\"\necho \"  1. Make changes to the code\"\necho \"  2. Commit with conventional format: git commit -m 'feat: description'\"\necho \"  3. Run 'task test' before pushing\"\n"
     silent: true
-
   test:
     desc: Run all tests
     silent: true
@@ -179,268 +70,68 @@ tasks:
       - task: security:secrets
       - task: swift:test
       - echo "✅ All tests passed!"
-
   clean:
     desc: Clean build artifacts (alias for swift:clean)
     silent: true
     cmds:
       - task: swift:clean
-
   run:
     desc: Build and run MagSafe Guard as a menu bar app
     silent: true
     cmds:
-      - |
-        echo "🔨 Building MagSafe Guard..."
-
-        # Build in release mode for better performance
-        swift build -c release
-
-        # Find the built executable
-        EXECUTABLE_PATH=".build/release/MagSafeGuard"
-
-        if [ ! -f "$EXECUTABLE_PATH" ]; then
-          echo "❌ Build failed or executable not found"
-          exit 1
-        fi
-
-        echo "✅ Build complete"
-
-        # Create a minimal app bundle structure
-        APP_NAME="MagSafeGuard.app"
-        APP_PATH="/tmp/$APP_NAME"
-        CONTENTS_PATH="$APP_PATH/Contents"
-        MACOS_PATH="$CONTENTS_PATH/MacOS"
-
-        echo "📦 Creating app bundle..."
-
-        # Remove old app if exists
-        rm -rf "$APP_PATH"
-
-        # Create directory structure
-        mkdir -p "$MACOS_PATH"
-
-        # Copy executable
-        cp "$EXECUTABLE_PATH" "$MACOS_PATH/MagSafeGuard"
-
-        # Create Info.plist
-        cat > "$CONTENTS_PATH/Info.plist" <<EOF
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>CFBundleExecutable</key>
-            <string>MagSafeGuard</string>
-            <key>CFBundleIdentifier</key>
-            <string>com.lekman.MagSafeGuard</string>
-            <key>CFBundleName</key>
-            <string>MagSafe Guard</string>
-            <key>CFBundleShortVersionString</key>
-            <string>1.0</string>
-            <key>CFBundleVersion</key>
-            <string>1</string>
-            <key>LSMinimumSystemVersion</key>
-            <string>13.0</string>
-            <key>LSUIElement</key>
-            <true/>
-            <key>NSHighResolutionCapable</key>
-            <true/>
-        </dict>
-        </plist>
-        EOF
-
-        echo "✅ App bundle created at: $APP_PATH"
-        echo "🚀 Launching MagSafe Guard..."
-        echo ""
-        echo "ℹ️  The app will run in the menu bar (top right of your screen)"
-        echo "ℹ️  Look for 'MG' text or a shield icon"
-        echo ""
-
-        # Launch the app
-        open "$APP_PATH"
-
-        echo ""
-        echo "✅ MagSafe Guard is now running in your menu bar!"
-        echo ""
-        echo "💡 Tips:"
-        echo "   - Look for 'MG' text or shield icon in the menu bar"
-        echo "   - Click the icon to see the menu"
-        echo "   - Select 'Arm' to enable protection"
-        echo "   - Select 'Show Demo...' to test power monitoring"
-        echo ""
-        echo "To stop the app: Click the menu bar icon and select 'Quit MagSafe Guard'"
-
+      - "echo \"\U0001F528 Building MagSafe Guard...\"\n\n# Build in release mode for better performance\nswift build -c release\n\n# Find the built executable\nEXECUTABLE_PATH=\".build/release/MagSafeGuard\"\n\nif [ ! -f \"$EXECUTABLE_PATH\" ]; then\n  echo \"❌ Build failed or executable not found\"\n  exit 1\nfi\n\necho \"✅ Build complete\"\n\n# Create a minimal app bundle structure\nAPP_NAME=\"MagSafeGuard.app\"\nAPP_PATH=\"/tmp/$APP_NAME\"\nCONTENTS_PATH=\"$APP_PATH/Contents\"\nMACOS_PATH=\"$CONTENTS_PATH/MacOS\"\n\necho \"\U0001F4E6 Creating app bundle...\"\n\n# Remove old app if exists\nrm -rf \"$APP_PATH\"\n\n# Create directory structure\nmkdir -p \"$MACOS_PATH\"\n\n# Copy executable\ncp \"$EXECUTABLE_PATH\" \"$MACOS_PATH/MagSafeGuard\"\n\n# Create Info.plist\ncat > \"$CONTENTS_PATH/Info.plist\" <<EOF\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n    <key>CFBundleExecutable</key>\n    <string>MagSafeGuard</string>\n    <key>CFBundleIdentifier</key>\n    <string>com.lekman.MagSafeGuard</string>\n    <key>CFBundleName</key>\n    <string>MagSafe Guard</string>\n    <key>CFBundleShortVersionString</key>\n    <string>1.0</string>\n    <key>CFBundleVersion</key>\n    <string>1</string>\n    <key>LSMinimumSystemVersion</key>\n    <string>13.0</string>\n    <key>LSUIElement</key>\n    <true/>\n    <key>NSHighResolutionCapable</key>\n    <true/>\n</dict>\n</plist>\nEOF\n\necho \"✅ App bundle created at: $APP_PATH\"\necho \"\U0001F680 Launching MagSafe Guard...\"\necho \"\"\necho \"ℹ️  The app will run in the menu bar (top right of your screen)\"\necho \"ℹ️  Look for 'MG' text or a shield icon\"\necho \"\"\n\n# Launch the app\nopen \"$APP_PATH\"\n\necho \"\"\necho \"✅ MagSafe Guard is now running in your menu bar!\"\necho \"\"\necho \"\U0001F4A1 Tips:\"\necho \"   - Look for 'MG' text or shield icon in the menu bar\"\necho \"   - Click the icon to see the menu\"\necho \"   - Select 'Arm' to enable protection\"\necho \"   - Select 'Show Demo...' to test power monitoring\"\necho \"\"\necho \"To stop the app: Click the menu bar icon and select 'Quit MagSafe Guard'\"\n"
   run:debug:
     desc: Build and run MagSafe Guard in debug mode
     cmds:
-      - |
-        echo "🔨 Building MagSafe Guard (debug mode)..."
-
-        # Build in debug mode
-        swift build
-
-        # Find the built executable
-        EXECUTABLE_PATH=".build/debug/MagSafeGuard"
-
-        if [ ! -f "$EXECUTABLE_PATH" ]; then
-          echo "❌ Build failed or executable not found"
-          exit 1
-        fi
-
-        echo "✅ Build complete"
-
-        # Create a minimal app bundle structure
-        APP_NAME="MagSafeGuard-Debug.app"
-        APP_PATH="/tmp/$APP_NAME"
-        CONTENTS_PATH="$APP_PATH/Contents"
-        MACOS_PATH="$CONTENTS_PATH/MacOS"
-
-        echo "📦 Creating debug app bundle..."
-
-        # Remove old app if exists
-        rm -rf "$APP_PATH"
-
-        # Create directory structure
-        mkdir -p "$MACOS_PATH"
-
-        # Copy executable
-        cp "$EXECUTABLE_PATH" "$MACOS_PATH/MagSafeGuard"
-
-        # Create Info.plist
-        cat > "$CONTENTS_PATH/Info.plist" <<EOF
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>CFBundleExecutable</key>
-            <string>MagSafeGuard</string>
-            <key>CFBundleIdentifier</key>
-            <string>com.lekman.MagSafeGuard.debug</string>
-            <key>CFBundleName</key>
-            <string>MagSafe Guard (Debug)</string>
-            <key>CFBundleShortVersionString</key>
-            <string>1.0</string>
-            <key>CFBundleVersion</key>
-            <string>1</string>
-            <key>LSMinimumSystemVersion</key>
-            <string>13.0</string>
-            <key>LSUIElement</key>
-            <true/>
-            <key>NSHighResolutionCapable</key>
-            <true/>
-        </dict>
-        </plist>
-        EOF
-
-        echo "✅ Debug app bundle created"
-        echo "🚀 Launching MagSafe Guard (Debug)..."
-
-        # Launch the app
-        open "$APP_PATH"
-
-        echo ""
-        echo "✅ Running in debug mode - check console for debug output"
-
+      - "echo \"\U0001F528 Building MagSafe Guard (debug mode)...\"\n\n# Build in debug mode\nswift build\n\n# Find the built executable\nEXECUTABLE_PATH=\".build/debug/MagSafeGuard\"\n\nif [ ! -f \"$EXECUTABLE_PATH\" ]; then\n  echo \"❌ Build failed or executable not found\"\n  exit 1\nfi\n\necho \"✅ Build complete\"\n\n# Create a minimal app bundle structure\nAPP_NAME=\"MagSafeGuard-Debug.app\"\nAPP_PATH=\"/tmp/$APP_NAME\"\nCONTENTS_PATH=\"$APP_PATH/Contents\"\nMACOS_PATH=\"$CONTENTS_PATH/MacOS\"\n\necho \"\U0001F4E6 Creating debug app bundle...\"\n\n# Remove old app if exists\nrm -rf \"$APP_PATH\"\n\n# Create directory structure\nmkdir -p \"$MACOS_PATH\"\n\n# Copy executable\ncp \"$EXECUTABLE_PATH\" \"$MACOS_PATH/MagSafeGuard\"\n\n# Create Info.plist\ncat > \"$CONTENTS_PATH/Info.plist\" <<EOF\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n    <key>CFBundleExecutable</key>\n    <string>MagSafeGuard</string>\n    <key>CFBundleIdentifier</key>\n    <string>com.lekman.MagSafeGuard.debug</string>\n    <key>CFBundleName</key>\n    <string>MagSafe Guard (Debug)</string>\n    <key>CFBundleShortVersionString</key>\n    <string>1.0</string>\n    <key>CFBundleVersion</key>\n    <string>1</string>\n    <key>LSMinimumSystemVersion</key>\n    <string>13.0</string>\n    <key>LSUIElement</key>\n    <true/>\n    <key>NSHighResolutionCapable</key>\n    <true/>\n</dict>\n</plist>\nEOF\n\necho \"✅ Debug app bundle created\"\necho \"\U0001F680 Launching MagSafe Guard (Debug)...\"\n\n# Launch the app\nopen \"$APP_PATH\"\n\necho \"\"\necho \"✅ Running in debug mode - check console for debug output\"\n"
   dev:setup:
     desc: Complete development setup (hooks + tools)
     silent: true
     cmds:
       - task: init
-      - |
-        echo ""
-        echo "📦 Setting up development tools..."
-
-        # Check if Homebrew is installed
-        if command -v brew &> /dev/null; then
-          echo "Checking and updating tools via Homebrew..."
-          
-          # Install/Update Semgrep
-          if ! command -v semgrep &> /dev/null; then
-            echo "📦 Installing Semgrep..."
-            brew install semgrep
-          else
-            echo "✅ Semgrep already installed"
-            if brew outdated | grep -q "^semgrep"; then
-              echo "📦 Updating Semgrep..."
-              brew upgrade semgrep
-            fi
-          fi
-          
-          # Install/Update SwiftLint (required)
-          if ! command -v swiftlint &> /dev/null; then
-            echo "📦 Installing SwiftLint..."
-            brew install swiftlint
-          else
-            echo "✅ SwiftLint already installed ($(swiftlint version))"
-            if brew outdated | grep -q "^swiftlint"; then
-              echo "📦 Updating SwiftLint..."
-              brew upgrade swiftlint
-            fi
-          fi
-          
-          # Install/Update markdownlint
-          if ! command -v markdownlint &> /dev/null; then
-            echo "📦 Installing markdownlint..."
-            brew install markdownlint-cli
-          else
-            echo "✅ markdownlint already installed"
-            if brew outdated | grep -q "^markdownlint-cli"; then
-              echo "📦 Updating markdownlint..."
-              brew upgrade markdownlint-cli
-            fi
-          fi
-          
-          echo "✅ Development tools setup complete"
-        else
-          echo "⚠️  Homebrew not found. Install tools manually:"
-          echo "   - Semgrep: https://semgrep.dev/docs/getting-started/"
-          echo "   - SwiftLint: https://github.com/realm/SwiftLint"
-          echo "   - markdownlint: npm install -g markdownlint-cli"
-        fi
-
+      - "echo \"\"\necho \"\U0001F4E6 Setting up development tools...\"\n\n# Check if Homebrew is installed\nif command -v brew &> /dev/null; then\n  echo \"Checking and updating tools via Homebrew...\"\n  \n  # Install/Update Semgrep\n  if ! command -v semgrep &> /dev/null; then\n    echo \"\U0001F4E6 Installing Semgrep...\"\n    brew install semgrep\n  else\n    echo \"✅ Semgrep already installed\"\n    if brew outdated | grep -q \"^semgrep\"; then\n      echo \"\U0001F4E6 Updating Semgrep...\"\n      brew upgrade semgrep\n    fi\n  fi\n  \n  # Install/Update SwiftLint (required)\n  if ! command -v swiftlint &> /dev/null; then\n    echo \"\U0001F4E6 Installing SwiftLint...\"\n    brew install swiftlint\n  else\n    echo \"✅ SwiftLint already installed ($(swiftlint version))\"\n    if brew outdated | grep -q \"^swiftlint\"; then\n      echo \"\U0001F4E6 Updating SwiftLint...\"\n      brew upgrade swiftlint\n    fi\n  fi\n  \n  # Install/Update markdownlint\n  if ! command -v markdownlint &> /dev/null; then\n    echo \"\U0001F4E6 Installing markdownlint...\"\n    brew install markdownlint-cli\n  else\n    echo \"✅ markdownlint already installed\"\n    if brew outdated | grep -q \"^markdownlint-cli\"; then\n      echo \"\U0001F4E6 Updating markdownlint...\"\n      brew upgrade markdownlint-cli\n    fi\n  fi\n  \n  echo \"✅ Development tools setup complete\"\nelse\n  echo \"⚠️  Homebrew not found. Install tools manually:\"\n  echo \"   - Semgrep: https://semgrep.dev/docs/getting-started/\"\n  echo \"   - SwiftLint: https://github.com/realm/SwiftLint\"\n  echo \"   - markdownlint: npm install -g markdownlint-cli\"\nfi\n"
   qa:
     desc: Run standard quality assurance checks
     silent: true
     cmds:
-      - echo "🔬 Running standard QA suite..."
+      - "echo \"\U0001F52C Running standard QA suite...\""
       - task: qa:fix
       - task: swift:test:coverage
       - task: swift:lint
+      - task: yaml:lint
       - task: markdown:lint
       - task: security:scan
       - task: swift:sbom
       - task: docs:update
       - echo "✅ Standard QA suite passed!"
-
   qa:quick:
     desc: Quick QA checks for git hooks
     silent: true
     cmds:
       - echo "⚡ Running quick QA checks..."
       - task: swift:lint
+      - task: yaml:validate
       - task: markdown:lint
       - task: security:secrets
       - echo "✅ Quick QA checks passed!"
-
   qa:fix:
     desc: Auto-fix all fixable issues
     silent: true
     cmds:
-      - echo "🔧 Auto-fixing issues..."
+      - "echo \"\U0001F527 Auto-fixing issues...\""
       - task: swift:lint:fix
+      - task: yaml:lint:fix
       - task: markdown:lint:fix
       - task: markdown:pr:fix
       - echo "✅ Auto-fix complete!"
-
   qa:full:
     desc: Full QA suite including SonarCloud analysis
     silent: true
     cmds:
-      - echo "🚀 Running full QA suite with SonarCloud..."
+      - "echo \"\U0001F680 Running full QA suite with SonarCloud...\""
       - task: qa
       - task: sonar:scan
       - echo "✅ Full QA suite with SonarCloud completed!"
-
   # Aliases for backward compatibility
   pre-push:
     desc: "(Deprecated) Use 'task qa' instead"
@@ -448,91 +139,47 @@ tasks:
     cmds:
       - echo "⚠️  'pre-push' is deprecated. Use 'task qa' instead."
       - task: qa
-
   pre-pr:
     desc: "(Deprecated) Use 'task qa' instead"
     silent: true
     cmds:
       - echo "⚠️  'pre-pr' is deprecated. Use 'task qa' instead."
       - task: qa
-
   commit:
     desc: Interactive commit with conventional format
     silent: true
     cmds:
-      - |
-        echo "📝 Creating conventional commit..."
-        echo ""
-        echo "Select commit type:"
-        echo "  1) feat     - New feature"
-        echo "  2) fix      - Bug fix"
-        echo "  3) docs     - Documentation"
-        echo "  4) style    - Code style"
-        echo "  5) refactor - Code refactoring"
-        echo "  6) test     - Tests"
-        echo "  7) chore    - Maintenance"
-        echo ""
-        read -p "Enter number (1-7): " type_num
-
-        case $type_num in
-          1) type="feat";;
-          2) type="fix";;
-          3) type="docs";;
-          4) type="style";;
-          5) type="refactor";;
-          6) type="test";;
-          7) type="chore";;
-          *) echo "Invalid selection"; exit 1;;
-        esac
-
-        read -p "Enter scope (optional, press enter to skip): " scope
-        read -p "Enter commit message: " message
-
-        if [ -n "$scope" ]; then
-          commit_msg="${type}(${scope}): ${message}"
-        else
-          commit_msg="${type}: ${message}"
-        fi
-
-        echo ""
-        echo "Commit message: $commit_msg"
-        read -p "Proceed? (y/n): " confirm
-
-        if [ "$confirm" = "y" ]; then
-          git commit -m "$commit_msg"
-        else
-          echo "Commit cancelled"
-        fi
+      - "echo \"\U0001F4DD Creating conventional commit...\"\necho \"\"\necho \"Select commit type:\"\necho \"  1) feat     - New feature\"\necho \"  2) fix      - Bug fix\"\necho \"  3) docs     - Documentation\"\necho \"  4) style    - Code style\"\necho \"  5) refactor - Code refactoring\"\necho \"  6) test     - Tests\"\necho \"  7) chore    - Maintenance\"\necho \"\"\nread -p \"Enter number (1-7): \" type_num\n\ncase $type_num in\n  1) type=\"feat\";;\n  2) type=\"fix\";;\n  3) type=\"docs\";;\n  4) type=\"style\";;\n  5) type=\"refactor\";;\n  6) type=\"test\";;\n  7) type=\"chore\";;\n  *) echo \"Invalid selection\"; exit 1;;\nesac\n\nread -p \"Enter scope (optional, press enter to skip): \" scope\nread -p \"Enter commit message: \" message\n\nif [ -n \"$scope\" ]; then\n  commit_msg=\"${type}(${scope}): ${message}\"\nelse\n  commit_msg=\"${type}: ${message}\"\nfi\n\necho \"\"\necho \"Commit message: $commit_msg\"\nread -p \"Proceed? (y/n): \" confirm\n\nif [ \"$confirm\" = \"y\" ]; then\n  git commit -m \"$commit_msg\"\nelse\n  echo \"Commit cancelled\"\nfi\n"
     interactive: true
-
   docs:update:
     desc: Update TaskMaster progress to main README
     silent: true
     cmds:
       - |
         task-master sync-readme >/dev/null 2>&1
-
   # Module shortcuts for easy discovery
-  swift::
+  "swift:":
     desc: Show Swift development tasks
     silent: true
     cmds:
       - task: swift:default
-
-  security::
+  "security:":
     desc: Show security scanning tasks
     silent: true
     cmds:
       - task: security:default
-
-  sonar::
+  "sonar:":
     desc: Show SonarCloud analysis tasks
     silent: true
     cmds:
       - task: sonar:default
-
-  markdown::
+  "markdown:":
     desc: Show markdown linting tasks
     silent: true
     cmds:
       - task: markdown:default
+  "yaml:":
+    desc: Show YAML validation tasks
+    silent: true
+    cmds:
+      - task: yaml:default

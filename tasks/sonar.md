@@ -5,13 +5,15 @@ This module provides code quality analysis and SonarCloud integration for compre
 ## Available Tasks
 
 ```bash
-task sonar:         # Show available SonarCloud tasks
-task sonar:scan     # Run full SonarCloud analysis
-task sonar:simulate # Simulate analysis using SwiftLint
-task sonar:download # Download findings from SonarCloud
-task sonar:view     # View latest simulation report
-task sonar:convert  # Convert Swift coverage to SonarQube XML
-task sonar:setup    # Install sonar-scanner
+task sonar:            # Show available SonarCloud tasks
+task sonar:scan        # Run full SonarCloud analysis
+task sonar:simulate    # Simulate analysis using SwiftLint
+task sonar:download    # Download findings from SonarCloud
+task sonar:download:pr # Download pull request report
+task sonar:view        # View latest simulation report
+task sonar:convert     # Convert Swift coverage to SonarQube XML
+task sonar:setup       # Install sonar-scanner
+task sonar:issues      # Display findings from previous scan
 ```
 
 ## Task Details
@@ -58,6 +60,37 @@ Fetches all current issues from SonarCloud:
 - `.sonarcloud/sonarcloud-issues.json`
 - `.sonarcloud/sonarcloud-findings.txt`
 
+### Download PR Report (`task sonar:download:pr`)
+
+Downloads pull request analysis from SonarCloud:
+
+- Interactive PR selection
+- Quality metrics for PR
+- Issue details with severity
+- Markdown report generation
+
+**Usage:**
+
+```bash
+# Interactive mode (choose from list)
+task sonar:download:pr
+
+# Download specific PR by number
+PR=123 task sonar:download:pr
+
+# Download latest PR without interaction
+PR=latest task sonar:download:pr
+
+# Show usage help
+PR=help task sonar:download:pr
+```
+
+**Output:**
+
+- `.sonarcloud/pr-{number}-report.md`
+- `.sonarcloud/pr-{number}-issues.json`
+- `.sonarcloud/pr-{number}-measures.json`
+
 ### View Report (`task sonar:view`)
 
 Displays the latest simulation report:
@@ -66,6 +99,15 @@ Displays the latest simulation report:
 - Coverage summary
 - Issue breakdown
 - Quality metrics
+
+### Display Issues (`task sonar:issues`)
+
+Shows SonarCloud findings from previous scan:
+
+- Summary of open/closed issues
+- Breakdown by severity
+- Opens full report in VSCode
+- No network access required
 
 ### Convert Coverage (`task sonar:convert`)
 

@@ -1,0 +1,827 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: "3"
+
+vars:
+  # Color codes for output
+  CYAN: '\033[0;36m'
+  GREEN: '\033[0;32m'
+  YELLOW: '\033[0;33m'
+  RED: '\033[0;31m'
+  NC: '\033[0m' # No Color
+
+  # Dynamically determine the base path for templates
+  TEMPLATE_PATH:
+    sh: |
+      if [ -f ".tasks/common/templates/prepare-commit-msg.template" ]; then
+        echo ".tasks/common/templates/prepare-commit-msg.template"
+      elif [ -f "tasks/common/templates/prepare-commit-msg.template" ]; then
+        echo "tasks/common/templates/prepare-commit-msg.template"
+      elif [ -f "node_modules/@evinova/devops-tasks/common/templates/prepare-commit-msg.template" ]; then
+        echo "node_modules/@evinova/devops-tasks/common/templates/prepare-commit-msg.template"
+      else
+        echo ".tasks/common/templates/prepare-commit-msg.template"
+      fi
+
+  # Valid workflow statuses
+  VALID_STATUSES: "queued completed in_progress requested waiting action_required cancelled failure neutral skipped stale startup_failure success timed_out"
+
+tasks:
+  # Internal task to load .env file
+  load-env:
+    internal: true
+    silent: true
+    cmds:
+      - |
+        # Check if .env file exists
+        if [ -f ".env" ]; then
+          # Source the .env file
+          set -a
+          source .env
+          set +a
+          
+          # Verify GITHUB_TOKEN is set
+          if [ -z "${GITHUB_TOKEN}" ]; then
+            echo -e "{{.RED}}Error: GITHUB_TOKEN not found in .env file{{.NC}}"
+            echo ""
+            echo "Please add your GitHub token to the .env file:"
+            echo ""
+            echo "1. Create a GitHub personal access token:"
+            echo "   https://github.com/settings/tokens/new"
+            echo ""
+            echo "2. Add it to your .env file:"
+            echo "   echo 'GITHUB_TOKEN=ghp_your_token_here' >> .env"
+            echo ""
+            echo "3. Or authenticate using GitHub CLI (recommended):"
+            echo "   gh auth login"
+            echo ""
+            exit 1
+          fi
+        else
+          # .env doesn't exist, check if gh CLI is authenticated
+          if command -v gh &> /dev/null && gh auth status &>/dev/null; then
+            # gh CLI is authenticated, we can proceed
+            export GITHUB_TOKEN=$(gh auth token)
+          else
+            echo -e "{{.RED}}Error: No authentication found{{.NC}}"
+            echo ""
+            echo "You need to either:"
+            echo ""
+            echo "Option 1: Create a .env file with your GitHub token:"
+            echo "   echo 'GITHUB_TOKEN=ghp_your_token_here' >> .env"
+            echo ""
+            echo "Option 2: Authenticate using GitHub CLI (recommended):"
+            echo "   brew install gh"
+            echo "   gh auth login"
+            echo ""
+            echo "To create a GitHub personal access token:"
+            echo "   https://github.com/settings/tokens/new"
+            echo ""
+            echo "Required scopes: repo, read:org (for private repos)"
+            echo ""
+            exit 1
+          fi
+        fi
+
+  # Internal task to check if gh CLI is installed
+  check-gh-cli:
+    internal: true
+    silent: true
+    cmds:
+      - |
+        if ! command -v gh &> /dev/null; then
+          echo -e "{{.RED}}GitHub CLI (gh) is not installed{{.NC}}"
+          echo "Please install it first:"
+          echo "  brew install gh"
+          exit 1
+        fi
+
+  # Internal task to ensure GitHub authentication is configured for gh CLI
+  ensure-gh-auth:
+    internal: true
+    silent: true
+    deps: [load-env, check-gh-cli]
+    cmds:
+      - |
+        # Check if gh is already authenticated
+        if ! gh auth status &>/dev/null; then
+          # Not authenticated, but we should have GITHUB_TOKEN from load-env
+          if [ -n "${GITHUB_TOKEN}" ]; then
+            # Export token for gh CLI to use
+            export GH_TOKEN="${GITHUB_TOKEN}"
+          else
+            echo -e "{{.RED}}GitHub authentication required{{.NC}}"
+            echo "Please authenticate with: gh auth login"
+            exit 1
+          fi
+        fi
+
+  default:
+    desc: List all Git tasks
+    silent: true
+    cmds:
+      - task --list | grep "^\\* git:" | grep -v "::" || true
+
+  # Change to repository root
+  cd-root:
+    desc: Change to the repository root directory
+    silent: true
+    cmds:
+      - |
+        ROOT_DIR=$(git rev-parse --show-toplevel)
+        if [ -z "$ROOT_DIR" ]; then
+          echo "Error: Not in a git repository"
+          exit 1
+        fi
+        cd "$ROOT_DIR"
+
+  # Get repository root path
+  get-root:
+    desc: Get the absolute path to the repository root
+    silent: true
+    cmds:
+      - |
+        ROOT_DIR=$(git rev-parse --show-toplevel)
+        if [ -z "$ROOT_DIR" ]; then
+          echo "Error: Not in a git repository"
+          exit 1
+        fi
+        echo "$ROOT_DIR"
+
+  # Delete local branches that don't have a remote counterpart
+  prune:
+    desc: Delete local branches that don't have a remote counterpart
+    silent: true
+    vars:
+      BASE_DIR: '{{.BASE_DIR | default "."}}'
+    cmds:
+      - |
+        # Color codes
+        CYAN='\033[0;36m'
+        RED='\033[0;31m'
+        GREEN='\033[0;32m'
+        NC='\033[0m'
+        
+        # Find all .git directories and iterate over them
+        find "{{.BASE_DIR}}" -type d -name ".git" | while read -r git_dir; do
+          # Get the parent directory of the .git folder
+          repo_dir=$(dirname "$git_dir")
+          
+          echo -e "${CYAN}Processing:${NC} $repo_dir"
+          
+          # Navigate to the repository directory
+          cd "$repo_dir" || {
+            echo "Failed to navigate to $repo_dir. Skipping."
+            continue
+          }
+          
+          # Get the default branch name - check if it's set first
+          if ! git symbolic-ref refs/remotes/origin/HEAD >/dev/null 2>&1; then
+            echo "Setting default branch..."
+            # Try to set it based on common branch names
+            if git show-ref --verify --quiet refs/remotes/origin/main; then
+              git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/main
+            elif git show-ref --verify --quiet refs/remotes/origin/master; then
+              git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/master
+            else
+              echo "Could not determine default branch. Skipping."
+              continue
+            fi
+          fi
+          
+          default_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+          
+          if [ -z "$default_branch" ]; then
+            echo "Could not determine default branch. Skipping."
+            continue
+          fi
+          
+          # Switch to the default branch
+          echo "Switching to $default_branch branch..."
+          if ! git checkout "$default_branch" >/dev/null 2>&1; then
+            echo "Failed to checkout $default_branch. Skipping."
+            continue
+          fi
+          
+          # Fetch and prune
+          echo "Fetching and pruning remote branches..."
+          if ! git fetch -p >/dev/null 2>&1; then
+            echo "Failed to fetch from remote. Skipping."
+            continue
+          fi
+          
+          # Fetch local branches that are gone on remote
+          branches_to_delete=$(git branch -vv | grep ': gone]' | sed 's/^\* //;s/^[[:space:]]*//;s/[[:space:]]*$//' | cut -d ' ' -f 1)
+          
+          if [ -n "$branches_to_delete" ]; then
+            echo "Found branches to delete:"
+            echo "$branches_to_delete" | while read -r branch; do
+              if [ -n "$branch" ]; then
+                echo -e "${RED}  - $branch${NC}"
+                git branch -D "$branch"
+              fi
+            done
+          else
+            echo "No branches to delete."
+          fi
+          
+          echo -e "${GREEN}Done${NC}"
+          
+          cd "$OLDPWD" || {
+            echo "Failed to navigate back."
+            break
+          }
+        done
+
+        echo "All repositories processed."
+    aliases: [clean-branches, clb]
+
+  # Fetch and prune remote branches
+  fetch-prune:
+    desc: Fetch and prune remote branches
+    silent: true
+    cmds:
+      - git fetch -p
+    aliases: [fp]
+
+  # Switch to default branch
+  switch-default:
+    desc: Switch to the default branch
+    silent: true
+    cmds:
+      - |
+        default_branch=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')
+        git checkout "$default_branch"
+    aliases: [sd]
+
+  # List all branches
+  list-branches:
+    desc: List all branches with their status
+    silent: true
+    cmds:
+      - git --no-pager branch -vv
+    aliases: [lb]
+
+  # Delete GitHub workflow runs
+  delete-runs:
+    desc: Delete GitHub workflow runs for a branch with specific status
+    silent: true
+    deps: [check-gh-cli]
+    dotenv: ['.env']
+    vars:
+      BRANCH: '{{.BRANCH | default ""}}'
+      STATUS: '{{.STATUS | default "failure"}}'
+    cmds:
+      - |
+        # Set up authentication - prefer gh CLI auth, fallback to GITHUB_TOKEN
+        if ! gh auth status &>/dev/null; then
+          # Not authenticated via gh CLI, check for token from .env
+          if [ -n "${GITHUB_TOKEN}" ]; then
+            export GH_TOKEN="${GITHUB_TOKEN}"
+          else
+            echo -e "{{.RED}}GitHub authentication required{{.NC}}"
+            echo "Please either:"
+            echo "  1. Add GITHUB_TOKEN to your .env file"
+            echo "  2. Or authenticate with: gh auth login"
+            exit 1
+          fi
+        fi
+
+        # Validate status
+        if [[ ! "{{.VALID_STATUSES}}" =~ {{.STATUS}} ]]; then
+          echo -e "{{.RED}}Invalid status: {{.STATUS}}{{.NC}}"
+          echo "Use one of:"
+          echo "  {{.VALID_STATUSES}}"
+          exit 1
+        fi
+
+        # Get repository info from GitHub
+        repo_owner=$(gh repo view --json owner --jq '.owner.login')
+        repo_name=$(gh repo view --json name --jq '.name')
+
+        # If no branch specified, use current branch
+        branch="{{.BRANCH}}"
+        if [ -z "$branch" ]; then
+          branch=$(git rev-parse --abbrev-ref HEAD)
+        fi
+
+        echo -e "{{.CYAN}}Using repository: $repo_owner/$repo_name{{.NC}}"
+
+        # Handle all branches case
+        if [ "$branch" == "all" ] || [ "$branch" == "-all" ] || [ "$branch" == "--all" ] || [ "$branch" == "-a" ]; then
+          echo -e "{{.CYAN}}Processing runs in all branches...{{.NC}}"
+          workflow_runs=$(gh run list -R "$repo_owner/$repo_name" -a -s {{.STATUS}} --limit 100 --json databaseId)
+        else    
+          echo -e "{{.CYAN}}Processing runs in branch $branch...{{.NC}}"
+          workflow_runs=$(gh run list -R "$repo_owner/$repo_name" -b "$branch" -a -s {{.STATUS}} --limit 100 --json databaseId)
+        fi
+
+        # Parse and delete runs
+        run_ids=$(echo "$workflow_runs" | jq -r '.[].databaseId')
+        deleted=0
+        for run_id in $run_ids; do
+          gh run delete $run_id
+          deleted=$((deleted+1))
+        done
+
+        # Report results
+        if [ $deleted -eq 0 ]; then
+          echo -e "{{.YELLOW}}No runs found with status {{.STATUS}} in branch $branch{{.NC}}"
+        else
+          echo -e "{{.GREEN}}Deleted $deleted runs with status {{.STATUS}} in branch $branch{{.NC}}"
+        fi
+    aliases: [dr]
+
+  # Dependabot vulnerability analysis
+  cve:analyze:
+    desc: "Quick vulnerability scan using GitHub Dependabot API (requires gh CLI)"
+    silent: true
+    deps: [check-gh-cli]
+    dotenv: ['.env']
+    vars:
+      MIN_SEVERITY: '{{.MIN_SEVERITY | default "medium"}}'
+      LOG_DIR: "./logs/vulnerabilities"
+    cmds:
+      - |
+        # Set up authentication - prefer gh CLI auth, fallback to GITHUB_TOKEN
+        if ! gh auth status &>/dev/null; then
+          # Not authenticated via gh CLI, check for token from .env
+          if [ -n "${GITHUB_TOKEN}" ]; then
+            export GH_TOKEN="${GITHUB_TOKEN}"
+          else
+            echo -e "{{.RED}}GitHub authentication required{{.NC}}"
+            echo "Please either:"
+            echo "  1. Add GITHUB_TOKEN to your .env file"
+            echo "  2. Or authenticate with: gh auth login"
+            exit 1
+          fi
+        fi
+
+        # Clean up old vulnerability logs
+        if [ -d "{{.LOG_DIR}}" ]; then
+          find "{{.LOG_DIR}}" -type f -name 'vulns-*.*' -exec rm -f {} \;
+        fi
+
+        # Get minimum severity level (default: medium)
+        MIN_SEVERITY={{.MIN_SEVERITY}}
+
+        # Validate severity level
+        case "$MIN_SEVERITY" in
+          critical|high|medium|low)
+            ;;
+          *)
+            echo -e "{{.RED}}Invalid MIN_SEVERITY: $MIN_SEVERITY{{.NC}}"
+            echo "Valid values: critical, high, medium, low"
+            echo "Example: task git:cve:analyze MIN_SEVERITY=low"
+            exit 1
+            ;;
+        esac
+
+        # Get repository info
+        REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
+
+        echo -e "{{.CYAN}}Checking vulnerabilities for: $REPO{{.NC}}"
+        echo -e "{{.CYAN}}Minimum severity: $MIN_SEVERITY and above{{.NC}}"
+
+        # Get vulnerabilities using gh CLI
+        VULNS_RAW=$(gh api "/repos/$REPO/dependabot/alerts" 2>&1)
+        if [ $? -ne 0 ]; then
+          echo -e "{{.RED}}Failed to fetch vulnerabilities{{.NC}}"
+          echo "$VULNS_RAW"
+          exit 1
+        fi
+
+        # Clean and process JSON
+        VULNS_CLEAN=$(echo "$VULNS_RAW" | tr -d '\000-\010\013-\037')
+
+        # Extract vulnerability information
+        VULNS_ALL=$(echo "$VULNS_CLEAN" | jq --arg min_sev "$MIN_SEVERITY" '[
+          .[] | select(.state=="open") | {
+            cve: (.security_advisory.cve_id // null),
+            pkg: (.security_vulnerability.package.name // "unknown"),
+            ecosystem: (.security_vulnerability.package.ecosystem // "unknown"),
+            sev: (.security_vulnerability.severity // "unknown"),
+            current_version: (.security_vulnerability.vulnerable_version_range // null),
+            fixed_version: (.security_vulnerability.first_patched_version.identifier // null),
+            manifest_path: (.dependency.manifest_path // null),
+            summary: (.security_advisory.summary // null),
+            ghsa_id: (.security_advisory.ghsa_id // null),
+            cvss_score: (.security_advisory.cvss.score // null),
+            created_at: (.created_at // null)
+          } | 
+          # Filter based on minimum severity
+          select(
+            if $min_sev == "low" then true
+            elif $min_sev == "medium" then (.sev == "medium" or .sev == "high" or .sev == "critical")
+            elif $min_sev == "high" then (.sev == "high" or .sev == "critical")
+            elif $min_sev == "critical" then .sev == "critical"
+            else true end
+          )
+        ] | sort_by(
+          if .sev == "critical" then 0
+          elif .sev == "high" then 1
+          elif .sev == "medium" then 2
+          elif .sev == "low" then 3
+          else 4 end
+        )' 2>/dev/null || echo "[]")
+
+        # Create deduplicated list
+        VULNS=$(echo "$VULNS_ALL" | jq 'group_by((.cve // .ghsa_id // "NO-ID") + ":" + .pkg) | 
+          map({
+            cve: .[0].cve,
+            pkg: .[0].pkg,
+            ecosystem: .[0].ecosystem,
+            sev: .[0].sev,
+            current_version: .[0].current_version,
+            fixed_version: .[0].fixed_version,
+            summary: .[0].summary,
+            ghsa_id: .[0].ghsa_id,
+            cvss_score: .[0].cvss_score,
+            manifest_paths: [.[] | .manifest_path] | unique | sort,
+            count: length
+          }) | sort_by(
+          if .sev == "critical" then 0
+          elif .sev == "high" then 1
+          elif .sev == "medium" then 2
+          elif .sev == "low" then 3
+          else 4 end
+        )' 2>/dev/null || echo "[]")
+
+        VULN_COUNT=$(echo "$VULNS" | jq 'length' 2>/dev/null || echo "0")
+
+        # Save results
+        mkdir -p {{.LOG_DIR}}
+        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+        RAW_FILE="{{.LOG_DIR}}/vulns-${TIMESTAMP}-raw.json"
+        LOG_FILE="{{.LOG_DIR}}/vulns-${TIMESTAMP}.json"
+        SUMMARY_FILE="{{.LOG_DIR}}/vulns-${TIMESTAMP}-summary.txt"
+
+        echo "$VULNS_RAW" > "$RAW_FILE"
+        echo "$VULNS" > "$LOG_FILE"
+
+        # Create summary
+        {
+          echo "=== Security Vulnerability Report ==="
+          echo "Date: $(date)"
+          echo "Repository: $REPO"
+          echo "Minimum severity: $MIN_SEVERITY and above"
+          echo "Vulnerabilities found: $VULN_COUNT"
+          echo ""
+          
+          if [ "$VULN_COUNT" -gt "0" ]; then
+            # Count by severity
+            CRITICAL_COUNT=$(echo "$VULNS" | jq '[.[] | select(.sev == "critical")] | length' 2>/dev/null || echo "0")
+            HIGH_COUNT=$(echo "$VULNS" | jq '[.[] | select(.sev == "high")] | length' 2>/dev/null || echo "0")
+            MEDIUM_COUNT=$(echo "$VULNS" | jq '[.[] | select(.sev == "medium")] | length' 2>/dev/null || echo "0")
+            LOW_COUNT=$(echo "$VULNS" | jq '[.[] | select(.sev == "low")] | length' 2>/dev/null || echo "0")
+            
+            echo "Severity breakdown:"
+            [ "$CRITICAL_COUNT" -gt 0 ] && echo "  - Critical: $CRITICAL_COUNT"
+            [ "$HIGH_COUNT" -gt 0 ] && echo "  - High: $HIGH_COUNT"
+            [ "$MEDIUM_COUNT" -gt 0 ] && echo "  - Medium: $MEDIUM_COUNT"
+            [ "$LOW_COUNT" -gt 0 ] && echo "  - Low: $LOW_COUNT"
+            echo ""
+            
+            echo "Vulnerabilities (sorted by severity):"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            
+            echo "$VULNS" | jq -r '.[] | 
+              "CVE: \(.cve // .ghsa_id // "NO-ID")\n" +
+              "Severity: \(.sev | ascii_upcase) (CVSS: \(.cvss_score // "N/A"))\n" +
+              "Package: \(.ecosystem)/\(.pkg)\n" +
+              "Locations (\(.count)):\n" +
+              (.manifest_paths | map("  - " + .) | join("\n")) + "\n" +
+              "Current: \(.current_version // "Unknown")\n" +
+              "Fixed in: \(.fixed_version // "No fix available")\n" +
+              "Summary: \(.summary // "No description available" | .[0:200])\n" +
+              "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"'
+          else
+            echo "No vulnerabilities found."
+          fi
+        } > "$SUMMARY_FILE"
+
+        # Display results
+        if [ "$VULN_COUNT" -gt "0" ]; then
+          echo -e "{{.RED}}🚨 Security Vulnerabilities: $VULN_COUNT ($MIN_SEVERITY and above){{.NC}}"
+          echo "$VULNS" | jq -r '.[] | "    \(.cve // "NO-CVE"): \(.pkg) (\(.sev))"' | head -10
+          [ "$VULN_COUNT" -gt 10 ] && echo "    ... and $((VULN_COUNT - 10)) more"
+          echo ""
+          echo -e "{{.YELLOW}}📄 Full report: $SUMMARY_FILE{{.NC}}"
+          echo -e "{{.YELLOW}}📄 Filtered data: $LOG_FILE{{.NC}}"
+          echo -e "{{.YELLOW}}📄 Raw API response: $RAW_FILE{{.NC}}"
+          exit 0
+        else
+          echo -e "{{.GREEN}}✅ No vulnerabilities found ($MIN_SEVERITY severity and above){{.NC}}"
+          echo ""
+          echo "📄 Report: $SUMMARY_FILE"
+          echo "📄 Filtered data: $LOG_FILE"
+          echo "📄 Raw API response: $RAW_FILE"
+          exit 0
+        fi
+    aliases: [va, vuln]
+
+  # Dependabot alerts list
+  cve:list:
+    desc: "List all Dependabot alerts with their status"
+    silent: true
+    deps: [check-gh-cli]
+    dotenv: ['.env']
+    cmds:
+      - |
+        # Set up authentication - prefer gh CLI auth, fallback to GITHUB_TOKEN
+        if ! gh auth status &>/dev/null; then
+          # Not authenticated via gh CLI, check for token from .env
+          if [ -n "${GITHUB_TOKEN}" ]; then
+            export GH_TOKEN="${GITHUB_TOKEN}"
+          else
+            echo -e "{{.RED}}GitHub authentication required{{.NC}}"
+            echo "Please either:"
+            echo "  1. Add GITHUB_TOKEN to your .env file"
+            echo "  2. Or authenticate with: gh auth login"
+            exit 1
+          fi
+        fi
+
+        # Get repo info
+        REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
+        echo -e "{{.CYAN}}Dependabot alerts for: $REPO{{.NC}}"
+        echo ""
+
+        # Get all alerts (open and closed)
+        ALERTS=$(gh api "/repos/$REPO/dependabot/alerts" --paginate 2>/dev/null | jq -s 'add' || echo "[]")
+
+        # Count by state
+        OPEN_COUNT=$(echo "$ALERTS" | jq '[.[] | select(.state=="open")] | length' 2>/dev/null || echo "0")
+        DISMISSED_COUNT=$(echo "$ALERTS" | jq '[.[] | select(.state=="dismissed")] | length' 2>/dev/null || echo "0")
+        FIXED_COUNT=$(echo "$ALERTS" | jq '[.[] | select(.state=="fixed")] | length' 2>/dev/null || echo "0")
+
+        echo -e "{{.GREEN}}Open: $OPEN_COUNT{{.NC}} | {{.YELLOW}}Dismissed: $DISMISSED_COUNT{{.NC}} | {{.CYAN}}Fixed: $FIXED_COUNT{{.NC}}"
+        echo ""
+
+        # Show open alerts
+        if [ "$OPEN_COUNT" -gt "0" ]; then
+          echo -e "{{.RED}}Open Vulnerabilities:{{.NC}}"
+          echo "$ALERTS" | jq -r '.[] | select(.state=="open") | 
+            "  [\(.security_vulnerability.severity | ascii_upcase)] \(.security_vulnerability.package.name) - \(.security_advisory.summary | .[0:80])"' | head -20
+          [ "$OPEN_COUNT" -gt 20 ] && echo "  ... and $((OPEN_COUNT - 20)) more"
+        fi
+    aliases: [vl]
+
+  # List pull requests
+  pr:list:
+    desc: "List pull requests (use LIMIT=n to change number shown, default 10)"
+    silent: true
+    deps: [check-gh-cli]
+    dotenv: ['.env']
+    vars:
+      LIMIT: '{{.LIMIT | default "10"}}'
+      STATE: '{{.STATE | default "all"}}'
+    cmds:
+      - |
+        # Set up authentication - prefer gh CLI auth, fallback to GITHUB_TOKEN
+        if ! gh auth status &>/dev/null; then
+          # Not authenticated via gh CLI, check for token from .env
+          if [ -n "${GITHUB_TOKEN}" ]; then
+            export GH_TOKEN="${GITHUB_TOKEN}"
+          else
+            echo -e "{{.RED}}GitHub authentication required{{.NC}}"
+            echo "Please either:"
+            echo "  1. Add GITHUB_TOKEN to your .env file"
+            echo "  2. Or authenticate with: gh auth login"
+            exit 1
+          fi
+        fi
+
+        # Get repository info
+        REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null || true)
+        
+        # If that fails, extract from git remote
+        if [ -z "$REPO" ]; then
+          REPO=$(git remote get-url origin | sed -E 's|^(https://github.com/\|git@github.com:)||' | sed 's|\.git$||')
+        fi
+        
+        echo -e "{{.CYAN}}Pull Requests for: $REPO{{.NC}}"
+        echo ""
+        
+        # List PRs with state filter
+        STATE="{{.STATE}}"
+        STATE_FILTER=""
+        if [ "$STATE" != "all" ]; then
+          STATE_FILTER="--state $STATE"
+        fi
+        
+        # Show PRs in a nice table format
+        gh pr list $STATE_FILTER --limit {{.LIMIT}} --json number,title,state,author,createdAt,isDraft,headRefName,baseRefName \
+          --jq '.[] | 
+            "#\(.number) | " + 
+            (if .isDraft then "📝 " else "" end) + 
+            (.title | .[0:60]) + (if (.title | length) > 60 then "..." else "" end) + " | " +
+            (.state | ascii_upcase) + " | " +
+            .author.login + " | " +
+            (.headRefName + " → " + .baseRefName) + " | " +
+            (.createdAt | fromdateiso8601 | strftime("%Y-%m-%d"))' | column -t -s '|'
+        
+        echo ""
+        echo -e "{{.YELLOW}}Total shown: {{.LIMIT}} (use LIMIT=n to change){{.NC}}"
+        echo -e "{{.YELLOW}}State filter: {{.STATE}} (use STATE=open|closed|merged|all){{.NC}}"
+    aliases: [prl]
+
+  # Download PR comments including GHAS security alerts
+  pr:comments:
+    desc: "Download comments from a pull request (including code review and GHAS alerts)"
+    silent: true
+    deps: [check-gh-cli]
+    vars:
+      PR: '{{.PR | default ""}}'
+      OUTPUT_DIR: '{{.OUTPUT | default ".github/pr-comments"}}'
+    dotenv: ['.env']
+    cmds:
+      - |
+        # Set up authentication - prefer gh CLI auth, fallback to GITHUB_TOKEN
+        if ! gh auth status &>/dev/null; then
+          # Not authenticated via gh CLI, check for token from .env
+          if [ -n "${GITHUB_TOKEN}" ]; then
+            export GH_TOKEN="${GITHUB_TOKEN}"
+          else
+            echo -e "{{.RED}}GitHub authentication required{{.NC}}"
+            echo "Please either:"
+            echo "  1. Add GITHUB_TOKEN to your .env file"
+            echo "  2. Or authenticate with: gh auth login"
+            exit 1
+          fi
+        fi
+
+        # Get repository info
+        # First try gh CLI
+        REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null || true)
+        
+        # If that fails, extract from git remote
+        if [ -z "$REPO" ]; then
+          REPO=$(git remote get-url origin | sed -E 's|^(https://github.com/\|git@github.com:)||' | sed 's|\.git$||')
+        fi
+        
+        echo -e "{{.CYAN}}Repository: $REPO{{.NC}}"
+
+        # Handle PR selection
+        PR_NUMBER="{{.PR}}"
+        
+        # If no PR specified, show list and prompt
+        if [ -z "$PR_NUMBER" ]; then
+          echo -e "{{.CYAN}}Fetching pull requests...{{.NC}}"
+          echo ""
+          
+          # List recent PRs
+          gh pr list --limit 10 --json number,title,state,author,createdAt --jq '.[] | "#\(.number) | \(.title) | \(.state) | \(.author.login)"' | column -t -s '|'
+          
+          echo ""
+          read -p "Enter PR number (or 'latest' for most recent): " PR_NUMBER
+        fi
+        
+        # Handle "latest" keyword
+        if [ "$PR_NUMBER" = "latest" ] || [ -z "$PR_NUMBER" ]; then
+          PR_NUMBER=$(gh pr list --limit 1 --json number --jq '.[0].number')
+          if [ -z "$PR_NUMBER" ]; then
+            echo -e "{{.RED}}No pull requests found{{.NC}}"
+            exit 1
+          fi
+          echo -e "{{.CYAN}}Using latest PR: #$PR_NUMBER{{.NC}}"
+        fi
+
+        # Create output directory
+        mkdir -p "{{.OUTPUT_DIR}}"
+        
+        # Get PR details
+        echo -e "{{.CYAN}}Fetching PR #$PR_NUMBER details...{{.NC}}"
+        PR_DATA=$(gh pr view "$PR_NUMBER" --json number,title,author,state,body,createdAt,url,headRefName,baseRefName)
+        
+        # Save PR metadata
+        echo "$PR_DATA" | jq '.' > "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-metadata.json"
+        
+        # Extract PR info for report
+        PR_TITLE=$(echo "$PR_DATA" | jq -r '.title')
+        PR_AUTHOR=$(echo "$PR_DATA" | jq -r '.author.login')
+        PR_STATE=$(echo "$PR_DATA" | jq -r '.state')
+        PR_BRANCH=$(echo "$PR_DATA" | jq -r '.headRefName')
+        PR_BASE=$(echo "$PR_DATA" | jq -r '.baseRefName')
+        PR_URL=$(echo "$PR_DATA" | jq -r '.url')
+        
+        # Get all comments (issue comments, review comments, and reviews)
+        echo -e "{{.CYAN}}Fetching comments...{{.NC}}"
+        
+        # 1. Issue comments (general PR comments)
+        ISSUE_COMMENTS=$(gh api "/repos/$REPO/issues/$PR_NUMBER/comments" --paginate | jq -s 'add // []')
+        echo "$ISSUE_COMMENTS" > "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-issue-comments.json"
+        
+        # 2. Review comments (inline code comments)
+        REVIEW_COMMENTS=$(gh api "/repos/$REPO/pulls/$PR_NUMBER/comments" --paginate | jq -s 'add // []')
+        echo "$REVIEW_COMMENTS" > "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-review-comments.json"
+        
+        # 3. PR reviews (approve/request changes/comment)
+        REVIEWS=$(gh api "/repos/$REPO/pulls/$PR_NUMBER/reviews" --paginate | jq -s 'add // []')
+        echo "$REVIEWS" > "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-reviews.json"
+        
+        # 4. Check runs (including GHAS/CodeQL)
+        echo -e "{{.CYAN}}Fetching security alerts and check runs...{{.NC}}"
+        CHECK_RUNS=$(gh api "/repos/$REPO/commits/$(gh pr view $PR_NUMBER --json headRefOid --jq '.headRefOid')/check-runs" --paginate | jq -s 'add // []' | jq '.check_runs // []')
+        echo "$CHECK_RUNS" > "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-check-runs.json"
+        
+        # Generate consolidated report
+        echo -e "{{.CYAN}}Generating report...{{.NC}}"
+        
+        # Create report using echo commands to avoid YAML parsing issues
+        {
+          echo "# Pull Request Comments Report"
+          echo ""
+          echo "**PR:** #$PR_NUMBER - $PR_TITLE"
+          echo "**Author:** $PR_AUTHOR"
+          echo "**State:** $PR_STATE"
+          echo "**Branch:** $PR_BRANCH → $PR_BASE"
+          echo "**URL:** $PR_URL"
+          echo "**Generated:** $(date)"
+          echo ""
+          echo "## Summary"
+          echo ""
+          echo "- Issue Comments: $(echo "$ISSUE_COMMENTS" | jq 'length')"
+          echo "- Review Comments: $(echo "$REVIEW_COMMENTS" | jq 'length')"
+          echo "- Reviews: $(echo "$REVIEWS" | jq 'length')"
+          echo "- Check Runs: $(echo "$CHECK_RUNS" | jq 'length')"
+          echo ""
+          echo "## Security Alerts (GHAS/CodeQL)"
+          echo ""
+        } > "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        
+        # Extract GHAS/CodeQL findings from check runs
+        SECURITY_CHECKS=$(echo "$CHECK_RUNS" | jq -r '.[] | select(((.app.slug // "") == "github-code-scanning") or ((.name // "") | contains("CodeQL")) or ((.name // "") | contains("Security")))')
+        
+        if [ -n "$SECURITY_CHECKS" ]; then
+          echo "$SECURITY_CHECKS" | jq -r '. | "### \(.name)\n**Status:** \(.status) - \(.conclusion // "in progress")\n**Details:** \(.output.summary // "No summary available")\n"' >> "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        else
+          echo "*No security alerts found*" >> "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        fi
+        
+        echo "" >> "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        echo "## Reviews" >> "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        echo "" >> "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        
+        # Add reviews to report
+        if [ $(echo "$REVIEWS" | jq 'length') -gt 0 ]; then
+          echo "$REVIEWS" | jq -r '.[] | "### \(.user.login) - \(.state)\n**Submitted:** \(.submitted_at)\n\(.body // "*No comment*")\n"' >> "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        else
+          echo "*No reviews yet*" >> "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        fi
+        
+        echo "" >> "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        echo "## Code Review Comments" >> "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        echo "" >> "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        
+        # Add review comments (inline)
+        if [ $(echo "$REVIEW_COMMENTS" | jq 'length') -gt 0 ]; then
+          echo "$REVIEW_COMMENTS" | jq -r '.[] | "### \(.user.login) on \(.path):\(.line // .original_line // "")\n\(.body)\n**Created:** \(.created_at)\n"' >> "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        else
+          echo "*No code review comments*" >> "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        fi
+        
+        echo "" >> "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        echo "## General Comments" >> "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        echo "" >> "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        
+        # Add issue comments
+        if [ $(echo "$ISSUE_COMMENTS" | jq 'length') -gt 0 ]; then
+          echo "$ISSUE_COMMENTS" | jq -r '.[] | "### \(.user.login)\n\(.body)\n**Created:** \(.created_at)\n"' >> "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        else
+          echo "*No general comments*" >> "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        fi
+        
+        
+        # Count totals
+        TOTAL_ISSUE_COMMENTS=$(echo "$ISSUE_COMMENTS" | jq 'length')
+        TOTAL_REVIEW_COMMENTS=$(echo "$REVIEW_COMMENTS" | jq 'length')
+        TOTAL_REVIEWS=$(echo "$REVIEWS" | jq 'length')
+        TOTAL_SECURITY=$(echo "$CHECK_RUNS" | jq '[.[] | select(((.app.slug // "") == "github-code-scanning") or ((.name // "") | contains("CodeQL")) or ((.name // "") | contains("Security")))] | length')
+        
+        echo ""
+        echo -e "{{.GREEN}}✅ PR #$PR_NUMBER comments downloaded{{.NC}}"
+        echo ""
+        echo "📊 Summary:"
+        echo "  - General comments: $TOTAL_ISSUE_COMMENTS"
+        echo "  - Code review comments: $TOTAL_REVIEW_COMMENTS"
+        echo "  - Reviews: $TOTAL_REVIEWS"
+        echo "  - Security checks: $TOTAL_SECURITY"
+        echo ""
+        echo "📁 Files saved to: {{.OUTPUT_DIR}}/"
+        echo "  - pr-$PR_NUMBER-metadata.json"
+        echo "  - pr-$PR_NUMBER-issue-comments.json"
+        echo "  - pr-$PR_NUMBER-review-comments.json"
+        echo "  - pr-$PR_NUMBER-reviews.json"
+        echo "  - pr-$PR_NUMBER-check-runs.json"
+        echo "  - pr-$PR_NUMBER-report.md"
+        echo ""
+        echo "📄 Opening report..."
+        
+        # Try to open the report
+        if command -v code &> /dev/null; then
+          code "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        elif command -v open &> /dev/null; then
+          open "{{.OUTPUT_DIR}}/pr-$PR_NUMBER-report.md"
+        fi
+    aliases: [prc]

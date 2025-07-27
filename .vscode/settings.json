@@ -61,5 +61,13 @@
   "sonarlint.connectedMode.project": {
     "connectionId": "lekman",
     "projectKey": "lekman_magsafe-buskill"
+  },
+  "yaml.schemas": {
+    "https://taskfile.dev/schema.json": [
+      "tasks/*.yml",
+      "tasks/*.yaml",
+      "Taskfile.yml",
+      "Taskfile.yaml"
+    ]
   }
 }
