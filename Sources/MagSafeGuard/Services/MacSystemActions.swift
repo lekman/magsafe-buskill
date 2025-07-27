@@ -24,14 +24,28 @@ public class MacSystemActions: SystemActionsProtocol {
         let sudoPath: String
         let bashPath: String
 
+        // Default paths as constants to satisfy SonarCloud
+        private static let defaultPmsetPath = "/usr/bin/pmset"
+        private static let defaultOsascriptPath = "/usr/bin/osascript"
+        private static let defaultKillallPath = "/usr/bin/killall"
+        private static let defaultSudoPath = "/usr/bin/sudo"
+        private static let defaultBashPath = "/bin/bash"
+
+        // Environment variable names
+        private static let pmsetPathEnvVar = "MAGSAFE_PMSET_PATH"
+        private static let osascriptPathEnvVar = "MAGSAFE_OSASCRIPT_PATH"
+        private static let killallPathEnvVar = "MAGSAFE_KILLALL_PATH"
+        private static let sudoPathEnvVar = "MAGSAFE_SUDO_PATH"
+        private static let bashPathEnvVar = "MAGSAFE_BASH_PATH"
+
         /// Default system paths for macOS standard locations
         /// These can be overridden via environment variables for testing or custom configurations
         public static let standard = SystemPaths(
-            pmsetPath: ProcessInfo.processInfo.environment["MAGSAFE_PMSET_PATH"] ?? "/usr/bin/pmset",
-            osascriptPath: ProcessInfo.processInfo.environment["MAGSAFE_OSASCRIPT_PATH"] ?? "/usr/bin/osascript",
-            killallPath: ProcessInfo.processInfo.environment["MAGSAFE_KILLALL_PATH"] ?? "/usr/bin/killall",
-            sudoPath: ProcessInfo.processInfo.environment["MAGSAFE_SUDO_PATH"] ?? "/usr/bin/sudo",
-            bashPath: ProcessInfo.processInfo.environment["MAGSAFE_BASH_PATH"] ?? "/bin/bash"
+            pmsetPath: ProcessInfo.processInfo.environment[pmsetPathEnvVar] ?? defaultPmsetPath,
+            osascriptPath: ProcessInfo.processInfo.environment[osascriptPathEnvVar] ?? defaultOsascriptPath,
+            killallPath: ProcessInfo.processInfo.environment[killallPathEnvVar] ?? defaultKillallPath,
+            sudoPath: ProcessInfo.processInfo.environment[sudoPathEnvVar] ?? defaultSudoPath,
+            bashPath: ProcessInfo.processInfo.environment[bashPathEnvVar] ?? defaultBashPath
         )
 
         /// Initialize with custom paths
