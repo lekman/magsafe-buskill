@@ -60,7 +60,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "📦 Installing markdownlint..."
+        echo "🔧 Setting up markdownlint..."
         
         # Detect OS
         OS=$(uname -s | tr '[:upper:]' '[:lower:]')
@@ -73,18 +73,48 @@ tasks:
         
         # Check if already installed
         if command -v markdownlint &> /dev/null; then
-          echo "✅ markdownlint is already installed"
-          echo "   Version: $(markdownlint --version)"
+          echo "✅ markdownlint is already installed ($(markdownlint --version))"
+          
+          # Check for updates
+          if command -v npm &> /dev/null && npm list -g markdownlint-cli &>/dev/null; then
+            CURRENT_VERSION=$(markdownlint --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            LATEST_VERSION=$(npm view markdownlint-cli version 2>/dev/null)
+            if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ] && [ -n "$LATEST_VERSION" ]; then
+              echo "📦 Update available: $CURRENT_VERSION → $LATEST_VERSION"
+              echo "   Updating markdownlint..."
+              npm update -g markdownlint-cli
+            fi
+          elif command -v brew &> /dev/null && brew list markdownlint-cli &>/dev/null; then
+            if brew outdated | grep -q "^markdownlint-cli"; then
+              echo "📦 Updating markdownlint..."
+              brew upgrade markdownlint-cli
+            fi
+          fi
           exit 0
         fi
         
         # Try to install with npm first (most universal)
         if command -v npm &> /dev/null; then
-          echo "Installing with npm..."
-          npm install -g markdownlint-cli
+          echo "📦 Installing markdownlint with npm..."
+          if npm install -g markdownlint-cli 2>/dev/null; then
+            echo "✅ markdownlint installed successfully with npm"
+          else
+            echo "⚠️  Failed to install with npm - trying with sudo..."
+            echo "You may be prompted for your password:"
+            if sudo npm install -g markdownlint-cli; then
+              echo "✅ markdownlint installed successfully with sudo"
+            else
+              echo "❌ Failed to install markdownlint with npm"
+              echo ""
+              echo "Alternative: Install to user directory:"
+              echo "  npm install --prefix ~/.npm-global markdownlint-cli"
+              echo "  export PATH=~/.npm-global/bin:\$PATH"
+              exit 1
+            fi
+          fi
         # Try Homebrew as fallback
         elif command -v brew &> /dev/null; then
-          echo "Installing with Homebrew..."
+          echo "📦 Installing markdownlint with Homebrew..."
           brew install markdownlint-cli
         else
           echo "❌ Neither npm nor Homebrew found"

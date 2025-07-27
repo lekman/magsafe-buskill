@@ -92,7 +92,7 @@ Need help or found an issue? We're here to assist:
 2. **Initialize Development Environment**:
 
    ```bash
-   task init
+   task setup
    ```
 
    This sets up git hooks and verifies your development tools.

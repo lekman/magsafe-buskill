@@ -371,9 +371,23 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "🔧 Installing SonarCloud scanner..."
+        echo "🔧 Setting up SonarCloud scanner..."
 
-        # Detect OS
+        # Check if already installed
+        if command -v sonar-scanner &> /dev/null; then
+          echo "✅ sonar-scanner already installed ($(sonar-scanner -v | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1))"
+          
+          # Check for updates on macOS
+          if command -v brew &> /dev/null && brew list sonar-scanner &>/dev/null; then
+            if brew outdated | grep -q "^sonar-scanner"; then
+              echo "📦 Updating sonar-scanner..."
+              brew upgrade sonar-scanner
+            fi
+          fi
+          exit 0
+        fi
+
+        # Detect OS for fresh installation
         OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 
         if [ "$OS" = "darwin" ]; then

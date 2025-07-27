@@ -414,7 +414,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "🔧 Installing security tools..."
+        echo "🔧 Setting up security tools..."
         
         # Detect OS
         OS=$(uname -s | tr '[:upper:]' '[:lower:]')
@@ -432,44 +432,64 @@ tasks:
           exit 1
         fi
         
-        # Install Semgrep
+        # Install/Update Semgrep
         if ! command -v semgrep &> /dev/null; then
           echo "📦 Installing Semgrep..."
           brew install semgrep
         else
-          echo "✅ Semgrep already installed"
+          echo "✅ Semgrep already installed ($(semgrep --version | head -1))"
+          if brew outdated | grep -q "^semgrep"; then
+            echo "📦 Updating Semgrep..."
+            brew upgrade semgrep
+          fi
         fi
         
-        # Install truffleHog (secret scanner)
+        # Install/Update truffleHog (secret scanner)
         if ! command -v trufflehog &> /dev/null; then
           echo "📦 Installing truffleHog..."
           brew install trufflehog
         else
           echo "✅ truffleHog already installed"
+          if brew outdated | grep -q "^trufflehog"; then
+            echo "📦 Updating truffleHog..."
+            brew upgrade trufflehog
+          fi
         fi
         
-        # Install gitleaks (secret scanner)
+        # Install/Update gitleaks (secret scanner)
         if ! command -v gitleaks &> /dev/null; then
           echo "📦 Installing gitleaks..."
           brew install gitleaks
         else
           echo "✅ gitleaks already installed"
+          if brew outdated | grep -q "^gitleaks"; then
+            echo "📦 Updating gitleaks..."
+            brew upgrade gitleaks
+          fi
         fi
         
-        # Install jq (for JSON parsing)
+        # Install/Update jq (for JSON parsing)
         if ! command -v jq &> /dev/null; then
           echo "📦 Installing jq..."
           brew install jq
         else
           echo "✅ jq already installed"
+          if brew outdated | grep -q "^jq"; then
+            echo "📦 Updating jq..."
+            brew upgrade jq
+          fi
         fi
         
-        # Install GitHub CLI (for pin operations)
+        # Install/Update GitHub CLI (for pin operations)
         if ! command -v gh &> /dev/null; then
           echo "📦 Installing GitHub CLI..."
           brew install gh
         else
           echo "✅ GitHub CLI already installed"
+          if brew outdated | grep -q "^gh"; then
+            echo "📦 Updating GitHub CLI..."
+            brew upgrade gh
+          fi
         fi
         
         echo ""

@@ -348,31 +348,49 @@ tasks:
       - task: init
       - |
         echo ""
-        echo "📦 Installing recommended tools..."
+        echo "📦 Setting up development tools..."
 
         # Check if Homebrew is installed
         if command -v brew &> /dev/null; then
-          echo "Installing/updating tools via Homebrew..."
+          echo "Checking and updating tools via Homebrew..."
           
-          # Install Semgrep
+          # Install/Update Semgrep
           if ! command -v semgrep &> /dev/null; then
+            echo "📦 Installing Semgrep..."
             brew install semgrep
+          else
+            echo "✅ Semgrep already installed"
+            if brew outdated | grep -q "^semgrep"; then
+              echo "📦 Updating Semgrep..."
+              brew upgrade semgrep
+            fi
           fi
           
-          # Install SwiftLint (required)
+          # Install/Update SwiftLint (required)
           if ! command -v swiftlint &> /dev/null; then
-            echo "Installing SwiftLint..."
+            echo "📦 Installing SwiftLint..."
             brew install swiftlint
           else
-            echo "✅ SwiftLint already installed"
+            echo "✅ SwiftLint already installed ($(swiftlint version))"
+            if brew outdated | grep -q "^swiftlint"; then
+              echo "📦 Updating SwiftLint..."
+              brew upgrade swiftlint
+            fi
           fi
           
-          # Install markdownlint
+          # Install/Update markdownlint
           if ! command -v markdownlint &> /dev/null; then
+            echo "📦 Installing markdownlint..."
             brew install markdownlint-cli
+          else
+            echo "✅ markdownlint already installed"
+            if brew outdated | grep -q "^markdownlint-cli"; then
+              echo "📦 Updating markdownlint..."
+              brew upgrade markdownlint-cli
+            fi
           fi
           
-          echo "✅ Development tools installed"
+          echo "✅ Development tools setup complete"
         else
           echo "⚠️  Homebrew not found. Install tools manually:"
           echo "   - Semgrep: https://semgrep.dev/docs/getting-started/"
