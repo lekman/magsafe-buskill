@@ -33,7 +33,7 @@ public class MacSystemActions: SystemActionsProtocol {
             sudoPath: ProcessInfo.processInfo.environment["MAGSAFE_SUDO_PATH"] ?? "/usr/bin/sudo",
             bashPath: ProcessInfo.processInfo.environment["MAGSAFE_BASH_PATH"] ?? "/bin/bash"
         )
-        
+
         /// Initialize with custom paths
         public init(pmsetPath: String, osascriptPath: String, killallPath: String, sudoPath: String, bashPath: String) {
             self.pmsetPath = pmsetPath

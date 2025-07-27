@@ -90,7 +90,7 @@ struct TrustedLocationsView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
     }
-    
+
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
@@ -163,7 +163,7 @@ struct LocationRow: View {
         }
         .padding(.vertical, 4)
     }
-    
+
     private var locationInfo: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(location.name)
@@ -171,7 +171,7 @@ struct LocationRow: View {
             locationDetails
         }
     }
-    
+
     private var locationDetails: some View {
         HStack(spacing: 4) {
             Image(systemName: "location.fill")
@@ -183,7 +183,7 @@ struct LocationRow: View {
                 .foregroundColor(.secondary)
         }
     }
-    
+
     private var deleteButton: some View {
         Button(action: onDelete) {
             Image(systemName: "minus.circle.fill")
@@ -262,7 +262,7 @@ struct AddLocationView: View {
         coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
         onSave()
     }
-    
+
     private var manualLocationFields: some View {
         HStack {
             TextField("Latitude", text: $manualLatitude)
@@ -271,7 +271,7 @@ struct AddLocationView: View {
                 .textFieldStyle(.roundedBorder)
         }
     }
-    
+
     private var trustRadiusContent: some View {
         VStack(alignment: .leading) {
             Text("\(Int(radius)) meters")
@@ -284,7 +284,7 @@ struct AddLocationView: View {
                 .foregroundColor(.secondary)
         }
     }
-    
+
     @ToolbarContentBuilder
     private var addLocationToolbar: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {

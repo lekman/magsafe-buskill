@@ -411,7 +411,7 @@ struct AutoArmSettingsView: View {
             .disabled(!settingsManager.settings.autoArmEnabled || !settingsManager.settings.autoArmByLocation)
         }
     }
-    
+
     private var trustedLocationsButtonLabel: some View {
         HStack {
             Image(systemName: "location.circle")
@@ -528,7 +528,7 @@ struct AutoArmSettingsView: View {
         }
         .disabled(!settingsManager.settings.autoArmEnabled)
     }
-    
+
     @ViewBuilder
     private var autoArmStatusContent: some View {
         if let autoArmManager = getAutoArmManager() {
@@ -542,7 +542,7 @@ struct AutoArmSettingsView: View {
                 .foregroundColor(.secondary)
         }
     }
-    
+
     private func autoArmStatusRow(_ autoArmManager: AutoArmManager) -> some View {
         HStack {
             Image(systemName: autoArmManager.isAutoArmConditionMet ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
@@ -551,7 +551,7 @@ struct AutoArmSettingsView: View {
                 .font(.body)
         }
     }
-    
+
     @ViewBuilder
     private func autoArmActionButton(_ autoArmManager: AutoArmManager) -> some View {
         if autoArmManager.isTemporarilyDisabled {
