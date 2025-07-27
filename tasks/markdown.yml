@@ -1,0 +1,121 @@
+version: "3"
+
+tasks:
+  default:
+    desc: List available Markdown tasks
+    silent: true
+    cmds:
+      - task --list | grep "^\\* markdown:" | grep -v "::" || true
+
+  lint:
+    desc: Lint Markdown files
+    silent: true
+    cmds:
+      - |
+        echo "🔍 Linting Markdown files..."
+
+        # Check if markdownlint is installed
+        if ! command -v markdownlint &> /dev/null; then
+          echo "⚠️  markdownlint not installed"
+          echo "   Run: task markdown:setup"
+          exit 1
+        fi
+
+        # Run the linter
+        if markdownlint '**/*.md' --ignore node_modules --ignore .build; then
+          echo "✅ Markdown lint passed"
+        else
+          echo "❌ Markdown lint found issues"
+          echo ""
+          echo "Run 'task markdown:lint:fix' to auto-fix what's possible"
+          exit 1
+        fi
+
+  lint:fix:
+    desc: Fix Markdown formatting issues automatically
+    silent: true
+    cmds:
+      - |
+        echo "🔧 Fixing Markdown formatting issues..."
+
+        # Check if markdownlint is installed
+        if ! command -v markdownlint &> /dev/null; then
+          echo "⚠️  markdownlint not installed"
+          echo "   Run: task markdown:setup"
+          exit 1
+        fi
+
+        # Fix all markdown files
+        echo "Running markdown formatter..."
+        markdownlint '**/*.md' --ignore node_modules --ignore .build --fix
+        echo "✅ Markdown files formatted"
+
+        # Show which files were modified
+        echo ""
+        echo "Modified files:"
+        git diff --name-only | grep '\.md$' || echo "  No changes needed"
+
+  setup:
+    desc: Setup markdownlint CLI tool
+    silent: true
+    cmds:
+      - |
+        echo "📦 Installing markdownlint..."
+        
+        # Detect OS
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        
+        if [ "$OS" != "darwin" ]; then
+          echo "⚠️  This task is optimized for macOS"
+          echo "   For other platforms, please install markdownlint manually"
+          exit 0
+        fi
+        
+        # Check if already installed
+        if command -v markdownlint &> /dev/null; then
+          echo "✅ markdownlint is already installed"
+          echo "   Version: $(markdownlint --version)"
+          exit 0
+        fi
+        
+        # Try to install with npm first (most universal)
+        if command -v npm &> /dev/null; then
+          echo "Installing with npm..."
+          npm install -g markdownlint-cli
+        # Try Homebrew as fallback
+        elif command -v brew &> /dev/null; then
+          echo "Installing with Homebrew..."
+          brew install markdownlint-cli
+        else
+          echo "❌ Neither npm nor Homebrew found"
+          echo ""
+          echo "Please install Node.js or Homebrew first:"
+          echo "  - Node.js: https://nodejs.org/"
+          echo "  - Homebrew: https://brew.sh/"
+          exit 1
+        fi
+        
+        # Verify installation
+        if command -v markdownlint &> /dev/null; then
+          echo ""
+          echo "✅ markdownlint installed successfully!"
+          echo "   Version: $(markdownlint --version)"
+        else
+          echo "❌ Installation failed"
+          exit 1
+        fi
+
+  pr:fix:
+    desc: Fix PR documentation formatting
+    silent: true
+    cmds:
+      - |
+        echo "📝 Fixing PR documentation..."
+        pr_file=$(find . -name "pr.*.md" | head -1)
+        if [ -n "$pr_file" ]; then
+          echo "Found PR file: $pr_file"
+          markdownlint "$pr_file" --fix
+          echo "✅ PR documentation fixed"
+        else
+          echo "No PR documentation found (pr.*.md)"
+        fi

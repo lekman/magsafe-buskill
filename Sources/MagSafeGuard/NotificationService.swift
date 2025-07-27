@@ -140,13 +140,13 @@ public class NotificationService {
         // Skip notifications if disabled for testing, unless using a mock delivery method
         // Check for any mock class (they will be defined in tests)
         if NotificationService.disableForTesting && !String(describing: type(of: deliveryMethod)).contains("Mock") {
-            print("[NotificationService] Skipping notification - disabled for testing")
+            Log.debug("Skipping notification - disabled for testing")
             return
         }
 
         // Check if status notifications are enabled in settings
         if !UserDefaultsManager.shared.settings.showStatusNotifications {
-            print("[NotificationService] Status notifications disabled in settings")
+            Log.debug("Status notifications disabled in settings")
             return
         }
 
@@ -170,7 +170,7 @@ public class NotificationService {
     public func requestPermissions() {
         deliveryMethod.requestPermissions { [weak self] granted in
             self?.permissionsGranted = granted
-            print("[NotificationService] Permissions granted: \(granted)")
+            Log.info("Permissions granted: \(granted)")
         }
     }
 
@@ -205,7 +205,7 @@ private class UserNotificationDelivery: NotificationDeliveryProtocol {
         // Check if we're in a test environment or Xcode Agents
         let bundleURL = Bundle.main.bundleURL.path
         if Bundle.main.bundleIdentifier == nil || bundleURL.contains("Xcode") || bundleURL.contains("Developer") {
-            print("[UserNotificationDelivery] Skipping delivery - test/development environment")
+            Log.debug("Skipping delivery - test/development environment")
             return
         }
 
@@ -223,7 +223,7 @@ private class UserNotificationDelivery: NotificationDeliveryProtocol {
 
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
-                print("[UserNotificationDelivery] Error showing notification: \(error)")
+                Log.error("Error showing notification", error: error)
                 // Fallback to alert window
                 AlertWindowDelivery().deliver(title: title, message: message, identifier: identifier)
             }
@@ -234,7 +234,7 @@ private class UserNotificationDelivery: NotificationDeliveryProtocol {
         // Check if we're in a test environment or Xcode Agents
         let bundleURL = Bundle.main.bundleURL.path
         if Bundle.main.bundleIdentifier == nil || bundleURL.contains("Xcode") || bundleURL.contains("Developer") {
-            print("[UserNotificationDelivery] Skipping permissions - test/development environment")
+            Log.debug("Skipping permissions - test/development environment")
             completion(false)
             return
         }
@@ -243,7 +243,7 @@ private class UserNotificationDelivery: NotificationDeliveryProtocol {
 
         UNUserNotificationCenter.current().requestAuthorization(options: options) { granted, error in
             if let error = error {
-                print("[UserNotificationDelivery] Permission error: \(error)")
+                Log.error("Permission error", error: error)
             }
             completion(granted)
         }
@@ -258,7 +258,7 @@ private class AlertWindowDelivery: NotificationDeliveryProtocol {
     func deliver(title: String, message: String, identifier: String) {
         DispatchQueue.main.async {
             // Also log to console
-            print("🔔 NOTIFICATION: \(title) - \(message)")
+            Log.info("🔔 NOTIFICATION: \(title) - \(message)")
 
             let alert = NSAlert()
             alert.messageText = title

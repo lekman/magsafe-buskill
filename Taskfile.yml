@@ -1,5 +1,19 @@
 version: "3"
 
+includes:
+  sonar:
+    taskfile: ./tasks/sonar.yml
+    optional: false
+  swift:
+    taskfile: ./tasks/swift.yml
+    optional: false
+  security:
+    taskfile: ./tasks/security.yml
+    optional: false
+  markdown:
+    taskfile: ./tasks/markdown.yml
+    optional: false
+
 vars:
   HOOKS_PATH: .githooks
   SEMGREP_CONFIG: auto
@@ -8,19 +22,55 @@ tasks:
   default:
     desc: Show available tasks
     cmds:
-      - task --list
+      - |
+        echo "🚀 MagSafe Guard Development Tasks"
+        echo "================================="
+        echo ""
+        echo "🔧 Core Commands:"
+        echo "  task init          - Initialize development environment"
+        echo "  task run           - Build and run MagSafe Guard"
+        echo "  task test          - Run all tests"
+        echo "  task clean         - Clean build artifacts"
+        echo ""
+        echo "✅ Quality Assurance:"
+        echo "  task qa            - Run standard QA checks"
+        echo "  task qa:quick      - Quick checks (for git hooks)"
+        echo "  task qa:fix        - Auto-fix all fixable issues"
+        echo "  task qa:full       - Full QA with SonarCloud"
+        echo ""
+        echo "📦 Module Commands:"
+        echo "  task swift:        - Swift development tasks"
+        echo "  task security:     - Security scanning tasks"
+        echo "  task sonar:        - SonarCloud analysis"
+        echo "  task markdown:     - Markdown linting"
+        echo ""
+        echo "💡 Tips:"
+        echo "  • Use 'task <module>:' to see module-specific tasks"
+        echo "  • Use 'task --list' to see all available tasks"
+        echo "  • Most commands have a '--help' option"
+        echo ""
+    silent: true
 
   init:
     desc: Initialize development environment
     cmds:
       - task: check-tools
       - task: setup-hooks
-      - task: setup-sbom
+      - task: setup
       - task: verify-setup
     silent: true
 
+  setup:
+    desc: Install all development tools and dependencies
+    cmds:
+      - task: swift:setup
+      - task: security:setup
+      - task: sonar:setup
+      - task: markdown:setup
+    silent: true
+
   check-tools:
-    desc: Check required development tools
+    # Internal task - checks required development tools
     cmds:
       - |
         echo "🔍 Checking development tools..."
@@ -63,29 +113,8 @@ tasks:
         fi
     silent: true
 
-  setup-sbom:
-    desc: Setup SBOM generation dependencies
-    cmds:
-      - |
-        echo "🔍 Checking SBOM dependencies..."
-        if ! command -v jq &> /dev/null; then
-          echo "⚠️  jq not installed (required for SBOM generation)"
-          echo "   Install with: brew install jq"
-        else
-          echo "✅ jq $(jq --version)"
-        fi
-
-        if ! command -v uuidgen &> /dev/null; then
-          echo "⚠️  uuidgen not found (should be built-in on macOS)"
-        else
-          echo "✅ uuidgen available"
-        fi
-
-        echo "✅ SBOM generation ready (using Swift Package Manager)"
-    silent: true
-
   setup-hooks:
-    desc: Configure git hooks for MagSafe Guard development
+    # Internal task - configures git hooks for development
     vars:
       CURRENT_HOOKS_PATH:
         sh: git config core.hooksPath || echo ""
@@ -124,7 +153,7 @@ tasks:
     silent: true
 
   verify-setup:
-    desc: Verify development setup
+    # Internal task - verifies development setup
     cmds:
       - |
         echo ""
@@ -147,318 +176,15 @@ tasks:
     desc: Run all tests
     silent: true
     cmds:
-      - task: test:security
-      - task: test:swift
+      - task: security:secrets
+      - task: swift:test
       - echo "✅ All tests passed!"
 
-  test:security:
-    desc: Run security checks locally
-    silent: true
-    cmds:
-      - |
-        echo "🔒 Running security checks..."
-
-        # Basic secret scanning
-        if find . -name "*.swift" -type f -exec grep -l -E "password\s*=\s*\"[^\"]+\"" {} \; 2>/dev/null | head -1 | grep -q .; then
-          echo "❌ Found hardcoded passwords"
-          exit 1
-        fi
-
-        # Check for private keys
-        if find . -type f \( -name "*.pem" -o -name "*.key" \) -not -path "./.git/*" | head -1 | grep -q .; then
-          echo "❌ Found private key files"
-          exit 1
-        fi
-
-        echo "✅ Basic security checks passed"
-
-        # Run Semgrep if available
-        if command -v semgrep &> /dev/null; then
-          echo "Running Semgrep scan..."
-          semgrep --config={{.SEMGREP_CONFIG}} --error --quiet . || exit 1
-          echo "✅ Semgrep scan passed"
-        fi
-
-  test:swift:
-    desc: Run Swift tests
-    silent: true
-    cmds:
-      - |
-        echo "🧪 Running Swift tests..."
-        # Run tests and capture output
-        set +e  # Don't exit on error
-        swift test 2>&1 | tee test-output.log
-        TEST_EXIT_CODE=${PIPESTATUS[0]}
-        
-        # Check if tests passed (look for the success pattern)
-        if grep -q "Executed .* tests, with 0 failures" test-output.log; then
-          echo "✅ All Swift tests passed!"
-          rm test-output.log
-          exit 0
-        else
-          echo "❌ Swift tests failed!"
-          rm test-output.log
-          exit 1
-        fi
-
-  test:ci:
-    desc: Run tests (same as test, kept for compatibility)
-    silent: true
-    cmds:
-      - task: test
-
-  test:coverage:
-    desc: Run tests with coverage and ensure >80%
-    silent: true
-    cmds:
-      - echo "Running tests with coverage..."
-      - |
-        # Clean previous coverage data
-        rm -rf .build/debug/codecov
-        
-        # Build test executable with coverage
-        swift build --enable-code-coverage
-        
-        # Run tests with coverage, capturing output
-        set +e  # Don't exit on error
-        swift test --enable-code-coverage 2>&1 | tee test-output.log
-        
-        # Check if tests passed (look for the success pattern)
-        if grep -q "Executed .* tests, with 0 failures" test-output.log; then
-          echo "✅ All tests passed!"
-          rm test-output.log
-        else
-          echo "❌ Tests failed!"
-          cat test-output.log
-          rm test-output.log
-          exit 1
-        fi
-        set -e  # Re-enable exit on error
-      - |
-        echo "Generating coverage report..."
-        
-        # Find the test executable binary
-        BINARY=$(find .build -name "MagSafeGuardPackageTests" -type f -path "*/debug/*" | grep -v dSYM | grep -v '.build/debug/MagSafeGuardPackageTests' | head -1)
-        
-        # Find profdata files
-        PROFDATA=$(find .build -name "default.profdata" -o -name "*.profdata" | head -1)
-        
-        # If no profdata, try to find and merge profraw files
-        if [ -z "$PROFDATA" ]; then
-          PROFRAW=$(find .build -name "*.profraw" | head -1)
-          if [ -n "$PROFRAW" ]; then
-            echo "Converting profraw to profdata..."
-            xcrun llvm-profdata merge "$PROFRAW" -o .build/coverage.profdata
-            PROFDATA=".build/coverage.profdata"
-          fi
-        fi
-        
-        echo "Binary: $BINARY"
-        echo "Profdata: $PROFDATA"
-        
-        if [ -n "$BINARY" ] && [ -n "$PROFDATA" ]; then
-          # Generate coverage report
-          xcrun llvm-cov report "$BINARY" \
-            -instr-profile="$PROFDATA" \
-            -ignore-filename-regex=".*Tests.*|.*Mock.*|.*/runner.swift|.*/MagSafeGuardApp.swift|.*/PowerMonitorService.swift|.*/PowerMonitorCore.swift|.*LAContext.*|.*/MacSystemActions.swift|.*Protocol.swift|.*/Views/.*" \
-            -use-color=false | tee coverage-report.txt
-          
-          # Extract total coverage (last line, coverage percentage)
-          COVERAGE=$(tail -1 coverage-report.txt | awk '{print $10}' | sed 's/%//')
-          
-          echo ""
-          echo "Total coverage: ${COVERAGE}%"
-          
-          # Check threshold
-          if [ -n "$COVERAGE" ] && [ "$COVERAGE" != "0.00" ]; then
-            if (( $(echo "$COVERAGE < 80" | bc -l) )); then
-              echo "⚠️  Coverage is below 80% threshold (currently ${COVERAGE}%)"
-              echo ""
-              echo "Files with low coverage:"
-              grep -E "^\S+\.swift" coverage-report.txt | grep -v "100.00%" | sort -k10 -n | head -10
-              echo ""
-              echo "Note: Coverage calculation excludes UI, system integration, and test files."
-              echo "✅ Tests passed - proceeding with warning about coverage"
-              rm coverage-report.txt
-            else
-              echo "✅ Coverage meets 80% threshold!"
-              rm coverage-report.txt
-            fi
-          else
-            echo "⚠️  Coverage data might be incomplete due to test runner crash"
-            echo "✅ Tests passed - proceeding despite coverage calculation issues"
-            rm -f coverage-report.txt
-          fi
-        else
-          echo "⚠️  Could not find coverage data files"
-          echo "This is likely due to the Swift test runner crash"
-          echo "✅ Tests passed - proceeding despite coverage calculation issues"
-        fi
-
-  test:coverage:html:
-    desc: Generate HTML coverage report
-    silent: true
-    cmds:
-      - swift test --enable-code-coverage
-      - |
-        PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
-        EXECUTABLE=$(find .build -name 'MagSafeGuardPackageTests.xctest' -type d | head -1)/Contents/MacOS/MagSafeGuardPackageTests
-
-        if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
-          xcrun llvm-cov show "$EXECUTABLE" \
-            -instr-profile="$PROF_DATA" \
-            -format=html \
-            -output-dir=coverage-html \
-            -ignore-filename-regex=".*Tests\.swift|.*Mock.*\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*/PowerMonitorCore\.swift|.*LAContext\.swift|.*/MacSystemActions\.swift|.*Protocol\.swift"
-          echo "Coverage report generated at: coverage-html/index.html"
-          open coverage-html/index.html
-        fi
-
-  lint:
-    desc: Run linters
-    silent: true
-    cmds:
-      - task: lint:swift
-      - task: lint:markdown
-
-  lint:swift:
-    desc: Lint Swift files
-    silent: true
-    cmds:
-      - |
-        echo "🔍 Linting Swift files..."
-        if command -v swiftlint &> /dev/null; then
-          swiftlint lint --quiet
-          if [ $? -eq 0 ]; then
-            echo "✅ SwiftLint passed"
-          else
-            echo "❌ SwiftLint found issues"
-            echo ""
-            echo "Run 'task lint:swift:fix' to auto-fix what's possible"
-            exit 1
-          fi
-        else
-          echo "⚠️  SwiftLint not installed"
-          echo "   Install with: brew install swiftlint"
-          echo "   Or run: task dev:setup"
-        fi
-
-  lint:markdown:
-    desc: Lint Markdown files
-    silent: true
-    cmds:
-      - |
-        echo "🔍 Linting Markdown files..."
-
-        # Check if markdownlint is installed
-        if ! command -v markdownlint &> /dev/null; then
-          echo "📦 markdownlint not found. Installing..."
-          
-          # Try to install with npm first (most universal)
-          if command -v npm &> /dev/null; then
-            echo "Installing with npm..."
-            npm install -g markdownlint-cli
-          # Try Homebrew as fallback
-          elif command -v brew &> /dev/null; then
-            echo "Installing with Homebrew..."
-            brew install markdownlint-cli
-          else
-            echo "⚠️  Cannot auto-install markdownlint"
-            echo "   Please install Node.js or Homebrew first"
-            exit 1
-          fi
-        fi
-
-        # Run the linter
-        markdownlint '**/*.md' --ignore node_modules
-
-  lint:fix:
-    desc: Fix linting issues automatically
-    silent: true
-    cmds:
-      - task: lint:fix:swift
-      - task: lint:fix:markdown
-      - echo "✅ Linting fixes complete!"
-
-  lint:fix:swift:
-    desc: Fix Swift linting issues automatically
-    silent: true
-    cmds:
-      - |
-        echo "🔧 Fixing Swift linting issues..."
-        if command -v swiftlint &> /dev/null; then
-          swiftlint lint --fix --quiet
-          if [ $? -eq 0 ]; then
-            echo "✅ SwiftLint fixes applied"
-          else
-            echo "⚠️  Some issues require manual fixing"
-            echo ""
-            echo "Run 'task lint:swift' to see remaining issues"
-          fi
-        else
-          echo "⚠️  SwiftLint not installed"
-          echo "   Install with: brew install swiftlint"
-          echo "   Or run: task dev:setup"
-        fi
-
-  lint:fix:markdown:
-    desc: Fix Markdown formatting issues
-    silent: true
-    cmds:
-      - |
-        echo "🔧 Fixing Markdown formatting issues..."
-
-        # Check if markdownlint is installed
-        if ! command -v markdownlint &> /dev/null; then
-          echo "📦 markdownlint not found. Installing..."
-          
-          # Try to install with npm first (most universal)
-          if command -v npm &> /dev/null; then
-            echo "Installing with npm..."
-            npm install -g markdownlint-cli
-          # Try Homebrew as fallback
-          elif command -v brew &> /dev/null; then
-            echo "Installing with Homebrew..."
-            brew install markdownlint-cli
-          else
-            echo "❌ Neither npm nor Homebrew found"
-            echo ""
-            echo "Please install Node.js or Homebrew first:"
-            echo "  - Node.js: https://nodejs.org/"
-            echo "  - Homebrew: https://brew.sh/"
-            exit 1
-          fi
-          
-          # Verify installation
-          if ! command -v markdownlint &> /dev/null; then
-            echo "❌ Installation failed"
-            exit 1
-          fi
-          echo "✅ markdownlint installed successfully"
-        fi
-
-        # Fix all markdown files
-        echo "Running markdown formatter..."
-        markdownlint '**/*.md' --ignore node_modules --fix
-        echo "✅ Markdown files formatted"
-
-        # Show which files were modified
-        echo ""
-        echo "Modified files:"
-        git diff --name-only | grep '\.md$' || echo "  No changes needed"
-
   clean:
-    desc: Clean build artifacts
+    desc: Clean build artifacts (alias for swift:clean)
     silent: true
     cmds:
-      - |
-        echo "🧹 Cleaning build artifacts..."
-        rm -rf .build/
-        rm -rf *.xcodeproj
-        rm -rf coverage-html/
-        rm -f coverage-report.txt
-        rm -f coverage.lcov
-        echo "✅ Clean complete"
+      - task: swift:clean
 
   run:
     desc: Build and run MagSafe Guard as a menu bar app
@@ -654,46 +380,63 @@ tasks:
           echo "   - markdownlint: npm install -g markdownlint-cli"
         fi
 
-  pr:fix:
-    desc: Fix PR documentation formatting
+  qa:
+    desc: Run standard quality assurance checks
     silent: true
     cmds:
-      - |
-        echo "📝 Fixing PR documentation..."
-        pr_file=$(find . -name "pr.*.md" | head -1)
-        if [ -n "$pr_file" ]; then
-          echo "Found PR file: $pr_file"
-          markdownlint "$pr_file" --fix
-          echo "✅ PR documentation fixed"
-        else
-          echo "No PR documentation found (pr.*.md)"
-        fi
-
-  pre-push:
-    desc: Run all checks before pushing
-    silent: true
-    cmds:
-      - echo "🚀 Running pre-push checks..."
-      - task: lint:fix:markdown
-      - task: test:coverage
-      - task: test:security
-      - task: lint
-      - task: sbom
+      - echo "🔬 Running standard QA suite..."
+      - task: qa:fix
+      - task: swift:test:coverage
+      - task: swift:lint
+      - task: markdown:lint
+      - task: security:scan
+      - task: swift:sbom
       - task: docs:update
-      - echo "✅ All pre-push checks passed!"
-      - echo "Ready to push your changes."
+      - echo "✅ Standard QA suite passed!"
+
+  qa:quick:
+    desc: Quick QA checks for git hooks
+    silent: true
+    cmds:
+      - echo "⚡ Running quick QA checks..."
+      - task: swift:lint
+      - task: markdown:lint
+      - task: security:secrets
+      - echo "✅ Quick QA checks passed!"
+
+  qa:fix:
+    desc: Auto-fix all fixable issues
+    silent: true
+    cmds:
+      - echo "🔧 Auto-fixing issues..."
+      - task: swift:lint:fix
+      - task: markdown:lint:fix
+      - task: markdown:pr:fix
+      - echo "✅ Auto-fix complete!"
+
+  qa:full:
+    desc: Full QA suite including SonarCloud analysis
+    silent: true
+    cmds:
+      - echo "🚀 Running full QA suite with SonarCloud..."
+      - task: qa
+      - task: sonar:scan
+      - echo "✅ Full QA suite with SonarCloud completed!"
+
+  # Aliases for backward compatibility
+  pre-push:
+    desc: "(Deprecated) Use 'task qa' instead"
+    silent: true
+    cmds:
+      - echo "⚠️  'pre-push' is deprecated. Use 'task qa' instead."
+      - task: qa
 
   pre-pr:
-    desc: Run all checks before creating a PR
+    desc: "(Deprecated) Use 'task qa' instead"
     silent: true
     cmds:
-      - echo "🚀 Running pre-PR checks..."
-      - task: lint:fix:markdown
-      - task: test:coverage
-      - task: test:security
-      - task: lint
-      - echo "✅ All pre-PR checks passed!"
-      - echo "Ready to create your PR."
+      - echo "⚠️  'pre-pr' is deprecated. Use 'task qa' instead."
+      - task: qa
 
   commit:
     desc: Interactive commit with conventional format
@@ -744,165 +487,6 @@ tasks:
         fi
     interactive: true
 
-  test:convert:
-    desc: Convert Swift coverage to SonarQube generic XML format
-    silent: true
-    cmds:
-      - |
-        echo "🔄 Converting Swift coverage to SonarQube format..."
-
-        # First, run tests with coverage if needed
-        if [ ! -d ".build" ] || [ -z "$(find .build -name 'default.profdata' -type f 2>/dev/null)" ]; then
-          echo "🧪 Running tests with coverage..."
-          swift test --enable-code-coverage
-        fi
-
-        # Find the coverage data
-        PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
-        EXECUTABLE=$(find .build -name 'MagSafeGuardPackageTests.xctest' -type d | head -1)/Contents/MacOS/MagSafeGuardPackageTests
-
-        if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
-          echo "📊 Generating SonarQube generic coverage XML..."
-          
-          # Function to convert xcov output to generic XML format
-          convert_to_xml() {
-            echo '<coverage version="1">'
-            xcrun llvm-cov show "$EXECUTABLE" \
-              -instr-profile="$PROF_DATA" \
-              -use-color=false \
-              -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*/PowerMonitorCore\.swift|.*LAContext\.swift|.*/MacSystemActions\.swift|.*Protocol\.swift" | \
-            awk '
-              /^[[:space:]]*[^[:space:]]+:$/ {
-                if (in_file) print "  </file>"
-                gsub(/:$/, "", $1)
-                gsub(/&/, "\\&amp;", $1)
-                print "  <file path=\"" $1 "\">"
-                in_file = 1
-                next
-              }
-              /^[[:space:]]*[0-9]+\|/ {
-                split($0, parts, "|")
-                linenum = parts[1]
-                gsub(/^[[:space:]]+/, "", linenum)
-                gsub(/[[:space:]]+$/, "", linenum)
-                
-                # Check if line is covered (has execution count)
-                if (match(parts[2], /^[[:space:]]*[0-9]+/)) {
-                  print "    <lineToCover lineNumber=\"" linenum "\" covered=\"true\"/>"
-                } else if (match(parts[2], /^[[:space:]]*0/)) {
-                  print "    <lineToCover lineNumber=\"" linenum "\" covered=\"false\"/>"
-                }
-              }
-              END {
-                if (in_file) print "  </file>"
-              }
-            '
-            echo '</coverage>'
-          }
-          
-          # Generate the coverage XML
-          convert_to_xml > coverage.xml
-          
-          if [ -f "coverage.xml" ] && [ -s "coverage.xml" ]; then
-            echo "✅ Successfully generated coverage.xml"
-            echo "   File size: $(wc -c < coverage.xml) bytes"
-            echo "   Files covered: $(grep -c '<file path=' coverage.xml || echo 0)"
-          else
-            echo "❌ Failed to create coverage.xml or file is empty"
-            exit 1
-          fi
-        else
-          echo "❌ Coverage data not found"
-          echo "PROF_DATA: $PROF_DATA"
-          echo "EXECUTABLE: $EXECUTABLE"
-          exit 1
-        fi
-
-  sbom:
-    desc: Generate Software Bill of Materials (SBOM) in SPDX format
-    silent: true
-    cmds:
-      - |
-        echo "📦 Generating SBOM for Swift project..."
-
-        # Get package info
-        PACKAGE_NAME=$(swift package dump-package | jq -r '.name')
-        VERSION=$(git describe --tags --always 2>/dev/null || echo "1.0.0")
-        TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-        # Create SPDX SBOM
-        echo "SPDXVersion: SPDX-2.3" > sbom.spdx
-        echo "DataLicense: CC0-1.0" >> sbom.spdx
-        echo "SPDXID: SPDXRef-DOCUMENT" >> sbom.spdx
-        echo "DocumentName: ${PACKAGE_NAME}" >> sbom.spdx
-        echo "DocumentNamespace: https://github.com/lekman/magsafe-buskill/spdx-${VERSION}-$(date +%s)" >> sbom.spdx
-        echo "Creator: Tool: swift-package-sbom-1.0.0" >> sbom.spdx
-        echo "Created: ${TIMESTAMP}" >> sbom.spdx
-        echo "" >> sbom.spdx
-
-        # Package information
-        echo "PackageName: ${PACKAGE_NAME}" >> sbom.spdx
-        echo "SPDXID: SPDXRef-Package-${PACKAGE_NAME}" >> sbom.spdx
-        echo "PackageVersion: ${VERSION}" >> sbom.spdx
-        echo "PackageDownloadLocation: https://github.com/lekman/magsafe-buskill" >> sbom.spdx
-        echo "FilesAnalyzed: false" >> sbom.spdx
-        echo "PackageLicenseConcluded: MIT" >> sbom.spdx
-        echo "PackageLicenseDeclared: MIT" >> sbom.spdx
-        echo "PackageCopyrightText: Copyright (c) 2025 Tobias Lekman" >> sbom.spdx
-        echo "" >> sbom.spdx
-
-        # Relationship
-        echo "Relationship: SPDXRef-DOCUMENT DESCRIBES SPDXRef-Package-${PACKAGE_NAME}" >> sbom.spdx
-
-        # Process dependencies
-        echo "" >> sbom.spdx
-        echo "# Dependencies" >> sbom.spdx
-        DEPS=$(swift package show-dependencies --format json | jq -r '.dependencies[]? | "PackageName: " + .name + "\nSPDXID: SPDXRef-Package-" + .identity + "\nPackageVersion: " + (.version // "unknown") + "\nPackageDownloadLocation: " + (.url // "NOASSERTION") + "\nFilesAnalyzed: false\nPackageLicenseConcluded: NOASSERTION\nPackageLicenseDeclared: NOASSERTION\nPackageCopyrightText: NOASSERTION\n\nRelationship: SPDXRef-Package-" + .identity + " DEPENDENCY_OF SPDXRef-Package-${PACKAGE_NAME}\n"' 2>/dev/null || echo "")
-
-        if [ -n "$DEPS" ]; then
-          echo "$DEPS" >> sbom.spdx
-        fi
-
-        echo "✅ SBOM generated: sbom.spdx"
-        echo "   Format: SPDX 2.3"
-        echo "   Project: ${PACKAGE_NAME} v${VERSION}"
-
-        # Also generate in JSON format
-        swift package show-dependencies --format json > sbom-deps.json
-
-        echo "✅ Also generated: sbom-deps.json (Swift dependencies)"
-    sources:
-      - Package.swift
-      - Sources/**/*.swift
-    generates:
-      - sbom.spdx
-      - sbom-deps.json
-
-  sbom:install:
-    desc: Install SBOM generation dependencies
-    silent: true
-    cmds:
-      - |
-        echo "📦 Installing SBOM dependencies..."
-
-        # Check if Homebrew is installed
-        if ! command -v brew &> /dev/null; then
-          echo "❌ Homebrew is not installed"
-          echo "   Install from: https://brew.sh"
-          exit 1
-        fi
-
-        # Install jq if not present
-        if ! command -v jq &> /dev/null; then
-          echo "Installing jq..."
-          brew install jq
-        else
-          echo "✅ jq already installed"
-        fi
-
-        echo "✅ SBOM dependencies installed"
-        echo "   You can now run: task sbom"
-
   docs:update:
     desc: Update TaskMaster progress to main README
     silent: true
@@ -910,525 +494,27 @@ tasks:
       - |
         task-master sync-readme >/dev/null 2>&1
 
-  # Security Tasks
-  security:
-    desc: Run all security checks and fixes
+  # Module shortcuts for easy discovery
+  swift::
+    desc: Show Swift development tasks
     silent: true
     cmds:
-      - task: security:check-pins
-      - task: security:scan-secrets
-      - echo "✅ All security checks passed!"
+      - task: swift:default
 
-  security:fix:
-    desc: Fix all security issues automatically
+  security::
+    desc: Show security scanning tasks
     silent: true
     cmds:
-      - task: security:pin-actions
-      - task: security:dependabot
-      - echo "✅ Security fixes applied!"
+      - task: security:default
 
-  security:pin-actions:
-    desc: Pin all GitHub Actions to specific commit SHAs for security
+  sonar::
+    desc: Show SonarCloud analysis tasks
     silent: true
     cmds:
-      - |
-        # Check if jq is installed
-        if ! command -v jq &> /dev/null; then
-          echo "📦 Installing jq (required for pinning actions)..."
-          if command -v brew &> /dev/null; then
-            brew install jq
-          else
-            echo "❌ jq is required but Homebrew is not available"
-            echo "   Please install jq manually: https://jqlang.github.io/jq/download/"
-            exit 1
-          fi
-        fi
-        
-        # Source .env if it exists for GITHUB_TOKEN
-        if [ -f .env ]; then
-          source .env
-        fi
-        
-        # Colors for output
-        RED='\033[0;31m'
-        GREEN='\033[0;32m'
-        YELLOW='\033[0;33m'
-        BLUE='\033[0;34m'
-        NC='\033[0m' # No Color
-        
-        # Function to get SHA for a given action and version
-        get_action_sha() {
-          local action="$1"
-          local version="$2"
-          
-          # Parse owner/repo from action
-          local owner="${action%%/*}"
-          local repo="${action#*/}"
-          
-          # Remove any path from repo (e.g., codeql-action/init -> codeql-action)
-          repo="${repo%%/*}"
-          
-          # Set up curl options with auth if available
-          local curl_opts="-s"
-          if [ -n "${GITHUB_TOKEN:-}" ]; then
-            curl_opts="$curl_opts -H 'Authorization: token $GITHUB_TOKEN'"
-          fi
-          
-          # Handle version tags vs branch names
-          if [[ "$version" =~ ^v[0-9] ]]; then
-            # It's a version tag - try multiple formats
-            local sha=$(eval "curl $curl_opts 'https://api.github.com/repos/$owner/$repo/git/refs/tags/$version'" | jq -r '.object.sha // empty' 2>/dev/null)
-            
-            # If not found, try with repo name prefix (e.g., auto-approve-action@v1.0.0)
-            if [ -z "$sha" ] || [ "$sha" = "null" ]; then
-              sha=$(eval "curl $curl_opts 'https://api.github.com/repos/$owner/$repo/git/refs/tags/$repo@$version'" | jq -r '.object.sha // empty' 2>/dev/null)
-            fi
-          else
-            # It's a branch name
-            local sha=$(eval "curl $curl_opts 'https://api.github.com/repos/$owner/$repo/git/refs/heads/$version'" | jq -r '.object.sha // empty' 2>/dev/null)
-          fi
-          
-          if [ -z "$sha" ] || [ "$sha" = "null" ]; then
-            echo ""
-          else
-            echo "$sha"
-          fi
-        }
-        
-        # Function to extract actions from workflow files
-        extract_actions() {
-          local file="$1"
-          grep -E "^\s*uses:\s*[^/]+/[^@]+@[^#\s]+" "$file" | \
-            sed -E 's/^\s*uses:\s*([^@]+)@([^#\s]+).*/\1@\2/' | \
-            grep -v "^\s*uses:\s*\." | \
-            sort -u
-        }
-        
-        # Main execution
-        echo -e "${BLUE}🔒 Pinning GitHub Actions to commit SHAs...${NC}"
-        if [ -n "${GITHUB_TOKEN:-}" ]; then
-          echo -e "${GREEN}✓ Using GitHub authentication${NC}"
-        else
-          echo -e "${YELLOW}⚠ No GITHUB_TOKEN found. API rate limits may apply.${NC}"
-          echo -e "${YELLOW}  Set GITHUB_TOKEN in .env file for better performance.${NC}"
-        fi
-        echo ""
-        
-        # Process each workflow file
-        updated_count=0
-        failed_count=0
-        
-        for file in .github/workflows/*.yml; do
-          if [ -f "$file" ]; then
-            echo -e "${YELLOW}📝 Processing $(basename "$file")...${NC}"
-            
-            # Create backup
-            cp "$file" "$file.bak"
-            
-            # Extract unique actions from the file
-            actions=$(extract_actions "$file")
-            
-            if [ -z "$actions" ]; then
-              rm "$file.bak"
-              echo "   No actions to pin in this file"
-              continue
-            fi
-            
-            # Process each action
-            file_updated=false
-            while IFS= read -r action_ref; do
-              if [ -z "$action_ref" ]; then
-                continue
-              fi
-              
-              # Parse action and version
-              action="${action_ref%@*}"
-              version="${action_ref#*@}"
-              
-              # Skip if already pinned (40-char hex SHA)
-              if [[ "$version" =~ ^[0-9a-f]{40}$ ]]; then
-                echo "   ✓ $action is already pinned"
-                continue
-              fi
-              
-              # Get SHA for this version
-              echo -n "   Fetching SHA for $action@$version... "
-              sha=$(get_action_sha "$action" "$version")
-              
-              if [ -z "$sha" ]; then
-                echo -e "${RED}failed${NC}"
-                echo -e "   ${RED}⚠️  Could not fetch SHA for $action@$version${NC}"
-                ((failed_count++))
-                continue
-              fi
-              
-              echo -e "${GREEN}$sha${NC}"
-              
-              # Replace in file
-              # Handle special characters in action names
-              escaped_action=$(echo "$action" | sed 's/[[\.*^$()+?{|]/\\&/g')
-              escaped_version=$(echo "$version" | sed 's/[[\.*^$()+?{|]/\\&/g')
-              
-              # Replace the action reference with pinned SHA
-              sed -i '' "s|uses: $escaped_action@$escaped_version|uses: $action@$sha # $version|g" "$file"
-              
-              if [ $? -eq 0 ]; then
-                file_updated=true
-                ((updated_count++))
-              fi
-              
-            done <<< "$actions"
-            
-            # Check if file was actually modified
-            if cmp -s "$file" "$file.bak"; then
-              rm "$file.bak"
-              echo -e "   ${GREEN}✅ No changes needed${NC}"
-            else
-              rm "$file.bak"
-              echo -e "   ${GREEN}✅ Updated successfully${NC}"
-            fi
-          fi
-        done
-        
-        echo ""
-        if [ $failed_count -gt 0 ]; then
-          echo -e "${YELLOW}⚠️  Completed with $failed_count failures${NC}"
-        else
-          echo -e "${GREEN}✅ Action pinning complete!${NC}"
-        fi
-        
-        echo ""
-        echo -e "${BLUE}📊 Summary:${NC}"
-        echo "   • Actions updated: $updated_count"
-        echo "   • Failures: $failed_count"
-        echo ""
-        echo -e "${BLUE}💡 Next steps:${NC}"
-        echo "   1. Review changes: git diff .github/workflows/"
-        echo "   2. Test workflows to ensure they still work"
-        echo "   3. Commit the changes"
-        
-        # Exit with error if any actions failed to pin
-        if [ $failed_count -gt 0 ]; then
-          exit 1
-        fi
+      - task: sonar:default
 
-  security:update-pins:
-    desc: Update GitHub Action pins to latest SHAs for pinned versions
+  markdown::
+    desc: Show markdown linting tasks
     silent: true
     cmds:
-      - |
-        # Check if jq is installed
-        if ! command -v jq &> /dev/null; then
-          echo "📦 Installing jq (required for updating pins)..."
-          if command -v brew &> /dev/null; then
-            brew install jq
-          else
-            echo "❌ jq is required but Homebrew is not available"
-            echo "   Please install jq manually: https://jqlang.github.io/jq/download/"
-            exit 1
-          fi
-        fi
-        
-        # Source .env if it exists for GITHUB_TOKEN
-        if [ -f .env ]; then
-          source .env
-        fi
-        
-        # Colors for output
-        RED='\033[0;31m'
-        GREEN='\033[0;32m'
-        YELLOW='\033[0;33m'
-        BLUE='\033[0;34m'
-        NC='\033[0m' # No Color
-        
-        # Function to get SHA for a given action and version
-        get_action_sha() {
-          local action="$1"
-          local version="$2"
-          
-          # Parse owner/repo from action
-          local owner="${action%%/*}"
-          local repo="${action#*/}"
-          
-          # Remove any path from repo (e.g., codeql-action/init -> codeql-action)
-          repo="${repo%%/*}"
-          
-          # Set up curl options with auth if available
-          local curl_opts="-s"
-          if [ -n "${GITHUB_TOKEN:-}" ]; then
-            curl_opts="$curl_opts -H 'Authorization: token $GITHUB_TOKEN'"
-          fi
-          
-          # Handle version tags vs branch names
-          if [[ "$version" =~ ^v[0-9] ]]; then
-            # It's a version tag - try multiple formats
-            local sha=$(eval "curl $curl_opts 'https://api.github.com/repos/$owner/$repo/git/refs/tags/$version'" | jq -r '.object.sha // empty' 2>/dev/null)
-            
-            # If not found, try with repo name prefix
-            if [ -z "$sha" ] || [ "$sha" = "null" ]; then
-              sha=$(eval "curl $curl_opts 'https://api.github.com/repos/$owner/$repo/git/refs/tags/$repo@$version'" | jq -r '.object.sha // empty' 2>/dev/null)
-            fi
-          else
-            # It's a branch name
-            local sha=$(eval "curl $curl_opts 'https://api.github.com/repos/$owner/$repo/git/refs/heads/$version'" | jq -r '.object.sha // empty' 2>/dev/null)
-          fi
-          
-          if [ -z "$sha" ] || [ "$sha" = "null" ]; then
-            echo ""
-          else
-            echo "$sha"
-          fi
-        }
-        
-        # Main execution
-        echo -e "${BLUE}🔄 Updating GitHub Action pins to latest SHAs...${NC}"
-        if [ -n "${GITHUB_TOKEN:-}" ]; then
-          echo -e "${GREEN}✓ Using GitHub authentication${NC}"
-        else
-          echo -e "${YELLOW}⚠ No GITHUB_TOKEN found. API rate limits may apply.${NC}"
-          echo -e "${YELLOW}  Set GITHUB_TOKEN in .env file for better performance.${NC}"
-        fi
-        echo ""
-        
-        # Process each workflow file
-        updated_count=0
-        failed_count=0
-        unchanged_count=0
-        
-        for file in .github/workflows/*.yml; do
-          if [ -f "$file" ]; then
-            echo -e "${YELLOW}📝 Processing $(basename "$file")...${NC}"
-            
-            # Create backup
-            cp "$file" "$file.bak"
-            
-            # Find all pinned actions in the file
-            pinned_actions=$(grep -E "uses:\s*[^/]+/[^@]+@[0-9a-f]{40}\s*#\s*[^\s]+" "$file" || true)
-            
-            if [ -z "$pinned_actions" ]; then
-              rm "$file.bak"
-              echo "   No pinned actions found in this file"
-              continue
-            fi
-            
-            # Process each pinned action
-            file_updated=false
-            while IFS= read -r line; do
-              if [ -z "$line" ]; then
-                continue
-              fi
-              
-              # Extract action, current SHA, and version comment
-              if [[ "$line" =~ uses:[[:space:]]*([^@]+)@([0-9a-f]{40})[[:space:]]*#[[:space:]]*([^[:space:]]+) ]]; then
-                action="${BASH_REMATCH[1]}"
-                current_sha="${BASH_REMATCH[2]}"
-                version="${BASH_REMATCH[3]}"
-                
-                # Get latest SHA for this version
-                echo -n "   Checking $action@$version... "
-                new_sha=$(get_action_sha "$action" "$version")
-                
-                if [ -z "$new_sha" ]; then
-                  echo -e "${RED}failed to fetch${NC}"
-                  ((failed_count++))
-                  continue
-                fi
-                
-                if [ "$current_sha" = "$new_sha" ]; then
-                  echo -e "${GREEN}up to date${NC}"
-                  ((unchanged_count++))
-                  continue
-                fi
-                
-                echo -e "${YELLOW}updating${NC}"
-                echo -e "     Current: ${current_sha:0:7}"
-                echo -e "     New:     ${new_sha:0:7}"
-                
-                # Update the SHA in the file
-                escaped_action=$(echo "$action" | sed 's/[[\.*^$()+?{|]/\\&/g')
-                sed -i '' "s|$escaped_action@$current_sha # $version|$action@$new_sha # $version|g" "$file"
-                
-                if [ $? -eq 0 ]; then
-                  file_updated=true
-                  ((updated_count++))
-                fi
-              fi
-            done <<< "$pinned_actions"
-            
-            # Check if file was actually modified
-            if cmp -s "$file" "$file.bak"; then
-              rm "$file.bak"
-              echo -e "   ${GREEN}✅ No updates needed${NC}"
-            else
-              rm "$file.bak"
-              echo -e "   ${GREEN}✅ Updated successfully${NC}"
-            fi
-          fi
-        done
-        
-        echo ""
-        echo -e "${GREEN}✅ Update check complete!${NC}"
-        echo ""
-        echo -e "${BLUE}📊 Summary:${NC}"
-        echo "   • Actions updated: $updated_count"
-        echo "   • Already up to date: $unchanged_count"
-        echo "   • Failures: $failed_count"
-        
-        if [ $updated_count -gt 0 ]; then
-          echo ""
-          echo -e "${BLUE}💡 Next steps:${NC}"
-          echo "   1. Review changes: git diff .github/workflows/"
-          echo "   2. Test workflows to ensure they still work"
-          echo "   3. Commit the updates"
-        fi
-        
-        # Exit with error if any actions failed to update
-        if [ $failed_count -gt 0 ]; then
-          exit 1
-        fi
-
-  security:dependabot:
-    desc: Set up Dependabot to keep GitHub Actions updated
-    silent: true
-    cmds:
-      - |
-        echo "🤖 Setting up Dependabot for GitHub Actions..."
-        
-        mkdir -p .github
-        
-        cat > .github/dependabot.yml << 'EOF'
-        version: 2
-        updates:
-          # Maintain dependencies for GitHub Actions
-          - package-ecosystem: "github-actions"
-            directory: "/"
-            schedule:
-              interval: "weekly"
-              day: "monday"
-              time: "10:00"
-            reviewers:
-              - "@lekman"
-            labels:
-              - "dependencies"
-              - "github-actions"
-            commit-message:
-              prefix: "chore"
-              prefix-development: "chore"
-              include: "scope"
-            open-pull-requests-limit: 10
-            # Group all action updates into a single PR
-            groups:
-              github-actions:
-                patterns:
-                  - "*"
-        
-          # Maintain dependencies for Swift Package Manager
-          - package-ecosystem: "swift"
-            directory: "/"
-            schedule:
-              interval: "weekly"
-              day: "monday"
-              time: "10:00"
-            reviewers:
-              - "@lekman"
-            labels:
-              - "dependencies"
-              - "swift"
-            commit-message:
-              prefix: "chore"
-              prefix-development: "chore"
-              include: "scope"
-            open-pull-requests-limit: 10
-        EOF
-        
-        echo "✅ Created .github/dependabot.yml"
-        echo ""
-        echo "Dependabot will:"
-        echo "   • Check for updates weekly (Mondays at 10:00 UTC)"
-        echo "   • Create PRs with pinned SHA updates"
-        echo "   • Group all GitHub Actions updates together"
-        echo "   • Label PRs for easy identification"
-        echo ""
-        echo "📝 Remember to commit this file to enable Dependabot!"
-
-  security:check-pins:
-    desc: Check if all GitHub Actions are properly pinned
-    silent: true
-    cmds:
-      - |
-        echo "🔍 Checking GitHub Action pins..."
-        echo ""
-        
-        unpinned=0
-        
-        for file in .github/workflows/*.yml; do
-          if [ -f "$file" ]; then
-            # Find uses: statements that don't use SHA (40 char hex), excluding commented lines and local actions
-            unpinned_actions=$(grep -E "^\s*uses:" "$file" | grep -v "uses: \." | grep -v -E "uses: [^@]+@[0-9a-f]{40}")
-            
-            if [ -n "$unpinned_actions" ]; then
-              echo "❌ $(basename "$file") has unpinned actions:"
-              echo "$unpinned_actions" | sed 's/^/   /'
-              echo ""
-              unpinned=$((unpinned + 1))
-            fi
-          fi
-        done
-        
-        if [ $unpinned -eq 0 ]; then
-          echo "✅ All GitHub Actions are properly pinned!"
-        else
-          echo "⚠️  Found $unpinned workflow files with unpinned actions"
-          echo ""
-          echo "Run 'task security:pin-actions' to fix this"
-          exit 1
-        fi
-
-  security:scan-secrets:
-    desc: Scan for secrets and sensitive data
-    silent: true
-    cmds:
-      - |
-        echo "🔍 Scanning for secrets and sensitive data..."
-        echo ""
-        
-        # Common patterns to check
-        patterns=(
-          "password.*=.*['\"]" 
-          "api[_-]?key.*=.*['\"]"
-          "secret.*=.*['\"]"
-          "token.*=.*['\"]"
-          "private[_-]?key"
-          "-----BEGIN.*PRIVATE KEY-----"
-          "Bearer\s+[A-Za-z0-9\-_]+"
-        )
-        
-        found_issues=0
-        
-        # Scan all files except common safe paths
-        for pattern in "${patterns[@]}"; do
-          results=$(grep -r -i -E "$pattern" . \
-            --exclude-dir=.git \
-            --exclude-dir=node_modules \
-            --exclude-dir=.build \
-            --exclude-dir=vendor \
-            --exclude="*.lock" \
-            --exclude="go.sum" \
-            2>/dev/null || true)
-          
-          if [ -n "$results" ]; then
-            echo "⚠️  Found potential secrets matching pattern: $pattern"
-            echo "$results" | head -5
-            echo ""
-            found_issues=$((found_issues + 1))
-          fi
-        done
-        
-        if [ $found_issues -eq 0 ]; then
-          echo "✅ No secrets or sensitive data found!"
-        else
-          echo "❌ Found $found_issues potential security issues"
-          echo ""
-          echo "Please review and remove any sensitive data"
-          exit 1
-        fi
+      - task: markdown:default

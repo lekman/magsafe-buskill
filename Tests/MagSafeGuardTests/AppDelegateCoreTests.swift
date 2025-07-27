@@ -14,6 +14,9 @@ final class AppDelegateCoreTests: XCTestCase {
         // Disable notifications for testing
         NotificationService.disableForTesting = true
         
+        // Reset PowerMonitorService singleton state
+        PowerMonitorService.shared.resetForTesting()
+        
         mockSystemActions = MockSystemActions()
         mockSecurityActions = SecurityActionsService(systemActions: mockSystemActions)
         
@@ -30,6 +33,8 @@ final class AppDelegateCoreTests: XCTestCase {
         core = nil
         // Re-enable notifications after testing
         NotificationService.disableForTesting = false
+        // Reset PowerMonitorService singleton state
+        PowerMonitorService.shared.resetForTesting()
         super.tearDown()
     }
     
@@ -453,20 +458,29 @@ final class AppDelegateCoreTests: XCTestCase {
     // MARK: - Backward Compatibility Tests
     
     func testBackwardCompatibilityMethods() {
-        // Test updateMenuItems (deprecated method)
-        let menu = NSMenu()
-        core.updateMenuItems(in: menu)
-        // Should not crash - it's a no-op
+        // Run on main thread to avoid any threading issues with NSMenu
+        let expectation = self.expectation(description: "Backward compatibility test")
         
-        // Test handlePowerStateChange (deprecated method)
-        let powerInfo = PowerMonitorService.PowerInfo(
-            state: .disconnected,
-            batteryLevel: 50,
-            isCharging: false,
-            adapterWattage: 0,
-            timestamp: Date()
-        )
-        let handled = core.handlePowerStateChange(powerInfo)
-        XCTAssertFalse(handled) // Should always return false now
+        DispatchQueue.main.async {
+            // Test updateMenuItems (deprecated method)
+            let menu = NSMenu()
+            self.core.updateMenuItems(in: menu)
+            // Should not crash - it's a no-op
+            
+            // Test handlePowerStateChange (deprecated method)
+            let powerInfo = PowerMonitorService.PowerInfo(
+                state: .disconnected,
+                batteryLevel: 50,
+                isCharging: false,
+                adapterWattage: 0,
+                timestamp: Date()
+            )
+            let handled = self.core.handlePowerStateChange(powerInfo)
+            XCTAssertFalse(handled) // Should always return false now
+            
+            expectation.fulfill()
+        }
+        
+        waitForExpectations(timeout: 1.0)
     }
 }

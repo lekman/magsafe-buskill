@@ -322,7 +322,7 @@ jobs:
   #     uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
   #
   #   - name: Run Snyk to check for vulnerabilities
-  #     uses: snyk/actions/swift@master
+  #     uses: snyk/actions/swift@cdb760004ba9ea4d525f2e043745dfe85bb9077e # master
   #     env:
   #       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
   #     with:

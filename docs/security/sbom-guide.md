@@ -24,7 +24,7 @@ MagSafe Guard generates its SBOM in **SPDX 2.3** format, which is:
 
 ## Files Generated
 
-When you run `task sbom`, two files are created:
+When you run `task swift:sbom`, two files are created:
 
 ### 1. `sbom.spdx` (Primary SBOM)
 
@@ -56,11 +56,10 @@ brew install jq
 
 ```bash
 # Generate SBOM files
-task sbom
+task swift:sbom
 
-# Or if jq is not installed
-task sbom:install  # Installs dependencies
-task sbom         # Generate SBOM
+# Generate SBOM for Swift project
+task swift:sbom
 ```
 
 ### Verify SBOM
@@ -125,7 +124,7 @@ The SBOM should be regenerated with each release:
 ```yaml
 # In your CI workflow
 - name: Generate SBOM
-  run: task sbom
+  run: task swift:sbom
   
 - name: Upload SBOM artifacts
   uses: actions/upload-artifact@v3

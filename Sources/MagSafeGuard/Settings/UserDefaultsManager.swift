@@ -65,7 +65,7 @@ public class UserDefaultsManager: ObservableObject {
     /// This property is published and automatically triggers UI updates
     /// when settings change. Settings are validated and persisted
     /// automatically when modified through the manager's methods.
-    @Published public var settings: Settings
+    @Published public private(set) var settings: Settings
 
     private let userDefaults: UserDefaults
     private let encoder = JSONEncoder()
@@ -75,9 +75,9 @@ public class UserDefaultsManager: ObservableObject {
     // MARK: - Constants
 
     private enum Keys {
-        static let settings = "com.magsafeguard.settings"
-        static let settingsVersion = "com.magsafeguard.settings.version"
-        static let hasLaunchedBefore = "com.magsafeguard.hasLaunchedBefore"
+        static let settings = "com.lekman.magsafeguard.settings"
+        static let settingsVersion = "com.lekman.magsafeguard.settings.version"
+        static let hasLaunchedBefore = "com.lekman.magsafeguard.hasLaunchedBefore"
     }
 
     // MARK: - Initialization
@@ -100,8 +100,7 @@ public class UserDefaultsManager: ObservableObject {
             self.saveSettings()
         }
 
-        // Set up auto-save on changes
-        setupAutoSave()
+        // Auto-save disabled to prevent conflicts with SwiftUI bindings
 
         // Mark first launch
         if !userDefaults.bool(forKey: Keys.hasLaunchedBefore) {
@@ -194,24 +193,24 @@ public class UserDefaultsManager: ObservableObject {
 
     // MARK: - Private Methods
 
-    private func setupAutoSave() {
-        // Auto-save when settings change
-        $settings
-            .dropFirst() // Skip initial value
-            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.saveSettings()
-            }
-            .store(in: &cancellables)
-    }
-
     private func saveSettings() {
         do {
             let data = try encoder.encode(settings)
             userDefaults.set(data, forKey: Keys.settings)
             userDefaults.set(currentSettingsVersion, forKey: Keys.settingsVersion)
+
+            // Force synchronization to disk
+            userDefaults.synchronize()
         } catch {
-            print("[UserDefaultsManager] Failed to save settings: \(error)")
+            Log.error("Failed to save settings", error: error, category: .settings)
+            // Try to at least log what went wrong
+            if let encodingError = error as? EncodingError {
+                if case .invalidValue(let value, let context) = encodingError {
+                    Log.error("Invalid value \(value) at \(context.codingPath)", category: .settings)
+                } else {
+                    Log.error("Encoding error: \(encodingError)", category: .settings)
+                }
+            }
         }
     }
 
@@ -232,7 +231,7 @@ public class UserDefaultsManager: ObservableObject {
 
             return settings.validated()
         } catch {
-            print("[UserDefaultsManager] Failed to load settings: \(error)")
+            Log.error("Failed to load settings", error: error, category: .settings)
             return nil
         }
     }

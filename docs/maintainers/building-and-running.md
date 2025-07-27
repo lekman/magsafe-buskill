@@ -306,10 +306,10 @@ Generate an SBOM for security compliance and dependency tracking:
 
 ```bash
 # Generate SBOM in SPDX format
-task sbom
+task swift:sbom
 
-# Install dependencies if needed
-task sbom:install
+# Generate SBOM for the project
+task swift:sbom
 ```
 
 This creates:

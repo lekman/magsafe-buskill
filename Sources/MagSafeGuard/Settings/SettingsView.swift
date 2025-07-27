@@ -50,6 +50,7 @@ public struct SettingsView: View {
                 .tag(SettingsTab.general)
 
             SecuritySettingsView()
+                .environmentObject(settingsManager)
                 .tabItem {
                     Label(
                         SettingsTab.security.rawValue,
@@ -59,6 +60,7 @@ public struct SettingsView: View {
                 .tag(SettingsTab.security)
 
             AutoArmSettingsView()
+                .environmentObject(settingsManager)
                 .tabItem {
                     Label(
                         SettingsTab.autoArm.rawValue,
@@ -68,6 +70,7 @@ public struct SettingsView: View {
                 .tag(SettingsTab.autoArm)
 
             NotificationSettingsView()
+                .environmentObject(settingsManager)
                 .tabItem {
                     Label(
                         SettingsTab.notifications.rawValue,
@@ -77,6 +80,7 @@ public struct SettingsView: View {
                 .tag(SettingsTab.notifications)
 
             AdvancedSettingsView()
+                .environmentObject(settingsManager)
                 .tabItem {
                     Label(
                         SettingsTab.advanced.rawValue,
@@ -141,7 +145,10 @@ struct GeneralSettingsView: View {
                 .foregroundColor(.secondary)
 
             Slider(
-                value: $settingsManager.settings.gracePeriodDuration,
+                value: Binding(
+                    get: { settingsManager.settings.gracePeriodDuration },
+                    set: { settingsManager.updateSetting(\.gracePeriodDuration, value: $0) }
+                ),
                 in: 5...30,
                 step: 1
             )
@@ -157,7 +164,10 @@ struct GeneralSettingsView: View {
     }
 
     private var allowCancellationToggle: some View {
-        Toggle(isOn: $settingsManager.settings.allowGracePeriodCancellation) {
+        Toggle(isOn: Binding(
+            get: { settingsManager.settings.allowGracePeriodCancellation },
+            set: { settingsManager.updateSetting(\.allowGracePeriodCancellation, value: $0) }
+        )) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Allow Grace Period Cancellation")
                 Text("Permits canceling security actions during grace period")
@@ -171,7 +181,10 @@ struct GeneralSettingsView: View {
     }
 
     private var launchAtLoginToggle: some View {
-        Toggle(isOn: $settingsManager.settings.launchAtLogin) {
+        Toggle(isOn: Binding(
+            get: { settingsManager.settings.launchAtLogin },
+            set: { settingsManager.updateSetting(\.launchAtLogin, value: $0) }
+        )) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Launch at Login")
                 Text("Automatically start MagSafe Guard when you log in")
@@ -179,14 +192,13 @@ struct GeneralSettingsView: View {
                     .foregroundColor(.secondary)
             }
         }
-        .onChange(of: settingsManager.settings.launchAtLogin) { newValue in
-            // TODO: Implement launch at login functionality
-            print("[Settings] Launch at login: \(newValue)")
-        }
     }
 
     private var showInDockToggle: some View {
-        Toggle(isOn: $settingsManager.settings.showInDock) {
+        Toggle(isOn: Binding(
+            get: { settingsManager.settings.showInDock },
+            set: { settingsManager.updateSetting(\.showInDock, value: $0) }
+        )) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Show in Dock")
                 Text("Display application icon in dock (requires restart)")
@@ -264,7 +276,7 @@ struct SecuritySettingsView: View {
             Spacer()
 
             Button("Reset to Defaults") {
-                settingsManager.settings.securityActions = [.lockScreen, .unmountVolumes]
+                settingsManager.updateSetting(\.securityActions, value: [.lockScreen, .unmountVolumes])
             }
             .buttonStyle(.link)
         }
@@ -278,15 +290,19 @@ struct SecuritySettingsView: View {
     }
 
     private func moveSecurityActions(from source: IndexSet, to destination: Int) {
-        settingsManager.settings.securityActions.move(
+        var actions = settingsManager.settings.securityActions
+        actions.move(
             fromOffsets: source,
             toOffset: destination
         )
+        settingsManager.updateSetting(\.securityActions, value: actions)
     }
 
     private func addSecurityAction(_ action: SecurityActionType) {
         withAnimation {
-            settingsManager.settings.securityActions.append(action)
+            var actions = settingsManager.settings.securityActions
+            actions.append(action)
+            settingsManager.updateSetting(\.securityActions, value: actions)
         }
     }
 }
@@ -334,19 +350,31 @@ struct SecurityActionRow: View {
 struct AutoArmSettingsView: View {
     @EnvironmentObject var settingsManager: UserDefaultsManager
     @State private var newNetwork = ""
+    @State private var showingLocationManager = false
+    @State private var showingAutoArmInfo = false
 
     var body: some View {
         Form {
             autoArmToggleSection
             autoArmTriggersSection
+            trustedLocationsSection
             trustedNetworksSection
+            autoArmStatusSection
         }
         .formStyle(.grouped)
+        .sheet(isPresented: $showingLocationManager) {
+            if let autoArmManager = getAutoArmManager() {
+                TrustedLocationsView(autoArmManager: autoArmManager)
+            }
+        }
     }
 
     private var autoArmToggleSection: some View {
         Section {
-            Toggle(isOn: $settingsManager.settings.autoArmEnabled) {
+            Toggle(isOn: Binding(
+                get: { settingsManager.settings.autoArmEnabled },
+                set: { settingsManager.updateSetting(\.autoArmEnabled, value: $0) }
+            )) {
                 autoArmToggleLabel
             }
             .padding(.vertical, 4)
@@ -355,15 +383,44 @@ struct AutoArmSettingsView: View {
 
     private var autoArmTriggersSection: some View {
         Section(header: Text("Auto-Arm Triggers")) {
-            Toggle(isOn: $settingsManager.settings.autoArmByLocation) {
+            Toggle(isOn: Binding(
+                get: { settingsManager.settings.autoArmByLocation },
+                set: { settingsManager.updateSetting(\.autoArmByLocation, value: $0) }
+            )) {
                 locationBasedToggleLabel
             }
             .disabled(!settingsManager.settings.autoArmEnabled)
 
-            Toggle(isOn: $settingsManager.settings.autoArmOnUntrustedNetwork) {
+            Toggle(isOn: Binding(
+                get: { settingsManager.settings.autoArmOnUntrustedNetwork },
+                set: { settingsManager.updateSetting(\.autoArmOnUntrustedNetwork, value: $0) }
+            )) {
                 untrustedNetworkToggleLabel
             }
             .disabled(!settingsManager.settings.autoArmEnabled)
+        }
+    }
+
+    private var trustedLocationsSection: some View {
+        Section(header: Text("Trusted Locations")) {
+            Button {
+                showingLocationManager = true
+            } label: {
+                trustedLocationsButtonLabel
+            }
+            .disabled(!settingsManager.settings.autoArmEnabled || !settingsManager.settings.autoArmByLocation)
+        }
+    }
+
+    private var trustedLocationsButtonLabel: some View {
+        HStack {
+            Image(systemName: "location.circle")
+                .foregroundColor(.accentColor)
+            Text("Manage Trusted Locations")
+            Spacer()
+            Image(systemName: "chevron.right")
+                .foregroundColor(.secondary)
+                .font(.caption)
         }
     }
 
@@ -429,7 +486,9 @@ struct AutoArmSettingsView: View {
 
     private func addTrustedNetwork() {
         if !newNetwork.isEmpty {
-            settingsManager.settings.trustedNetworks.append(newNetwork)
+            var networks = settingsManager.settings.trustedNetworks
+            networks.append(newNetwork)
+            settingsManager.updateSetting(\.trustedNetworks, value: networks)
             newNetwork = ""
         }
     }
@@ -458,7 +517,62 @@ struct AutoArmSettingsView: View {
     }
 
     private func removeTrustedNetwork(_ network: String) {
-        settingsManager.settings.trustedNetworks.removeAll { $0 == network }
+        var networks = settingsManager.settings.trustedNetworks
+        networks.removeAll { $0 == network }
+        settingsManager.updateSetting(\.trustedNetworks, value: networks)
+    }
+
+    private var autoArmStatusSection: some View {
+        Section(header: Text("Auto-Arm Status")) {
+            autoArmStatusContent
+        }
+        .disabled(!settingsManager.settings.autoArmEnabled)
+    }
+
+    @ViewBuilder
+    private var autoArmStatusContent: some View {
+        if let autoArmManager = getAutoArmManager() {
+            VStack(alignment: .leading, spacing: 8) {
+                autoArmStatusRow(autoArmManager)
+                autoArmActionButton(autoArmManager)
+            }
+            .padding(.vertical, 4)
+        } else {
+            Text("Auto-arm service not available")
+                .foregroundColor(.secondary)
+        }
+    }
+
+    private func autoArmStatusRow(_ autoArmManager: AutoArmManager) -> some View {
+        HStack {
+            Image(systemName: autoArmManager.isAutoArmConditionMet ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                .foregroundColor(autoArmManager.isAutoArmConditionMet ? .orange : .green)
+            Text(autoArmManager.statusSummary)
+                .font(.body)
+        }
+    }
+
+    @ViewBuilder
+    private func autoArmActionButton(_ autoArmManager: AutoArmManager) -> some View {
+        if autoArmManager.isTemporarilyDisabled {
+            Button("Cancel Temporary Disable") {
+                autoArmManager.cancelTemporaryDisable()
+            }
+            .buttonStyle(.link)
+        } else if settingsManager.settings.autoArmEnabled {
+            Button("Temporarily Disable (1 hour)") {
+                autoArmManager.temporarilyDisable(for: 3600)
+            }
+            .buttonStyle(.link)
+        }
+    }
+
+    private func getAutoArmManager() -> AutoArmManager? {
+        // Get the AppController instance from the app delegate
+        if let appDelegate = NSApp.delegate as? AppDelegate {
+            return appDelegate.core.appController.getAutoArmManager()
+        }
+        return nil
     }
 }
 
@@ -478,7 +592,10 @@ struct NotificationSettingsView: View {
 
     private var statusNotificationsSection: some View {
         Section(header: Text("Status Notifications")) {
-            Toggle(isOn: $settingsManager.settings.showStatusNotifications) {
+            Toggle(isOn: Binding(
+                get: { settingsManager.settings.showStatusNotifications },
+                set: { settingsManager.updateSetting(\.showStatusNotifications, value: $0) }
+            )) {
                 statusNotificationToggleLabel
             }
         }
@@ -486,7 +603,10 @@ struct NotificationSettingsView: View {
 
     private var alertSettingsSection: some View {
         Section(header: Text("Alert Settings")) {
-            Toggle(isOn: $settingsManager.settings.playCriticalAlertSound) {
+            Toggle(isOn: Binding(
+                get: { settingsManager.settings.playCriticalAlertSound },
+                set: { settingsManager.updateSetting(\.playCriticalAlertSound, value: $0) }
+            )) {
                 alertSoundToggleLabel
             }
         }
@@ -591,7 +711,7 @@ struct AdvancedSettingsView: View {
                 )
             }
         } catch {
-            print("[Settings] Export failed: \(error)")
+            Log.error("Export failed", error: error, category: .settings)
         }
     }
 
@@ -609,7 +729,10 @@ struct AdvancedSettingsView: View {
 
     private var debugSection: some View {
         Section(header: Text("Debug")) {
-            Toggle(isOn: $settingsManager.settings.debugLoggingEnabled) {
+            Toggle(isOn: Binding(
+                get: { settingsManager.settings.debugLoggingEnabled },
+                set: { settingsManager.updateSetting(\.debugLoggingEnabled, value: $0) }
+            )) {
                 debugLoggingToggleLabel
             }
         }
@@ -662,7 +785,7 @@ struct AdvancedSettingsView: View {
 
     private func addCustomScript() {
         // TODO: Implement file picker for scripts
-        print("[Settings] Add custom script")
+        Log.info("Add custom script", category: .settings)
     }
 
     private var customScriptsList: some View {
@@ -691,7 +814,9 @@ struct AdvancedSettingsView: View {
     }
 
     private func removeCustomScript(_ script: String) {
-        settingsManager.settings.customScripts.removeAll { $0 == script }
+        var scripts = settingsManager.settings.customScripts
+        scripts.removeAll { $0 == script }
+        settingsManager.updateSetting(\.customScripts, value: scripts)
     }
 
     private func handleSavePanelResponse(
@@ -704,7 +829,7 @@ struct AdvancedSettingsView: View {
                 try data.write(to: url)
                 showingExportSuccess = true
             } catch {
-                print("[Settings] Export failed: \(error)")
+                Log.error("Export failed", error: error, category: .settings)
             }
         }
     }
@@ -717,10 +842,10 @@ struct AdvancedSettingsView: View {
                 let data = try Data(contentsOf: url)
                 try settingsManager.importSettings(from: data)
             } catch {
-                print("[Settings] Import failed: \(error)")
+                Log.error("Import failed", error: error, category: .settings)
             }
         case .failure(let error):
-            print("[Settings] Import cancelled: \(error)")
+            Log.info("Import cancelled: \(error)", category: .settings)
         }
     }
 }

@@ -11,6 +11,7 @@ This directory contains archived documentation from completed features and pull 
 - [pr.feature-power-monitoring.md](pr.feature-power-monitoring.md) - Power monitoring service implementation
 - [pr.menu-bar-ui.md](pr.menu-bar-ui.md) - Menu bar UI component implementation
 - [pr.security-service.md](pr.security-service.md) - Security actions service implementation
+- [pr.settings-ui.md](pr.settings-ui.md) - Settings UI and persistence implementation
 
 ### Project Setup PRs
 

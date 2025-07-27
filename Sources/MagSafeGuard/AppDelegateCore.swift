@@ -289,9 +289,9 @@ extension AppDelegate {
     @objc func showEventLog() {
         // TODO: Implement event log window
         let events = core.appController.getEventLog(limit: 50)
-        print("=== Event Log ===")
+        Log.info("=== Event Log ===")
         for event in events {
-            print("[\(event.timestamp)] \(event.event.rawValue) - \(event.details ?? "No details")")
+            Log.info("[\(event.timestamp)] \(event.event.rawValue) - \(event.details ?? "No details")")
         }
     }
 }

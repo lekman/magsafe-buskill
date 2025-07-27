@@ -25,20 +25,30 @@ public class MacSystemActions: SystemActionsProtocol {
         let bashPath: String
 
         /// Default system paths for macOS standard locations
-        public static let `default` = SystemPaths(
-            pmsetPath: "/usr/bin/pmset",
-            osascriptPath: "/usr/bin/osascript",
-            killallPath: "/usr/bin/killall",
-            sudoPath: "/usr/bin/sudo",
-            bashPath: "/bin/bash"
+        /// These can be overridden via environment variables for testing or custom configurations
+        public static let standard = SystemPaths(
+            pmsetPath: ProcessInfo.processInfo.environment["MAGSAFE_PMSET_PATH"] ?? "/usr/bin/pmset",
+            osascriptPath: ProcessInfo.processInfo.environment["MAGSAFE_OSASCRIPT_PATH"] ?? "/usr/bin/osascript",
+            killallPath: ProcessInfo.processInfo.environment["MAGSAFE_KILLALL_PATH"] ?? "/usr/bin/killall",
+            sudoPath: ProcessInfo.processInfo.environment["MAGSAFE_SUDO_PATH"] ?? "/usr/bin/sudo",
+            bashPath: ProcessInfo.processInfo.environment["MAGSAFE_BASH_PATH"] ?? "/bin/bash"
         )
+
+        /// Initialize with custom paths
+        public init(pmsetPath: String, osascriptPath: String, killallPath: String, sudoPath: String, bashPath: String) {
+            self.pmsetPath = pmsetPath
+            self.osascriptPath = osascriptPath
+            self.killallPath = killallPath
+            self.sudoPath = sudoPath
+            self.bashPath = bashPath
+        }
     }
 
     private let systemPaths: SystemPaths
 
     /// Initialize with custom system paths for testing
     /// - Parameter systemPaths: Custom paths to system utilities
-    public init(systemPaths: SystemPaths = .default) {
+    public init(systemPaths: SystemPaths = .standard) {
         self.systemPaths = systemPaths
     }
 
@@ -71,7 +81,7 @@ public class MacSystemActions: SystemActionsProtocol {
                 throw SystemActionError.screenLockFailed
             }
         } catch {
-            print("[MacSystemActions] Screen lock failed: \(error)")
+            Log.error("Screen lock failed", error: error, category: .security)
             throw SystemActionError.screenLockFailed
         }
     }
@@ -99,7 +109,7 @@ public class MacSystemActions: SystemActionsProtocol {
             alarmPlayer?.numberOfLoops = -1 // Loop indefinitely
             alarmPlayer?.play()
         } catch {
-            print("[MacSystemActions] Failed to play alarm sound: \(error)")
+            Log.error("Failed to play alarm sound", error: error, category: .security)
             // Fallback to system beep
             NSSound.beep()
             throw SystemActionError.alarmPlaybackFailed
@@ -128,7 +138,7 @@ public class MacSystemActions: SystemActionsProtocol {
                 throw SystemActionError.logoutFailed
             }
         } catch {
-            print("[MacSystemActions] Force logout failed: \(error)")
+            Log.error("Force logout failed", error: error, category: .security)
             throw SystemActionError.logoutFailed
         }
     }
@@ -159,7 +169,7 @@ public class MacSystemActions: SystemActionsProtocol {
                 }
             }
         } catch {
-            print("[MacSystemActions] Shutdown failed: \(error)")
+            Log.error("Shutdown failed", error: error, category: .security)
             throw SystemActionError.shutdownFailed
         }
     }
@@ -187,7 +197,7 @@ public class MacSystemActions: SystemActionsProtocol {
             if let systemError = error as? SystemActionError {
                 throw systemError
             }
-            print("[MacSystemActions] Custom script execution failed: \(error)")
+            Log.error("Custom script execution failed", error: error, category: .security)
             throw SystemActionError.scriptExecutionFailed(exitCode: -1)
         }
     }

@@ -15,10 +15,12 @@ final class PowerMonitorServiceTests: XCTestCase {
     override func setUp() {
         super.setUp()
         service = PowerMonitorService.shared
+        // Ensure clean state before each test
+        service.resetForTesting()
     }
     
     override func tearDown() {
-        service.stopMonitoring()
+        service.resetForTesting()
         super.tearDown()
     }
     
@@ -185,11 +187,11 @@ final class PowerMonitorServiceTests: XCTestCase {
         let powerInfo = service.getCurrentPowerInfo()
         
         if let info = powerInfo {
-            // These properties might be nil depending on the test environment
-            print("Power state: \(info.state)")
-            print("Battery level: \(info.batteryLevel ?? -1)")
-            print("Is charging: \(info.isCharging)")
-            print("Adapter wattage: \(info.adapterWattage ?? 0)")
+            // Log power info details for debugging
+            Log.debug("Power state: \(info.state)", category: .powerMonitor)
+            Log.debug("Battery level: \(info.batteryLevel ?? -1)", category: .powerMonitor)
+            Log.debug("Is charging: \(info.isCharging)", category: .powerMonitor)
+            Log.debug("Adapter wattage: \(info.adapterWattage ?? 0)", category: .powerMonitor)
         }
         
         XCTAssertNotNil(powerInfo)

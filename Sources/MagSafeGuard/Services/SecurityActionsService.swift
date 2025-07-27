@@ -39,9 +39,9 @@ import Foundation
 /// ```swift
 /// SecurityActionsService.shared.executeActions { result in
 ///     if result.allSucceeded {
-///         print("All security actions completed successfully")
+///         Log.info("All security actions completed successfully")
 ///     } else {
-///         print("\(result.failedActions.count) actions failed")
+///         Log.error("\(result.failedActions.count) actions failed")
 ///     }
 /// }
 /// ```
@@ -239,7 +239,7 @@ public class SecurityActionsService {
     ///   calls while executing are ignored to prevent conflicts.
     public func executeActions(completion: @escaping (ExecutionResult) -> Void) {
         guard trySetExecuting() else {
-            print("[SecurityActionsService] Actions already executing, ignoring request")
+            Log.warning("Actions already executing, ignoring request", category: .security)
             return
         }
 
@@ -298,7 +298,7 @@ public class SecurityActionsService {
     /// Apply configured delay before executing actions
     private func applyActionDelay() {
         if configuration.actionDelay > 0 {
-            print("[SecurityActionsService] Waiting \(configuration.actionDelay)s before executing actions")
+            Log.info("Waiting \(configuration.actionDelay)s before executing actions", category: .security)
             Thread.sleep(forTimeInterval: configuration.actionDelay)
         }
     }
@@ -368,7 +368,7 @@ public class SecurityActionsService {
                 executedActions.append(action)
             } catch {
                 failedActions.append((action, error))
-                print("[SecurityActionsService] Failed to execute \(action): \(error)")
+                Log.error("Failed to execute \(action)", error: error, category: .security)
             }
         }
 
@@ -421,7 +421,7 @@ public class SecurityActionsService {
     // MARK: - Private Methods
 
     private func executeAction(_ action: SecurityAction) throws {
-        print("[SecurityActionsService] Executing action: \(action.displayName)")
+        Log.info("Executing action: \(action.displayName)", category: .security)
 
         switch action {
         case .screenLock:

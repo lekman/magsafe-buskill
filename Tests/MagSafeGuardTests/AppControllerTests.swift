@@ -27,6 +27,9 @@ final class AppControllerTests: XCTestCase {
         // Disable notifications for testing
         NotificationService.disableForTesting = true
         
+        // Disable auto-arm for testing to avoid location permission issues
+        AppController.isTestEnvironment = true
+        
         mockAuthService = MockAuthenticationService()
         mockSecurityActions = MockSystemActions()
         mockNotificationService = MockNotificationService()
@@ -47,6 +50,9 @@ final class AppControllerTests: XCTestCase {
         
         // Re-enable notifications after testing
         NotificationService.disableForTesting = false
+        
+        // Reset test environment flag
+        AppController.isTestEnvironment = false
         
         super.tearDown()
     }
@@ -341,16 +347,9 @@ final class AppControllerTests: XCTestCase {
         // Clear log
         sut.clearEventLog()
         
-        // Give async clear time to complete
-        let clearExpectation = expectation(description: "Clear log")
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            events = self.sut.getEventLog()
-            XCTAssertTrue(events.isEmpty)
-            clearExpectation.fulfill()
-        }
-        
-        waitForExpectations(timeout: 0.5)
+        // Check immediately since clearEventLog is now synchronous
+        events = sut.getEventLog()
+        XCTAssertTrue(events.isEmpty, "Event log should be empty after clearing")
     }
     
     // MARK: - Demo Mode Tests

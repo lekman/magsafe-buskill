@@ -514,8 +514,13 @@ dev-debug.log
 
 # Task files
 tasks.json
-tasks/ 
+.taskmaster
+.task/
 
 # Local SBOM files
 sbom-deps.json
 .task/checksum/sbom
+
+# SonarCloud local scan results
+.sonarcloud/
+.scannerwork/
