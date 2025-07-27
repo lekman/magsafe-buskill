@@ -110,10 +110,10 @@ Need help or found an issue? We're here to assist:
 
    Since MagSafe Guard is a menu bar app, it requires special handling in Xcode:
 
-   1. **Run the app first:**
+   1. **Run the app in debug mode first:**
 
       ```bash
-      task run
+      task run:debug
       ```
 
    2. **Attach debugger from Xcode:**
@@ -122,12 +122,6 @@ Need help or found an issue? We're here to assist:
       - Once the app is running, go to **Debug → Attach to Process**
       - Select **MagSafeGuard** from the list
       - Now you can set breakpoints and debug normally
-
-   3. **Alternative: Debug mode with console output:**
-
-      ```bash
-      task run:debug
-      ```
 
       This shows detailed logs in the terminal for troubleshooting.
 
@@ -143,18 +137,6 @@ task test
 task test:coverage
 ```
 
-**In Xcode:**
-
-- Open the package: `open Package.swift`
-- Use Test Navigator (`⌘5`)
-- Press `⌘U` to run all tests
-
-**Testing Power Detection:**
-
-- Run the app: `task run`
-- Click the menu bar icon → Demo
-- Use the demo window to simulate power events
-
 **For CI/CD Automation:**
 
 The following tasks are used to run testing and quality assurance prior to opening a pull request:
@@ -165,6 +147,8 @@ task qa:quick      # Quick checks (for git hooks)
 task qa:fix        # Auto-fix all fixable issues
 task qa:full       # Full QA with SonarCloud
 ```
+
+Tests are required to pass in our CI/CD approval flow. For more information, see the [CI/CD Workflows Documentation](docs/devops/ci-cd-workflows.md).
 
 ## System Requirements
 
