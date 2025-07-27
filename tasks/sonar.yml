@@ -65,13 +65,16 @@ tasks:
           echo "⚠️  No coverage.xml found. Running scan without coverage data."
         fi
 
-        # Run sonar-scanner
+        # Run sonar-scanner with performance optimizations
         echo "🚀 Running SonarCloud analysis..."
+        echo "📊 Scanning only Swift source files in Sources/ and Tests/"
 
-        # Full analysis with upload to SonarCloud
+        # Full analysis with upload to SonarCloud and performance optimizations
         sonar-scanner \
           -Dsonar.host.url=https://sonarcloud.io \
           -Dsonar.token=$SONAR_TOKEN \
+          -Dsonar.scanner.metadataFilePath={{.REPORT_PATH}}/report-task.txt \
+          -Dsonar.working.directory={{.REPORT_PATH}}/.scannerwork \
           2>&1 | tee {{.REPORT_PATH}}/sonar-scanner.log
 
         # Check result
