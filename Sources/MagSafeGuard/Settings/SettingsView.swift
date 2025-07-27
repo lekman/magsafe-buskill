@@ -214,6 +214,7 @@ struct GeneralSettingsView: View {
 struct SecuritySettingsView: View {
     @EnvironmentObject var settingsManager: UserDefaultsManager
     @State private var selectedActions = Set<SecurityActionType>()
+    @State private var showingEvidenceSettings = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -223,12 +224,17 @@ struct SecuritySettingsView: View {
 
             // Action List
             List {
+                evidenceCollectionSection
                 enabledActionsSection
                 availableActionsSection
             }
             .listStyle(.inset)
 
             securityActionsFooter
+        }
+        .sheet(isPresented: $showingEvidenceSettings) {
+            SecurityEvidenceSettingsView()
+                .environmentObject(settingsManager)
         }
     }
 
@@ -242,6 +248,40 @@ struct SecuritySettingsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
+    }
+
+    private var evidenceCollectionSection: some View {
+        Section(header: Text("Evidence Collection")) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Image(systemName: "camera.fill")
+                            .foregroundColor(.orange)
+                        Text("Evidence Collection")
+                            .font(.headline)
+                    }
+                    Text("Capture location and photos when theft is detected")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                Toggle("", isOn: Binding(
+                    get: { settingsManager.settings.evidenceCollectionEnabled },
+                    set: { settingsManager.updateSetting(\.evidenceCollectionEnabled, value: $0) }
+                ))
+                    .toggleStyle(.switch)
+            }
+            .padding(.vertical, 4)
+            
+            if settingsManager.settings.evidenceCollectionEnabled {
+                Button("Configure Evidence Collection...") {
+                    showingEvidenceSettings = true
+                }
+                .buttonStyle(.link)
+            }
+        }
     }
 
     private var enabledActionsSection: some View {

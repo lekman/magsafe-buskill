@@ -162,6 +162,20 @@ public struct Settings: Codable, Equatable {
     ///
     /// Debug logs may contain sensitive information and should be disabled in production.
     public var debugLoggingEnabled: Bool = false
+    
+    // MARK: - Evidence Collection Settings
+    
+    /// Whether evidence collection is enabled.
+    ///
+    /// When enabled, the system will capture location data and photos when
+    /// a theft is detected. This requires camera and location permissions.
+    public var evidenceCollectionEnabled: Bool = false
+    
+    /// Email address for evidence backup.
+    ///
+    /// If configured, collected evidence will be sent to this email address
+    /// in addition to being stored locally.
+    public var backupEmailAddress: String = ""
 
     // MARK: - Validation
 

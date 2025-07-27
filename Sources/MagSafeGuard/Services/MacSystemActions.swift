@@ -30,20 +30,31 @@ public class MacSystemActions: SystemActionsProtocol {
         private static let killallPathEnvVar = "MAGSAFE_KILLALL_PATH"
         private static let sudoPathEnvVar = "MAGSAFE_SUDO_PATH"
         private static let bashPathEnvVar = "MAGSAFE_BASH_PATH"
+        private static let basePathEnvVar = "MAGSAFE_BASE_PATH"
+        private static let bashBasePathEnvVar = "MAGSAFE_BASH_BASE_PATH"
 
         /// System utility configuration with default paths
         /// These paths are fully customizable via environment variables
         private struct UtilityConfig {
-            static let basePath = "/usr/bin"
-            static let bashBasePath = "/bin"
+            /// Get base path from environment or use default
+            static var basePath: String {
+                ProcessInfo.processInfo.environment[basePathEnvVar] ?? "/usr/bin"
+            }
             
-            static let utilities: [String: (envVar: String, defaultPath: String)] = [
-                "pmset": (pmsetPathEnvVar, "\(basePath)/pmset"),
-                "osascript": (osascriptPathEnvVar, "\(basePath)/osascript"),
-                "killall": (killallPathEnvVar, "\(basePath)/killall"),
-                "sudo": (sudoPathEnvVar, "\(basePath)/sudo"),
-                "bash": (bashPathEnvVar, "\(bashBasePath)/bash")
-            ]
+            /// Get bash base path from environment or use default
+            static var bashBasePath: String {
+                ProcessInfo.processInfo.environment[bashBasePathEnvVar] ?? "/bin"
+            }
+            
+            static var utilities: [String: (envVar: String, defaultPath: String)] {
+                [
+                    "pmset": (pmsetPathEnvVar, "\(basePath)/pmset"),
+                    "osascript": (osascriptPathEnvVar, "\(basePath)/osascript"),
+                    "killall": (killallPathEnvVar, "\(basePath)/killall"),
+                    "sudo": (sudoPathEnvVar, "\(basePath)/sudo"),
+                    "bash": (bashPathEnvVar, "\(bashBasePath)/bash")
+                ]
+            }
         }
         
         /// Get default system paths from configuration
@@ -62,6 +73,21 @@ public class MacSystemActions: SystemActionsProtocol {
             sudoPath: getDefaultPath(for: "sudo"),
             bashPath: getDefaultPath(for: "bash")
         )
+        
+        /// Create system paths with custom base directories
+        /// - Parameters:
+        ///   - basePath: Base path for most utilities (default: "/usr/bin")
+        ///   - bashBasePath: Base path for bash (default: "/bin")
+        /// - Returns: SystemPaths configured with the custom base paths
+        public static func withBasePaths(basePath: String = "/usr/bin", bashBasePath: String = "/bin") -> SystemPaths {
+            return SystemPaths(
+                pmsetPath: "\(basePath)/pmset",
+                osascriptPath: "\(basePath)/osascript",
+                killallPath: "\(basePath)/killall",
+                sudoPath: "\(basePath)/sudo",
+                bashPath: "\(bashBasePath)/bash"
+            )
+        }
 
         /// Initialize with custom paths
         public init(pmsetPath: String, osascriptPath: String, killallPath: String, sudoPath: String, bashPath: String) {
@@ -79,6 +105,16 @@ public class MacSystemActions: SystemActionsProtocol {
     /// - Parameter systemPaths: Custom paths to system utilities
     public init(systemPaths: SystemPaths = .standard) {
         self.systemPaths = systemPaths
+    }
+    
+    /// Initialize with custom base paths
+    /// - Parameters:
+    ///   - basePath: Base path for most utilities (default: "/usr/bin" or from MAGSAFE_BASE_PATH env var)
+    ///   - bashBasePath: Base path for bash (default: "/bin" or from MAGSAFE_BASH_BASE_PATH env var)
+    public convenience init(basePath: String? = nil, bashBasePath: String? = nil) {
+        let effectiveBasePath = basePath ?? ProcessInfo.processInfo.environment["MAGSAFE_BASE_PATH"] ?? "/usr/bin"
+        let effectiveBashBasePath = bashBasePath ?? ProcessInfo.processInfo.environment["MAGSAFE_BASH_BASE_PATH"] ?? "/bin"
+        self.init(systemPaths: .withBasePaths(basePath: effectiveBasePath, bashBasePath: effectiveBashBasePath))
     }
 
     /// Locks the screen using distributed notification center

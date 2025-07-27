@@ -108,6 +108,10 @@ public struct EventLogEntry {
 /// All public methods are thread-safe and coordinate through the main queue
 /// for UI updates and state changes.
 public class AppController: ObservableObject {
+    
+    // MARK: - Constants
+    
+    private static let appName = "MagSafe Guard"
 
     // MARK: - Published Properties
 
@@ -243,7 +247,7 @@ public class AppController: ObservableObject {
                 self.onNotification?("MagSafe Guard Armed", "Protection is now active")
 
                 // Accessibility announcement
-                AccessibilityAnnouncement.announceStateChange(component: "MagSafe Guard", newState: "armed")
+                AccessibilityAnnouncement.announceStateChange(component: AppController.appName, newState: "armed")
 
                 completion(.success(()))
 
@@ -285,7 +289,7 @@ public class AppController: ObservableObject {
                 self.onNotification?("MagSafe Guard Disarmed", "Protection is now inactive")
 
                 // Accessibility announcement
-                AccessibilityAnnouncement.announceStateChange(component: "MagSafe Guard", newState: "disarmed")
+                AccessibilityAnnouncement.announceStateChange(component: AppController.appName, newState: "disarmed")
 
                 completion(.success(()))
 
@@ -440,6 +444,17 @@ public class AppController: ObservableObject {
     private func executeSecurityActions() {
         transitionToState(.triggered)
         cancelGracePeriod()
+        
+        // Check if evidence collection is enabled
+        if UserDefaultsManager.shared.settings.evidenceCollectionEnabled {
+            let evidenceService = SecurityEvidenceService()
+            do {
+                try evidenceService.collectEvidence(reason: "Power disconnection detected - potential theft")
+                logEventInternal(.securityActionExecuted, details: "Evidence collection initiated")
+            } catch {
+                Log.error("Failed to collect evidence", error: error, category: .security)
+            }
+        }
 
         securityActions.executeActions { [weak self] result in
             guard let self = self else { return }

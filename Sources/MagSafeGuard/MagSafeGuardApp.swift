@@ -107,8 +107,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Configure status item accessibility
         if let button = statusItem?.button {
-            button.setAccessibilityLabel("MagSafe Guard")
-            button.setAccessibilityHelp("Click to open MagSafe Guard menu. Current status: \(core.appController.statusDescription)")
+            button.setAccessibilityLabel(AppDelegate.appName)
+            button.setAccessibilityHelp("Click to open \(AppDelegate.appName) menu. Current status: \(core.appController.statusDescription)")
             button.setAccessibilityRole(.menuButton)
         }
 
@@ -157,13 +157,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.contentTintColor = nil
 
             // Update accessibility properties to reflect current state
-            button.setAccessibilityLabel("MagSafe Guard")
+            button.setAccessibilityLabel(AppDelegate.appName)
             button.setAccessibilityValue(statusDescription)
-            button.setAccessibilityHelp("Click to open MagSafe Guard menu. Current status: \(statusDescription)")
+            button.setAccessibilityHelp("Click to open \(AppDelegate.appName) menu. Current status: \(statusDescription)")
 
             // Announce state changes if VoiceOver is enabled
             if AccessibilityManager.shared.isVoiceOverEnabled {
-                AccessibilityAnnouncement.announceStateChange(component: "MagSafe Guard status", newState: statusDescription)
+                AccessibilityAnnouncement.announceStateChange(component: "\(AppDelegate.appName) status", newState: statusDescription)
             }
         }
     }

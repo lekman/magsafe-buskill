@@ -155,11 +155,11 @@ public class AppDelegateCore {
 
         // Arm/Disarm item with accessibility
         let armTitle = appController.armDisarmMenuTitle
-        let isArmed = appController.currentState == .armed || appController.currentState == .gracePeriod
+        let isCurrentlyArmed = appController.currentState == .armed || appController.currentState == .gracePeriod
         let armItem = NSMenuItem.accessibleMenuItem(
             title: armTitle,
             accessibilityLabel: armTitle,
-            hint: isArmed ? "Disarm the security system to stop protection" : "Arm the security system to enable protection",
+            hint: isCurrentlyArmed ? "Disarm the security system to stop protection" : "Arm the security system to enable protection",
             keyEquivalent: "a",
             action: #selector(AppDelegate.toggleArmed)
         )

@@ -34,5 +34,7 @@
     <string>MagSafe Guard uses your location to identify trusted locations where auto-arm should be disabled.</string>
     <key>NSUserNotificationsUsageDescription</key>
     <string>MagSafe Guard sends notifications about security events and status changes.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>MagSafe Guard can capture photos as evidence when a theft is detected to help identify the thief. This feature is optional and only activates when you enable evidence collection in settings.</string>
 </dict>
 </plist>
