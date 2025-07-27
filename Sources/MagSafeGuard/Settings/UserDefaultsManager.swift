@@ -75,9 +75,9 @@ public class UserDefaultsManager: ObservableObject {
     // MARK: - Constants
 
     private enum Keys {
-        static let settings = "com.magsafeguard.settings"
-        static let settingsVersion = "com.magsafeguard.settings.version"
-        static let hasLaunchedBefore = "com.magsafeguard.hasLaunchedBefore"
+        static let settings = "com.lekman.magsafeguard.settings"
+        static let settingsVersion = "com.lekman.magsafeguard.settings.version"
+        static let hasLaunchedBefore = "com.lekman.magsafeguard.hasLaunchedBefore"
     }
 
     // MARK: - Initialization
@@ -211,8 +211,20 @@ public class UserDefaultsManager: ObservableObject {
             let data = try encoder.encode(settings)
             userDefaults.set(data, forKey: Keys.settings)
             userDefaults.set(currentSettingsVersion, forKey: Keys.settingsVersion)
+
+            // Force synchronization to disk
+            userDefaults.synchronize()
         } catch {
             Log.error("Failed to save settings", error: error, category: .settings)
+            // Try to at least log what went wrong
+            if let encodingError = error as? EncodingError {
+                switch encodingError {
+                case .invalidValue(let value, let context):
+                    Log.error("Invalid value \(value) at \(context.codingPath)", category: .settings)
+                default:
+                    Log.error("Encoding error: \(encodingError)", category: .settings)
+                }
+            }
         }
     }
 

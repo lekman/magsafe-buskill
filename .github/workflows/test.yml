@@ -93,7 +93,7 @@ jobs:
           rm -rf .build
 
       - name: Run tests with coverage
-        run: swift test --enable-code-coverage
+        run: swift test --enable-code-coverage --parallel --num-workers 1
 
       # Convert Swift coverage to SonarQube generic XML format
       - name: Generate coverage report

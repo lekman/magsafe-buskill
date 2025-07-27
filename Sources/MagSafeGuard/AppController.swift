@@ -326,7 +326,7 @@ public class AppController: ObservableObject {
 
     /// Clears the event log
     public func clearEventLog() {
-        eventLogQueue.async { [weak self] in
+        eventLogQueue.sync { [weak self] in
             self?.eventLog.removeAll()
         }
     }

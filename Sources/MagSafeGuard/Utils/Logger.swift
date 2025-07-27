@@ -28,7 +28,13 @@ public struct Log {
 
     // MARK: - Private Properties
 
-    private static let fileLogger = FileLogger()
+    private static let fileLogger: FileLogger? = {
+        // Skip file logging in test environment to prevent crashes
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            return nil
+        }
+        return FileLogger()
+    }()
 
     // MARK: - Public Methods
 
@@ -100,7 +106,7 @@ public struct Log {
         }
 
         // Also log errors to file
-        fileLogger.logError(fullMessage, category: category)
+        fileLogger?.logError(fullMessage, category: category)
     }
 
     /// Log critical failures (also saved to file)
@@ -115,13 +121,13 @@ public struct Log {
         }
 
         // Also log critical errors to file
-        fileLogger.logError(fullMessage, category: category, level: "CRITICAL")
+        fileLogger?.logError(fullMessage, category: category, level: "CRITICAL")
     }
 
     /// Log faults/crashes (also saved to file)
     public static func fault(_ message: String, category: LogCategory = .general) {
         category.logger.fault("\(message, privacy: .public)")
-        fileLogger.logError(message, category: category, level: "FAULT")
+        fileLogger?.logError(message, category: category, level: "FAULT")
     }
 
     // MARK: - Privacy-Aware Logging
@@ -181,7 +187,13 @@ public enum LogCategory {
     }
 
     /// The app's subsystem identifier
-    private static let subsystem = Bundle.main.bundleIdentifier ?? "com.lekman.MagSafeGuard"
+    private static let subsystem: String = {
+        // Use a safe default during testing
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            return "com.lekman.MagSafeGuard.test"
+        }
+        return Bundle.main.bundleIdentifier ?? "com.lekman.MagSafeGuard"
+    }()
 }
 
 // MARK: - File Logger
@@ -192,13 +204,19 @@ private class FileLogger {
     private let dateFormatter: DateFormatter
     private let queue = DispatchQueue(label: "com.magsafeguard.filelogger", qos: .utility)
 
-    init() {
+    init?() {
         // Create logs directory
         let logsDir = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Logs")
             .appendingPathComponent("MagSafeGuard")
 
-        try? FileManager.default.createDirectory(at: logsDir, withIntermediateDirectories: true)
+        do {
+            try FileManager.default.createDirectory(at: logsDir, withIntermediateDirectories: true, attributes: nil)
+        } catch {
+            // If we can't create the directory, logging is not available
+            print("Warning: Cannot create log directory: \(error)")
+            return nil
+        }
 
         // Create log file with date
         let fileName = "errors-\(DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .none).replacingOccurrences(of: "/", with: "-")).log"
@@ -220,14 +238,18 @@ private class FileLogger {
             let logLine = "[\(timestamp)] [\(level)] [\(category.categoryName)] \(message)\n"
 
             if let data = logLine.data(using: .utf8) {
-                if FileManager.default.fileExists(atPath: self.logFileURL.path) {
-                    if let fileHandle = try? FileHandle(forWritingTo: self.logFileURL) {
+                do {
+                    if FileManager.default.fileExists(atPath: self.logFileURL.path) {
+                        let fileHandle = try FileHandle(forWritingTo: self.logFileURL)
+                        defer { fileHandle.closeFile() }
                         fileHandle.seekToEndOfFile()
                         fileHandle.write(data)
-                        fileHandle.closeFile()
+                    } else {
+                        try data.write(to: self.logFileURL, options: .atomic)
                     }
-                } else {
-                    try? data.write(to: self.logFileURL)
+                } catch {
+                    // If we can't write to the log file, just print to console
+                    print("Log: \(logLine.trimmingCharacters(in: .newlines))")
                 }
             }
         }

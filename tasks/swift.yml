@@ -30,10 +30,14 @@ tasks:
       - |
         echo "🧪 Running Swift tests..."
         
-        # Run tests and capture output
+        # Run tests with --parallel flag to work around initialization hang
+        # See: https://github.com/apple/swift/issues/71044
         set +e  # Don't exit on error
-        swift test 2>&1 | tee test-output.log
-        TEST_EXIT_CODE=${PIPESTATUS[0]}
+        swift test --parallel --num-workers 1 > test-output.log 2>&1
+        TEST_EXIT_CODE=$?
+        
+        # Display output without standalone numbers that cause shell errors
+        grep -v "^[0-9]*$" test-output.log || true
         
         # Clean up
         rm -f test-output.log
@@ -56,8 +60,9 @@ tasks:
         swift build --enable-code-coverage
         
         # Run tests with coverage, capturing output
+        # Using --parallel to work around initialization hang
         set +e  # Don't exit on error
-        swift test --enable-code-coverage 2>&1 | tee test-output.log
+        swift test --enable-code-coverage --parallel --num-workers 1 > test-output.log 2>&1
         
         # Check if tests passed (look for the success pattern)
         if grep -q "Test Suite .* passed" test-output.log && ! grep -q "Test Suite .* failed" test-output.log; then
@@ -121,7 +126,7 @@ tasks:
     cmds:
       - |
         echo "📊 Generating HTML coverage report..."
-        swift test --enable-code-coverage
+        swift test --enable-code-coverage --parallel --num-workers 1
         
         PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
         EXECUTABLE=$(find .build -name '*.xctest' -type d | head -1)/Contents/MacOS/*

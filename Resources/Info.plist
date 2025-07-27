@@ -32,5 +32,7 @@
     <string>MagSafe Guard needs background location access to monitor when you leave trusted locations and automatically arm the security system.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>MagSafe Guard uses your location to identify trusted locations where auto-arm should be disabled.</string>
+    <key>NSUserNotificationsUsageDescription</key>
+    <string>MagSafe Guard sends notifications about security events and status changes.</string>
 </dict>
 </plist>

@@ -58,6 +58,9 @@ public class AutoArmManager: NSObject {
     /// Timer for temporary disable
     private var disableTimer: Timer?
 
+    /// Flag to prevent recursive updates
+    private var isUpdatingSettings = false
+
     /// Last auto-arm trigger reason for deduplication
     private var lastAutoArmReason: String?
 
@@ -167,6 +170,12 @@ public class AutoArmManager: NSObject {
 
     /// Updates settings and restarts monitoring if needed
     public func updateSettings() {
+        // Prevent recursive updates
+        guard !isUpdatingSettings else { return }
+
+        isUpdatingSettings = true
+        defer { isUpdatingSettings = false }
+
         loadSettings()
 
         // Restart monitoring to apply new settings

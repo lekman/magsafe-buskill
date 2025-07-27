@@ -269,9 +269,7 @@ public class NetworkMonitor {
     }
 
     private func saveTrustedNetworks() {
-        userDefaults.set(Array(trustedNetworks), forKey: trustedNetworksKey)
-
-        // Also update the Settings
+        // Only update via UserDefaultsManager to avoid duplicate saves
         UserDefaultsManager.shared.updateSetting(\.trustedNetworks, value: Array(trustedNetworks))
     }
 }
