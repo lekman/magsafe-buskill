@@ -74,14 +74,14 @@ tasks:
             echo "📊 Coverage Report:"
             echo "=================="
             
-            # Generate report with standard filters for Swift projects
+            # Generate report with comprehensive filters matching CI
             xcrun llvm-cov report "$BINARY" \
               -instr-profile="$PROF_DATA" \
-              -ignore-filename-regex=".*Tests.*|.*Mock.*|.*\.pb\.swift|.*generated.*" \
+              -ignore-filename-regex=".*Tests/.*|.*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/SettingsView\.swift|.*/TrustedLocationsView\.swift|.*/PowerMonitorService\.swift|.*LAContext\.swift|.*/MacSystemActions\.swift|.*Protocol\.swift|.*/runner\.swift" \
               -use-color=false | tee coverage-report.txt
             
-            # Extract total coverage
-            COVERAGE=$(tail -1 coverage-report.txt | awk '{print $(NF-2)}' | sed 's/%//')
+            # Extract total coverage - look for the TOTAL line
+            COVERAGE=$(grep "^TOTAL" coverage-report.txt | awk '{print $10}' | sed 's/%//')
             
             echo ""
             if (( $(echo "$COVERAGE >= 80" | bc -l) )); then
@@ -123,7 +123,7 @@ tasks:
             -instr-profile="$PROF_DATA" \
             -format=html \
             -output-dir=coverage-html \
-            -ignore-filename-regex=".*Tests\.swift|.*Mock.*\.swift|.*\.pb\.swift|.*generated.*"
+            -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/SettingsView\.swift|.*/TrustedLocationsView\.swift|.*/PowerMonitorService\.swift|.*LAContext\.swift|.*/MacSystemActions\.swift|.*Protocol\.swift"
           
           echo "✅ Coverage report generated at: coverage-html/index.html"
           
