@@ -89,12 +89,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Create menu
         setupMenu()
 
+        // Configure accessibility features
+        setupAccessibilityFeatures()
+
         // AppController now handles power monitoring internally
     }
 
     private func setupMenu() {
         let menu = core.createMenu()
         statusItem?.menu = menu
+    }
+
+    private func setupAccessibilityFeatures() {
+        // Configure accessibility manager
+        AccessibilityManager.shared.configureVoiceOverSupport()
+        AccessibilityManager.shared.configureKeyboardNavigation()
+
+        // Configure status item accessibility
+        if let button = statusItem?.button {
+            button.setAccessibilityLabel("MagSafe Guard")
+            button.setAccessibilityHelp("Click to open MagSafe Guard menu. Current status: \(core.appController.statusDescription)")
+            button.setAccessibilityRole(.menuButton)
+        }
+
+        Log.info("Accessibility features configured", category: .general)
     }
 
     private func setupAppControllerCallbacks() {
@@ -115,6 +133,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func updateStatusIcon() {
         if let button = statusItem?.button {
             let iconName = core.statusIconName()
+            let statusDescription = core.appController.statusDescription
             let image = NSImage(systemSymbolName: iconName, accessibilityDescription: AppDelegate.appName)
 
             // If SF Symbol works, use it
@@ -134,8 +153,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 button.title = core.isArmed ? "MG!" : "MG"
             }
 
-            // Ensure the icon uses system appearance (no custom tint)
+            // Ensure the icon uses system appearance and supports high contrast
             button.contentTintColor = nil
+
+            // Update accessibility properties to reflect current state
+            button.setAccessibilityLabel("MagSafe Guard")
+            button.setAccessibilityValue(statusDescription)
+            button.setAccessibilityHelp("Click to open MagSafe Guard menu. Current status: \(statusDescription)")
+
+            // Announce state changes if VoiceOver is enabled
+            if AccessibilityManager.shared.isVoiceOverEnabled {
+                AccessibilityAnnouncement.announceStateChange(component: "MagSafe Guard status", newState: statusDescription)
+            }
         }
     }
 

@@ -241,10 +241,18 @@ public class AppController: ObservableObject {
                 self.logEventInternal(.authenticationSucceeded, details: "Arming system")
                 self.transitionToState(.armed)
                 self.onNotification?("MagSafe Guard Armed", "Protection is now active")
+
+                // Accessibility announcement
+                AccessibilityAnnouncement.announceStateChange(component: "MagSafe Guard", newState: "armed")
+
                 completion(.success(()))
 
             case .failure(let error):
                 self.logEventInternal(.authenticationFailed, details: error.localizedDescription)
+
+                // Accessibility announcement for errors
+                AccessibilityAnnouncement.announceAlert("Failed to arm system: \(error.localizedDescription)")
+
                 completion(.failure(error))
 
             case .cancelled:
@@ -275,6 +283,10 @@ public class AppController: ObservableObject {
                 self.logEventInternal(.authenticationSucceeded, details: "Disarming system")
                 self.transitionToState(.disarmed)
                 self.onNotification?("MagSafe Guard Disarmed", "Protection is now inactive")
+
+                // Accessibility announcement
+                AccessibilityAnnouncement.announceStateChange(component: "MagSafe Guard", newState: "disarmed")
+
                 completion(.success(()))
 
             case .failure(let error):

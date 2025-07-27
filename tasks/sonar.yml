@@ -11,9 +11,10 @@ tasks:
     desc: Run SonarCloud scan locally
     silent: true
     vars:
-      REPORT_PATH: .sonarcloud
+      REPORT_PATH: "{{.PWD}}/.sonarcloud"
     cmds:
       - |
+        #!/bin/bash
         echo "🔍 Running SonarCloud scan locally..."
 
         # Source .env file if it exists
@@ -56,71 +57,219 @@ tasks:
         # Create report directory
         mkdir -p {{.REPORT_PATH}}
 
-        # Run tests with coverage first
-        echo "📊 Generating coverage data..."
-        task swift:test:coverage
+        # Check if coverage.xml already exists
+        if [ -f "coverage.xml" ]; then
+          echo "✅ Found existing coverage.xml - skipping test and conversion steps"
+          COVERAGE_SIZE=$(wc -c < coverage.xml)
+          COVERAGE_FILES=$(grep -c '<file path=' coverage.xml || echo 0)
+          echo "   File size: ${COVERAGE_SIZE} bytes"
+          echo "   Files covered: ${COVERAGE_FILES}"
+        else
+          # Run tests with coverage first
+          echo "📊 Generating coverage data..."
+          task swift:test:coverage
 
-        # Check if coverage files exist
-        if [ ! -f "coverage.xml" ]; then
-          echo "⚠️  No coverage.xml found. Running scan without coverage data."
+          # Convert coverage to SonarQube format
+          echo "🔄 Converting coverage to SonarQube format..."
+          task sonar:convert
+
+          # Check if coverage files exist after generation
+          if [ ! -f "coverage.xml" ]; then
+            echo "⚠️  No coverage.xml found. Running scan without coverage data."
+          fi
         fi
 
-        # Run sonar-scanner
+        # Run sonar-scanner with performance optimizations
         echo "🚀 Running SonarCloud analysis..."
+        echo "📊 Scanning only Swift source files in Sources/ and Tests/"
 
-        # Full analysis with upload to SonarCloud
+        # Full analysis with upload to SonarCloud and performance optimizations
         sonar-scanner \
           -Dsonar.host.url=https://sonarcloud.io \
           -Dsonar.token=$SONAR_TOKEN \
+          -Dsonar.scanner.metadataFilePath={{.REPORT_PATH}}/report-task.txt \
+          -Dsonar.working.directory={{.REPORT_PATH}}/.scannerwork \
           2>&1 | tee {{.REPORT_PATH}}/sonar-scanner.log
 
-        # Check result
-        if [ ${PIPESTATUS[0]} -eq 0 ]; then
+        # Check result (capture exit code before it's lost)
+        SCAN_RESULT=$?
+        
+        # Extract issues from the scan log to create findings file
+        echo ""
+        echo "📋 Extracting findings from scan log..."
+        
+        # Create findings file from the scanner log
+        if [ -f "{{.REPORT_PATH}}/sonar-scanner.log" ]; then
+          {
+            echo "=== SonarCloud Findings Report ==="
+            echo "Generated: $(date)"
+            echo "Project: lekman_magsafe-buskill"
+            echo ""
+            
+            # Extract quality gate status
+            QUALITY_GATE=$(grep "QUALITY GATE STATUS:" {{.REPORT_PATH}}/sonar-scanner.log | head -1 || echo "")
+            if [ -n "$QUALITY_GATE" ]; then
+              echo "$QUALITY_GATE"
+              echo ""
+            fi
+            
+            # Extract issues from the log (these appear during analysis)
+            echo "===================================================="
+            echo "ISSUES FOUND DURING ANALYSIS"
+            echo "===================================================="
+            echo ""
+            
+            # Look for Swift file issues in the log
+            grep -E "(ERROR|WARN|INFO).*Sources.*\.swift" {{.REPORT_PATH}}/sonar-scanner.log | while read -r line; do
+              echo "[CODE_SMELL] $line"
+              echo "  Status: OPEN"
+              echo ""
+            done
+            
+            # If no issues found in log, create placeholder
+            if ! grep -q -E "(ERROR|WARN|INFO).*Sources.*\.swift" {{.REPORT_PATH}}/sonar-scanner.log; then
+              echo "No issues found in scan log."
+              echo "For detailed analysis results, view online at:"
+              echo "https://sonarcloud.io/summary/overall?id=lekman_magsafe-buskill"
+            fi
+            
+          } > {{.REPORT_PATH}}/sonarcloud-findings.txt
+          
+          echo "✅ Findings extracted to {{.REPORT_PATH}}/sonarcloud-findings.txt"
+        fi
+        
+        # Show any open issues as warnings
+        if [ -f "{{.REPORT_PATH}}/sonarcloud-findings.txt" ]; then
+          OPEN_ISSUES=$(grep -c "Status: OPEN\|Status: CONFIRMED\|Status: REOPENED" {{.REPORT_PATH}}/sonarcloud-findings.txt 2>/dev/null || echo 0)
+          if [ $OPEN_ISSUES -gt 0 ]; then
+            echo ""
+            echo "⚠️  Found $OPEN_ISSUES open issues:"
+            echo "─────────────────────────────"
+            # Show first 5 open issues with their details
+            awk '
+              /^\[CODE_SMELL\]/ { 
+                issue = $0
+                getline
+                rule = $0
+                getline
+                msg = $0
+                if (getline && /Status: (OPEN|CONFIRMED|REOPENED)/) {
+                  count++
+                  if (count <= 5) {
+                    print issue
+                    print "  " msg
+                    print ""
+                  }
+                }
+              }
+            ' {{.REPORT_PATH}}/sonarcloud-findings.txt
+            
+            if [ $OPEN_ISSUES -gt 5 ]; then
+              echo "... and $((OPEN_ISSUES - 5)) more open issues"
+            fi
+            echo "─────────────────────────────"
+          fi
+        fi
+        
+        if [ $SCAN_RESULT -eq 0 ]; then
           echo ""
           echo "✅ SonarCloud scan completed successfully"
           echo ""
           echo "Results saved to:"
           echo "  - Log: {{.REPORT_PATH}}/sonar-scanner.log"
+          echo "  - Findings: {{.REPORT_PATH}}/sonarcloud-findings.txt"
           echo "  - View online: https://sonarcloud.io/summary/overall?id=lekman_magsafe-buskill"
+          
+          # Open the findings file in VSCode
+          echo ""
+          echo "📂 Opening findings report in VSCode..."
+          code {{.REPORT_PATH}}/sonarcloud-findings.txt
+          
+          exit 0
         else
           echo ""
           echo "❌ SonarCloud scan failed"
           echo "Check {{.REPORT_PATH}}/sonar-scanner.log for details"
+          
+          # Still try to open findings if they exist
+          if [ -f "{{.REPORT_PATH}}/sonarcloud-findings.txt" ]; then
+            code {{.REPORT_PATH}}/sonarcloud-findings.txt
+          fi
+          
           exit 1
         fi
 
   issues:
-    desc: Extract and display SonarCloud issues from local scan
+    desc: Display SonarCloud findings from previous scan
     silent: true
-    deps: [scan]
+    vars:
+      REPORT_PATH: "{{.PWD}}/.sonarcloud"
     cmds:
       - |
-        echo "📋 Extracting SonarCloud issues..."
+        echo "📋 Checking for SonarCloud findings..."
 
-        REPORT_FILE=".sonarcloud/sonar-report.json"
-        LOG_FILE=".sonarcloud/sonar-scanner.log"
+        FINDINGS_FILE="{{.REPORT_PATH}}/sonarcloud-findings.txt"
+        LOG_FILE="{{.REPORT_PATH}}/sonar-scanner.log"
 
-        if [ -f "$REPORT_FILE" ]; then
-          # Parse JSON report if available
-          echo "Found report file: $REPORT_FILE"
-          # You can use jq or python to parse the JSON report
-          if command -v jq &> /dev/null; then
-            jq '.issues[] | {severity: .severity, message: .message, file: .component, line: .line}' "$REPORT_FILE"
+        # Check if findings file exists
+        if [ -f "$FINDINGS_FILE" ]; then
+          echo "✅ Found findings report"
+          echo ""
+          
+          # Show summary
+          TOTAL_ISSUES=$(grep -c "^\[CODE_SMELL\]" "$FINDINGS_FILE" 2>/dev/null || echo 0)
+          OPEN_ISSUES=$(grep -c "Status: OPEN\|Status: CONFIRMED\|Status: REOPENED" "$FINDINGS_FILE" 2>/dev/null || echo 0)
+          CLOSED_ISSUES=$(grep -c "Status: CLOSED" "$FINDINGS_FILE" 2>/dev/null || echo 0)
+          
+          echo "📊 Summary:"
+          echo "  - Total issues: $TOTAL_ISSUES"
+          echo "  - Open issues: $OPEN_ISSUES"
+          echo "  - Closed issues: $CLOSED_ISSUES"
+          echo ""
+          
+          # Show open issues
+          if [ $OPEN_ISSUES -gt 0 ]; then
+            echo "⚠️  Open Issues:"
+            echo "─────────────────────────────"
+            awk '
+              /^\[CODE_SMELL\]/ { 
+                issue = $0
+                getline
+                rule = $0
+                getline
+                msg = $0
+                if (getline && /Status: (OPEN|CONFIRMED|REOPENED)/) {
+                  print issue
+                  print "  " msg
+                  print ""
+                }
+              }
+            ' "$FINDINGS_FILE" | head -30
+            echo "─────────────────────────────"
           else
-            echo "Install jq to parse the report: brew install jq"
+            echo "✅ No open issues!"
           fi
+          
+          echo ""
+          echo "📂 Opening full report in VSCode..."
+          code "$FINDINGS_FILE"
+          
         elif [ -f "$LOG_FILE" ]; then
-          # Extract issues from log file
-          echo "Extracting issues from log file..."
+          echo "⚠️  No findings report found, but scan log exists"
           echo ""
-          
-          # Look for common issue patterns in the log
-          grep -E "(ERROR|WARN|INFO).*\.swift" "$LOG_FILE" | head -50 || true
-          
+          echo "The scan may have been interrupted or failed to generate findings."
+          echo "Try running: task sonar:download"
           echo ""
-          echo "For detailed results, check: $LOG_FILE"
+          echo "Log file: $LOG_FILE"
         else
-          echo "No SonarCloud results found. Run 'task sonar:scan' first."
+          echo "❌ No SonarCloud scan results found"
+          echo ""
+          echo "To generate findings:"
+          echo "  1. Run a local scan: task sonar:scan"
+          echo "  2. Or download from SonarCloud: task sonar:download"
+          echo ""
+          echo "Note: Local scan requires sonar-scanner to be installed"
+          echo "      Download requires SONAR_TOKEN in your .env file"
         fi
 
   simulate:
@@ -296,6 +445,12 @@ tasks:
       - |
         echo "🔄 Converting Swift coverage to SonarQube format..."
 
+        # Check if coverage.xml already exists
+        if [ -f "coverage.xml" ]; then
+          echo "✅ coverage.xml already exists - no conversion needed"
+          exit 0
+        fi
+
         # First, run tests with coverage if needed
         if [ ! -d ".build" ] || [ -z "$(find .build -name 'default.profdata' -type f 2>/dev/null)" ]; then
           echo "🧪 Running tests with coverage..."
@@ -368,9 +523,23 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "🔧 Installing SonarCloud scanner..."
+        echo "🔧 Setting up SonarCloud scanner..."
 
-        # Detect OS
+        # Check if already installed
+        if command -v sonar-scanner &> /dev/null; then
+          echo "✅ sonar-scanner already installed ($(sonar-scanner -v | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1))"
+          
+          # Check for updates on macOS
+          if command -v brew &> /dev/null && brew list sonar-scanner &>/dev/null; then
+            if brew outdated | grep -q "^sonar-scanner"; then
+              echo "📦 Updating sonar-scanner..."
+              brew upgrade sonar-scanner
+            fi
+          fi
+          exit 0
+        fi
+
+        # Detect OS for fresh installation
         OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 
         if [ "$OS" = "darwin" ]; then

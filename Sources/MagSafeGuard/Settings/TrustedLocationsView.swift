@@ -110,10 +110,14 @@ struct TrustedLocationsView: View {
     private var locationsList: some View {
         List {
             ForEach(locations, id: \.id) { location in
-                LocationRow(location: location) {
-                    removeLocation(location)
-                }
+                LocationRow(location: location, onRemove: removeLocationHandler(for: location))
             }
+        }
+    }
+
+    private func removeLocationHandler(for location: TrustedLocation) -> () -> Void {
+        return {
+            removeLocation(location)
         }
     }
 
@@ -153,7 +157,7 @@ struct TrustedLocationsView: View {
 /// Row view for displaying a trusted location
 struct LocationRow: View {
     let location: TrustedLocation
-    let onDelete: () -> Void
+    let onRemove: () -> Void
 
     var body: some View {
         HStack {
@@ -185,7 +189,7 @@ struct LocationRow: View {
     }
 
     private var deleteButton: some View {
-        Button(action: onDelete) {
+        Button(action: onRemove) {
             Image(systemName: "minus.circle.fill")
                 .foregroundColor(.red)
         }
@@ -211,23 +215,8 @@ struct AddLocationView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Location Details")) {
-                    TextField("Location Name", text: $locationName)
-
-                    Picker("Location Source", selection: $useCurrentLocation) {
-                        Text("Current Location").tag(true)
-                        Text("Manual Entry").tag(false)
-                    }
-                    .pickerStyle(.segmented)
-
-                    if !useCurrentLocation {
-                        manualLocationFields
-                    }
-                }
-
-                Section(header: Text("Trust Radius")) {
-                    trustRadiusContent
-                }
+                locationDetailsSection
+                trustRadiusSection
             }
             .navigationTitle("Add Trusted Location")
             .toolbar {
@@ -235,6 +224,31 @@ struct AddLocationView: View {
             }
         }
         .frame(width: 500, height: 400)
+    }
+
+    private var locationDetailsSection: some View {
+        Section(header: Text("Location Details")) {
+            TextField("Location Name", text: $locationName)
+            locationSourcePicker
+
+            if !useCurrentLocation {
+                manualLocationFields
+            }
+        }
+    }
+
+    private var locationSourcePicker: some View {
+        Picker("Location Source", selection: $useCurrentLocation) {
+            Text("Current Location").tag(true)
+            Text("Manual Entry").tag(false)
+        }
+        .pickerStyle(.segmented)
+    }
+
+    private var trustRadiusSection: some View {
+        Section(header: Text("Trust Radius")) {
+            trustRadiusContent
+        }
     }
 
     private func getCurrentLocationAndSave() {

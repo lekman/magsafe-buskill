@@ -84,7 +84,9 @@ tasks:
             COVERAGE=$(grep "^TOTAL" coverage-report.txt | awk '{print $10}' | sed 's/%//')
             
             echo ""
-            if (( $(echo "$COVERAGE >= 80" | bc -l) )); then
+            if [ -z "$COVERAGE" ]; then
+              echo "⚠️  Could not extract coverage percentage"
+            elif (( $(echo "$COVERAGE >= 80" | bc -l) )); then
               echo "✅ Coverage is ${COVERAGE}% (meets 80% threshold)"
             else
               echo "⚠️  Coverage is ${COVERAGE}% (below 80% threshold)"
@@ -307,36 +309,108 @@ tasks:
           exit 1
         fi
 
-        # Install SwiftLint
+        # Install/Update SwiftLint
         if ! command -v swiftlint &> /dev/null; then
           echo "📦 Installing SwiftLint..."
           brew install swiftlint
         else
-          echo "✅ SwiftLint already installed"
+          echo "✅ SwiftLint already installed ($(swiftlint version))"
+          if brew outdated | grep -q "^swiftlint"; then
+            echo "📦 Updating SwiftLint..."
+            brew upgrade swiftlint
+          fi
         fi
 
-        # Install swift-format (optional)
+        # Install/Update swift-format (optional)
         if ! command -v swift-format &> /dev/null; then
           echo "📦 Installing swift-format..."
           brew install swift-format
         else
           echo "✅ swift-format already installed"
+          if brew outdated | grep -q "^swift-format"; then
+            echo "📦 Updating swift-format..."
+            brew upgrade swift-format
+          fi
         fi
 
-        # Install SwiftGen (optional, for code generation)
+        # Install/Update SwiftGen (optional, for code generation)
         if ! command -v swiftgen &> /dev/null; then
           echo "📦 Installing SwiftGen..."
           brew install swiftgen
         else
           echo "✅ SwiftGen already installed"
+          if brew outdated | grep -q "^swiftgen"; then
+            echo "📦 Updating SwiftGen..."
+            brew upgrade swiftgen
+          fi
         fi
 
-        # Install jazzy (for documentation generation)
+        # Install/Update jazzy (for documentation generation)
         if ! command -v jazzy &> /dev/null; then
-          echo "📦 Installing jazzy..."
-          gem install jazzy
+          echo "📦 Installing jazzy to user directory..."
+          
+          # Check Ruby version first
+          RUBY_VERSION=$(ruby -v | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          MIN_VERSION="2.7.0"
+          
+          if [ "$(printf '%s\n' "$MIN_VERSION" "$RUBY_VERSION" | sort -V | head -n1)" != "$MIN_VERSION" ]; then
+            echo "⚠️  Ruby version $RUBY_VERSION is too old for jazzy"
+            echo "   jazzy requires Ruby >= 2.7"
+            echo ""
+            echo "To fix this:"
+            echo "1. Update Ruby using rbenv or rvm:"
+            echo "   brew install rbenv && rbenv install 3.2.2"
+            echo ""
+            echo "2. Or use system Ruby on macOS 12.3+:"
+            echo "   /usr/bin/ruby --version"
+            echo ""
+            echo "Continuing without jazzy..."
+          else
+            # Try to install rouge dependency first if needed
+            echo "Installing jazzy dependencies..."
+            gem install rouge -v 3.30.0 --user-install 2>/dev/null || true
+            
+            # Install to user directory by default (no admin needed)
+            if gem install jazzy --user-install; then
+              echo "✅ jazzy installed successfully to user directory"
+              
+              # Get the gem bin path
+              GEM_BIN_PATH=$(ruby -r rubygems -e 'puts Gem.user_dir')/bin
+              
+              # Check if it's in PATH
+              if [[ ":$PATH:" != *":$GEM_BIN_PATH:"* ]]; then
+                echo ""
+                echo "⚠️  Add the following to your shell profile (.bashrc, .zshrc, etc.):"
+                echo "   export PATH=\"$GEM_BIN_PATH:\$PATH\""
+                echo ""
+                echo "Then reload your shell or run: source ~/.zshrc"
+              fi
+            else
+              echo "❌ Failed to install jazzy"
+              echo ""
+              echo "If you see a rouge dependency error, try:"
+              echo "  gem install rouge -v 3.30.0 --user-install"
+              echo "  gem install jazzy --user-install"
+              echo ""
+              echo "Alternative installation methods:"
+              echo "1. System-wide with sudo (requires admin):"
+              echo "   sudo gem install jazzy"
+              echo ""
+              echo "2. Using su with admin account:"
+              echo "   su - admin -c 'gem install jazzy'"
+              echo ""
+              echo "Continuing without jazzy..."
+            fi
+          fi
         else
-          echo "✅ jazzy already installed"
+          echo "✅ jazzy already installed ($(jazzy --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1))"
+          # Check if jazzy needs update
+          CURRENT_VERSION=$(jazzy --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          LATEST_VERSION=$(gem search ^jazzy$ -r | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ] && [ -n "$LATEST_VERSION" ]; then
+            echo "📦 Update available: $CURRENT_VERSION → $LATEST_VERSION"
+            echo "   Run 'gem update jazzy' to update"
+          fi
         fi
 
         echo ""
@@ -434,7 +508,36 @@ tasks:
           echo "Please install one of the following:"
           echo ""
           echo "Option 1: Jazzy (Recommended)"
-          echo "  gem install jazzy"
+          
+          # Check Ruby version
+          RUBY_VERSION=$(ruby -v | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          MIN_VERSION="2.7.0"
+          
+          if [ "$(printf '%s\n' "$MIN_VERSION" "$RUBY_VERSION" | sort -V | head -n1)" != "$MIN_VERSION" ]; then
+            echo "  ⚠️  Your Ruby version ($RUBY_VERSION) is too old for jazzy (requires >= 2.7)"
+            echo ""
+            echo "  First update Ruby:"
+            echo "    brew install rbenv && rbenv install 3.2.2"
+            echo "    OR use system Ruby: /usr/bin/ruby (macOS 12.3+)"
+          else
+            echo "  gem install jazzy --user-install"
+            echo ""
+            echo "  This installs to your user directory (no admin needed)."
+            echo "  You may need to add the gem bin directory to your PATH:"
+            echo "     export PATH=\"$(ruby -r rubygems -e 'puts Gem.user_dir')/bin:\$PATH\""
+            echo ""
+            echo "  If you get a rouge dependency error:"
+            echo "     gem install rouge -v 3.30.0 --user-install"
+            echo "     gem install jazzy --user-install"
+            echo ""
+            echo "  Alternative installation methods:"
+            echo "  a) System-wide with sudo (requires admin):"
+            echo "     sudo gem install jazzy"
+            echo ""
+            echo "  b) Using su with admin account:"
+            echo "     su - admin -c 'gem install jazzy'"
+            echo "     (replace 'admin' with your admin username)"
+          fi
           echo ""
           echo "Option 2: swift-doc"
           echo "  brew install swiftdocorg/formulae/swift-doc"

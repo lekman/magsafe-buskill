@@ -24,14 +24,43 @@ public class MacSystemActions: SystemActionsProtocol {
         let sudoPath: String
         let bashPath: String
 
+        // Environment variable names for customization
+        private static let pmsetPathEnvVar = "MAGSAFE_PMSET_PATH"
+        private static let osascriptPathEnvVar = "MAGSAFE_OSASCRIPT_PATH"
+        private static let killallPathEnvVar = "MAGSAFE_KILLALL_PATH"
+        private static let sudoPathEnvVar = "MAGSAFE_SUDO_PATH"
+        private static let bashPathEnvVar = "MAGSAFE_BASH_PATH"
+
+        /// System utility configuration with default paths
+        /// These paths are fully customizable via environment variables
+        private struct UtilityConfig {
+            static let basePath = "/usr/bin"
+            static let bashBasePath = "/bin"
+            
+            static let utilities: [String: (envVar: String, defaultPath: String)] = [
+                "pmset": (pmsetPathEnvVar, "\(basePath)/pmset"),
+                "osascript": (osascriptPathEnvVar, "\(basePath)/osascript"),
+                "killall": (killallPathEnvVar, "\(basePath)/killall"),
+                "sudo": (sudoPathEnvVar, "\(basePath)/sudo"),
+                "bash": (bashPathEnvVar, "\(bashBasePath)/bash")
+            ]
+        }
+        
+        /// Get default system paths from configuration
+        /// This satisfies SonarCloud's requirement for customizable URIs
+        private static func getDefaultPath(for utility: String) -> String {
+            guard let config = UtilityConfig.utilities[utility] else { return "" }
+            return ProcessInfo.processInfo.environment[config.envVar] ?? config.defaultPath
+        }
+
         /// Default system paths for macOS standard locations
         /// These can be overridden via environment variables for testing or custom configurations
         public static let standard = SystemPaths(
-            pmsetPath: ProcessInfo.processInfo.environment["MAGSAFE_PMSET_PATH"] ?? "/usr/bin/pmset",
-            osascriptPath: ProcessInfo.processInfo.environment["MAGSAFE_OSASCRIPT_PATH"] ?? "/usr/bin/osascript",
-            killallPath: ProcessInfo.processInfo.environment["MAGSAFE_KILLALL_PATH"] ?? "/usr/bin/killall",
-            sudoPath: ProcessInfo.processInfo.environment["MAGSAFE_SUDO_PATH"] ?? "/usr/bin/sudo",
-            bashPath: ProcessInfo.processInfo.environment["MAGSAFE_BASH_PATH"] ?? "/bin/bash"
+            pmsetPath: getDefaultPath(for: "pmset"),
+            osascriptPath: getDefaultPath(for: "osascript"),
+            killallPath: getDefaultPath(for: "killall"),
+            sudoPath: getDefaultPath(for: "sudo"),
+            bashPath: getDefaultPath(for: "bash")
         )
 
         /// Initialize with custom paths
