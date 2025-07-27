@@ -127,12 +127,30 @@ struct GeneralSettingsView: View {
 
     private var gracePeriodSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Grace Period Duration")
-                .font(.headline)
+            HStack {
+                Text("Grace Period Duration")
+                    .font(.headline)
+                Spacer()
+                Toggle("Immediate Action", isOn: Binding(
+                    get: { settingsManager.settings.gracePeriodDuration == 0 },
+                    set: { immediate in
+                        if immediate {
+                            settingsManager.updateSetting(\.gracePeriodDuration, value: 0)
+                        } else {
+                            settingsManager.updateSetting(\.gracePeriodDuration, value: 5)
+                        }
+                    }
+                ))
+                .toggleStyle(.checkbox)
+            }
 
             gracePeriodSlider
+                .disabled(settingsManager.settings.gracePeriodDuration == 0)
+                .opacity(settingsManager.settings.gracePeriodDuration == 0 ? 0.5 : 1.0)
 
-            Text("Time before security actions execute after power disconnection")
+            Text(settingsManager.settings.gracePeriodDuration == 0 
+                ? "Security actions will execute immediately upon power disconnection" 
+                : "Time before security actions execute after power disconnection")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -140,7 +158,7 @@ struct GeneralSettingsView: View {
 
     private var gracePeriodSlider: some View {
         HStack {
-            Text("5s")
+            Text("0s")
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -149,7 +167,7 @@ struct GeneralSettingsView: View {
                     get: { settingsManager.settings.gracePeriodDuration },
                     set: { settingsManager.updateSetting(\.gracePeriodDuration, value: $0) }
                 ),
-                in: 5...30,
+                in: 0...30,
                 step: 1
             )
 
@@ -173,7 +191,7 @@ struct GeneralSettingsView: View {
                 Text("Permits canceling security actions during grace period")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                Text("with authentication")
+                Text("by reconnecting MagSafe or authenticating to disarm")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -325,9 +343,9 @@ struct SecuritySettingsView: View {
             !settingsManager.settings.securityActions.contains(action)
         }
     }
-    
+
     // MARK: - Bindings
-    
+
     private var evidenceCollectionBinding: Binding<Bool> {
         Binding(
             get: { settingsManager.settings.evidenceCollectionEnabled },

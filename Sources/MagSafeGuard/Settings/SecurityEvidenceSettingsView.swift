@@ -177,7 +177,7 @@ struct SecurityEvidenceSettingsView: View {
             }
         }
     }
-    
+
     private var testEvidenceButton: some View {
         Button("Test Evidence Collection") {
             testEvidenceCollection()
@@ -237,43 +237,43 @@ struct SecurityEvidenceSettingsView: View {
     }
 
     // MARK: - Bindings
-    
+
     private var emailBinding: Binding<String> {
         Binding(
             get: { settingsManager.settings.backupEmailAddress },
             set: { settingsManager.updateSetting(\.backupEmailAddress, value: $0) }
         )
     }
-    
+
     // MARK: - Button Views
-    
+
     private var doneButton: some View {
         Button("Done") {
             dismiss()
         }
     }
-    
+
     private var cameraRequestButton: some View {
         Button("Request") {
             requestCameraPermission()
         }
         .buttonStyle(.link)
     }
-    
+
     private var locationRequestButton: some View {
         Button("Request") {
             requestLocationPermission()
         }
         .buttonStyle(.link)
     }
-    
+
     private var viewEvidenceFolderButton: some View {
         Button("View Evidence Folder") {
             openEvidenceFolder()
         }
         .buttonStyle(.link)
     }
-    
+
     // MARK: - Actions
 
     private func requestCameraPermission() {

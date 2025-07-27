@@ -183,8 +183,8 @@ public struct Settings: Codable, Equatable {
     public func validated() -> Settings {
         var validated = self
 
-        // Ensure grace period is within bounds
-        validated.gracePeriodDuration = max(5.0, min(30.0, gracePeriodDuration))
+        // Ensure grace period is within bounds (0-30 seconds)
+        validated.gracePeriodDuration = max(0.0, min(30.0, gracePeriodDuration))
 
         // Ensure at least one security action is selected
         if validated.securityActions.isEmpty {
