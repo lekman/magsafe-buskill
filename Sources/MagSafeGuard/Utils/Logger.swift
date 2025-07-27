@@ -26,6 +26,10 @@ import os
 /// ```
 public struct Log {
 
+    // MARK: - Constants
+
+    fileprivate static let defaultBundleIdentifier = "com.lekman.MagSafeGuard"
+
     // MARK: - Private Properties
 
     private static let fileLogger: FileLogger? = {
@@ -190,9 +194,9 @@ public enum LogCategory {
     private static let subsystem: String = {
         // Use a safe default during testing
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
-            return "com.lekman.MagSafeGuard.test"
+            return "\(Log.defaultBundleIdentifier).test"
         }
-        return Bundle.main.bundleIdentifier ?? "com.lekman.MagSafeGuard"
+        return Bundle.main.bundleIdentifier ?? Log.defaultBundleIdentifier
     }()
 }
 
@@ -215,7 +219,7 @@ private class FileLogger {
         } catch {
             // If we can't create the directory, logging is not available
             // Using os.Logger for system messages since file logging isn't available yet
-            os.Logger(subsystem: "com.lekman.MagSafeGuard", category: "System").error("Cannot create log directory: \(error)")
+            os.Logger(subsystem: Log.defaultBundleIdentifier, category: "System").error("Cannot create log directory: \(error)")
             return nil
         }
 
@@ -252,7 +256,7 @@ private class FileLogger {
                     }
                 } catch {
                     // If we can't write to the log file, use os.Logger as fallback
-                    os.Logger(subsystem: "com.lekman.MagSafeGuard", category: "System").log("\(logLine.trimmingCharacters(in: .newlines))")
+                    os.Logger(subsystem: Log.defaultBundleIdentifier, category: "System").log("\(logLine.trimmingCharacters(in: .newlines))")
                 }
             }
         }
