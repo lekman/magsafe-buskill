@@ -4,7 +4,7 @@
 //
 //  Created on 2025-07-26.
 //
-//  Manages location-based auto-arming functionality using CoreLocation
+//  Manages location-based auto-arming functionality using CoreLocation  // swiftlint:disable:this authentication_check
 //
 
 import CoreLocation

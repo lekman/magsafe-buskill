@@ -390,29 +390,29 @@ public class AuthenticationService: NSObject {
             return .unknown(NSError(domain: "AuthenticationService", code: -1, userInfo: nil))
         }
 
-        if let laError = error as? LAError {
-            switch laError.code {
-            case .biometryNotAvailable:
-                return .biometryNotAvailable
-            case .biometryNotEnrolled:
-                return .biometryNotEnrolled
-            case .biometryLockout:
-                return .biometryLockout
-            case .userCancel:
-                return .userCancel
-            case .userFallback:
-                return .userFallback
-            case .systemCancel:
-                return .systemCancel
-            case .passcodeNotSet:
-                return .passcodeNotSet
-            case .authenticationFailed:
-                return .authenticationFailed
-            default:
-                return .unknown(error)
-            }
+        // Use error code mapping to reduce complexity
+        guard let laError = error as? LAError else {
+            return .unknown(error)
         }
 
-        return .unknown(error)
+        // Map error codes to authentication errors
+        let errorMapping = mapLAErrorCode(laError.code)
+        return errorMapping ?? .unknown(error)
+    }
+
+    /// Helper method to map LAError codes
+    private func mapLAErrorCode(_ code: LAError.Code) -> AuthenticationError? {
+        let errorMap: [LAError.Code: AuthenticationError] = [
+            .biometryNotAvailable: .biometryNotAvailable,
+            .biometryNotEnrolled: .biometryNotEnrolled,
+            .biometryLockout: .biometryLockout,
+            .userCancel: .userCancel,
+            .userFallback: .userFallback,
+            .systemCancel: .systemCancel,
+            .passcodeNotSet: .passcodeNotSet,
+            .authenticationFailed: .authenticationFailed
+        ]
+
+        return errorMap[code]
     }
 }

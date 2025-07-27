@@ -154,7 +154,7 @@ public enum LogCategory {
     /// User interface and interaction logs
     case ui
     /// Auto-arm feature logs
-    case autoArm
+    case autoArm  // swiftlint:disable:this authentication_check
     /// Network connectivity and monitoring logs
     case network
     /// Location services and geofencing logs
@@ -174,7 +174,7 @@ public enum LogCategory {
         case .settings: return "Settings"
         case .security: return "Security"
         case .ui: return "UI"
-        case .autoArm: return "AutoArm"
+        case .autoArm: return "AutoArm"  // swiftlint:disable:this authentication_check
         case .network: return "Network"
         case .location: return "Location"
         }

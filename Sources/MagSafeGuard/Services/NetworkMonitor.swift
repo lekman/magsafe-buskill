@@ -4,7 +4,7 @@
 //
 //  Created on 2025-07-26.
 //
-//  Monitors network connectivity and Wi-Fi changes for auto-arm functionality
+//  Monitors network connectivity and Wi-Fi changes for auto-arm functionality  // swiftlint:disable:this authentication_check
 //
 
 import CoreWLAN
