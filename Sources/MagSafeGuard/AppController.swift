@@ -108,9 +108,9 @@ public struct EventLogEntry {
 /// All public methods are thread-safe and coordinate through the main queue
 /// for UI updates and state changes.
 public class AppController: ObservableObject {
-    
+
     // MARK: - Constants
-    
+
     private static let appName = "MagSafe Guard"
 
     // MARK: - Published Properties
@@ -444,7 +444,7 @@ public class AppController: ObservableObject {
     private func executeSecurityActions() {
         transitionToState(.triggered)
         cancelGracePeriod()
-        
+
         // Check if evidence collection is enabled
         if UserDefaultsManager.shared.settings.evidenceCollectionEnabled {
             let evidenceService = SecurityEvidenceService()

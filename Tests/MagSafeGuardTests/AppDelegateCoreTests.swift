@@ -54,24 +54,21 @@ final class AppDelegateCoreTests: XCTestCase {
         let menu = core.createMenu()
         
         // The new menu structure has:
-        // Status item, separator, Arm, separator, Power status, separator, Settings, Demo, Event Log, separator, Quit
-        XCTAssertGreaterThanOrEqual(menu.items.count, 11)
+        // Status item, separator, Arm, separator, Power status, separator, Settings, Event Log, separator, Quit
+        XCTAssertGreaterThanOrEqual(menu.items.count, 10)
         
         // Find items by title since positions may vary
         let armItem = menu.items.first { $0.title.contains("Arm") && $0.action != nil }
         let settingsItem = menu.items.first { $0.title == "Settings..." }
-        let demoItem = menu.items.first { $0.title == "Run Demo..." }
         let quitItem = menu.items.first { $0.title == "Quit MagSafe Guard" }
         
         XCTAssertNotNil(armItem)
         XCTAssertNotNil(settingsItem)
-        XCTAssertNotNil(demoItem)
         XCTAssertNotNil(quitItem)
         
         // Check key equivalents
         XCTAssertEqual(armItem?.keyEquivalent, "a")
         XCTAssertEqual(settingsItem?.keyEquivalent, ",")
-        XCTAssertEqual(demoItem?.keyEquivalent, "d")
         XCTAssertEqual(quitItem?.keyEquivalent, "q")
     }
     
@@ -112,19 +109,16 @@ final class AppDelegateCoreTests: XCTestCase {
         // Find items by title
         let armItem = menu.items.first { $0.title.contains("Arm") && $0.action != nil }
         let settingsItem = menu.items.first { $0.title == "Settings..." }
-        let demoItem = menu.items.first { $0.title == "Run Demo..." }
         let quitItem = menu.items.first { $0.title == "Quit MagSafe Guard" }
         
         // Check actions are set
         XCTAssertNotNil(armItem?.action)
         XCTAssertNotNil(settingsItem?.action)
-        XCTAssertNotNil(demoItem?.action)
         XCTAssertNotNil(quitItem?.action)
         
         // Check action selectors
         XCTAssertEqual(armItem?.action?.description, "toggleArmed")
         XCTAssertEqual(settingsItem?.action?.description, "showSettings")
-        XCTAssertEqual(demoItem?.action?.description, "showDemo")
     }
     
     // MARK: - Status Icon Tests
@@ -387,7 +381,6 @@ final class AppDelegateCoreTests: XCTestCase {
         
         // Verify expected key equivalents
         XCTAssertEqual(keyEquivalents["Settings..."], ",")
-        XCTAssertEqual(keyEquivalents["Run Demo..."], "d")
         XCTAssertEqual(keyEquivalents["View Event Log..."], "l")
         XCTAssertEqual(keyEquivalents["Quit MagSafe Guard"], "q")
         
@@ -447,12 +440,6 @@ final class AppDelegateCoreTests: XCTestCase {
         
         XCTAssertNotNil(receivedError)
         XCTAssertTrue(core.isArmed) // Should remain armed
-    }
-    
-    func testDemoModeIntegration() {
-        // TODO: Add demo mode integration test when demo functionality is implemented
-        // The AppController doesn't currently have a runDemo method
-        XCTAssertTrue(true, "Demo mode not yet implemented")
     }
     
     // MARK: - Backward Compatibility Tests

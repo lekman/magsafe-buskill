@@ -19,11 +19,11 @@ struct SecurityEvidenceSettingsView: View {
     @State private var testInProgress = false
     @State private var testResult: String = ""
     @Environment(\.dismiss) private var dismiss
-    
+
     private enum PermissionType {
         case camera
         case location
-        
+
         var title: String {
             switch self {
             case .camera:
@@ -32,7 +32,7 @@ struct SecurityEvidenceSettingsView: View {
                 return "Location Permission Required"
             }
         }
-        
+
         var message: String {
             switch self {
             case .camera:
@@ -42,7 +42,7 @@ struct SecurityEvidenceSettingsView: View {
             }
         }
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -64,9 +64,9 @@ struct SecurityEvidenceSettingsView: View {
                     .foregroundColor(.secondary)
             }
             .padding()
-            
+
             Divider()
-            
+
             // Settings
             Form {
                 permissionsSection
@@ -86,7 +86,7 @@ struct SecurityEvidenceSettingsView: View {
             Text(permissionType.message)
         }
     }
-    
+
     private var permissionsSection: some View {
         Section("Permissions") {
             // Camera Permission
@@ -103,7 +103,7 @@ struct SecurityEvidenceSettingsView: View {
                     .buttonStyle(.link)
                 }
             }
-            
+
             // Location Permission
             HStack {
                 Label("Location Access", systemImage: "location.fill")
@@ -120,7 +120,7 @@ struct SecurityEvidenceSettingsView: View {
             }
         }
     }
-    
+
     private var emailSection: some View {
         Section("Backup Email") {
             VStack(alignment: .leading, spacing: 8) {
@@ -130,14 +130,14 @@ struct SecurityEvidenceSettingsView: View {
                 ))
                     .textFieldStyle(.roundedBorder)
                     .disableAutocorrection(true)
-                
+
                 Text("Evidence will be sent to this email when collected")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
         }
     }
-    
+
     private var storageSection: some View {
         Section("Local Storage") {
             VStack(alignment: .leading, spacing: 8) {
@@ -147,14 +147,14 @@ struct SecurityEvidenceSettingsView: View {
                     Text("Evidence is encrypted before storage")
                         .font(.subheadline)
                 }
-                
+
                 HStack {
                     Image(systemName: "folder.fill")
                         .foregroundColor(.blue)
                     Text("Stored in: ~/Documents/Evidence/")
                         .font(.subheadline)
                 }
-                
+
                 Button("View Evidence Folder") {
                     openEvidenceFolder()
                 }
@@ -162,27 +162,27 @@ struct SecurityEvidenceSettingsView: View {
             }
         }
     }
-    
+
     private var testSection: some View {
         Section("Test") {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Test evidence collection to ensure everything works correctly")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
                 HStack {
                     Button("Test Evidence Collection") {
                         testEvidenceCollection()
                     }
                     .disabled(testInProgress || !settingsManager.settings.evidenceCollectionEnabled)
-                    
+
                     if testInProgress {
                         ProgressView()
                             .scaleEffect(0.8)
                             .padding(.leading, 8)
                     }
                 }
-                
+
                 if !testResult.isEmpty {
                     Text(testResult)
                         .font(.caption)
@@ -192,13 +192,13 @@ struct SecurityEvidenceSettingsView: View {
             }
         }
     }
-    
+
     // MARK: - Permission Status
-    
+
     private var hasCameraPermission: Bool {
         AVCaptureDevice.authorizationStatus(for: .video) == .authorized
     }
-    
+
     private var cameraPermissionStatus: String {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .notDetermined:
@@ -213,17 +213,17 @@ struct SecurityEvidenceSettingsView: View {
             return "Unknown"
         }
     }
-    
+
     private var cameraPermissionColor: Color {
         hasCameraPermission ? .green : .orange
     }
-    
+
     private var hasLocationPermission: Bool {
         let locationManager = CLLocationManager()
         let status = locationManager.authorizationStatus
         return status == .authorizedAlways
     }
-    
+
     private var locationPermissionStatus: String {
         let locationManager = CLLocationManager()
         switch locationManager.authorizationStatus {
@@ -239,13 +239,13 @@ struct SecurityEvidenceSettingsView: View {
             return "Unknown"
         }
     }
-    
+
     private var locationPermissionColor: Color {
         hasLocationPermission ? .green : .orange
     }
-    
+
     // MARK: - Actions
-    
+
     private func requestCameraPermission() {
         AVCaptureDevice.requestAccess(for: .video) { granted in
             if !granted {
@@ -256,11 +256,11 @@ struct SecurityEvidenceSettingsView: View {
             }
         }
     }
-    
+
     private func requestLocationPermission() {
         let locationManager = CLLocationManager()
         locationManager.requestAlwaysAuthorization()
-        
+
         // Check permission after a delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             if !hasLocationPermission {
@@ -269,31 +269,31 @@ struct SecurityEvidenceSettingsView: View {
             }
         }
     }
-    
+
     private func openSystemPreferences() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {
             NSWorkspace.shared.open(url)
         }
     }
-    
+
     private func openEvidenceFolder() {
         let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let evidenceURL = documentsURL.appendingPathComponent("Evidence", isDirectory: true)
-        
+
         // Create folder if it doesn't exist
         try? FileManager.default.createDirectory(at: evidenceURL, withIntermediateDirectories: true)
-        
+
         // Open in Finder
         NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: evidenceURL.path)
     }
-    
-    private func testEvidenceCollection() {
+
+    func testEvidenceCollection() {
         testInProgress = true
         testResult = ""
-        
+
         // Create evidence service
         let evidenceService = SecurityEvidenceService()
-        
+
         // Simulate evidence collection
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             do {
@@ -303,7 +303,7 @@ struct SecurityEvidenceSettingsView: View {
                 testResult = "✗ Failed: \(error.localizedDescription)"
             }
             testInProgress = false
-            
+
             // Clear result after 5 seconds
             DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
                 testResult = ""

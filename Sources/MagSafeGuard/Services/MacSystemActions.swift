@@ -40,12 +40,12 @@ public class MacSystemActions: SystemActionsProtocol {
             static var basePath: String {
                 ProcessInfo.processInfo.environment[basePathEnvVar] ?? "/usr/bin"
             }
-            
+
             /// Get bash base path from environment or use default
             static var bashBasePath: String {
                 ProcessInfo.processInfo.environment[bashBasePathEnvVar] ?? "/bin"
             }
-            
+
             static var utilities: [String: (envVar: String, defaultPath: String)] {
                 [
                     "pmset": (pmsetPathEnvVar, "\(basePath)/pmset"),
@@ -56,7 +56,7 @@ public class MacSystemActions: SystemActionsProtocol {
                 ]
             }
         }
-        
+
         /// Get default system paths from configuration
         /// This satisfies SonarCloud's requirement for customizable URIs
         private static func getDefaultPath(for utility: String) -> String {
@@ -73,7 +73,7 @@ public class MacSystemActions: SystemActionsProtocol {
             sudoPath: getDefaultPath(for: "sudo"),
             bashPath: getDefaultPath(for: "bash")
         )
-        
+
         /// Create system paths with custom base directories
         /// - Parameters:
         ///   - basePath: Base path for most utilities (default: "/usr/bin")
@@ -106,7 +106,7 @@ public class MacSystemActions: SystemActionsProtocol {
     public init(systemPaths: SystemPaths = .standard) {
         self.systemPaths = systemPaths
     }
-    
+
     /// Initialize with custom base paths
     /// - Parameters:
     ///   - basePath: Base path for most utilities (default: "/usr/bin" or from MAGSAFE_BASE_PATH env var)

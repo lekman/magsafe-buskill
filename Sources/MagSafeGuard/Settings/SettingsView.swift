@@ -264,9 +264,9 @@ struct SecuritySettingsView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 Toggle("", isOn: Binding(
                     get: { settingsManager.settings.evidenceCollectionEnabled },
                     set: { settingsManager.updateSetting(\.evidenceCollectionEnabled, value: $0) }
@@ -274,7 +274,7 @@ struct SecuritySettingsView: View {
                     .toggleStyle(.switch)
             }
             .padding(.vertical, 4)
-            
+
             if settingsManager.settings.evidenceCollectionEnabled {
                 Button("Configure Evidence Collection...") {
                     showingEvidenceSettings = true

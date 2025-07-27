@@ -29,7 +29,6 @@ struct MagSafeGuardApp: App {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
-    private var demoWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var windowDelegates: [NSWindow: WindowDelegate] = [:]
     let core = AppDelegateCore()
@@ -230,26 +229,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         settingsWindow?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-    }
-
-    @objc func showDemo() {
-        if demoWindow == nil {
-            let demoView = PowerMonitorDemoView()
-
-            demoWindow = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 480, height: 600),
-                styleMask: [.titled, .closable, .miniaturizable, .resizable],
-                backing: .buffered,
-                defer: false
-            )
-
-            demoWindow?.title = "Power Monitor Demo"
-            demoWindow?.contentView = NSHostingView(rootView: demoView)
-            demoWindow?.center()
-        }
-
-        demoWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
