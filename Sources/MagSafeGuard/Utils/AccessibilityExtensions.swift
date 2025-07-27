@@ -247,6 +247,7 @@ extension View {
 
 // MARK: - Accessibility Announcement Helper
 
+/// Helper struct for posting VoiceOver announcements and accessibility notifications.
 public struct AccessibilityAnnouncement {
     /// Posts an accessibility announcement that will be read by VoiceOver.
     ///

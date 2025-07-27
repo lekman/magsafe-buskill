@@ -273,14 +273,31 @@ public class AccessibilityManager {
 
 /// Represents the result of an accessibility audit check.
 public struct AccessibilityAuditResult {
+    /// The UI component that was audited.
     public let component: String
+    /// The category of accessibility being audited.
     public let category: AccessibilityCategory
+    /// The severity level of any issues found.
     public let severity: AccessibilitySeverity
+    /// A brief title describing the audit check.
     public let title: String
+    /// Detailed description of the audit findings.
     public let description: String
+    /// Recommended actions to improve accessibility.
     public let recommendation: String
+    /// Whether the component meets accessibility standards.
     public let isCompliant: Bool
 
+    /// Initializes a new accessibility audit result.
+    ///
+    /// - Parameters:
+    ///   - component: The UI component that was audited
+    ///   - category: The category of accessibility being audited
+    ///   - severity: The severity level of any issues found
+    ///   - title: A brief title describing the audit check
+    ///   - description: Detailed description of the audit findings
+    ///   - recommendation: Recommended actions to improve accessibility
+    ///   - isCompliant: Whether the component meets accessibility standards
     public init(
         component: String,
         category: AccessibilityCategory,
@@ -302,20 +319,30 @@ public struct AccessibilityAuditResult {
 
 /// Categories for accessibility audit results.
 public enum AccessibilityCategory: String, CaseIterable {
+    /// Navigation and keyboard accessibility features.
     case navigation = "Navigation"
+    /// User interface elements and controls.
     case interface = "Interface"
+    /// Alert and notification accessibility.
     case alerts = "Alerts"
+    /// Visual presentation and contrast.
     case visual = "Visual"
+    /// Audio feedback and sound accessibility.
     case audio = "Audio"
 }
 
 /// Severity levels for accessibility issues.
 public enum AccessibilitySeverity: String, CaseIterable {
+    /// Minor issues that have minimal impact on accessibility.
     case low = "Low"
+    /// Moderate issues that may affect some users.
     case medium = "Medium"
+    /// Significant issues that affect many users.
     case high = "High"
+    /// Severe issues that prevent access for users with disabilities.
     case critical = "Critical"
 
+    /// The numeric priority level for sorting (1-4, with 4 being highest).
     public var priority: Int {
         switch self {
         case .low: return 1
