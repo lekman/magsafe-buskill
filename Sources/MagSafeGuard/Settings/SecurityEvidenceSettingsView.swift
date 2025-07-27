@@ -81,7 +81,9 @@ struct SecurityEvidenceSettingsView: View {
             Button("Open System Preferences") {
                 openSystemPreferences()
             }
-            Button("Cancel", role: .cancel) {}
+            Button("Cancel", role: .cancel) {
+                // No action needed - dismisses alert automatically
+            }
         } message: {
             Text(permissionType.message)
         }

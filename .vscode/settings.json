@@ -31,7 +31,8 @@
     ".scannerwork": true,
     ".sonarcloud": true,
     ".task": true,
-    "coverage-report.txt": true
+    "coverage-report.txt": true,
+    ".github/pr-comments": true
   },
   "search.exclude": {
     "**/node_modules": true,
@@ -39,7 +40,8 @@
     "**/*.code-search": true,
     ".build/**": true,
     ".swiftpm/**": true,
-    "MagSafeGuard.xcodeproj/**": true
+    "MagSafeGuard.xcodeproj/**": true,
+    ".github/pr-comments/**": true
   },
   "editor.formatOnSave": true,
   "editor.rulers": [80, 120],

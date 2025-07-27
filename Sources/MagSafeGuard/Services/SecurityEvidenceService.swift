@@ -352,7 +352,7 @@ public class SecurityEvidenceService: NSObject {
                 // Can we share these items?
                 if service.canPerform(withItems: itemsToShare) {
                     service.perform(withItems: itemsToShare)
-                    Log.info("Evidence email prepared for: \(emailAddress)", category: .general)
+                    Log.info("Evidence email prepared", category: .general)
                     self.delegate?.evidenceService(self, didSendEmailTo: emailAddress)
                 } else {
                     Log.error("Cannot send email with attachments", category: .general)
@@ -414,7 +414,7 @@ extension SecurityEvidenceService: CLLocationManagerDelegate {
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         currentLocation = location
-        Log.debug("Updated location: \(location.coordinate.latitude), \(location.coordinate.longitude)", category: .general)
+        Log.debug("Location updated successfully", category: .general)
     }
 
     /// Called when the location manager fails to retrieve location data.

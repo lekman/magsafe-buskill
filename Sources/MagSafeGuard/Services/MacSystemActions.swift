@@ -33,17 +33,24 @@ public class MacSystemActions: SystemActionsProtocol {
         private static let basePathEnvVar = "MAGSAFE_BASE_PATH"
         private static let bashBasePathEnvVar = "MAGSAFE_BASH_BASE_PATH"
 
+        /// Default base path for most system utilities
+        internal static let defaultBasePath = "/usr/bin"
+
+        /// Default base path for bash
+        internal static let defaultBashBasePath = "/bin"
+
         /// System utility configuration with default paths
         /// These paths are fully customizable via environment variables
         private struct UtilityConfig {
+
             /// Get base path from environment or use default
             static var basePath: String {
-                ProcessInfo.processInfo.environment[basePathEnvVar] ?? "/usr/bin"
+                ProcessInfo.processInfo.environment[basePathEnvVar] ?? SystemPaths.defaultBasePath
             }
 
             /// Get bash base path from environment or use default
             static var bashBasePath: String {
-                ProcessInfo.processInfo.environment[bashBasePathEnvVar] ?? "/bin"
+                ProcessInfo.processInfo.environment[bashBasePathEnvVar] ?? SystemPaths.defaultBashBasePath
             }
 
             static var utilities: [String: (envVar: String, defaultPath: String)] {
@@ -74,12 +81,18 @@ public class MacSystemActions: SystemActionsProtocol {
             bashPath: getDefaultPath(for: "bash")
         )
 
+        /// Create system paths with default directories
+        /// - Returns: SystemPaths configured with default paths
+        public static func withBasePaths() -> SystemPaths {
+            return withBasePaths(basePath: defaultBasePath, bashBasePath: defaultBashBasePath)
+        }
+
         /// Create system paths with custom base directories
         /// - Parameters:
-        ///   - basePath: Base path for most utilities (default: "/usr/bin")
-        ///   - bashBasePath: Base path for bash (default: "/bin")
+        ///   - basePath: Base path for most utilities
+        ///   - bashBasePath: Base path for bash
         /// - Returns: SystemPaths configured with the custom base paths
-        public static func withBasePaths(basePath: String = "/usr/bin", bashBasePath: String = "/bin") -> SystemPaths {
+        public static func withBasePaths(basePath: String, bashBasePath: String) -> SystemPaths {
             return SystemPaths(
                 pmsetPath: "\(basePath)/pmset",
                 osascriptPath: "\(basePath)/osascript",
@@ -112,8 +125,8 @@ public class MacSystemActions: SystemActionsProtocol {
     ///   - basePath: Base path for most utilities (default: "/usr/bin" or from MAGSAFE_BASE_PATH env var)
     ///   - bashBasePath: Base path for bash (default: "/bin" or from MAGSAFE_BASH_BASE_PATH env var)
     public convenience init(basePath: String? = nil, bashBasePath: String? = nil) {
-        let effectiveBasePath = basePath ?? ProcessInfo.processInfo.environment["MAGSAFE_BASE_PATH"] ?? "/usr/bin"
-        let effectiveBashBasePath = bashBasePath ?? ProcessInfo.processInfo.environment["MAGSAFE_BASH_BASE_PATH"] ?? "/bin"
+        let effectiveBasePath = basePath ?? ProcessInfo.processInfo.environment["MAGSAFE_BASE_PATH"] ?? SystemPaths.defaultBasePath
+        let effectiveBashBasePath = bashBasePath ?? ProcessInfo.processInfo.environment["MAGSAFE_BASH_BASE_PATH"] ?? SystemPaths.defaultBashBasePath
         self.init(systemPaths: .withBasePaths(basePath: effectiveBasePath, bashBasePath: effectiveBashBasePath))
     }
 
