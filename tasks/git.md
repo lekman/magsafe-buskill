@@ -13,12 +13,42 @@ task git:list-branches   # List all branches with status
 task git:delete-runs     # Delete GitHub workflow runs
 task git:cve:analyze     # Analyze security vulnerabilities
 task git:cve:list        # List Dependabot alerts
+task git:pr:list         # List pull requests
 task git:pr:comments     # Download PR comments (including GHAS)
 ```
 
 ## Task Details
 
-### Pull Request Comments (`task git:pr:comments`)
+### Pull Request Management
+
+#### List Pull Requests (`task git:pr:list`)
+
+Lists pull requests in a formatted table view:
+
+```bash
+# List recent 10 PRs (default)
+task git:pr:list
+
+# List more PRs
+task git:pr:list LIMIT=20
+
+# Filter by state
+task git:pr:list STATE=open
+task git:pr:list STATE=closed
+task git:pr:list STATE=merged
+task git:pr:list STATE=all    # default
+
+# Alias
+task git:prl
+```
+
+**Features:**
+- Shows PR number, title, state, author, branches, and date
+- Indicates draft PRs with 📝 emoji
+- Truncates long titles for readability
+- Customizable limit and state filters
+
+#### Download Pull Request Comments (`task git:pr:comments`)
 
 Downloads all comments from a pull request including:
 - General PR comments

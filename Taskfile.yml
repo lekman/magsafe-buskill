@@ -25,7 +25,7 @@ tasks:
   default:
     desc: Show available tasks
     cmds:
-      - "echo \"\U0001F680 MagSafe Guard Development Tasks\"\necho \"=================================\"\necho \"\"\necho \"\U0001F527 Core Commands:\"\necho \"  task init          - Initialize development environment\"\necho \"  task run           - Build and run MagSafe Guard\"\necho \"  task test          - Run all tests\"\necho \"  task clean         - Clean build artifacts\"\necho \"\"\necho \"✅ Quality Assurance:\"\necho \"  task qa            - Run standard QA checks\"\necho \"  task qa:quick      - Quick checks (for git hooks)\"\necho \"  task qa:fix        - Auto-fix all fixable issues\"\necho \"  task qa:full       - Full QA with SonarCloud\"\necho \"\"\necho \"\U0001F4E6 Module Commands:\"\necho \"  task swift:        - Swift development tasks\"\necho \"  task security:     - Security scanning tasks\"\necho \"  task sonar:        - SonarCloud analysis\"\necho \"  task markdown:     - Markdown linting\"\necho \"  task yaml:         - YAML validation and linting\"\necho \"\"\necho \"\U0001F4A1 Tips:\"\necho \"  • Use 'task <module>:' to see module-specific tasks\"\necho \"  • Use 'task --list' to see all available tasks\"\necho \"  • Most commands have a '--help' option\"\necho \"\"\n"
+      - "echo \"\U0001F680 MagSafe Guard Development Tasks\"\necho \"=================================\"\necho \"\"\necho \"\U0001F527 Core Commands:\"\necho \"  task init          - Initialize development environment\"\necho \"  task run           - Build and run MagSafe Guard\"\necho \"  task test          - Run all tests\"\necho \"  task clean         - Clean build artifacts\"\necho \"\"\necho \"✅ Quality Assurance:\"\necho \"  task qa            - Run standard QA checks\"\necho \"  task qa:quick      - Quick checks (for git hooks)\"\necho \"  task qa:fix        - Auto-fix all fixable issues\"\necho \"  task qa:full       - Full QA with SonarCloud\"\necho \"\"\necho \"\U0001F4E6 Module Commands:\"\necho \"  task swift:        - Swift development tasks\"\necho \"  task security:     - Security scanning tasks\"\necho \"  task sonar:        - SonarCloud analysis\"\necho \"  task markdown:     - Markdown linting\"\necho \"  task yaml:         - YAML validation and linting\"\necho \"  task git:          - Git and GitHub tasks\"\necho \"\"\necho \"\U0001F4A1 Tips:\"\necho \"  • Use 'task <module>:' to see module-specific tasks\"\necho \"  • Use 'task --list' to see all available tasks\"\necho \"  • Most commands have a '--help' option\"\necho \"\"\n"
     silent: true
   init:
     desc: Initialize development environment
@@ -183,3 +183,8 @@ tasks:
     silent: true
     cmds:
       - task: yaml:default
+  "git:":
+    desc: Show Git and GitHub tasks
+    silent: true
+    cmds:
+      - task: git:default
