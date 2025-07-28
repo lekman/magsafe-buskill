@@ -7,10 +7,8 @@ This module provides code quality analysis and SonarCloud integration for compre
 ```bash
 task sonar:            # Show available SonarCloud tasks
 task sonar:scan        # Run full SonarCloud analysis
-task sonar:simulate    # Simulate analysis using SwiftLint
 task sonar:download    # Download findings from SonarCloud
 task sonar:download:pr # Download pull request report
-task sonar:view        # View latest simulation report
 task sonar:convert     # Convert Swift coverage to SonarQube XML
 task sonar:setup       # Install sonar-scanner
 task sonar:issues      # Display findings from previous scan
@@ -32,19 +30,14 @@ Runs complete SonarCloud analysis with upload:
 - SonarCloud token in `.env` file
 - sonar-scanner installed
 
-### Simulate Analysis (`task sonar:simulate`)
+### Local Analysis Alternative
 
-Local analysis without SonarCloud upload:
+For quick local analysis without SonarCloud:
 
-- Uses SwiftLint for issue detection
-- Generates local quality report
+- Use `task swift:lint` for SwiftLint analysis
+- Use `task swift:test:coverage` for coverage reports
 - No token required
-- Quick feedback loop
-
-**Output:**
-
-- `.sonarcloud/simulation-report.txt`
-- `.sonarcloud/swiftlint-output.json`
+- Immediate feedback
 
 ### Download Findings (`task sonar:download`)
 
@@ -90,15 +83,6 @@ PR=help task sonar:download:pr
 - `.sonarcloud/pr-{number}-report.md`
 - `.sonarcloud/pr-{number}-issues.json`
 - `.sonarcloud/pr-{number}-measures.json`
-
-### View Report (`task sonar:view`)
-
-Displays the latest simulation report:
-
-- Shows first 100 lines
-- Coverage summary
-- Issue breakdown
-- Quality metrics
 
 ### Display Issues (`task sonar:issues`)
 
@@ -191,9 +175,9 @@ Default thresholds:
 ### Local Development
 
 ```bash
-# Before committing
-task sonar:simulate
-task sonar:view
+# Before committing (quick check)
+task swift:lint
+task swift:test:coverage
 
 # Before pushing (with token)
 task sonar:scan
@@ -213,7 +197,7 @@ Add to pre-push workflow:
 
 ```bash
 # Quick local check
-task sonar:simulate
+task swift:lint
 
 # Full check (requires token)
 task qa:full
@@ -339,7 +323,7 @@ sonar-scanner \
 
 ### Performance
 
-- Use `sonar:simulate` for quick feedback
+- Use `task swift:lint` for quick feedback
 - Cache scanner downloads
 - Exclude generated files
 - Run coverage separately
@@ -353,7 +337,7 @@ sonar-scanner \
 
 ### Team Adoption
 
-- Start with simulation mode
+- Start with local linting
 - Gradually enable rules
 - Share success stories
 - Make it part of workflow

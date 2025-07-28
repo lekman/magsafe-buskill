@@ -43,20 +43,32 @@ struct SecurityEvidenceSettingsView: View {
         }
     }
 
+    private var headerIcon: some View {
+        Image(systemName: "camera.fill")
+            .font(.title2)
+            .foregroundColor(.orange)
+    }
+    
+    private var headerTitle: some View {
+        Text("Evidence Collection Settings")
+            .font(.title2)
+            .fontWeight(.semibold)
+    }
+    
+    private var headerContent: some View {
+        HStack {
+            headerIcon
+            headerTitle
+            Spacer()
+            doneButton
+        }
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // Header
             VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Image(systemName: "camera.fill")
-                        .font(.title2)
-                        .foregroundColor(.orange)
-                    Text("Evidence Collection Settings")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    Spacer()
-                    doneButton
-                }
+                headerContent
                 Text("Configure how evidence is collected and stored when theft is detected")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
@@ -129,16 +141,19 @@ struct SecurityEvidenceSettingsView: View {
         }
     }
 
+    private var encryptionInfo: some View {
+        HStack {
+            Image(systemName: "lock.shield.fill")
+                .foregroundColor(.green)
+            Text("Evidence is encrypted before storage")
+                .font(.subheadline)
+        }
+    }
+    
     private var storageSection: some View {
         Section("Local Storage") {
             VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Image(systemName: "lock.shield.fill")
-                        .foregroundColor(.green)
-                    Text("Evidence is encrypted before storage")
-                        .font(.subheadline)
-                }
-
+                encryptionInfo
                 HStack {
                     Image(systemName: "folder.fill")
                         .foregroundColor(.blue)
@@ -151,29 +166,40 @@ struct SecurityEvidenceSettingsView: View {
         }
     }
 
+    private var testDescription: some View {
+        Text("Test evidence collection to ensure everything works correctly")
+            .font(.caption)
+            .foregroundColor(.secondary)
+    }
+    
+    private var testButtons: some View {
+        HStack {
+            testEvidenceButton
+            if testInProgress {
+                ProgressView()
+                    .scaleEffect(0.8)
+                    .padding(.leading, 8)
+            }
+        }
+    }
+    
+    private var testResultView: some View {
+        Group {
+            if !testResult.isEmpty {
+                Text(testResult)
+                    .font(.caption)
+                    .foregroundColor(testResult.contains("Success") ? .green : .red)
+                    .padding(.top, 4)
+            }
+        }
+    }
+    
     private var testSection: some View {
         Section("Test") {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Test evidence collection to ensure everything works correctly")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                HStack {
-                    testEvidenceButton
-
-                    if testInProgress {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                            .padding(.leading, 8)
-                    }
-                }
-
-                if !testResult.isEmpty {
-                    Text(testResult)
-                        .font(.caption)
-                        .foregroundColor(testResult.contains("Success") ? .green : .red)
-                        .padding(.top, 4)
-                }
+                testDescription
+                testButtons
+                testResultView
             }
         }
     }

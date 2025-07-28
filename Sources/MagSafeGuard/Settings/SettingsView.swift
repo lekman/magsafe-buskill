@@ -125,23 +125,24 @@ struct GeneralSettingsView: View {
         .padding()
     }
 
+    private var immediateActionBinding: Binding<Bool> {
+        Binding(
+            get: { settingsManager.settings.gracePeriodDuration == 0 },
+            set: { immediate in
+                let newValue = immediate ? 0.0 : 5.0
+                settingsManager.updateSetting(\.gracePeriodDuration, value: newValue)
+            }
+        )
+    }
+    
     private var gracePeriodSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("Grace Period Duration")
                     .font(.headline)
                 Spacer()
-                Toggle("Immediate Action", isOn: Binding(
-                    get: { settingsManager.settings.gracePeriodDuration == 0 },
-                    set: { immediate in
-                        if immediate {
-                            settingsManager.updateSetting(\.gracePeriodDuration, value: 0)
-                        } else {
-                            settingsManager.updateSetting(\.gracePeriodDuration, value: 5)
-                        }
-                    }
-                ))
-                .toggleStyle(.checkbox)
+                Toggle("Immediate Action", isOn: immediateActionBinding)
+                    .toggleStyle(.checkbox)
             }
 
             gracePeriodSlider
@@ -268,23 +269,29 @@ struct SecuritySettingsView: View {
         .padding()
     }
 
+    private var evidenceCollectionHeader: some View {
+        HStack {
+            Image(systemName: "camera.fill")
+                .foregroundColor(.orange)
+            Text("Evidence Collection")
+                .font(.headline)
+        }
+    }
+    
+    private var evidenceCollectionInfo: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            evidenceCollectionHeader
+            Text("Capture location and photos when theft is detected")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
     private var evidenceCollectionSection: some View {
         Section(header: Text("Evidence Collection")) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Image(systemName: "camera.fill")
-                            .foregroundColor(.orange)
-                        Text("Evidence Collection")
-                            .font(.headline)
-                    }
-                    Text("Capture location and photos when theft is detected")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
+                evidenceCollectionInfo
                 Spacer()
-
                 Toggle("", isOn: evidenceCollectionBinding)
                     .toggleStyle(.switch)
             }

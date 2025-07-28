@@ -95,7 +95,7 @@ public struct EventLogEntry: Codable {
 
         /// Google Maps URL for quick viewing
         public var mapsURL: String {
-            "https://maps.google.com/?q=\(latitude),\(longitude)"
+            AppConfiguration.googleMapsURL(latitude: latitude, longitude: longitude)
         }
     }
 }

@@ -11,7 +11,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F50D Linting Markdown files..."
+        echo "🔍 Linting Markdown files..."
 
         # Check if markdownlint is installed
         if ! command -v markdownlint &> /dev/null; then
@@ -79,13 +79,13 @@ tasks:
             CURRENT_VERSION=$(markdownlint --version | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)
             LATEST_VERSION=$(npm view markdownlint-cli version 2>/dev/null)
             if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ] && [ -n "$LATEST_VERSION" ]; then
-              echo "\U0001F4E6 Update available: $CURRENT_VERSION → $LATEST_VERSION"
+              echo "📦 Update available: $CURRENT_VERSION → $LATEST_VERSION"
               echo "   Updating markdownlint..."
               npm update -g markdownlint-cli
             fi
           elif command -v brew &> /dev/null && brew list markdownlint-cli &>/dev/null; then
             if brew outdated | grep -q "^markdownlint-cli"; then
-              echo "\U0001F4E6 Updating markdownlint..."
+              echo "📦 Updating markdownlint..."
               brew upgrade markdownlint-cli
             fi
           fi
@@ -94,7 +94,7 @@ tasks:
 
         # Try to install with npm first (most universal)
         if command -v npm &> /dev/null; then
-          echo "\U0001F4E6 Installing markdownlint with npm..."
+          echo "📦 Installing markdownlint with npm..."
           if npm install -g markdownlint-cli 2>/dev/null; then
             echo "✅ markdownlint installed successfully with npm"
           else
@@ -113,7 +113,7 @@ tasks:
           fi
         # Try Homebrew as fallback
         elif command -v brew &> /dev/null; then
-          echo "\U0001F4E6 Installing markdownlint with Homebrew..."
+          echo "📦 Installing markdownlint with Homebrew..."
           brew install markdownlint-cli
         else
           echo "❌ Neither npm nor Homebrew found"
