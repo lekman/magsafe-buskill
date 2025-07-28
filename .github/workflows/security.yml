@@ -304,7 +304,7 @@ jobs:
 
       # Upload Semgrep results to GitHub Security tab
       - name: Upload SARIF results
-        uses: github/codeql-action/upload-sarif@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
+        uses: github/codeql-action/upload-sarif@4e828ff8d448a8a6e532957b1811f387a63867e8 # v3.29.4
         if: always() # Upload even if Semgrep step fails
         with:
           sarif_file: semgrep.sarif
@@ -330,7 +330,7 @@ jobs:
   #     continue-on-error: true  # Don't fail if Snyk is not configured
   #
   #   - name: Upload Snyk results to GitHub Code Scanning
-  #     uses: github/codeql-action/upload-sarif@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
+  #     uses: github/codeql-action/upload-sarif@4e828ff8d448a8a6e532957b1811f387a63867e8 # v3.29.4
   #     if: always() && env.SNYK_TOKEN != ''
   #     with:
   #       sarif_file: snyk.sarif
@@ -375,14 +375,14 @@ jobs:
           persist-credentials: false
 
       - name: Run Scorecard
-        uses: ossf/scorecard-action@62b2cac7ed8198b15735ed49ab1e5cf35480ba46 # v2.4.0
+        uses: ossf/scorecard-action@05b42c624433fc40578a4040d5cf5e36ddca8cde # v2.4.2
         with:
           results_file: results.sarif
           results_format: sarif
           publish_results: false
 
       - name: Upload results to code scanning
-        uses: github/codeql-action/upload-sarif@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
+        uses: github/codeql-action/upload-sarif@4e828ff8d448a8a6e532957b1811f387a63867e8 # v3.29.4
         with:
           sarif_file: results.sarif
 
