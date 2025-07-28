@@ -7,7 +7,8 @@ tasks:
     desc: List available security tasks
     silent: true
     cmds:
-      - task --list | grep "^\\* security:" | grep -v "::" || true
+      - |
+        task --list | grep "^\\* security:" | grep -v "::" || true
   scan:
     desc: Run all security checks
     silent: true
@@ -21,33 +22,33 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F50D Scanning for secrets and sensitive data..."
+        echo "🔍 Scanning for secrets and sensitive data..."
         echo ""
 
         # Common patterns to check
         patterns=(
-          "password.*=.*['\\"]" 
-          "api[_-]?key.*=.*['\\"]"
-          "secret.*=.*['\\"]"
-          "token.*=.*['\\"]"
-          "private[_-]?key"
-          "-----BEGIN.*PRIVATE KEY-----"
-          "Bearer\\s+[A-Za-z0-9\\-_]+"
+          'password.*=.*["'"'"'"]'
+          'api[_-]?key.*=.*["'"'"'"]'
+          'secret.*=.*["'"'"'"]'
+          'token.*=.*["'"'"'"]'
+          'private[_-]?key'
+          '-----BEGIN.*PRIVATE KEY-----'
+          'Bearer\s+[A-Za-z0-9\-_]+'
         )
 
         found_issues=0
 
         for pattern in "${patterns[@]}"; do
           # Search in source files, excluding common false positives
-          results=$(find . \\
-            -type f \\
-            \\( -name "*.swift" -o -name "*.js" -o -name "*.ts" -o -name "*.py" -o -name "*.rb" -o -name "*.java" -o -name "*.go" \\) \\
-            -not -path "./.build/*" \\
-            -not -path "./node_modules/*" \\
-            -not -path "./.git/*" \\
-            -not -path "./vendor/*" \\
-            -not -path "*test*" \\
-            -exec grep -l -E "$pattern" {} \\; 2>/dev/null || true)
+          results=$(find . \
+            -type f \
+            \( -name "*.swift" -o -name "*.js" -o -name "*.ts" -o -name "*.py" -o -name "*.rb" -o -name "*.java" -o -name "*.go" \) \
+            -not -path "./.build/*" \
+            -not -path "./node_modules/*" \
+            -not -path "./.git/*" \
+            -not -path "./vendor/*" \
+            -not -path "*test*" \
+            -exec grep -l -E "$pattern" {} \; 2>/dev/null || true)
           
           if [ -n "$results" ]; then
             echo "⚠️  Found potential secrets matching pattern: $pattern"
@@ -66,8 +67,7 @@ tasks:
             # Remove leading ./ from path for git check
             clean_path=${env_file#./}
             if ! git check-ignore "$clean_path" >/dev/null 2>&1; then
-              unignored_env_files="$unignored_env_files$env_file\
-        "
+              unignored_env_files="$unignored_env_files$env_file\n"
             fi
           done
           
@@ -93,7 +93,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F50D Running Semgrep security analysis..."
+        echo "🔍 Running Semgrep security analysis..."
 
         if ! command -v semgrep &> /dev/null; then
           echo "⚠️  Semgrep not installed"
@@ -111,7 +111,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F50D Checking GitHub Action pins..."
+        echo "🔍 Checking GitHub Action pins..."
 
         unpinned=0
         workflow_files=$(find .github/workflows -name "*.yml" -o -name "*.yaml" 2>/dev/null || true)
@@ -159,7 +159,7 @@ tasks:
           exit 1
         fi
 
-        echo "\U0001F512 Pinning GitHub Actions to specific commit SHAs..."
+        echo "🔒 Pinning GitHub Actions to specific commit SHAs..."
         echo ""
 
         # Function to get latest commit SHA for a tag
@@ -237,7 +237,7 @@ tasks:
 
         if [ $total_pinned -gt 0 ]; then
           echo ""
-          echo "\U0001F4DD Remember to commit these changes!"
+          echo "📝 Remember to commit these changes!"
         fi
 
   update-pins:
@@ -259,7 +259,7 @@ tasks:
           exit 1
         fi
 
-        echo "\U0001F504 Updating GitHub Action pins to latest SHAs..."
+        echo "🔄 Updating GitHub Action pins to latest SHAs..."
         echo ""
 
         # Function to get latest commit SHA for a tag
@@ -330,7 +330,7 @@ tasks:
         if [ $total_updated -gt 0 ]; then
           echo "✅ Updated $total_updated action pins"
           echo ""
-          echo "\U0001F4DD Remember to commit these changes!"
+          echo "📝 Remember to commit these changes!"
         else
           echo "✅ All action pins are already up to date!"
         fi
@@ -340,7 +340,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F916 Setting up Dependabot for security updates..."
+        echo "🤖 Setting up Dependabot for security updates..."
 
         # Create .github directory if it doesn't exist
         mkdir -p .github
@@ -405,14 +405,14 @@ tasks:
         echo "  • Label PRs with 'dependencies' and ecosystem tags"
         echo "  • Use 'chore' commit prefix"
         echo ""
-        echo "\U0001F4DD Remember to commit this file to enable Dependabot!"
+        echo "📝 Remember to commit this file to enable Dependabot!"
 
   setup:
     desc: Setup security scanning tools
     silent: true
     cmds:
       - |
-        echo "\U0001F527 Setting up security tools..."
+        echo "🔧 Setting up security tools..."
 
         # Detect OS
         OS=$(uname -s | tr '[:upper:]' '[:lower:]')
@@ -432,60 +432,60 @@ tasks:
 
         # Install/Update Semgrep
         if ! command -v semgrep &> /dev/null; then
-          echo "\U0001F4E6 Installing Semgrep..."
+          echo "📦 Installing Semgrep..."
           brew install semgrep
         else
           echo "✅ Semgrep already installed ($(semgrep --version | head -1))"
           if brew outdated | grep -q "^semgrep"; then
-            echo "\U0001F4E6 Updating Semgrep..."
+            echo "📦 Updating Semgrep..."
             brew upgrade semgrep
           fi
         fi
 
         # Install/Update truffleHog (secret scanner)
         if ! command -v trufflehog &> /dev/null; then
-          echo "\U0001F4E6 Installing truffleHog..."
+          echo "📦 Installing truffleHog..."
           brew install trufflehog
         else
           echo "✅ truffleHog already installed"
           if brew outdated | grep -q "^trufflehog"; then
-            echo "\U0001F4E6 Updating truffleHog..."
+            echo "📦 Updating truffleHog..."
             brew upgrade trufflehog
           fi
         fi
 
         # Install/Update gitleaks (secret scanner)
         if ! command -v gitleaks &> /dev/null; then
-          echo "\U0001F4E6 Installing gitleaks..."
+          echo "📦 Installing gitleaks..."
           brew install gitleaks
         else
           echo "✅ gitleaks already installed"
           if brew outdated | grep -q "^gitleaks"; then
-            echo "\U0001F4E6 Updating gitleaks..."
+            echo "📦 Updating gitleaks..."
             brew upgrade gitleaks
           fi
         fi
 
         # Install/Update jq (for JSON parsing)
         if ! command -v jq &> /dev/null; then
-          echo "\U0001F4E6 Installing jq..."
+          echo "📦 Installing jq..."
           brew install jq
         else
           echo "✅ jq already installed"
           if brew outdated | grep -q "^jq"; then
-            echo "\U0001F4E6 Updating jq..."
+            echo "📦 Updating jq..."
             brew upgrade jq
           fi
         fi
 
         # Install/Update GitHub CLI (for pin operations)
         if ! command -v gh &> /dev/null; then
-          echo "\U0001F4E6 Installing GitHub CLI..."
+          echo "📦 Installing GitHub CLI..."
           brew install gh
         else
           echo "✅ GitHub CLI already installed"
           if brew outdated | grep -q "^gh"; then
-            echo "\U0001F4E6 Updating GitHub CLI..."
+            echo "📦 Updating GitHub CLI..."
             brew upgrade gh
           fi
         fi
@@ -505,7 +505,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F50D Running gitleaks secret scanner..."
+        echo "🔍 Running gitleaks secret scanner..."
 
         if ! command -v gitleaks &> /dev/null; then
           echo "⚠️  gitleaks not installed"
@@ -526,7 +526,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F50D Running truffleHog secret scanner..."
+        echo "🔍 Running truffleHog secret scanner..."
 
         if ! command -v trufflehog &> /dev/null; then
           echo "⚠️  truffleHog not installed"

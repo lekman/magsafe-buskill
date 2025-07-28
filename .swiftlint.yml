@@ -128,4 +128,3 @@ excluded:
   - .swiftpm
   - "*.generated.swift"
   - "**/Generated/"
-test: value

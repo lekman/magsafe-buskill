@@ -10,8 +10,8 @@
 
 import AppKit
 import Combine
-import Foundation
 import CoreLocation
+import Foundation
 
 /// Application states representing the security system's current mode.
 ///
@@ -81,14 +81,18 @@ public struct EventLogEntry: Codable {
     public let location: LocationInfo?
     /// User identifier for multi-device sync
     public let userID: String
-    
+
     /// Location information for events
     public struct LocationInfo: Codable {
+        /// The latitude coordinate
         public let latitude: Double
+        /// The longitude coordinate
         public let longitude: Double
+        /// The accuracy of the location in meters
         public let accuracy: Double
+        /// When the location was captured
         public let timestamp: Date
-        
+
         /// Google Maps URL for quick viewing
         public var mapsURL: String {
             "https://maps.google.com/?q=\(latitude),\(longitude)"
@@ -206,7 +210,7 @@ public class AppController: ObservableObject {
 
     /// Flag to disable auto-arm in test environments
     static var isTestEnvironment = false
-    
+
     /// Location manager for event logging
     private lazy var eventLocationManager: LocationManager = {
         let manager = LocationManager()
@@ -402,7 +406,7 @@ public class AppController: ObservableObject {
                 self.handlePowerDisconnected()
             } else if powerInfo.state == .connected {
                 self.logEventInternal(.powerConnected, details: "Power adapter connected")
-                
+
                 // Cancel grace period if power is reconnected
                 if self.isInGracePeriod {
                     self.cancelGracePeriod()
@@ -447,7 +451,7 @@ public class AppController: ObservableObject {
 
             let elapsed = Date().timeIntervalSince(self.gracePeriodStartTime ?? Date())
             self.gracePeriodRemaining = max(0, self.gracePeriodDuration - elapsed)
-            
+
             // Log countdown at whole second intervals
             let remainingSeconds = Int(ceil(self.gracePeriodRemaining))
             if remainingSeconds < lastLoggedSecond && remainingSeconds > 0 {
@@ -528,14 +532,14 @@ public class AppController: ObservableObject {
     private func logEventInternal(_ event: AppEvent, details: String? = nil) {
         eventLogQueue.async { [weak self] in
             guard let self = self else { return }
-            
+
             // Get device information
             let deviceName = Host.current().localizedName ?? "Unknown Mac"
             let deviceModel = self.getDeviceModel()
             let osVersion = ProcessInfo.processInfo.operatingSystemVersionString
-            
+
             // Get current location if available and permission granted
-            var locationInfo: EventLogEntry.LocationInfo? = nil
+            var locationInfo: EventLogEntry.LocationInfo?
             if let location = self.eventLocationManager.currentLocation,
                location.horizontalAccuracy > 0 {
                 locationInfo = EventLogEntry.LocationInfo(
@@ -545,7 +549,7 @@ public class AppController: ObservableObject {
                     timestamp: location.timestamp
                 )
             }
-            
+
             // Get user ID (for now, use device identifier)
             let userID = self.getUserIdentifier()
 
@@ -691,9 +695,9 @@ extension AppController {
             return "Security Action Triggered"
         }
     }
-    
+
     // MARK: - Helper Methods for Enhanced Logging
-    
+
     /// Gets the device model name (e.g., "MacBook Pro")
     private func getDeviceModel() -> String {
         var size = 0
@@ -701,7 +705,7 @@ extension AppController {
         var model = [CChar](repeating: 0, count: size)
         sysctlbyname("hw.model", &model, &size, nil, 0)
         let modelString = String(cString: model)
-        
+
         // Convert model identifier to friendly name
         if modelString.contains("MacBookPro") {
             return "MacBook Pro"
@@ -719,13 +723,13 @@ extension AppController {
             return modelString
         }
     }
-    
+
     /// Gets a unique user identifier for iCloud sync
     private func getUserIdentifier() -> String {
         // For now, use a combination of device name and a stored UUID
         // In the future, this could be tied to iCloud account
         let userDefaultsKey = "com.magsafeguard.userIdentifier"
-        
+
         if let existingID = UserDefaults.standard.string(forKey: userDefaultsKey) {
             return existingID
         } else {
@@ -734,9 +738,9 @@ extension AppController {
             return newID
         }
     }
-    
+
     // MARK: - Event Log Export for iCloud Sync
-    
+
     /// Exports recent event logs as JSON for iCloud sync
     public func exportEventLogs(limit: Int = 100) -> Data? {
         do {
@@ -750,33 +754,33 @@ extension AppController {
             return nil
         }
     }
-    
+
     /// Imports event logs from iCloud sync (merges with existing)
     public func importEventLogs(from data: Data) {
         do {
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
             let importedLogs = try decoder.decode([EventLogEntry].self, from: data)
-            
+
             // Merge logs, avoiding duplicates based on timestamp and event
             for log in importedLogs {
                 let isDuplicate = eventLog.contains { existing in
-                    existing.timestamp == log.timestamp && 
+                    existing.timestamp == log.timestamp &&
                     existing.event == log.event &&
                     existing.deviceName == log.deviceName
                 }
-                
+
                 if !isDuplicate {
                     eventLog.append(log)
                 }
             }
-            
+
             // Sort by timestamp and maintain size limit
             eventLog.sort { $0.timestamp < $1.timestamp }
             if eventLog.count > 1000 {
                 eventLog.removeFirst(eventLog.count - 1000)
             }
-            
+
             Log.info("Imported \(importedLogs.count) event logs", category: .general)
         } catch {
             Log.error("Failed to import event logs", error: error, category: .general)

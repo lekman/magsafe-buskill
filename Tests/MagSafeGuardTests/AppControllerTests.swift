@@ -63,8 +63,8 @@ final class AppControllerTests: XCTestCase {
         XCTAssertEqual(sut.currentState, .disarmed)
         XCTAssertFalse(sut.isInGracePeriod)
         XCTAssertEqual(sut.gracePeriodRemaining, 0)
-        // Grace period should be between 5-30 seconds (validated by settings)
-        XCTAssertGreaterThanOrEqual(sut.gracePeriodDuration, 5.0)
+        // Grace period should be between 0-30 seconds (validated by settings)
+        XCTAssertGreaterThanOrEqual(sut.gracePeriodDuration, 0.0)
         XCTAssertLessThanOrEqual(sut.gracePeriodDuration, 30.0)
         // Default value from Settings is true, but can be persisted from previous test runs
         // Just verify it's a Boolean
@@ -75,6 +75,7 @@ final class AppControllerTests: XCTestCase {
     
     func testArmingWithSuccessfulAuthentication() {
         let expectation = expectation(description: "Arm completion")
+        // Authentication no longer required for arming
         mockAuthService.shouldSucceed = true
         
         sut.arm { result in
@@ -106,10 +107,10 @@ final class AppControllerTests: XCTestCase {
         sut.arm { result in
             switch result {
             case .success:
-                XCTFail("Arming should fail")
-            case .failure(let error):
-                XCTAssertEqual(self.sut.currentState, .disarmed)
-                XCTAssertNotNil(error)
+                // Arming should succeed even with failed auth (no auth required for arming)
+                XCTAssertEqual(self.sut.currentState, .armed)
+            case .failure:
+                XCTFail("Arming should succeed regardless of auth status")
             }
             expectation.fulfill()
         }
@@ -174,94 +175,6 @@ final class AppControllerTests: XCTestCase {
         waitForExpectations(timeout: 1.0)
     }
     
-    // MARK: - Grace Period Tests
-    
-    // Skip grace period tests for now - PowerMonitorService can't be easily mocked
-    // TODO: Refactor PowerMonitorService to be testable
-    /*
-    func testGracePeriodTriggering() {
-        // Configure short grace period for testing
-        sut.gracePeriodDuration = 0.5
-        
-        // Arm the system
-        mockAuthService.shouldSucceed = true
-        let armExpectation = expectation(description: "Arm")
-        
-        sut.arm { _ in
-            armExpectation.fulfill()
-        }
-        
-        waitForExpectations(timeout: 1.0)
-        
-        // Simulate power disconnection
-        mockPowerMonitor.simulatePowerChange(.disconnected)
-        
-        // Verify grace period started
-        XCTAssertEqual(sut.currentState, .gracePeriod)
-        XCTAssertTrue(sut.isInGracePeriod)
-        
-        // Wait for grace period to complete
-        let gracePeriodExpectation = expectation(description: "Grace period completion")
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-            XCTAssertFalse(self.sut.isInGracePeriod)
-            XCTAssertTrue(self.mockSecurityActions.lockScreenCalled)
-            gracePeriodExpectation.fulfill()
-        }
-        
-        waitForExpectations(timeout: 1.0)
-    }
-    */
-    
-    /*
-    func testGracePeriodCancellation() {
-        // Arm the system
-        mockAuthService.shouldSucceed = true
-        let armExpectation = expectation(description: "Arm")
-        
-        sut.arm { _ in
-            armExpectation.fulfill()
-        }
-        
-        waitForExpectations(timeout: 1.0)
-        
-        // Simulate power disconnection
-        mockPowerMonitor.simulatePowerChange(.disconnected)
-        
-        // Verify grace period started
-        XCTAssertTrue(sut.isInGracePeriod)
-        
-        // Cancel grace period
-        let cancelExpectation = expectation(description: "Cancel grace period")
-        
-        sut.cancelGracePeriodWithAuth { result in
-            switch result {
-            case .success:
-                XCTAssertFalse(self.sut.isInGracePeriod)
-                XCTAssertEqual(self.sut.currentState, .armed)
-                XCTAssertFalse(self.mockSecurityActions.lockScreenCalled)
-            case .failure:
-                XCTFail("Cancellation should succeed")
-            }
-            cancelExpectation.fulfill()
-        }
-        
-        waitForExpectations(timeout: 1.0)
-    }
-    */
-    
-    // MARK: - Grace Period Cancellation Tests
-    
-    func testCancelGracePeriodWithAuthSuccess() {
-        // This test requires a mock power monitor which we don't have yet
-        // TODO: Add this test when PowerMonitorService is made testable
-    }
-    
-    func testCancelGracePeriodWithAuthFailure() {
-        // This test requires a mock power monitor which we don't have yet
-        // TODO: Add this test when PowerMonitorService is made testable
-    }
-    
     func testCancelGracePeriodNotAllowed() {
         // Disable grace period cancellation
         sut.allowGracePeriodCancellation = false
@@ -295,8 +208,8 @@ final class AppControllerTests: XCTestCase {
         XCTAssertEqual(sut.gracePeriodDuration, 15.0)
         
         // Test validation bounds
-        sut.gracePeriodDuration = 3.0
-        XCTAssertEqual(sut.gracePeriodDuration, 5.0) // Should be clamped to minimum
+        sut.gracePeriodDuration = -1.0
+        XCTAssertEqual(sut.gracePeriodDuration, 0.0) // Should be clamped to minimum
         
         sut.gracePeriodDuration = 35.0
         XCTAssertEqual(sut.gracePeriodDuration, 30.0) // Should be clamped to maximum
@@ -333,7 +246,7 @@ final class AppControllerTests: XCTestCase {
         // Check events were logged
         events = sut.getEventLog()
         XCTAssertFalse(events.isEmpty)
-        XCTAssertTrue(events.contains { $0.event == .authenticationSucceeded })
+        // No authentication event since arming doesn't require auth anymore
         XCTAssertTrue(events.contains { $0.event == .armed })
     }
     

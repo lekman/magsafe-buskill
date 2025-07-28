@@ -36,7 +36,7 @@
     ".prettierignore": true,
     ".prettierrc.yml": true,
     ".eslintrc.yml": true,
-    ".yamllint.yml": true,
+    ".yamllint.yml": true
   },
   "search.exclude": {
     "**/node_modules": true,

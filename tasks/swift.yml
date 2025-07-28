@@ -11,7 +11,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F9EA Running Swift tests..."
+        echo "🧪 Running Swift tests..."
 
         # Run tests with --parallel flag to work around initialization hang
         # See: https://github.com/apple/swift/issues/71044
@@ -37,7 +37,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F9EA Running tests with coverage..."
+        echo "🧪 Running tests with coverage..."
 
         # Build test executable with coverage
         swift build --enable-code-coverage
@@ -70,13 +70,13 @@ tasks:
           
           if [[ -f "$BINARY" ]]; then
             echo ""
-            echo "\U0001F4CA Coverage Report:"
+            echo "📊 Coverage Report:"
             echo "=================="
             
             # Generate report with comprehensive filters matching CI
-            xcrun llvm-cov report "$BINARY" \\
-              -instr-profile="$PROF_DATA" \\
-              -ignore-filename-regex=".*Tests/.*|.*Tests\\.swift|.*Mocks?\\.swift|.*/MagSafeGuardApp\\.swift|.*/SettingsView\\.swift|.*/TrustedLocationsView\\.swift|.*/PowerMonitorService\\.swift|.*LAContext\\.swift|.*/MacSystemActions\\.swift|.*Protocol\\.swift|.*/runner\\.swift" \\
+            xcrun llvm-cov report "$BINARY" \
+              -instr-profile="$PROF_DATA" \
+              -ignore-filename-regex=".*Tests/.*|.*Tests\\.swift|.*Mocks?\\.swift|.*/MagSafeGuardApp\\.swift|.*/SettingsView\\.swift|.*/TrustedLocationsView\\.swift|.*/PowerMonitorService\\.swift|.*LAContext\\.swift|.*/MacSystemActions\\.swift|.*Protocol\\.swift|.*/runner\\.swift" \
               -use-color=false | tee coverage-report.txt
             
             # Extract total coverage - look for the TOTAL line
@@ -111,7 +111,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F4CA Generating HTML coverage report..."
+        echo "📊 Generating HTML coverage report..."
         swift test --enable-code-coverage --parallel --num-workers 1
 
         PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
@@ -120,10 +120,10 @@ tasks:
         if [[ -f "$PROF_DATA" ]] && [[ -n "$EXECUTABLE" ]]; then
           EXECUTABLE=$(find .build -name '*.xctest' -type d | head -1)/Contents/MacOS/$(basename "$(find .build -name '*.xctest' -type d | head -1)" .xctest)
           
-          xcrun llvm-cov show "$EXECUTABLE" \\
-            -instr-profile="$PROF_DATA" \\
-            -format=html \\
-            -output-dir=coverage-html \\
+          xcrun llvm-cov show "$EXECUTABLE" \
+            -instr-profile="$PROF_DATA" \
+            -format=html \
+            -output-dir=coverage-html \
             -ignore-filename-regex=".*Tests\\.swift|.*Mocks?\\.swift|.*/MagSafeGuardApp\\.swift|.*/SettingsView\\.swift|.*/TrustedLocationsView\\.swift|.*/PowerMonitorService\\.swift|.*LAContext\\.swift|.*/MacSystemActions\\.swift|.*Protocol\\.swift"
           
           echo "✅ Coverage report generated at: coverage-html/index.html"
@@ -142,7 +142,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F50D Linting Swift files..."
+        echo "🔍 Linting Swift files..."
         if command -v swiftlint &> /dev/null; then
           swiftlint lint --quiet
           if [ $? -eq 0 ]; then
@@ -163,7 +163,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F527 Fixing Swift linting issues..."
+        echo "🔧 Fixing Swift linting issues..."
         if command -v swiftlint &> /dev/null; then
           swiftlint lint --fix --quiet
           if [ $? -eq 0 ]; then
@@ -183,7 +183,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F3A8 Formatting Swift code..."
+        echo "🎨 Formatting Swift code..."
 
         # Use swift-format if available
         if command -v swift-format &> /dev/null; then
@@ -205,7 +205,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F9F9 Cleaning Swift build artifacts..."
+        echo "🧹 Cleaning Swift build artifacts..."
         swift package clean
         rm -rf .build
         rm -rf .swiftpm
@@ -216,7 +216,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F528 Building Swift package (debug)..."
+        echo "🔨 Building Swift package (debug)..."
         swift build
         if [ $? -eq 0 ]; then
           echo "✅ Build succeeded"
@@ -229,7 +229,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F528 Building Swift package (release)..."
+        echo "🔨 Building Swift package (release)..."
         swift build -c release
         if [ $? -eq 0 ]; then
           echo "✅ Build succeeded"
@@ -249,7 +249,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F4E6 Swift Package Dependencies:"
+        echo "📦 Swift Package Dependencies:"
         echo ""
         swift package show-dependencies
   deps:tree:
@@ -257,7 +257,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F4E6 Swift Package Dependency Tree:"
+        echo "📦 Swift Package Dependency Tree:"
         echo ""
         swift package show-dependencies --format tree
   update:
@@ -265,7 +265,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F4E6 Updating Swift package dependencies..."
+        echo "📦 Updating Swift package dependencies..."
         swift package update
         echo "✅ Dependencies updated"
   resolve:
@@ -273,7 +273,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F4E6 Resolving Swift package dependencies..."
+        echo "📦 Resolving Swift package dependencies..."
         swift package resolve
         echo "✅ Dependencies resolved"
   setup:
@@ -281,7 +281,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F527 Installing Swift development tools..."
+        echo "🔧 Installing Swift development tools..."
 
         # Detect OS
         OS=$(uname -s | tr '[:upper:]' '[:lower:]')
@@ -301,43 +301,43 @@ tasks:
 
         # Install/Update SwiftLint
         if ! command -v swiftlint &> /dev/null; then
-          echo "\U0001F4E6 Installing SwiftLint..."
+          echo "📦 Installing SwiftLint..."
           brew install swiftlint
         else
           echo "✅ SwiftLint already installed ($(swiftlint version))"
           if brew outdated | grep -q "^swiftlint"; then
-            echo "\U0001F4E6 Updating SwiftLint..."
+            echo "📦 Updating SwiftLint..."
             brew upgrade swiftlint
           fi
         fi
 
         # Install/Update swift-format (optional)
         if ! command -v swift-format &> /dev/null; then
-          echo "\U0001F4E6 Installing swift-format..."
+          echo "📦 Installing swift-format..."
           brew install swift-format
         else
           echo "✅ swift-format already installed"
           if brew outdated | grep -q "^swift-format"; then
-            echo "\U0001F4E6 Updating swift-format..."
+            echo "📦 Updating swift-format..."
             brew upgrade swift-format
           fi
         fi
 
         # Install/Update SwiftGen (optional, for code generation)
         if ! command -v swiftgen &> /dev/null; then
-          echo "\U0001F4E6 Installing SwiftGen..."
+          echo "📦 Installing SwiftGen..."
           brew install swiftgen
         else
           echo "✅ SwiftGen already installed"
           if brew outdated | grep -q "^swiftgen"; then
-            echo "\U0001F4E6 Updating SwiftGen..."
+            echo "📦 Updating SwiftGen..."
             brew upgrade swiftgen
           fi
         fi
 
         # Install/Update jazzy (for documentation generation)
         if ! command -v jazzy &> /dev/null; then
-          echo "\U0001F4E6 Installing jazzy to user directory..."
+          echo "📦 Installing jazzy to user directory..."
           
           # Check Ruby version first
           RUBY_VERSION=$(ruby -v | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)
@@ -399,7 +399,7 @@ tasks:
           CURRENT_VERSION=$(jazzy --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)
           LATEST_VERSION=$(gem search ^jazzy$ -r | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)
           if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ] && [ -n "$LATEST_VERSION" ]; then
-            echo "\U0001F4E6 Update available: $CURRENT_VERSION → $LATEST_VERSION"
+            echo "📦 Update available: $CURRENT_VERSION → $LATEST_VERSION"
             echo "   Run 'gem update jazzy' to update"
           fi
         fi
@@ -420,7 +420,7 @@ tasks:
       OUTPUT_PATH: '{{.OUTPUT_PATH | default "docs/api"}}'
     cmds:
       - |
-        echo "\U0001F4DA Generating Swift API documentation..."
+        echo "📚 Generating Swift API documentation..."
 
         # Ensure output directory exists
         mkdir -p {{.OUTPUT_PATH}}
@@ -434,25 +434,25 @@ tasks:
         # Get package name
         PACKAGE_NAME=$(swift package dump-package | jq -r '.name')
 
-        echo "\U0001F50D Checking available documentation tools..."
+        echo "🔍 Checking available documentation tools..."
 
         # Option 1: Try jazzy if installed (most reliable)
         if command -v jazzy &> /dev/null; then
           echo "✅ Found jazzy - generating documentation..."
           
-          jazzy \\
-            --clean \\
-            --author "MagSafe Guard" \\
-            --module MagSafeGuard \\
-            --source-directory Sources \\
-            --output {{.OUTPUT_PATH}} \\
-            --theme apple \\
-            --documentation "*.md" \\
+          jazzy \
+            --clean \
+            --author "MagSafe Guard" \
+            --module MagSafeGuard \
+            --source-directory Sources \
+            --output {{.OUTPUT_PATH}} \
+            --theme apple \
+            --documentation "*.md" \
             --readme README.md
             
           if [ $? -eq 0 ]; then
             echo "✅ Documentation generated successfully!"
-            echo "\U0001F4C2 Output location: {{.OUTPUT_PATH}}"
+            echo "📂 Output location: {{.OUTPUT_PATH}}"
             echo ""
             echo "To view: open {{.OUTPUT_PATH}}/index.html"
           else
@@ -464,14 +464,14 @@ tasks:
         elif command -v swift-doc &> /dev/null; then
           echo "✅ Found swift-doc - generating documentation..."
           
-          swift-doc generate Sources/MagSafeGuard \\
-            --module-name MagSafeGuard \\
-            --output {{.OUTPUT_PATH}} \\
+          swift-doc generate Sources/MagSafeGuard \
+            --module-name MagSafeGuard \
+            --output {{.OUTPUT_PATH}} \
             --format html
             
           if [ $? -eq 0 ]; then
             echo "✅ Documentation generated successfully!"
-            echo "\U0001F4C2 Output location: {{.OUTPUT_PATH}}"
+            echo "📂 Output location: {{.OUTPUT_PATH}}"
             echo ""
             echo "To view: open {{.OUTPUT_PATH}}/index.html"
           else
@@ -547,7 +547,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F50D Checking for outdated dependencies..."
+        echo "🔍 Checking for outdated dependencies..."
 
         # This is a basic implementation since Swift PM doesn't have built-in outdated check
         echo "Current dependencies:"
@@ -561,7 +561,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F4E6 Generating SBOM for Swift project..."
+        echo "📦 Generating SBOM for Swift project..."
 
         # Get package info
         PACKAGE_NAME=$(swift package dump-package | jq -r '.name')

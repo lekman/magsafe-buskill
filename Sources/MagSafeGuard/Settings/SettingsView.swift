@@ -148,8 +148,8 @@ struct GeneralSettingsView: View {
                 .disabled(settingsManager.settings.gracePeriodDuration == 0)
                 .opacity(settingsManager.settings.gracePeriodDuration == 0 ? 0.5 : 1.0)
 
-            Text(settingsManager.settings.gracePeriodDuration == 0 
-                ? "Security actions will execute immediately upon power disconnection" 
+            Text(settingsManager.settings.gracePeriodDuration == 0
+                ? "Security actions will execute immediately upon power disconnection"
                 : "Time before security actions execute after power disconnection")
                 .font(.caption)
                 .foregroundColor(.secondary)

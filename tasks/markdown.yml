@@ -35,7 +35,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F527 Fixing Markdown formatting issues..."
+        echo "🔧 Fixing Markdown formatting issues..."
 
         # Check if markdownlint is installed
         if ! command -v markdownlint &> /dev/null; then
@@ -59,7 +59,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F527 Setting up markdownlint..."
+        echo "🔧 Setting up markdownlint..."
 
         # Detect OS
         OS=$(uname -s | tr '[:upper:]' '[:lower:]')
@@ -139,7 +139,7 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "\U0001F4DD Fixing PR documentation..."
+        echo "📝 Fixing PR documentation..."
         pr_file=$(find . -name "pr.*.md" | head -1)
         if [ -n "$pr_file" ]; then
           echo "Found PR file: $pr_file"

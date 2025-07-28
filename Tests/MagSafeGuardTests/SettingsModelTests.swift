@@ -33,10 +33,10 @@ final class SettingsModelTests: XCTestCase {
     func testGracePeriodValidation() {
         var settings = Settings()
         
-        // Test below minimum
-        settings.gracePeriodDuration = 3.0
+        // Test below minimum (now 0)
+        settings.gracePeriodDuration = -1.0
         let validated1 = settings.validated()
-        XCTAssertEqual(validated1.gracePeriodDuration, 5.0)
+        XCTAssertEqual(validated1.gracePeriodDuration, 0.0)
         
         // Test above maximum
         settings.gracePeriodDuration = 50.0
@@ -47,6 +47,11 @@ final class SettingsModelTests: XCTestCase {
         settings.gracePeriodDuration = 15.0
         let validated3 = settings.validated()
         XCTAssertEqual(validated3.gracePeriodDuration, 15.0)
+        
+        // Test zero value (immediate action)
+        settings.gracePeriodDuration = 0.0
+        let validated4 = settings.validated()
+        XCTAssertEqual(validated4.gracePeriodDuration, 0.0)
     }
     
     func testSecurityActionsValidation() {

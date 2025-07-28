@@ -260,7 +260,7 @@ private class AlertWindowDelivery: NotificationDeliveryProtocol {
         DispatchQueue.main.async {
             // For development builds, use console logging instead of blocking alerts
             // This allows grace period countdown to continue properly
-            
+
             if title.contains("Security") || title.contains("Alert") {
                 // Critical alerts use warning level
                 Log.warning("⚠️ \(title): \(message)", category: .security)
@@ -268,7 +268,7 @@ private class AlertWindowDelivery: NotificationDeliveryProtocol {
                 // Regular notifications use info level
                 Log.info("🔔 \(title): \(message)", category: .general)
             }
-            
+
             // For grace period notifications in development, provide instructions
             if message.contains("Security action in") {
                 Log.warning("⏰ GRACE PERIOD ACTIVE - Security actions will execute soon!", category: .security)
