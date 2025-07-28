@@ -171,12 +171,6 @@ public struct Settings: Codable, Equatable {
     /// a theft is detected. This requires camera and location permissions.
     public var evidenceCollectionEnabled: Bool = false
 
-    /// Email address for evidence backup.
-    ///
-    /// If configured, collected evidence will be sent to this email address
-    /// in addition to being stored locally.
-    public var backupEmailAddress: String = ""
-
     // MARK: - Validation
 
     /// Validates settings and returns normalized version

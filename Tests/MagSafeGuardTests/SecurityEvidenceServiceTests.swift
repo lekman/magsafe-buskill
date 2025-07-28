@@ -26,7 +26,6 @@ class SecurityEvidenceServiceTests: XCTestCase {
     override func tearDown() {
         // Clean up
         UserDefaults.standard.removeObject(forKey: "evidenceCollectionEnabled")
-        UserDefaults.standard.removeObject(forKey: "backupEmailAddress")
         
         // Clean up any test evidence files
         cleanupTestEvidence()
@@ -95,15 +94,6 @@ class SecurityEvidenceServiceTests: XCTestCase {
         XCTAssertNotNil(decoded.location)
     }
     
-    func testBackupEmailConfiguration() {
-        // Test setting backup email
-        let testEmail = "test@example.com"
-        UserDefaults.standard.set(testEmail, forKey: "backupEmailAddress")
-        
-        // Verify it's stored
-        let retrievedEmail = UserDefaults.standard.string(forKey: "backupEmailAddress")
-        XCTAssertEqual(retrievedEmail, testEmail)
-    }
     
     // MARK: - Helper Methods
     

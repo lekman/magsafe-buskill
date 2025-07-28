@@ -5,7 +5,7 @@
 //  Created on 2025-07-27.
 //
 //  Manages evidence collection including location tracking and photo capture
-//  when theft is detected. Provides secure storage and email backup of evidence.
+//  when theft is detected. Provides secure storage and iCloud backup of evidence.
 //
 
 import AppKit
@@ -18,8 +18,8 @@ import Security
 /// Service responsible for collecting and managing security evidence
 ///
 /// This service captures location data and photos when a theft is detected,
-/// stores them securely, and can send them to a backup email address.
-/// All evidence is encrypted before storage for security.
+/// stores them securely, and backs them up to iCloud. All evidence is encrypted
+/// before storage for security.
 public class SecurityEvidenceService: NSObject {
 
     // MARK: - Properties
@@ -30,6 +30,7 @@ public class SecurityEvidenceService: NSObject {
     private var currentLocation: CLLocation?
     private var isCollectingEvidence = false
     private let fileManager = FileManager.default
+    private let iCloudSync = iCloudSyncService()
 
     /// Delegate for evidence collection events
     public weak var delegate: SecurityEvidenceServiceDelegate?
@@ -37,10 +38,6 @@ public class SecurityEvidenceService: NSObject {
     // Settings
     private var isEvidenceCollectionEnabled: Bool {
         UserDefaults.standard.bool(forKey: "evidenceCollectionEnabled")
-    }
-
-    private var backupEmailAddress: String? {
-        UserDefaults.standard.string(forKey: "backupEmailAddress")
     }
 
     // MARK: - Initialization
@@ -234,9 +231,14 @@ public class SecurityEvidenceService: NSObject {
 
         Log.info("Evidence stored locally with ID: \(evidenceId) (encrypted)", category: .general)
 
-        // Send evidence to backup email if configured
-        if let photoData = photoData {
-            try sendEvidenceToBackupEmail(evidence: evidence, photoData: photoData)
+        // Sync to iCloud
+        Task {
+            do {
+                try await iCloudSync.syncEvidence()
+                Log.info("Evidence synced to iCloud", category: .general)
+            } catch {
+                Log.error("Failed to sync evidence to iCloud", error: error, category: .general)
+            }
         }
 
         // Notify delegate
@@ -302,75 +304,6 @@ public class SecurityEvidenceService: NSObject {
         return SymmetricKey(data: keyData)
     }
 
-    // MARK: - Email Sending
-
-    private func sendEvidenceToBackupEmail(evidence: SecurityEvidence, photoData: Data) throws {
-        guard let emailAddress = backupEmailAddress, !emailAddress.isEmpty else {
-            throw EvidenceError.backupEmailNotConfigured
-        }
-
-        // Generate report
-        let report = generateSecurityReport(evidence: evidence)
-
-        // Create email content
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .medium
-        dateFormatter.timeStyle = .medium
-
-        let subject = "Security Alert: Device Activity Detected - \(dateFormatter.string(from: evidence.timestamp))"
-
-        // Create temporary files for attachments
-        let tempDirectory = FileManager.default.temporaryDirectory
-        let reportURL = tempDirectory.appendingPathComponent("security-report.txt")
-        let photoURL = tempDirectory.appendingPathComponent("evidence-photo.jpg")
-
-        do {
-            // Write report to temporary file
-            try report.write(to: reportURL, atomically: true, encoding: .utf8)
-
-            // Write photo to temporary file
-            try photoData.write(to: photoURL)
-
-            // Prepare email using NSSharingService
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-
-                // Create sharing service for email
-                guard let service = NSSharingService(named: .composeEmail) else {
-                    Log.error("Email service not available", category: .general)
-                    self.delegate?.evidenceService(self, didFailWithError: EvidenceError.emailSendingFailed)
-                    return
-                }
-
-                // Configure email
-                service.recipients = [emailAddress]
-                service.subject = subject
-
-                // Items to share (report and photo)
-                let itemsToShare: [Any] = [report, reportURL, photoURL]
-
-                // Can we share these items?
-                if service.canPerform(withItems: itemsToShare) {
-                    service.perform(withItems: itemsToShare)
-                    Log.info("Evidence email prepared", category: .general)
-                    self.delegate?.evidenceService(self, didSendEmailTo: emailAddress)
-                } else {
-                    Log.error("Cannot send email with attachments", category: .general)
-                    self.delegate?.evidenceService(self, didFailWithError: EvidenceError.emailSendingFailed)
-                }
-
-                // Clean up temporary files after a delay
-                DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
-                    try? FileManager.default.removeItem(at: reportURL)
-                    try? FileManager.default.removeItem(at: photoURL)
-                }
-            }
-        } catch {
-            Log.error("Failed to prepare email attachments", error: error, category: .general)
-            throw EvidenceError.emailSendingFailed
-        }
-    }
-
     // MARK: - Report Generation
 
     private func generateSecurityReport(evidence: SecurityEvidence) -> String {
@@ -397,8 +330,7 @@ public class SecurityEvidenceService: NSObject {
         }
 
         report += "Evidence Collection Triggered by Security System\n"
-        report += "Photo evidence is attached to this email.\n\n"
-        report += "This is an automated message. Please do not reply.\n"
+        report += "Evidence is securely backed up to iCloud.\n"
 
         return report
     }
@@ -531,11 +463,11 @@ public protocol SecurityEvidenceServiceDelegate: AnyObject {
     /// Called when evidence has been collected
     func evidenceService(_ service: SecurityEvidenceService, didCollectEvidence evidence: SecurityEvidence)
 
-    /// Called when evidence has been sent via email
-    func evidenceService(_ service: SecurityEvidenceService, didSendEmailTo address: String)
-
     /// Called when an error occurs
     func evidenceService(_ service: SecurityEvidenceService, didFailWithError error: Error)
+
+    /// Called when evidence is synced to iCloud
+    func evidenceService(_ service: SecurityEvidenceService, didSyncToiCloud evidenceID: String)
 }
 
 // MARK: - Evidence Model
@@ -629,10 +561,6 @@ public enum EvidenceError: LocalizedError {
     case invalidCameraOutput
     /// Location data is required but not available
     case missingLocationData
-    /// Backup email address is not configured in settings
-    case backupEmailNotConfigured
-    /// Failed to send evidence via email
-    case emailSendingFailed
     /// Failed to encrypt evidence data
     case encryptionFailed
     /// Failed to store or retrieve evidence from storage
@@ -653,10 +581,6 @@ public enum EvidenceError: LocalizedError {
             return "Camera output is not compatible"
         case .missingLocationData:
             return "Location data is not available"
-        case .backupEmailNotConfigured:
-            return "Backup email address is not configured"
-        case .emailSendingFailed:
-            return "Failed to send evidence email"
         case .encryptionFailed:
             return "Failed to encrypt evidence data"
         case .storageError:

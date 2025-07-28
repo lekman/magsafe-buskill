@@ -48,13 +48,13 @@ struct SecurityEvidenceSettingsView: View {
             .font(.title2)
             .foregroundColor(.orange)
     }
-    
+
     private var headerTitle: some View {
         Text("Evidence Collection Settings")
             .font(.title2)
             .fontWeight(.semibold)
     }
-    
+
     private var headerContent: some View {
         HStack {
             headerIcon
@@ -63,7 +63,7 @@ struct SecurityEvidenceSettingsView: View {
             doneButton
         }
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -80,13 +80,12 @@ struct SecurityEvidenceSettingsView: View {
             // Settings
             Form {
                 permissionsSection
-                emailSection
                 storageSection
                 testSection
             }
             .formStyle(.grouped)
         }
-        .frame(width: 500, height: 450)
+        .frame(width: 500, height: 400)
         .alert(permissionType.title, isPresented: $showingPermissionsAlert) {
             Button("Open System Preferences") {
                 openSystemPreferences()
@@ -127,20 +126,6 @@ struct SecurityEvidenceSettingsView: View {
         }
     }
 
-    private var emailSection: some View {
-        Section("Backup Email") {
-            VStack(alignment: .leading, spacing: 8) {
-                TextField("Email Address", text: emailBinding)
-                    .textFieldStyle(.roundedBorder)
-                    .disableAutocorrection(true)
-
-                Text("Evidence will be sent to this email when collected")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-        }
-    }
-
     private var encryptionInfo: some View {
         HStack {
             Image(systemName: "lock.shield.fill")
@@ -149,7 +134,7 @@ struct SecurityEvidenceSettingsView: View {
                 .font(.subheadline)
         }
     }
-    
+
     private var storageSection: some View {
         Section("Local Storage") {
             VStack(alignment: .leading, spacing: 8) {
@@ -171,7 +156,7 @@ struct SecurityEvidenceSettingsView: View {
             .font(.caption)
             .foregroundColor(.secondary)
     }
-    
+
     private var testButtons: some View {
         HStack {
             testEvidenceButton
@@ -182,7 +167,7 @@ struct SecurityEvidenceSettingsView: View {
             }
         }
     }
-    
+
     private var testResultView: some View {
         Group {
             if !testResult.isEmpty {
@@ -193,7 +178,7 @@ struct SecurityEvidenceSettingsView: View {
             }
         }
     }
-    
+
     private var testSection: some View {
         Section("Test") {
             VStack(alignment: .leading, spacing: 12) {
@@ -263,13 +248,6 @@ struct SecurityEvidenceSettingsView: View {
     }
 
     // MARK: - Bindings
-
-    private var emailBinding: Binding<String> {
-        Binding(
-            get: { settingsManager.settings.backupEmailAddress },
-            set: { settingsManager.updateSetting(\.backupEmailAddress, value: $0) }
-        )
-    }
 
     // MARK: - Button Views
 
@@ -354,7 +332,7 @@ struct SecurityEvidenceSettingsView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             do {
                 try evidenceService.collectEvidence(reason: "Manual test from settings")
-                testResult = "✓ Success! Check evidence folder and email."
+                testResult = "✓ Success! Check evidence folder."
             } catch {
                 testResult = "✗ Failed: \(error.localizedDescription)"
             }

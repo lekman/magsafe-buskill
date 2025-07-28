@@ -134,7 +134,7 @@ struct GeneralSettingsView: View {
             }
         )
     }
-    
+
     private var gracePeriodSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -277,7 +277,7 @@ struct SecuritySettingsView: View {
                 .font(.headline)
         }
     }
-    
+
     private var evidenceCollectionInfo: some View {
         VStack(alignment: .leading, spacing: 4) {
             evidenceCollectionHeader
@@ -286,7 +286,7 @@ struct SecuritySettingsView: View {
                 .foregroundColor(.secondary)
         }
     }
-    
+
     private var evidenceCollectionSection: some View {
         Section(header: Text("Evidence Collection")) {
             HStack {
@@ -741,9 +741,11 @@ struct AdvancedSettingsView: View {
     @EnvironmentObject var settingsManager: UserDefaultsManager
     @State private var showingExportSuccess = false
     @State private var showingImportDialog = false
+    @State private var showingiCloudSettings = false
 
     var body: some View {
         Form {
+            iCloudSyncSection
             customScriptsSection
             debugSection
             settingsManagementSection
@@ -787,6 +789,50 @@ struct AdvancedSettingsView: View {
     }
 
     // MARK: - Computed Properties
+
+    private var iCloudSyncSection: some View {
+        Section(header: Text("iCloud Sync")) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Image(systemName: settingsManager.iCloudSyncStatus.symbolName)
+                            .foregroundColor(iCloudStatusColor)
+                        Text("iCloud Sync")
+                            .font(.headline)
+                    }
+                    Text("Status: \(settingsManager.iCloudSyncStatus.displayText)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                Button("Configure") {
+                    showingiCloudSettings = true
+                }
+            }
+            .padding(.vertical, 4)
+        }
+        .sheet(isPresented: $showingiCloudSettings) {
+            iCloudSyncSettingsView()
+                .environmentObject(settingsManager)
+        }
+    }
+
+    private var iCloudStatusColor: Color {
+        switch settingsManager.iCloudSyncStatus {
+        case .idle:
+            return .green
+        case .syncing:
+            return .blue
+        case .error:
+            return .red
+        case .noAccount, .restricted, .temporarilyUnavailable:
+            return .orange
+        case .unknown:
+            return .gray
+        }
+    }
 
     private var customScriptsSection: some View {
         Section(header: Text("Custom Scripts")) {

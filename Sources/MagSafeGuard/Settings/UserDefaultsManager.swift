@@ -72,6 +72,9 @@ public class UserDefaultsManager: ObservableObject {
     private let decoder = JSONDecoder()
     private var cancellables = Set<AnyCancellable>()
 
+    /// iCloud sync service for settings synchronization
+    private let iCloudSync = iCloudSyncService()
+
     // MARK: - Constants
 
     private enum Keys {
@@ -101,6 +104,13 @@ public class UserDefaultsManager: ObservableObject {
         }
 
         // Auto-save disabled to prevent conflicts with SwiftUI bindings
+
+        // Listen for iCloud sync notifications
+        NotificationCenter.default.publisher(for: .settingsSyncedFromiCloud)
+            .sink { [weak self] _ in
+                self?.reloadSettingsFromDisk()
+            }
+            .store(in: &cancellables)
 
         // Mark first launch
         if !userDefaults.bool(forKey: Keys.hasLaunchedBefore) {
@@ -198,9 +208,15 @@ public class UserDefaultsManager: ObservableObject {
             let data = try encoder.encode(settings)
             userDefaults.set(data, forKey: Keys.settings)
             userDefaults.set(currentSettingsVersion, forKey: Keys.settingsVersion)
+            userDefaults.set(Date().timeIntervalSince1970, forKey: "settingsTimestamp")
 
             // Force synchronization to disk
             userDefaults.synchronize()
+
+            // Trigger iCloud sync
+            Task {
+                try? await iCloudSync.syncSettings()
+            }
         } catch {
             Log.error("Failed to save settings", error: error, category: .settings)
             // Try to at least log what went wrong
@@ -210,6 +226,15 @@ public class UserDefaultsManager: ObservableObject {
                 } else {
                     Log.error("Encoding error: \(encodingError)", category: .settings)
                 }
+            }
+        }
+    }
+
+    /// Reloads settings from disk (called when synced from iCloud)
+    private func reloadSettingsFromDisk() {
+        if let reloadedSettings = Self.loadSettings(from: userDefaults) {
+            DispatchQueue.main.async { [weak self] in
+                self?.settings = reloadedSettings
             }
         }
     }
@@ -279,5 +304,20 @@ extension UserDefaultsManager {
     public var autoArmEnabled: Bool {
         get { settings.autoArmEnabled }
         set { updateSetting(\.autoArmEnabled, value: newValue) }
+    }
+
+    /// Force an immediate iCloud sync
+    public func forceiCloudSync() async throws {
+        try await iCloudSync.syncAll()
+    }
+
+    /// Get current iCloud sync status
+    public var iCloudSyncStatus: SyncStatus {
+        iCloudSync.syncStatus
+    }
+
+    /// Check if iCloud is available
+    public var isiCloudAvailable: Bool {
+        iCloudSync.isAvailable
     }
 }
