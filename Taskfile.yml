@@ -364,16 +364,19 @@ tasks:
           if [ "$IS_ADMIN" = false ]; then
             echo "🔧 For Standard Users:"
             echo ""
-            echo "Option 1 - Get admin help (replace 'admin' with your admin username if different):"
+            echo "Option 1 - Use tmp mode (simplest):"
+            echo "  task run:tmp"
+            echo ""
+            echo "Option 2 - Get admin help (replace 'admin' with your admin username if different):"
             echo "  su - admin -c 'xattr -cr \"$APP_PATH_ABS\"'"
             echo ""
-            echo "Option 2 - Run with sudo (requires your password):"
+            echo "Option 3 - Run with sudo (requires your password):"
             echo "  sudo xattr -cr \"$APP_PATH_ABS\""
             echo ""
-            echo "Option 3 - Use direct mode:"
+            echo "Option 4 - Use direct mode:"
             echo "  task run:direct"
             echo ""
-            echo "Option 4 - Use unsigned mode:"
+            echo "Option 5 - Use unsigned mode:"
             echo "  task run:unsigned"
           else
             echo "🔧 For Admin Users:"
@@ -486,6 +489,47 @@ tasks:
           exit 1
         fi
 
+  run:tmp:
+    desc: Copy app to /tmp and run (bypasses permission issues)
+    silent: true
+    cmds:
+      - |
+        echo "🚀 Running MagSafe Guard from /tmp"
+        echo ""
+        echo "This bypasses permission issues by running from a temporary location."
+        echo ""
+        
+        # Build if needed
+        if [ ! -d ".build/bundler/MagSafeGuard.app" ]; then
+          echo "📦 Building app bundle..."
+          swift bundler run --no-build
+        fi
+        
+        # Copy to /tmp
+        echo "📋 Copying to /tmp..."
+        rm -rf /tmp/MagSafeGuard.app 2>/dev/null || true
+        cp -R .build/bundler/MagSafeGuard.app /tmp/
+        
+        # Remove quarantine
+        echo "🔓 Removing quarantine attributes..."
+        xattr -cr /tmp/MagSafeGuard.app 2>/dev/null || true
+        
+        # Launch
+        echo "🚀 Launching from /tmp..."
+        open /tmp/MagSafeGuard.app
+        
+        sleep 2
+        
+        if pgrep -x "MagSafeGuard" > /dev/null; then
+          echo ""
+          echo "✅ App running from /tmp successfully!"
+          echo ""
+          echo "Note: This is a temporary copy. Changes won't persist after reboot."
+        else
+          echo "❌ Failed to launch app from /tmp"
+          exit 1
+        fi
+
   run:watch:
     desc: Watch for changes and auto-rebuild/restart (requires fswatch)
     silent: true
@@ -549,6 +593,12 @@ tasks:
         echo "    • Creates app bundle but skips signing"
         echo "    • Faster than signed builds"
         echo "    • May require security bypass"
+        echo ""
+        echo "  task run:tmp"
+        echo "    • Copies app to /tmp and runs"
+        echo "    • Bypasses permission issues"
+        echo "    • Great for standard users"
+        echo "    • No admin/sudo required"
         echo ""
         echo "  task run:debug"
         echo "    • Debug build with symbols"
