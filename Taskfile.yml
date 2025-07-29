@@ -364,8 +364,8 @@ tasks:
           if [ "$IS_ADMIN" = false ]; then
             echo "🔧 For Standard Users:"
             echo ""
-            echo "Option 1 - Get admin help:"
-            echo "  Ask an admin to run: su - ADMIN_USER -c 'xattr -cr \"$APP_PATH_ABS\"'"
+            echo "Option 1 - Run with sudo (requires your password):"
+            echo "  sudo xattr -cr \"$APP_PATH_ABS\""
             echo ""
             echo "Option 2 - Use direct mode:"
             echo "  task run:direct"
