@@ -117,7 +117,8 @@ echo "Recommendations:"
 
 if [ "$IS_ADMIN" = false ]; then
     echo "  • As a standard user, 'task run:direct' is most reliable"
-    echo "  • For app bundle features, ask admin to run:"
+    echo "  • For app bundle features, first fix permissions then ask admin:"
+    echo "    sudo chmod -R 755 $(pwd)/.build/bundler/MagSafeGuard.app"
     echo "    su - admin -c 'xattr -cr $(pwd)/.build/bundler/MagSafeGuard.app'"
     echo "    (replace 'admin' with your admin username if different)"
 else
