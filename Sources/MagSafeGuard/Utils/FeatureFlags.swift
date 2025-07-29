@@ -110,7 +110,7 @@ public final class FeatureFlags {
     /// Load flags from JSON file
     private func loadJSONFile() {
         let fileManager = FileManager.default
-        
+
         // Try multiple locations for the JSON file
         let searchPaths = [
             // Current directory
@@ -125,19 +125,19 @@ public final class FeatureFlags {
 
         for basePath in searchPaths {
             let jsonPath = "\(basePath)/\(jsonFileName)"
-            
+
             if fileManager.fileExists(atPath: jsonPath) {
                 do {
                     let data = try Data(contentsOf: URL(fileURLWithPath: jsonPath))
                     let jsonFlags = try JSONDecoder().decode([String: Bool].self, from: data)
-                    
+
                     // Apply JSON flags
                     for (key, value) in jsonFlags {
                         if let flag = Flag(rawValue: key) {
                             flags[flag] = value
                         }
                     }
-                    
+
                     Log.info("Loaded feature flags from: \(jsonPath)", category: .general)
                     return
                 } catch {
@@ -145,7 +145,7 @@ public final class FeatureFlags {
                 }
             }
         }
-        
+
         // If no JSON file found, that's OK - we'll use defaults
         Log.debug("No feature flags JSON file found, using defaults", category: .general)
     }
@@ -153,7 +153,7 @@ public final class FeatureFlags {
     /// Save current flags to JSON file
     public func saveToJSON(at path: String? = nil) throws {
         let savePath = path ?? "\(FileManager.default.currentDirectoryPath)/\(jsonFileName)"
-        
+
         let jsonFlags = queue.sync { () -> [String: Bool] in
             var result: [String: Bool] = [:]
             for flag in Flag.allCases {
@@ -161,11 +161,11 @@ public final class FeatureFlags {
             }
             return result
         }
-        
+
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(jsonFlags)
-        
+
         try data.write(to: URL(fileURLWithPath: savePath))
         Log.info("Saved feature flags to: \(savePath)", category: .general)
     }
@@ -200,35 +200,35 @@ public final class FeatureFlags {
     public func export() -> [String: Any] {
         queue.sync {
             var result: [String: Any] = [:]
-            
+
             // Metadata
             result["_metadata"] = [
                 "version": "1.0",
                 "generated": ISO8601DateFormatter().string(from: Date()),
                 "description": "MagSafe Guard Feature Flags Configuration"
             ]
-            
+
             // Core features
             var coreFeatures: [String: Bool] = [:]
             for flag in Flag.allCases where flag.rawValue.hasPrefix("FEATURE_") && !flag.rawValue.contains("DEBUG") {
                 coreFeatures[flag.rawValue] = flags[flag] ?? flag.defaultValue
             }
             result["core_features"] = coreFeatures
-            
+
             // Telemetry
             var telemetry: [String: Bool] = [:]
             for flag in Flag.allCases where flag.rawValue.contains("SENTRY") || flag.rawValue.contains("METRICS") {
                 telemetry[flag.rawValue] = flags[flag] ?? flag.defaultValue
             }
             result["telemetry"] = telemetry
-            
+
             // Debug options
             var debugOptions: [String: Bool] = [:]
             for flag in Flag.allCases where flag.rawValue.hasPrefix("DEBUG_") {
                 debugOptions[flag.rawValue] = flags[flag] ?? flag.defaultValue
             }
             result["debug_options"] = debugOptions
-            
+
             return result
         }
     }

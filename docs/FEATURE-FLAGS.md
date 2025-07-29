@@ -3,6 +3,7 @@
 ## Overview
 
 MagSafe Guard uses a feature flag system to control which features are enabled. This allows for:
+
 - Progressive feature rollout
 - Easy debugging by disabling specific features
 - Different configurations for development/production
@@ -15,6 +16,7 @@ Feature flags are configured through a JSON file: `feature-flags.json`
 ### Setup
 
 1. Copy the example configuration:
+
    ```bash
    cp feature-flags.example.json feature-flags.json
    ```
@@ -26,6 +28,7 @@ Feature flags are configured through a JSON file: `feature-flags.json`
 ### File Locations
 
 The feature flag system searches for `feature-flags.json` in these locations (in order):
+
 1. Current working directory
 2. Application bundle resources
 3. User's home directory
@@ -34,6 +37,7 @@ The feature flag system searches for `feature-flags.json` in these locations (in
 ### Priority
 
 Configuration is loaded in this order (highest priority first):
+
 1. Environment variables (e.g., `FEATURE_POWER_MONITORING=false`)
 2. JSON configuration file
 3. Default values (all enabled)

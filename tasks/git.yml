@@ -34,7 +34,7 @@ tasks:
           set -a
           source .env
           set +a
-          
+
           # Verify GITHUB_TOKEN is set
           if [ -z "${GITHUB_TOKEN}" ]; then
             echo -e "{{.RED}}Error: GITHUB_TOKEN not found in .env file{{.NC}}"
@@ -155,15 +155,15 @@ tasks:
         find "{{.BASE_DIR}}" -type d -name ".git" | while read -r git_dir; do
           # Get the parent directory of the .git folder
           repo_dir=$(dirname "$git_dir")
-          
+
           echo -e "${CYAN}Processing:${NC} $repo_dir"
-          
+
           # Navigate to the repository directory
           cd "$repo_dir" || {
             echo "Failed to navigate to $repo_dir. Skipping."
             continue
           }
-          
+
           # Get the default branch name - check if it's set first
           if ! git symbolic-ref refs/remotes/origin/HEAD >/dev/null 2>&1; then
             echo "Setting default branch..."
@@ -177,31 +177,31 @@ tasks:
               continue
             fi
           fi
-          
+
           default_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
-          
+
           if [ -z "$default_branch" ]; then
             echo "Could not determine default branch. Skipping."
             continue
           fi
-          
+
           # Switch to the default branch
           echo "Switching to $default_branch branch..."
           if ! git checkout "$default_branch" >/dev/null 2>&1; then
             echo "Failed to checkout $default_branch. Skipping."
             continue
           fi
-          
+
           # Fetch and prune
           echo "Fetching and pruning remote branches..."
           if ! git fetch -p >/dev/null 2>&1; then
             echo "Failed to fetch from remote. Skipping."
             continue
           fi
-          
+
           # Fetch local branches that are gone on remote
           branches_to_delete=$(git branch -vv | grep ': gone]' | sed 's/^\\* //;s/^[[:space:]]*//;s/[[:space:]]*$//' | cut -d ' ' -f 1)
-          
+
           if [ -n "$branches_to_delete" ]; then
             echo "Found branches to delete:"
             echo "$branches_to_delete" | while read -r branch; do
@@ -213,9 +213,9 @@ tasks:
           else
             echo "No branches to delete."
           fi
-          
+
           echo -e "${GREEN}Done${NC}"
-          
+
           cd "$OLDPWD" || {
             echo "Failed to navigate back."
             break
@@ -297,7 +297,7 @@ tasks:
         if [ "$branch" == "all" ] || [ "$branch" == "-all" ] || [ "$branch" == "--all" ] || [ "$branch" == "-a" ]; then
           echo -e "{{.CYAN}}Processing runs in all branches...{{.NC}}"
           workflow_runs=$(gh run list -R "$repo_owner/$repo_name" -a -s {{.STATUS}} --limit 100 --json databaseId)
-        else    
+        else
           echo -e "{{.CYAN}}Processing runs in branch $branch...{{.NC}}"
           workflow_runs=$(gh run list -R "$repo_owner/$repo_name" -b "$branch" -a -s {{.STATUS}} --limit 100 --json databaseId)
         fi
@@ -394,7 +394,7 @@ tasks:
             ghsa_id: (.security_advisory.ghsa_id // null),
             cvss_score: (.security_advisory.cvss.score // null),
             created_at: (.created_at // null)
-          } | 
+          } |
           # Filter based on minimum severity
           select(
             if $min_sev == "low" then true
@@ -412,7 +412,7 @@ tasks:
         )' 2>/dev/null || echo "[]")
 
         # Create deduplicated list
-        VULNS=$(echo "$VULNS_ALL" | jq 'group_by((.cve // .ghsa_id // "NO-ID") + ":" + .pkg) | 
+        VULNS=$(echo "$VULNS_ALL" | jq 'group_by((.cve // .ghsa_id // "NO-ID") + ":" + .pkg) |
           map({
             cve: .[0].cve,
             pkg: .[0].pkg,
@@ -453,26 +453,26 @@ tasks:
           echo "Minimum severity: $MIN_SEVERITY and above"
           echo "Vulnerabilities found: $VULN_COUNT"
           echo ""
-          
+
           if [ "$VULN_COUNT" -gt "0" ]; then
             # Count by severity
             CRITICAL_COUNT=$(echo "$VULNS" | jq '[.[] | select(.sev == "critical")] | length' 2>/dev/null || echo "0")
             HIGH_COUNT=$(echo "$VULNS" | jq '[.[] | select(.sev == "high")] | length' 2>/dev/null || echo "0")
             MEDIUM_COUNT=$(echo "$VULNS" | jq '[.[] | select(.sev == "medium")] | length' 2>/dev/null || echo "0")
             LOW_COUNT=$(echo "$VULNS" | jq '[.[] | select(.sev == "low")] | length' 2>/dev/null || echo "0")
-            
+
             echo "Severity breakdown:"
             [ "$CRITICAL_COUNT" -gt 0 ] && echo "  - Critical: $CRITICAL_COUNT"
             [ "$HIGH_COUNT" -gt 0 ] && echo "  - High: $HIGH_COUNT"
             [ "$MEDIUM_COUNT" -gt 0 ] && echo "  - Medium: $MEDIUM_COUNT"
             [ "$LOW_COUNT" -gt 0 ] && echo "  - Low: $LOW_COUNT"
             echo ""
-            
+
             echo "Vulnerabilities (sorted by severity):"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo ""
-            
-            echo "$VULNS" | jq -r '.[] | 
+
+            echo "$VULNS" | jq -r '.[] |
               "CVE: \\(.cve // .ghsa_id // "NO-ID")\
         " +
               "Severity: \\(.sev | ascii_upcase) (CVSS: \\(.cvss_score // "N/A"))\
@@ -558,7 +558,7 @@ tasks:
         # Show open alerts
         if [ "$OPEN_COUNT" -gt "0" ]; then
           echo -e "{{.RED}}Open Vulnerabilities:{{.NC}}"
-          echo "$ALERTS" | jq -r '.[] | select(.state=="open") | 
+          echo "$ALERTS" | jq -r '.[] | select(.state=="open") |
             "  [\\(.security_vulnerability.severity | ascii_upcase)] \\(.security_vulnerability.package.name) - \\(.security_advisory.summary | .[0:80])"' | head -20
           [ "$OPEN_COUNT" -gt 20 ] && echo "  ... and $((OPEN_COUNT - 20)) more"
         fi
@@ -658,10 +658,10 @@ tasks:
         if [ -z "$PR_NUMBER" ]; then
           echo -e "{{.CYAN}}Fetching pull requests...{{.NC}}"
           echo ""
-          
+
           # List recent PRs
           gh pr list --limit 10 --json number,title,state,author,createdAt --jq '.[] | "#\\(.number) | \\(.title) | \\(.state) | \\(.author.login)"' | column -t -s '|'
-          
+
           echo ""
           read -p "Enter PR number (or 'latest' for most recent): " PR_NUMBER
         fi
@@ -895,7 +895,7 @@ tasks:
         # Show failed runs first if any
         if [ "$FAILURE_COUNT" -gt 0 ]; then
           echo -e "{{.RED}}Failed Runs:{{.NC}}"
-          echo "$RUNS" | jq -r '.[] | select(.conclusion=="failure") | 
+          echo "$RUNS" | jq -r '.[] | select(.conclusion=="failure") |
             "  ❌ " + .workflowName + " - " + .displayTitle + "\n    ID: " + (.databaseId|tostring) + " | " + .event + " | " + (.createdAt | fromdateiso8601 | strftime("%Y-%m-%d %H:%M")) + "\n    URL: " + .url' | head -15
           [ "$FAILURE_COUNT" -gt 5 ] && echo "  ... and $((FAILURE_COUNT - 5)) more failures"
           echo ""
@@ -904,19 +904,19 @@ tasks:
         # Show in-progress runs
         if [ "$IN_PROGRESS" -gt 0 ]; then
           echo -e "{{.CYAN}}In Progress:{{.NC}}"
-          echo "$RUNS" | jq -r '.[] | select(.status=="in_progress") | 
+          echo "$RUNS" | jq -r '.[] | select(.status=="in_progress") |
             "  🔄 " + .workflowName + " - " + .displayTitle + "\n    ID: " + (.databaseId|tostring) + " | " + .event + " | Started: " + (.createdAt | fromdateiso8601 | strftime("%Y-%m-%d %H:%M"))'
           echo ""
         fi
 
         # Show all runs in table format
         echo -e "{{.CYAN}}All Runs (most recent first):{{.NC}}"
-        echo "$RUNS" | jq -r '.[] | 
-          (if .conclusion=="success" then "✅" 
-           elif .conclusion=="failure" then "❌" 
-           elif .conclusion=="cancelled" then "🚫" 
-           elif .status=="in_progress" then "🔄" 
-           elif .status=="queued" then "⏳" 
+        echo "$RUNS" | jq -r '.[] |
+          (if .conclusion=="success" then "✅"
+           elif .conclusion=="failure" then "❌"
+           elif .conclusion=="cancelled" then "🚫"
+           elif .status=="in_progress" then "🔄"
+           elif .status=="queued" then "⏳"
            else "❓" end) + " | " +
           (.workflowName | .[0:25]) + (if (.workflowName | length) > 25 then "..." else "" end) + " | " +
           (.displayTitle | .[0:40]) + (if (.displayTitle | length) > 40 then "..." else "" end) + " | " +

@@ -5,7 +5,7 @@ coverage:
   precision: 2
   round: down
   range: "80...100"
-  
+
   status:
     project:
       default:
@@ -45,17 +45,17 @@ ignore:
   - "**/*Tests.swift"
   - "**/Mock*.swift"
   - "**/runner.swift"
-  
+
   # UI/System Integration files
   - "**/MagSafeGuardApp.swift"
   - "**/PowerMonitorService.swift"
   - "**/*LAContext.swift"
   - "**/MacSystemActions.swift"
   - "**/*Protocol.swift"
-  
+
   # SwiftUI Views (test view models instead)
   - "**/*View.swift"
-  
+
   # Package files
   - "Package.swift"
   - ".build/"

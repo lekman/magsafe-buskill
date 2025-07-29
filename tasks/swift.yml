@@ -9,9 +9,9 @@ vars:
   EXECUTABLE_NAME:
     sh: swift package dump-package 2>/dev/null | jq -r '.products[] | select(.type.executable != null) | .name' | head -1 || echo "{{.PACKAGE_NAME}}"
   # Default app name for bundler
-  APP_NAME: '{{.EXECUTABLE_NAME | default .PACKAGE_NAME}}'
+  APP_NAME: "{{.EXECUTABLE_NAME | default .PACKAGE_NAME}}"
   # Default bundler app path
-  APP_PATH: './.build/bundler/{{.APP_NAME}}.app'
+  APP_PATH: "./.build/bundler/{{.APP_NAME}}.app"
 
 tasks:
   default:
@@ -80,21 +80,21 @@ tasks:
         if [[ -f "$PROF_DATA" ]] && [[ -n "$BINARY" ]]; then
           # Extract just the binary path (without wildcard)
           BINARY=$(find .build -name '*.xctest' -type d | head -1)/Contents/MacOS/$(basename "$(find .build -name '*.xctest' -type d | head -1)" .xctest)
-          
+
           if [[ -f "$BINARY" ]]; then
             echo ""
             echo "📊 Coverage Report:"
             echo "=================="
-            
+
             # Generate report with comprehensive filters matching CI
             xcrun llvm-cov report "$BINARY" \
               -instr-profile="$PROF_DATA" \
               -ignore-filename-regex=".*Tests/.*|.*Tests\\.swift|.*Mocks?\\.swift|.*/{{.APP_NAME}}App\\.swift|.*/SettingsView\\.swift|.*/TrustedLocationsView\\.swift|.*/PowerMonitorService\\.swift|.*LAContext\\.swift|.*/MacSystemActions\\.swift|.*Protocol\\.swift|.*/runner\\.swift" \
               -use-color=false | tee coverage-report.txt
-            
+
             # Extract total coverage - look for the TOTAL line
             COVERAGE=$(grep "^TOTAL" coverage-report.txt | awk '{print $10}' | sed 's/%//')
-            
+
             echo ""
             if [ -z "$COVERAGE" ]; then
               echo "⚠️  Could not extract coverage percentage"
@@ -132,15 +132,15 @@ tasks:
 
         if [[ -f "$PROF_DATA" ]] && [[ -n "$EXECUTABLE" ]]; then
           EXECUTABLE=$(find .build -name '*.xctest' -type d | head -1)/Contents/MacOS/$(basename "$(find .build -name '*.xctest' -type d | head -1)" .xctest)
-          
+
           xcrun llvm-cov show "$EXECUTABLE" \
             -instr-profile="$PROF_DATA" \
             -format=html \
             -output-dir=coverage-html \
             -ignore-filename-regex=".*Tests\\.swift|.*Mocks?\\.swift|.*/{{.APP_NAME}}App\\.swift|.*/SettingsView\\.swift|.*/TrustedLocationsView\\.swift|.*/PowerMonitorService\\.swift|.*LAContext\\.swift|.*/MacSystemActions\\.swift|.*Protocol\\.swift"
-          
+
           echo "✅ Coverage report generated at: coverage-html/index.html"
-          
+
           # Open if on macOS
           if [[ "$OSTYPE" == "darwin"* ]]; then
             open coverage-html/index.html
@@ -246,7 +246,7 @@ tasks:
         swift build -c release
         if [ $? -eq 0 ]; then
           echo "✅ Build succeeded"
-          
+
           # Show binary location
           BINARY=$(find .build/release -name "$(swift package dump-package | jq -r '.products[] | select(.type.executable != null) | .name' | head -1)" -type f 2>/dev/null | head -1)
           if [ -n "$BINARY" ]; then
@@ -351,11 +351,11 @@ tasks:
         # Install/Update jazzy (for documentation generation)
         if ! command -v jazzy &> /dev/null; then
           echo "📦 Installing jazzy to user directory..."
-          
+
           # Check Ruby version first
           RUBY_VERSION=$(ruby -v | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)
           MIN_VERSION="2.7.0"
-          
+
           if [ "$(printf '%s\
         ' "$MIN_VERSION" "$RUBY_VERSION" | sort -V | head -n1)" != "$MIN_VERSION" ]; then
             echo "⚠️  Ruby version $RUBY_VERSION is too old for jazzy"
@@ -373,14 +373,14 @@ tasks:
             # Try to install rouge dependency first if needed
             echo "Installing jazzy dependencies..."
             gem install rouge -v 3.30.0 --user-install 2>/dev/null || true
-            
+
             # Install to user directory by default (no admin needed)
             if gem install jazzy --user-install; then
               echo "✅ jazzy installed successfully to user directory"
-              
+
               # Get the gem bin path
               GEM_BIN_PATH=$(ruby -r rubygems -e 'puts Gem.user_dir')/bin
-              
+
               # Check if it's in PATH
               if [[ ":$PATH:" != *":$GEM_BIN_PATH:"* ]]; then
                 echo ""
@@ -452,7 +452,7 @@ tasks:
         # Option 1: Try jazzy if installed (most reliable)
         if command -v jazzy &> /dev/null; then
           echo "✅ Found jazzy - generating documentation..."
-          
+
           jazzy \
             --clean \
             --author "{{.PACKAGE_NAME}}" \
@@ -462,7 +462,7 @@ tasks:
             --theme apple \
             --documentation "*.md" \
             --readme README.md
-            
+
           if [ $? -eq 0 ]; then
             echo "✅ Documentation generated successfully!"
             echo "📂 Output location: {{.OUTPUT_PATH}}"
@@ -472,16 +472,16 @@ tasks:
             echo "❌ Jazzy generation failed"
             exit 1
           fi
-          
+
         # Option 2: Try swift-doc if installed
         elif command -v swift-doc &> /dev/null; then
           echo "✅ Found swift-doc - generating documentation..."
-          
+
           swift-doc generate Sources/{{.PACKAGE_NAME}} \
             --module-name {{.PACKAGE_NAME}} \
             --output {{.OUTPUT_PATH}} \
             --format html
-            
+
           if [ $? -eq 0 ]; then
             echo "✅ Documentation generated successfully!"
             echo "📂 Output location: {{.OUTPUT_PATH}}"
@@ -491,7 +491,7 @@ tasks:
             echo "❌ swift-doc generation failed"
             exit 1
           fi
-          
+
         # Option 3: Check if in Xcode environment
         elif command -v xcodebuild &> /dev/null && [ -d "{{.PACKAGE_NAME}}.xcodeproj" ]; then
           echo "✅ Found Xcode - attempting to generate documentation..."
@@ -504,7 +504,7 @@ tasks:
           echo ""
           echo "For now, building project to ensure it compiles..."
           xcodebuild -scheme {{.PACKAGE_NAME}} -configuration Release build
-          
+
         else
           # No documentation tool found
           echo "❌ No documentation generator found!"
@@ -512,11 +512,11 @@ tasks:
           echo "Please install one of the following:"
           echo ""
           echo "Option 1: Jazzy (Recommended)"
-          
+
           # Check Ruby version
           RUBY_VERSION=$(ruby -v | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)
           MIN_VERSION="2.7.0"
-          
+
           if [ "$(printf '%s\
         ' "$MIN_VERSION" "$RUBY_VERSION" | sort -V | head -n1)" != "$MIN_VERSION" ]; then
             echo "  ⚠️  Your Ruby version ($RUBY_VERSION) is too old for jazzy (requires >= 2.7)"

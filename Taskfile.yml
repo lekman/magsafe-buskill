@@ -28,27 +28,27 @@ tasks:
       - |
         echo "🚀 Simple MagSafe Guard Launch..."
         echo ""
-        
+
         # Kill any existing instances
         echo "🔄 Stopping any existing instances..."
         pkill -x MagSafeGuard 2>/dev/null || true
         sleep 1
-        
+
         # Build the debug executable
         echo "🔨 Building debug executable..."
         swift build --disable-sandbox
-        
+
         # Run directly with verbose output to see crash reason
         echo "🚀 Starting MagSafe Guard..."
         echo "   Running: .build/debug/MagSafeGuard"
-        
+
         # Run in foreground first to see any immediate crash output
         .build/debug/MagSafeGuard &
         APP_PID=$!
-        
+
         # Give it a moment to start
         sleep 2
-        
+
         # Check if it crashed immediately
         if ! kill -0 $APP_PID 2>/dev/null; then
           echo "❌ MagSafe Guard crashed immediately!"
@@ -65,11 +65,11 @@ tasks:
           tail -20 ~/Library/Logs/MagSafeGuard/errors-*.log 2>/dev/null || echo "No error logs found"
           exit 1
         fi
-        
+
         # Wait more for full startup
         echo "⏳ Waiting for full startup..."
         sleep 8
-        
+
         # Final check
         if kill -0 $APP_PID 2>/dev/null; then
           echo "✅ MagSafe Guard is running!"
@@ -339,7 +339,7 @@ tasks:
           read -r sentry_debug
           sentry_debug=${sentry_debug:-N}
           update_flag "SENTRY_DEBUG" $([ "${sentry_debug^^}" = "Y" ] && echo "true" || echo "false")
-          
+
           # Add DSN if not present
           if ! grep -q "^SENTRY_DSN=" .env; then
             update_flag "SENTRY_DSN" "https://e74a158126b00e128ebdda98f6a36b76@o4509752039243776.ingest.de.sentry.io/4509752042127440"
@@ -421,7 +421,7 @@ tasks:
           echo "  • Terminating existing MagSafe Guard processes..."
           killall MagSafeGuard 2>/dev/null || true
           sleep 1
-          
+
           # Force kill if needed
           if pgrep -x "MagSafeGuard" > /dev/null 2>&1; then
             killall -9 MagSafeGuard 2>/dev/null || true
@@ -470,17 +470,17 @@ tasks:
         # Fix Info.plist - Swift Bundler doesn't include all required keys
         echo "🔧 Fixing Info.plist for menu bar app..."
         PLIST="$APP_PATH/Contents/Info.plist"
-        
+
         # Add LSUIElement
         /usr/libexec/PlistBuddy -c "Add :LSUIElement bool true" "$PLIST" 2>/dev/null || \
         /usr/libexec/PlistBuddy -c "Set :LSUIElement true" "$PLIST"
-        
+
         # Add Bundle Identifier if missing
         if ! /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$PLIST" 2>/dev/null; then
           /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string com.lekman.magsafeguard" "$PLIST"
           echo "  ✅ Bundle identifier added"
         fi
-        
+
         echo "  ✅ Info.plist fixed for menu bar"
         echo ""
 
@@ -541,30 +541,30 @@ tasks:
           echo "✅ App launched successfully via macOS Launch Services"
         else
           echo "⚠️  Standard launch failed, trying alternative methods..."
-          
+
           # Strategy 2: For admin users with sudo, try to bypass Gatekeeper
           if [ "$IS_ADMIN" = true ] && [ "$HAS_SUDO" = true ]; then
             echo "  • Attempting Gatekeeper bypass with sudo..."
             sudo spctl --add "$APP_PATH" 2>/dev/null || true
             sudo xattr -d com.apple.quarantine "$APP_PATH" 2>/dev/null || true
-            
+
             if open "$APP_PATH" 2>/dev/null; then
               LAUNCH_SUCCESS=true
               echo "  ✅ App launched after Gatekeeper bypass"
             fi
           fi
-          
+
           # Strategy 3: Direct execution fallback
           if [ "$LAUNCH_SUCCESS" = false ]; then
             echo "  • Attempting direct execution..."
-            
+
             # Run directly in background
             "$APP_PATH/Contents/MacOS/MagSafeGuard" &
             APP_PID=$!
-            
+
             # Wait for startup
             sleep 2
-            
+
             if kill -0 $APP_PID 2>/dev/null || pgrep -x "MagSafeGuard" > /dev/null; then
               LAUNCH_SUCCESS=true
               echo "  ✅ App running in direct execution mode (PID: $APP_PID)"
@@ -584,20 +584,20 @@ tasks:
           echo ""
           echo "⚠️  Initial launch failed, trying automatic recovery..."
           echo ""
-          
+
           # Try copying to /tmp and running from there
           echo "📋 Copying to /tmp to bypass permission issues..."
           rm -rf /tmp/MagSafeGuard.app 2>/dev/null || true
           cp -R "$APP_PATH" /tmp/
-          
+
           echo "🔓 Removing quarantine attributes..."
           xattr -cr /tmp/MagSafeGuard.app 2>/dev/null || true
-          
+
           echo "🚀 Launching from /tmp..."
           open /tmp/MagSafeGuard.app
-          
+
           sleep 2
-          
+
           if pgrep -x "MagSafeGuard" > /dev/null; then
             echo ""
             echo "✅ Recovery successful! App running from /tmp"
@@ -904,7 +904,7 @@ tasks:
         if [ ! -f "$EXECUTABLE" ] || [ $BUILD_AGE -gt 300 ]; then
           echo "🔨 Building MagSafe Guard..."
           swift build -c release --product MagSafeGuard
-          
+
           if [ $? -ne 0 ]; then
             echo "❌ Build failed"
             exit 1
@@ -925,7 +925,7 @@ tasks:
           echo "🔄 Stopping existing instances..."
           killall MagSafeGuard 2>/dev/null || true
           sleep 1
-          
+
           # Force kill if needed
           if pgrep -x "MagSafeGuard" > /dev/null 2>&1; then
             killall -9 MagSafeGuard 2>/dev/null || true

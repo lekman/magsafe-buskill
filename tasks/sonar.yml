@@ -112,36 +112,36 @@ tasks:
             echo "Generated: $(date)"
             echo "Project: lekman_magsafe-buskill"
             echo ""
-            
+
             # Extract quality gate status
             QUALITY_GATE=$(grep "QUALITY GATE STATUS:" {{.REPORT_PATH}}/sonar-scanner.log | head -1 || echo "")
             if [ -n "$QUALITY_GATE" ]; then
               echo "$QUALITY_GATE"
               echo ""
             fi
-            
+
             # Extract issues from the log (these appear during analysis)
             echo "===================================================="
             echo "ISSUES FOUND DURING ANALYSIS"
             echo "===================================================="
             echo ""
-            
+
             # Look for Swift file issues in the log
             grep -E "(ERROR|WARN|INFO).*Sources.*\\.swift" {{.REPORT_PATH}}/sonar-scanner.log | while read -r line; do
               echo "[CODE_SMELL] $line"
               echo "  Status: OPEN"
               echo ""
             done
-            
+
             # If no issues found in log, create placeholder
             if ! grep -q -E "(ERROR|WARN|INFO).*Sources.*\\.swift" {{.REPORT_PATH}}/sonar-scanner.log; then
               echo "No issues found in scan log."
               echo "For detailed analysis results, view online at:"
               echo "https://sonarcloud.io/summary/overall?id=lekman_magsafe-buskill"
             fi
-            
+
           } > {{.REPORT_PATH}}/sonarcloud-findings.txt
-          
+
           echo "✅ Findings extracted to {{.REPORT_PATH}}/sonarcloud-findings.txt"
         fi
 
@@ -154,7 +154,7 @@ tasks:
             echo "─────────────────────────────"
             # Show first 5 open issues with their details
             awk '
-              /^\\[CODE_SMELL\\]/ { 
+              /^\\[CODE_SMELL\\]/ {
                 issue = $0
                 getline
                 rule = $0
@@ -170,7 +170,7 @@ tasks:
                 }
               }
             ' {{.REPORT_PATH}}/sonarcloud-findings.txt
-            
+
             if [ $OPEN_ISSUES -gt 5 ]; then
               echo "... and $((OPEN_ISSUES - 5)) more open issues"
             fi
@@ -186,23 +186,23 @@ tasks:
           echo "  - Log: {{.REPORT_PATH}}/sonar-scanner.log"
           echo "  - Findings: {{.REPORT_PATH}}/sonarcloud-findings.txt"
           echo "  - View online: https://sonarcloud.io/summary/overall?id=lekman_magsafe-buskill"
-          
+
           # Open the findings file in VSCode
           echo ""
           echo "📂 Opening findings report in VSCode..."
           code {{.REPORT_PATH}}/sonarcloud-findings.txt
-          
+
           exit 0
         else
           echo ""
           echo "❌ SonarCloud scan failed"
           echo "Check {{.REPORT_PATH}}/sonar-scanner.log for details"
-          
+
           # Still try to open findings if they exist
           if [ -f "{{.REPORT_PATH}}/sonarcloud-findings.txt" ]; then
             code {{.REPORT_PATH}}/sonarcloud-findings.txt
           fi
-          
+
           exit 1
         fi
 
@@ -222,24 +222,24 @@ tasks:
         if [ -f "$FINDINGS_FILE" ]; then
           echo "✅ Found findings report"
           echo ""
-          
+
           # Show summary
           TOTAL_ISSUES=$(grep -c "^\\[CODE_SMELL\\]" "$FINDINGS_FILE" 2>/dev/null || echo 0)
           OPEN_ISSUES=$(grep -c "Status: OPEN\\|Status: CONFIRMED\\|Status: REOPENED" "$FINDINGS_FILE" 2>/dev/null || echo 0)
           CLOSED_ISSUES=$(grep -c "Status: CLOSED" "$FINDINGS_FILE" 2>/dev/null || echo 0)
-          
+
           echo "📊 Summary:"
           echo "  - Total issues: $TOTAL_ISSUES"
           echo "  - Open issues: $OPEN_ISSUES"
           echo "  - Closed issues: $CLOSED_ISSUES"
           echo ""
-          
+
           # Show open issues
           if [ $OPEN_ISSUES -gt 0 ]; then
             echo "⚠️  Open Issues:"
             echo "─────────────────────────────"
             awk '
-              /^\\[CODE_SMELL\\]/ { 
+              /^\\[CODE_SMELL\\]/ {
                 issue = $0
                 getline
                 rule = $0
@@ -256,11 +256,11 @@ tasks:
           else
             echo "✅ No open issues!"
           fi
-          
+
           echo ""
           echo "📂 Opening full report in VSCode..."
           code "$FINDINGS_FILE"
-          
+
         elif [ -f "$LOG_FILE" ]; then
           echo "⚠️  No findings report found, but scan log exists"
           echo ""
@@ -321,17 +321,17 @@ tasks:
 
         while [ $PAGE -le $TOTAL_PAGES ]; do
           echo "  Fetching page $PAGE..."
-          
+
           RESPONSE=$(curl -s -X GET \
             "https://sonarcloud.io/api/issues/search?componentKeys={{.PROJECT_KEY}}&p=$PAGE&ps=500" \
             -H "Authorization: Bearer $SONAR_TOKEN")
-          
+
           # Check if request was successful
           if [ $? -ne 0 ] || [ -z "$RESPONSE" ]; then
             echo "❌ Failed to fetch issues from SonarCloud"
             exit 1
           fi
-          
+
           # Extract total pages on first iteration
           if [ $PAGE -eq 1 ]; then
             TOTAL_PAGES=$(echo "$RESPONSE" | python3 -c "import json,sys,math; data=json.load(sys.stdin); print(math.ceil(data.get('paging',{}).get('total',0)/500))" 2>/dev/null || echo "1")
@@ -340,7 +340,7 @@ tasks:
             # Append issues from subsequent pages
             echo "$RESPONSE" | python3 -c "import json,sys; data=json.load(sys.stdin); f=open('{{.REPORT_PATH}}/sonarcloud-issues.json','r+'); existing=json.load(f); existing['issues'].extend(data.get('issues',[])); f.seek(0); json.dump(existing,f,indent=2); f.truncate(); f.close()" 2>/dev/null || true
           fi
-          
+
           PAGE=$((PAGE + 1))
         done
 
@@ -359,9 +359,9 @@ tasks:
         try:
             with open(f'{report_path}/sonarcloud-issues.json', 'r') as f:
                 data = json.load(f)
-            
+
             issues = data.get('issues', [])
-            
+
             # Generate report
             with open(f'{report_path}/sonarcloud-findings.txt', 'w') as report:
                 report.write(f'=== SonarCloud Findings Report ===\
@@ -373,7 +373,7 @@ tasks:
                 report.write(f'Total issues: {len(issues)}\
         \
         ')
-                
+
                 # Group by severity
                 by_severity = {}
                 for issue in issues:
@@ -381,12 +381,12 @@ tasks:
                     if severity not in by_severity:
                         by_severity[severity] = []
                     by_severity[severity].append(issue)
-                
+
                 # Write issues by severity
                 for severity in ['BLOCKER', 'CRITICAL', 'MAJOR', 'MINOR', 'INFO']:
                     if severity not in by_severity:
                         continue
-                    
+
                     report.write(f'\
         {"=" * 50}\
         ')
@@ -395,35 +395,35 @@ tasks:
                     report.write(f'{"=" * 50}\
         \
         ')
-                    
+
                     for issue in by_severity[severity]:
                         component = issue.get('component', 'unknown').replace(f'{project_key}:', '')
                         line = issue.get('textRange', {}).get('startLine', 0)
-                        
+
                         report.write(f'[{issue.get("type", "UNKNOWN")}] {component}:{line}\
         ')
                         report.write(f'  Rule: {issue.get("rule", "unknown")}\
         ')
                         report.write(f'  Message: {issue.get("message", "No message")}\
         ')
-                        
+
                         # Add effort if available
                         effort = issue.get('effort')
                         if effort:
                             report.write(f'  Effort: {effort}\
         ')
-                        
+
                         # Add status
                         status = issue.get('status', 'OPEN')
                         if status != 'OPEN':
                             report.write(f'  Status: {status}\
         ')
-                        
+
                         report.write('\
         ')
-            
+
             print(f'✅ Successfully processed {len(issues)} issues')
-            
+
         except Exception as e:
             print(f'Error processing SonarCloud response: {e}')
             sys.exit(1)
@@ -445,7 +445,7 @@ tasks:
         with open(f'{report_path}/sonarcloud-issues.json', 'r') as f:
             data = json.load(f)
             issues = data.get('issues', [])
-            
+
             # Count by type
             types = {}
             severities = {}
@@ -454,11 +454,11 @@ tasks:
                 severity = issue.get('severity', 'UNKNOWN')
                 types[issue_type] = types.get(issue_type, 0) + 1
                 severities[severity] = severities.get(severity, 0) + 1
-            
+
             print('By Type:')
             for t, count in sorted(types.items()):
                 print(f'  - {t}: {count}')
-            
+
             print('\
         By Severity:')
             for s in ['BLOCKER', 'CRITICAL', 'MAJOR', 'MINOR', 'INFO']:
@@ -550,16 +550,16 @@ tasks:
           fi
         elif [ -z "$PR_NUMBER" ]; then
           echo "🔍 Current git branch: $CURRENT_BRANCH"
-          
+
           # Display available PRs
           echo ""
           echo "Available pull requests:"
           echo "$PR_LIST" | jq -r '.pullRequests[] | "  PR #\\(.key): \\(.title) [\\(.status)]"' 2>/dev/null || echo "  Unable to parse PR list"
-          
+
           echo ""
           echo "Enter PR number, 'latest' for most recent, or press Enter to choose latest:"
           read -p "PR selection: " PR_NUMBER
-          
+
           # If still empty or "latest", get the latest PR
           if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "latest" ]; then
             PR_NUMBER=$(echo "$PR_LIST" | jq -r '.pullRequests[0].key' 2>/dev/null || echo "")
@@ -641,21 +641,21 @@ tasks:
         if [[ "$TOTAL_ISSUES" -gt 0 ]]; then
           echo "### By Severity" >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
           echo "" >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
-          
+
           for severity in BLOCKER CRITICAL MAJOR MINOR INFO; do
             COUNT=$(echo "$ISSUES_DATA" | jq -r ".issues[] | select(.severity == \"$severity\") | .key" 2>/dev/null | wc -l | tr -d ' ')
             if [[ "$COUNT" -gt 0 ]]; then
               echo "- **$severity**: $COUNT issues" >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
             fi
           done
-          
+
           echo "" >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
           echo "### Issue Details" >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
           echo "" >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
-          
+
           # List issues (limit to first 50)
           echo "$ISSUES_DATA" | jq -r '.issues[] | "- **\(.severity)** [\(.rule)](https://rules.sonarsource.com/swift/RSPEC-\(.rule | split(":")[1])): \(.message) (`\(.component | split(":")[1]):\(.line)`)"' 2>/dev/null | head -50 >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md" || true
-          
+
           REMAINING=$((TOTAL_ISSUES - 50))
           if [[ $REMAINING -gt 0 ]]; then
             echo "" >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
@@ -705,7 +705,7 @@ tasks:
 
         if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
           echo "📊 Generating SonarQube generic coverage XML..."
-          
+
           # Generate the coverage XML directly (avoiding function definition in YAML)
           PROJECT_ROOT=$(pwd)
           {
@@ -730,7 +730,7 @@ tasks:
                 linenum = parts[1]
                 gsub(/^[[:space:]]+/, "", linenum)
                 gsub(/[[:space:]]+$/, "", linenum)
-                
+
                 # Check if line is covered (has execution count)
                 if (match(parts[2], /^[[:space:]]*[0-9]+/)) {
                   print "    <lineToCover lineNumber=\"" linenum "\" covered=\"true\"/>"
@@ -744,7 +744,7 @@ tasks:
             '
             echo '</coverage>'
           } > coverage.xml
-          
+
           if [ -f "coverage.xml" ] && [ -s "coverage.xml" ]; then
             echo "✅ Successfully generated coverage.xml"
             echo "   File size: $(wc -c < coverage.xml) bytes"
@@ -770,7 +770,7 @@ tasks:
         # Check if already installed
         if command -v sonar-scanner &> /dev/null; then
           echo "✅ sonar-scanner already installed ($(sonar-scanner -v | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1))"
-          
+
           # Check for updates on macOS
           if command -v brew &> /dev/null && brew list sonar-scanner &>/dev/null; then
             if brew outdated | grep -q "^sonar-scanner"; then
@@ -797,33 +797,33 @@ tasks:
         elif [ "$OS" = "linux" ]; then
           # Linux
           echo "📦 Installing SonarCloud scanner for Linux..."
-          
+
           # Check if running in CI or local
           if [ -n "$CI" ] || [ ! -w "/usr/local" ]; then
             # Download to local directory
             INSTALL_DIR="$HOME/.local/bin"
             mkdir -p "$INSTALL_DIR"
-            
+
             echo "⬇️  Downloading sonar-scanner..."
             curl -sSL https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip -o /tmp/sonar-scanner.zip
-            
+
             echo "📂 Extracting..."
             unzip -q /tmp/sonar-scanner.zip -d /tmp/
             mv /tmp/sonar-scanner-*/* "$INSTALL_DIR/"
             rm -rf /tmp/sonar-scanner*
-            
+
             echo "✅ Installed to $INSTALL_DIR"
             echo "⚠️  Make sure $INSTALL_DIR is in your PATH"
           else
             # System-wide install
             echo "⬇️  Downloading sonar-scanner..."
             curl -sSL https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip -o /tmp/sonar-scanner.zip
-            
+
             echo "📂 Extracting..."
             sudo unzip -q /tmp/sonar-scanner.zip -d /opt/
             sudo ln -sf /opt/sonar-scanner-*/bin/sonar-scanner /usr/local/bin/sonar-scanner
             rm /tmp/sonar-scanner.zip
-            
+
             echo "✅ Installed system-wide"
           fi
         else

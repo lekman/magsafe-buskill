@@ -73,7 +73,7 @@ tasks:
         # Check if already installed
         if command -v markdownlint &> /dev/null; then
           echo "✅ markdownlint is already installed ($(markdownlint --version))"
-          
+
           # Check for updates
           if command -v npm &> /dev/null && npm list -g markdownlint-cli &>/dev/null; then
             CURRENT_VERSION=$(markdownlint --version | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)

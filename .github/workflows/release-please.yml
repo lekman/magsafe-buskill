@@ -8,10 +8,10 @@ on:
     types: [opened, synchronize, reopened]
     # Only run on files that release-please modifies
     paths:
-      - '.github/.release-please-manifest.json'
-      - '**/CHANGELOG.md'
-      - '**/package.json'
-      - '**/package-lock.json'
+      - ".github/.release-please-manifest.json"
+      - "**/CHANGELOG.md"
+      - "**/package.json"
+      - "**/package-lock.json"
 
 permissions:
   contents: read

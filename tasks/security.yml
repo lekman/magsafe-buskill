@@ -49,7 +49,7 @@ tasks:
             -not -path "./vendor/*" \
             -not -path "*test*" \
             -exec grep -l -E "$pattern" {} \; 2>/dev/null || true)
-          
+
           if [ -n "$results" ]; then
             echo "⚠️  Found potential secrets matching pattern: $pattern"
             echo "$results" | head -5
@@ -70,7 +70,7 @@ tasks:
               unignored_env_files="$unignored_env_files$env_file\n"
             fi
           done
-          
+
           if [ -n "$unignored_env_files" ]; then
             echo "⚠️  Found .env files that are NOT in .gitignore:"
             echo -e "$unignored_env_files"
@@ -166,10 +166,10 @@ tasks:
         get_sha_for_tag() {
           local repo=$1
           local tag=$2
-          
+
           # Try to get SHA from GitHub API
           sha=$(gh api repos/$repo/git/refs/tags/$tag 2>/dev/null | jq -r '.object.sha // empty')
-          
+
           if [ -z "$sha" ]; then
             # If tag not found, try to get default branch
             sha=$(gh api repos/$repo 2>/dev/null | jq -r '.default_branch // empty')
@@ -177,7 +177,7 @@ tasks:
               sha=$(gh api repos/$repo/git/refs/heads/$sha 2>/dev/null | jq -r '.object.sha // empty')
             fi
           fi
-          
+
           echo "$sha"
         }
 
@@ -195,31 +195,31 @@ tasks:
           echo "Processing: $file"
           temp_file="${file}.tmp"
           cp "$file" "$temp_file"
-          
+
           # Find all uses statements
           while IFS= read -r line; do
             if [[ $line =~ uses:[[:space:]]*([^@]+)@([^[:space:]]+) ]]; then
               action="${BASH_REMATCH[1]}"
               version="${BASH_REMATCH[2]}"
-              
+
               # Skip if already pinned to SHA (40 character hex)
               if [[ $version =~ ^[a-f0-9]{40}$ ]]; then
                 continue
               fi
-              
+
               echo "  Found: $action@$version"
-              
+
               # Get the SHA for this version
               sha=$(get_sha_for_tag "$action" "$version")
-              
+
               if [ -n "$sha" ] && [ "$sha" != "null" ]; then
                 # Create the replacement with comment
                 escaped_action=$(echo "$action" | sed 's/[[\\.*^$()+?{|]/\\\\&/g')
                 escaped_version=$(echo "$version" | sed 's/[[\\.*^$()+?{|]/\\\\&/g')
-                
+
                 # Replace in temp file
                 sed -i '' "s|uses: ${escaped_action}@${escaped_version}|uses: ${action}@${sha} # ${version}|g" "$temp_file"
-                
+
                 echo "    ✅ Pinned to: $sha"
                 total_pinned=$((total_pinned + 1))
               else
@@ -227,7 +227,7 @@ tasks:
               fi
             fi
           done < "$file"
-          
+
           # Move temp file back
           mv "$temp_file" "$file"
         done
@@ -266,10 +266,10 @@ tasks:
         get_sha_for_tag() {
           local repo=$1
           local tag=$2
-          
+
           # Try to get SHA from GitHub API
           sha=$(gh api repos/$repo/git/refs/tags/$tag 2>/dev/null | jq -r '.object.sha // empty')
-          
+
           if [ -z "$sha" ]; then
             # If tag not found, try to get default branch
             sha=$(gh api repos/$repo 2>/dev/null | jq -r '.default_branch // empty')
@@ -277,7 +277,7 @@ tasks:
               sha=$(gh api repos/$repo/git/refs/heads/$sha 2>/dev/null | jq -r '.object.sha // empty')
             fi
           fi
-          
+
           echo "$sha"
         }
 
@@ -295,25 +295,25 @@ tasks:
           echo "Processing: $file"
           temp_file="${file}.tmp"
           cp "$file" "$temp_file"
-          
+
           # Find all uses statements with SHA and comment showing version
           while IFS= read -r line; do
             if [[ $line =~ uses:[[:space:]]*([^@]+)@([a-f0-9]{40})[[:space:]]*#[[:space:]]*([^[:space:]]+) ]]; then
               action="${BASH_REMATCH[1]}"
               current_sha="${BASH_REMATCH[2]}"
               version="${BASH_REMATCH[3]}"
-              
+
               echo "  Found: $action@$current_sha # $version"
-              
+
               # Get the latest SHA for this version
               new_sha=$(get_sha_for_tag "$action" "$version")
-              
+
               if [ -n "$new_sha" ] && [ "$new_sha" != "null" ] && [ "$new_sha" != "$current_sha" ]; then
                 # Replace in temp file
                 escaped_action=$(echo "$action" | sed 's/[[\\.*^$()+?{|]/\\\\&/g')
-                
+
                 sed -i '' "s|uses: ${escaped_action}@${current_sha} # ${version}|uses: ${action}@${new_sha} # ${version}|g" "$temp_file"
-                
+
                 echo "    ✅ Updated to: $new_sha"
                 total_updated=$((total_updated + 1))
               else
@@ -321,7 +321,7 @@ tasks:
               fi
             fi
           done < "$file"
-          
+
           # Move temp file back
           mv "$temp_file" "$file"
         done

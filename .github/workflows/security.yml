@@ -240,11 +240,11 @@ jobs:
         run: |
           if [[ "$TRUFFLEHOG_OUTCOME" == "failure" ]]; then
             echo "TruffleHog scan failed. Checking if it's due to BASE==HEAD..."
-            
+
             # Get the default branch commit
             BASE_COMMIT=$(git rev-parse "origin/${DEFAULT_BRANCH}" 2>/dev/null || echo "")
             HEAD_COMMIT=$(git rev-parse HEAD)
-            
+
             if [[ "$BASE_COMMIT" == "$HEAD_COMMIT" ]]; then
               echo "✅ BASE and HEAD commits are the same. This is expected for direct pushes to ${DEFAULT_BRANCH}."
               echo "No incremental scan needed - all secrets would have been caught in previous scans."

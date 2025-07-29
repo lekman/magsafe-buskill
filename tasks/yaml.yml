@@ -60,7 +60,7 @@ tasks:
         # Use prettier if selected
         if [ "$USE_PRETTIER" = true ]; then
           echo "📦 Using prettier for linting..."
-          
+
           # Convert patterns and find files
           PATTERNS=$(echo "{{.FILE_PATTERNS}}" | tr ',' ' ')
           FILES=""
@@ -75,25 +75,25 @@ tasks:
               FILES="$FILES $(ls $pattern 2>/dev/null || true)"
             fi
           done
-          
+
           FILES=$(echo $FILES | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
-          
+
           if [ -z "$FILES" ]; then
             echo "⚠️  No YAML files found matching patterns: {{.FILE_PATTERNS}}"
             exit 0
           fi
-          
+
           # Count files
           FILE_COUNT=$(echo $FILES | wc -w | tr -d ' ')
           echo "🔍 Found $FILE_COUNT YAML files to lint"
           echo ""
-          
+
           # Run prettier in check mode on all files at once
           # Use a temporary file to capture output reliably
           TEMP_OUTPUT=$(mktemp)
           prettier --check $FILES > "$TEMP_OUTPUT" 2>&1
           EXIT_CODE=$?
-          
+
           if [ $EXIT_CODE -eq 0 ]; then
             echo "✅ All YAML files passed prettier linting!"
             rm -f "$TEMP_OUTPUT"
@@ -101,21 +101,21 @@ tasks:
             # Read the output
             OUTPUT=$(cat "$TEMP_OUTPUT")
             rm -f "$TEMP_OUTPUT"
-            
+
             # Check if there are syntax errors
             if echo "$OUTPUT" | grep -q "^\[error\]"; then
               echo "❌ Syntax errors found:"
               echo ""
               # Show syntax errors
               echo "$OUTPUT" | grep "^\[error\]" | head -5 | sed 's/\[error\] /  🔴 /'
-              
+
               # Check if there are also formatting warnings
               if echo "$OUTPUT" | grep -q "^\[warn\]"; then
                 echo ""
                 echo "⚠️  Also found formatting issues in:"
                 echo "$OUTPUT" | grep "^\[warn\]" | grep -v "Code style issues" | sed 's/\[warn\] /  - /' | sort
               fi
-              
+
               echo ""
               echo "Fix syntax errors first, then run 'task yaml:lint:fix' for formatting"
               exit 1
@@ -123,13 +123,13 @@ tasks:
               # Only formatting issues, no syntax errors
               echo "❌ Formatting issues found:"
               echo ""
-              
+
               # Extract just the filenames from prettier output
               echo "$OUTPUT" | grep "^\[warn\]" | grep -v "Code style issues" | sed 's/^\[warn\] /  - /' | sort
-              
+
               # Count unique files with issues
               ISSUE_COUNT=$(echo "$OUTPUT" | grep "^\[warn\]" | grep -v "Code style issues" | sort | uniq | wc -l | tr -d ' ')
-              
+
               echo ""
               echo "📝 $ISSUE_COUNT file(s) need formatting"
               echo ""
@@ -137,11 +137,11 @@ tasks:
               exit 1
             fi
           fi
-          
+
         # Use yamllint if selected
         elif [ "$USE_YAMLLINT" = true ]; then
           echo "📦 Using yamllint for linting..."
-          
+
           # Check for config file
           CONFIG_ARG=""
           if [ -f "{{.YAMLLINT_CONFIG}}" ]; then
@@ -150,10 +150,10 @@ tasks:
           else
             echo "ℹ️  No .yamllint.yml found, using default rules"
           fi
-          
+
           # Convert comma-separated patterns to space-separated for shell expansion
           PATTERNS=$(echo "{{.FILE_PATTERNS}}" | tr ',' ' ')
-          
+
           # Find all YAML files matching patterns
           FILES=""
           for pattern in $PATTERNS; do
@@ -170,20 +170,20 @@ tasks:
               FILES="$FILES $(ls $pattern 2>/dev/null || true)"
             fi
           done
-          
+
           # Remove duplicates and empty entries
           FILES=$(echo $FILES | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
-          
+
           if [ -z "$FILES" ]; then
             echo "⚠️  No YAML files found matching patterns: {{.FILE_PATTERNS}}"
             exit 0
           fi
-          
+
           # Count files
           FILE_COUNT=$(echo $FILES | wc -w | tr -d ' ')
           echo "🔍 Found $FILE_COUNT YAML files to lint"
           echo ""
-          
+
           # Run yamllint
           FAILED=0
           for file in $FILES; do
@@ -191,7 +191,7 @@ tasks:
               FAILED=$((FAILED + 1))
             fi
           done
-          
+
           echo ""
           if [ $FAILED -eq 0 ]; then
             echo "✅ All YAML files passed linting!"
@@ -199,7 +199,7 @@ tasks:
             echo "❌ $FAILED files have linting issues"
             exit 1
           fi
-          
+
         else
           echo "❌ No YAML linter found"
           echo ""
@@ -222,7 +222,7 @@ tasks:
         # Check if prettier is installed (best for auto-fixing)
         if command -v prettier &> /dev/null; then
           echo "📦 Using prettier for auto-formatting..."
-          
+
           # Convert patterns and find files (same as lint task)
           PATTERNS=$(echo "{{.FILE_PATTERNS}}" | tr ',' ' ')
           FILES=""
@@ -237,19 +237,19 @@ tasks:
               FILES="$FILES $(ls $pattern 2>/dev/null || true)"
             fi
           done
-          
+
           FILES=$(echo $FILES | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
-          
+
           if [ -n "$FILES" ]; then
             # Run prettier and capture the output
             OUTPUT=$(prettier --write $FILES 2>&1)
-            
+
             # Check if any files were changed
             if echo "$OUTPUT" | grep -q "(unchanged)"; then
               # Count changed vs unchanged
               CHANGED=$(echo "$OUTPUT" | grep -v "(unchanged)" | wc -l | tr -d ' ')
               UNCHANGED=$(echo "$OUTPUT" | grep "(unchanged)" | wc -l | tr -d ' ')
-              
+
               if [ "$CHANGED" -eq 0 ]; then
                 echo "✅ All files already formatted correctly"
               else
@@ -264,13 +264,13 @@ tasks:
           fi
         else
           echo "ℹ️  prettier not installed, checking for other formatters..."
-          
+
           # Try yq if available
           if command -v yq &> /dev/null; then
             echo "📦 Using yq for formatting..."
             echo "Note: yq formatting is limited compared to prettier"
             echo "⚠️  WARNING: Skipping Taskfile.yml to preserve multiline scripts"
-            
+
             # Process files
             PATTERNS=$(echo "{{.FILE_PATTERNS}}" | tr ',' ' ')
             for pattern in $PATTERNS; do
@@ -363,7 +363,7 @@ tasks:
         else
           echo ""
           echo "📦 Installing prettier for YAML auto-formatting..."
-          
+
           # Check if npm is available
           if command -v npm &> /dev/null; then
             npm install -g prettier
@@ -384,7 +384,7 @@ tasks:
         else
           # Detect OS and install
           OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-          
+
           echo "📦 Installing yamllint for YAML linting..."
           if [ "$OS" = "darwin" ]; then
             if command -v brew &> /dev/null; then
@@ -415,24 +415,24 @@ tasks:
           line-length:
             max: 120
             level: warning
-          
+
           # Allow multiple spaces after colon for alignment
           colons:
             max-spaces-after: -1
-          
+
           # Don't require document start marker
           document-start: disable
-          
+
           # Allow both single and double quotes
           quoted-strings:
             quote-type: any
             required: false
-          
+
           # Relax indentation rules for complex structures
           indentation:
             spaces: consistent
             indent-sequences: true
-          
+
           # Don't complain about truthy values
           truthy:
             allowed-values: ['true', 'false', 'on', 'off', 'yes', 'no']
@@ -590,9 +590,9 @@ tasks:
             echo "," >> {{.OUTPUT_FILE}}
           fi
           FIRST=false
-          
+
           echo -n '  {"file": "'$file'", "issues": [' >> {{.OUTPUT_FILE}}
-          
+
           # Run yamllint and convert to JSON
           ISSUE_FIRST=true
           yamllint -f parsable $CONFIG_ARG "$file" 2>&1 | while IFS=: read -r f line col level message; do
@@ -601,11 +601,11 @@ tasks:
                 echo -n ", " >> {{.OUTPUT_FILE}}
               fi
               ISSUE_FIRST=false
-              
+
               echo -n '{"line": '$line', "column": '${col:-1}', "level": "'${level:-error}'", "message": "'$(echo $message | sed 's/"/\\\\"/g')'"}'
             fi
           done >> {{.OUTPUT_FILE}}
-          
+
           echo -n "]}" >> {{.OUTPUT_FILE}}
         done
 
