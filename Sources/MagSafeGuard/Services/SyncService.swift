@@ -42,14 +42,15 @@ public class SyncService: NSObject, ObservableObject {
 
     // MARK: - Private Properties
 
-    private let container: CKContainer
-    private let privateDatabase: CKDatabase
+    private var container: CKContainer?
+    private var privateDatabase: CKDatabase?
     private var syncTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
     private var retryTimer: Timer?
     private var retryCount = 0
     private let maxRetries = 3
     private let retryDelay: TimeInterval = 30.0
+    private var isCloudKitInitialized = false
 
     // Network monitoring
     private let networkMonitor = NWPathMonitor()
@@ -67,50 +68,95 @@ public class SyncService: NSObject, ObservableObject {
     // MARK: - Initialization
 
     public override init() {
+        super.init()
+        
         // Check if we're in a test environment
         let isTestEnvironment = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil ||
                                Self.disableForTesting ||
                                NSClassFromString("XCTest") != nil ||
                                ProcessInfo.processInfo.environment["CI"] != nil
-
+        
         if isTestEnvironment {
-            // Use default container for tests to avoid crashes
-            self.container = CKContainer.default()
-            self.privateDatabase = container.privateCloudDatabase
-        } else {
-            // Initialize with specific container identifier
-            // Use the app's bundle identifier as the base
-            let containerIdentifier = "iCloud.com.lekman.magsafeguard"
-            
-            self.container = CKContainer(identifier: containerIdentifier)
-            self.privateDatabase = container.privateCloudDatabase
+            Log.debug("Running in test environment - CloudKit disabled", category: .general)
+            syncStatus = .unknown
+            isAvailable = false
+            return
         }
-
-        super.init()
-
-        // Skip CloudKit setup in test environment
-        if !isTestEnvironment {
-            // Delay CloudKit setup to avoid immediate permission prompts
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-                self?.setupCloudKit()
-                self?.checkiCloudAvailability()
-                self?.startPeriodicSync()
-                self?.setupNetworkMonitoring()
+        
+        // Delay CloudKit initialization to avoid early crashes
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+            self?.initializeCloudKit()
+        }
+    }
+    
+    // MARK: - CloudKit Initialization
+    
+    private func initializeCloudKit() {
+        guard !isCloudKitInitialized else { return }
+        
+        // Try to initialize CloudKit container
+        let containerIdentifier = determineContainerIdentifier()
+        
+        Log.info("Initializing CloudKit with container: \(containerIdentifier)", category: .general)
+        
+        // Create container - CloudKit will handle errors internally
+        container = CKContainer(identifier: containerIdentifier)
+        privateDatabase = container?.privateCloudDatabase
+        
+        isCloudKitInitialized = true
+        
+        // Continue with setup
+        setupCloudKit()
+        checkiCloudAvailability()
+        startPeriodicSync()
+        setupNetworkMonitoring()
+    }
+    
+    private func determineContainerIdentifier() -> String {
+        // First try to use the configured container from entitlements
+        let primaryIdentifier = "iCloud.com.lekman.magsafeguard"
+        
+        // Check if we have a valid bundle identifier
+        if let bundleId = Bundle.main.bundleIdentifier {
+            // In development/debug builds, the bundle ID might be different
+            if bundleId.contains("xcode") || bundleId.contains("lldb") {
+                Log.warning("Running with development bundle ID: \(bundleId)", category: .general)
+                // Try default container as fallback
+                return "iCloud." + bundleId
             }
         }
+        
+        return primaryIdentifier
     }
 
     // MARK: - Setup
 
     private func setupCloudKit() {
+        guard let database = privateDatabase else {
+            Log.warning("CloudKit database not available", category: .general)
+            return
+        }
+        
         // Create custom zone for our data
         let zone = CKRecordZone(zoneName: customZoneName)
         customZone = zone
 
-        privateDatabase.save(zone) { [weak self] _, error in
-            if let error = error as? CKError, error.code == .zoneNotFound {
-                // Zone doesn't exist, which is fine for first run
-                Log.debug("Custom zone will be created on first save", category: .general)
+        database.save(zone) { [weak self] _, error in
+            if let error = error as? CKError {
+                switch error.code {
+                case .zoneNotFound:
+                    // Zone doesn't exist, which is fine for first run
+                    Log.debug("Custom zone will be created on first save", category: .general)
+                case .networkUnavailable, .networkFailure:
+                    Log.warning("Network unavailable for zone creation - will retry later", category: .general)
+                    self?.scheduleRetry()
+                case .permissionFailure, .notAuthenticated:
+                    Log.error("CloudKit permission denied", error: error, category: .general)
+                    self?.handlePermissionError(error)
+                default:
+                    Log.error("Failed to create custom zone", error: error, category: .general)
+                    self?.syncError = error
+                }
             } else if let error = error {
                 Log.error("Failed to create custom zone", error: error, category: .general)
                 self?.syncError = error
@@ -119,8 +165,31 @@ public class SyncService: NSObject, ObservableObject {
             }
         }
     }
+    
+    private func handlePermissionError(_ error: CKError) {
+        syncStatus = .error
+        syncError = error
+        isAvailable = false
+        
+        // More specific error handling
+        switch error.code {
+        case .notAuthenticated:
+            notifyUserAboutiCloudAccount()
+        case .permissionFailure:
+            notifyUserAboutPermissions()
+        default:
+            break
+        }
+    }
 
     private func checkiCloudAvailability() {
+        guard let container = container else {
+            Log.warning("CloudKit container not available", category: .general)
+            syncStatus = .error
+            isAvailable = false
+            return
+        }
+        
         container.accountStatus { [weak self] status, error in
             DispatchQueue.main.async {
                 if let error = error {
@@ -312,7 +381,7 @@ public class SyncService: NSObject, ObservableObject {
     /// Force sync settings to iCloud
     @MainActor
     public func syncSettings() async throws {
-        guard let zone = customZone else {
+        guard let zone = customZone, let database = privateDatabase else {
             throw SyncError.zoneNotReady
         }
 
@@ -324,7 +393,7 @@ public class SyncService: NSObject, ObservableObject {
 
         do {
             // Try to fetch existing record
-            let existingRecord = try await privateDatabase.record(for: recordID)
+            let existingRecord = try await database.record(for: recordID)
 
             // Check if local is newer
             let localTimestamp = UserDefaults.standard.double(forKey: "settingsTimestamp")
@@ -336,7 +405,7 @@ public class SyncService: NSObject, ObservableObject {
                 existingRecord["timestamp"] = localTimestamp
                 existingRecord["deviceName"] = ProcessInfo.processInfo.hostName
 
-                try await privateDatabase.save(existingRecord)
+                try await database.save(existingRecord)
                 Log.info("Settings uploaded to iCloud", category: .general)
             } else if remoteTimestamp > localTimestamp {
                 // Update local with remote
@@ -356,7 +425,7 @@ public class SyncService: NSObject, ObservableObject {
             newRecord["timestamp"] = Date().timeIntervalSince1970
             newRecord["deviceName"] = ProcessInfo.processInfo.hostName
 
-            try await privateDatabase.save(newRecord)
+            try await database.save(newRecord)
             Log.info("Settings uploaded to iCloud (new record)", category: .general)
         } catch let error as CKError {
             // Handle specific CloudKit errors
@@ -376,7 +445,7 @@ public class SyncService: NSObject, ObservableObject {
     /// Sync evidence data to iCloud
     @MainActor
     public func syncEvidence() async throws {
-        guard let zone = customZone else {
+        guard let zone = customZone, let database = privateDatabase else {
             throw SyncError.zoneNotReady
         }
 
@@ -446,7 +515,7 @@ public class SyncService: NSObject, ObservableObject {
             record["creationDate"] = creationDate
 
             do {
-                try await privateDatabase.save(record)
+                try await database.save(record)
 
                 // Mark as synced
                 UserDefaults.standard.set(true, forKey: syncedKey)
@@ -462,7 +531,7 @@ public class SyncService: NSObject, ObservableObject {
     /// Download evidence from iCloud
     @MainActor
     public func downloadEvidence() async throws {
-        guard let zone = customZone else {
+        guard let zone = customZone, let database = privateDatabase else {
             throw SyncError.zoneNotReady
         }
 
@@ -470,7 +539,7 @@ public class SyncService: NSObject, ObservableObject {
         let query = CKQuery(recordType: evidenceRecordType, predicate: NSPredicate(value: true))
 
         do {
-            let (matchResults, _) = try await privateDatabase.records(matching: query, inZoneWith: zone.zoneID, desiredKeys: nil, resultsLimit: 100)
+            let (matchResults, _) = try await database.records(matching: query, inZoneWith: zone.zoneID, desiredKeys: nil, resultsLimit: 100)
 
             for (_, result) in matchResults {
                 switch result {
@@ -528,7 +597,7 @@ extension SyncService {
     /// Remove old evidence from iCloud based on age limit
     @MainActor
     public func cleanupOldEvidence() async throws {
-        guard let zone = customZone else {
+        guard let zone = customZone, let database = privateDatabase else {
             throw SyncError.zoneNotReady
         }
 
@@ -540,14 +609,14 @@ extension SyncService {
         let query = CKQuery(recordType: evidenceRecordType, predicate: NSPredicate(value: true))
 
         do {
-            let (matchResults, _) = try await privateDatabase.records(matching: query, inZoneWith: zone.zoneID, desiredKeys: ["creationDate"], resultsLimit: 100)
+            let (matchResults, _) = try await database.records(matching: query, inZoneWith: zone.zoneID, desiredKeys: ["creationDate"], resultsLimit: 100)
 
             var deletedCount = 0
             for (recordID, result) in matchResults {
                 switch result {
                 case .success(let record):
                     if let creationDate = record["creationDate"] as? Date, creationDate < cutoffDate {
-                        try await privateDatabase.deleteRecord(withID: recordID)
+                        try await database.deleteRecord(withID: recordID)
                         deletedCount += 1
                         Log.info("Deleted old evidence from iCloud: \(recordID.recordName)", category: .general)
                     }
@@ -638,14 +707,14 @@ extension SyncService {
 extension SyncService {
     /// Delete evidence from iCloud
     public func deleteEvidence(evidenceID: String) async throws {
-        guard let zone = customZone else {
+        guard let zone = customZone, let database = privateDatabase else {
             throw SyncError.zoneNotReady
         }
 
         let recordID = CKRecord.ID(recordName: evidenceID, zoneID: zone.zoneID)
 
         do {
-            try await privateDatabase.deleteRecord(withID: recordID)
+            try await database.deleteRecord(withID: recordID)
 
             // Remove synced flag
             UserDefaults.standard.removeObject(forKey: "synced_\(evidenceID)")

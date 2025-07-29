@@ -106,6 +106,25 @@ Need help or found an issue? We're here to assist:
 
    Look for the lock shield icon in your menu bar.
 
+   **For Standard Users (non-admin):**
+   
+   If you're running as a standard user and encounter Gatekeeper issues:
+   
+   ```bash
+   # Run directly without app bundle (bypasses Gatekeeper)
+   task run:direct
+   ```
+   
+   This runs the raw executable without macOS app bundle packaging. Some limitations apply:
+   - No Dock icon
+   - Limited system integration
+   - Manual CloudKit setup required
+   
+   For full functionality, ask an admin to approve the app:
+   ```bash
+   su - ADMIN_USERNAME -c 'xattr -cr "./.build/bundler/MagSafeGuard.app"'
+   ```
+
    **For Debugging:**
 
    Since MagSafe Guard is a menu bar app, it requires special handling in Xcode:

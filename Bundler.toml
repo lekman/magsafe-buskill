@@ -12,8 +12,16 @@ minimum_macos_version = "13.0"
 lsuielement = true
 
 [apps.MagSafeGuard.signing]
-identity = "Developer ID Application: Tobias Lekman (PW6K4BERFV)"
-entitlements_path = "Entitlements.plist"
+# Identity is determined by the signing configuration
+# Use task swift:sign:dev, swift:sign:release, etc.
+identity = "auto"
+
+# Entitlements vary by configuration
+# Development: Resources/MagSafeGuard.development.entitlements
+# Release: Resources/MagSafeGuard.developerid.entitlements  
+# App Store: Resources/MagSafeGuard.entitlements
+# CI: Resources/MagSafeGuard.ci.entitlements
+entitlements_path = "Resources/MagSafeGuard.development.entitlements"
 
 [apps.MagSafeGuard.permissions]
 # Required for system actions
@@ -25,3 +33,14 @@ aps_environment = "development"
 # iCloud/CloudKit
 icloud_container_identifiers = ["iCloud.com.lekman.magsafeguard"]
 icloud_services = ["CloudKit"]
+
+# Camera for evidence collection
+camera_usage_description = "MagSafe Guard can capture photos as evidence when a theft is detected to help identify the thief. This feature is optional and only activates when you enable evidence collection in settings."
+
+# Location services
+location_always_and_when_in_use_usage_description = "MagSafe Guard uses your location to automatically arm protection when you leave trusted locations."
+location_always_usage_description = "MagSafe Guard needs background location access to monitor when you leave trusted locations and automatically arm the security system."
+location_when_in_use_usage_description = "MagSafe Guard uses your location to identify trusted locations where auto-arm should be disabled."
+
+# Notifications
+user_notifications_usage_description = "MagSafe Guard sends notifications about security events and status changes."

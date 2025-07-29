@@ -31,7 +31,8 @@ tasks:
         echo ""
         echo "🔧 Core Commands:"
         echo "  task init          - Initialize development environment"
-        echo "  task run           - Build and run MagSafe Guard"
+        echo "  task run           - Build and run MagSafe Guard (smart mode)"
+        echo "  task run:help      - Show all run command options"
         echo "  task test          - Run all tests"
         echo "  task clean         - Clean build artifacts"
         echo ""
@@ -184,290 +185,652 @@ tasks:
     cmds:
       - task: swift:clean
   run:
-    desc: Build and run MagSafe Guard as a menu bar app
+    desc: Build and run MagSafe Guard with intelligent developer mode
+    silent: true
+    deps: [swift:setup-bundler]
+    cmds:
+      - |
+        # Enhanced run command with automatic handling of permissions and signing
+        echo "🚀 MagSafe Guard Developer Run Command"
+        echo "====================================="
+        echo ""
+        
+        # Detect user type and environment
+        IS_ADMIN=false
+        if groups | grep -q admin; then
+          IS_ADMIN=true
+        fi
+        
+        HAS_SUDO=false
+        if sudo -n true 2>/dev/null; then
+          HAS_SUDO=true
+        fi
+        
+        # Check for development certificates
+        HAS_DEV_CERT=false
+        if security find-identity -v -p codesigning | grep -q "Apple Development"; then
+          HAS_DEV_CERT=true
+        fi
+        
+        # Display environment info
+        echo "🔍 Environment Detection:"
+        echo "  • User type: $([ "$IS_ADMIN" = true ] && echo "Admin" || echo "Standard") user"
+        echo "  • Sudo access: $([ "$HAS_SUDO" = true ] && echo "Available" || echo "Not available")"
+        echo "  • Dev certificate: $([ "$HAS_DEV_CERT" = true ] && echo "Found" || echo "Not found")"
+        echo ""
+        
+        # Kill existing instances
+        echo "🔄 Managing existing instances..."
+        if pgrep -x "MagSafeGuard" > /dev/null 2>&1; then
+          echo "  • Terminating existing MagSafe Guard processes..."
+          killall MagSafeGuard 2>/dev/null || true
+          sleep 1
+          
+          # Force kill if needed
+          if pgrep -x "MagSafeGuard" > /dev/null 2>&1; then
+            killall -9 MagSafeGuard 2>/dev/null || true
+            sleep 0.5
+          fi
+          echo "  ✅ Previous instances terminated"
+        else
+          echo "  ✅ No existing instances found"
+        fi
+        
+        echo ""
+        echo "🔨 Building MagSafe Guard..."
+        
+        # Build with Swift Bundler
+        BUNDLER="./swift-bundler"
+        if [ ! -f "$BUNDLER" ]; then
+          echo "❌ Swift Bundler not found. Setting up..."
+          task swift:setup-bundler
+        fi
+        
+        # Clean build directory for fresh start
+        rm -rf ./.build/bundler/MagSafeGuard.app
+        
+        # Build universal binary
+        if ! $BUNDLER bundle --configuration release --universal; then
+          echo "❌ Build failed"
+          echo ""
+          echo "Troubleshooting:"
+          echo "  1. Check for Swift syntax errors"
+          echo "  2. Run: swift build -c release"
+          echo "  3. Check Package.swift dependencies"
+          exit 1
+        fi
+        
+        APP_PATH="./.build/bundler/MagSafeGuard.app"
+        
+        if [ ! -d "$APP_PATH" ]; then
+          echo "❌ App bundle not found at $APP_PATH"
+          exit 1
+        fi
+        
+        echo "✅ Build complete"
+        echo ""
+        
+        # Smart signing strategy
+        echo "🔐 Code Signing Strategy..."
+        SIGNING_SUCCESS=false
+        
+        if [ "$SKIP_CODESIGN" = "1" ]; then
+          echo "  ⚠️  Skipping code signing (SKIP_CODESIGN=1)"
+        elif [ "$HAS_DEV_CERT" = true ]; then
+          echo "  • Attempting development signing..."
+          if ./scripts/sign-app.sh development "$APP_PATH" >/dev/null 2>&1; then
+            echo "  ✅ App signed with development certificate"
+            SIGNING_SUCCESS=true
+          else
+            echo "  ⚠️  Development signing failed"
+          fi
+        else
+          echo "  • No development certificate found"
+          echo "  • Using ad-hoc signing for local testing..."
+          if codesign --force --deep --sign "-" "$APP_PATH" 2>/dev/null; then
+            echo "  ✅ Ad-hoc signing applied"
+            SIGNING_SUCCESS=true
+          else
+            echo "  ⚠️  Ad-hoc signing failed"
+          fi
+        fi
+        
+        # Clear quarantine and extended attributes
+        echo ""
+        echo "🧹 Preparing app for launch..."
+        xattr -cr "$APP_PATH" 2>/dev/null || true
+        
+        # Smart launch strategy based on user type and signing
+        echo ""
+        echo "🚀 Launching MagSafe Guard..."
+        LAUNCH_SUCCESS=false
+        
+        # Strategy 1: Try normal launch first
+        if open "$APP_PATH" 2>/dev/null; then
+          LAUNCH_SUCCESS=true
+          echo "✅ App launched successfully via macOS Launch Services"
+        else
+          echo "⚠️  Standard launch failed, trying alternative methods..."
+          
+          # Strategy 2: For admin users with sudo, try to bypass Gatekeeper
+          if [ "$IS_ADMIN" = true ] && [ "$HAS_SUDO" = true ]; then
+            echo "  • Attempting Gatekeeper bypass with sudo..."
+            sudo spctl --add "$APP_PATH" 2>/dev/null || true
+            sudo xattr -d com.apple.quarantine "$APP_PATH" 2>/dev/null || true
+            
+            if open "$APP_PATH" 2>/dev/null; then
+              LAUNCH_SUCCESS=true
+              echo "  ✅ App launched after Gatekeeper bypass"
+            fi
+          fi
+          
+          # Strategy 3: Direct execution fallback
+          if [ "$LAUNCH_SUCCESS" = false ]; then
+            echo "  • Attempting direct execution..."
+            
+            # Run directly in background
+            "$APP_PATH/Contents/MacOS/MagSafeGuard" &
+            APP_PID=$!
+            
+            # Wait for startup
+            sleep 2
+            
+            if kill -0 $APP_PID 2>/dev/null || pgrep -x "MagSafeGuard" > /dev/null; then
+              LAUNCH_SUCCESS=true
+              echo "  ✅ App running in direct execution mode (PID: $APP_PID)"
+              echo ""
+              echo "  ℹ️  Direct execution mode notes:"
+              echo "     - App runs without full macOS integration"
+              echo "     - Some features may be limited"
+              echo "     - This is normal for development"
+            else
+              echo "  ❌ Direct execution failed"
+            fi
+          fi
+        fi
+        
+        # If launch failed, provide detailed help
+        if [ "$LAUNCH_SUCCESS" = false ]; then
+          echo ""
+          echo "❌ Unable to launch MagSafe Guard"
+          echo ""
+          echo "📋 Diagnostic Information:"
+          echo "   - User type: $([ "$IS_ADMIN" = true ] && echo "Admin" || echo "Standard")"
+          echo "   - Signing: $([ "$SIGNING_SUCCESS" = true ] && echo "Success" || echo "Failed")"
+          echo "   - Gatekeeper: $(spctl -a "$APP_PATH" 2>&1 | head -1)"
+          echo ""
+          
+          if [ "$IS_ADMIN" = false ]; then
+            echo "🔧 For Standard Users:"
+            echo ""
+            echo "Option 1 - Get admin help:"
+            echo "  Ask an admin to run: su - ADMIN_USER -c 'xattr -cr \"$APP_PATH\"'"
+            echo ""
+            echo "Option 2 - Use direct mode:"
+            echo "  task run:direct"
+            echo ""
+            echo "Option 3 - Use unsigned mode:"
+            echo "  task run:unsigned"
+          else
+            echo "🔧 For Admin Users:"
+            echo ""
+            echo "Try these commands:"
+            echo "  1. xattr -cr '$APP_PATH'"
+            echo "  2. spctl --add '$APP_PATH'"
+            echo "  3. codesign --force --deep --sign - '$APP_PATH'"
+            echo ""
+            echo "Or check Console.app for crash logs"
+          fi
+          exit 1
+        fi
+        
+        # Verify app is running and stable
+        echo ""
+        echo "🔍 Verifying app stability..."
+        
+        # Monitor for 3 seconds
+        for i in 1 2 3; do
+          sleep 1
+          if ! pgrep -x "MagSafeGuard" > /dev/null; then
+            echo "❌ App crashed after $i seconds!"
+            echo ""
+            echo "Check crash logs:"
+            echo "  • Console.app → Crash Reports"
+            echo "  • ~/Library/Logs/DiagnosticReports/"
+            exit 1
+          fi
+        done
+        
+        echo "✅ App is stable and running!"
+        echo ""
+        echo "🎉 MagSafe Guard is now running in your menu bar!"
+        echo ""
+        echo "💡 Quick Guide:"
+        echo "   • Look for 'MG' text or shield icon in menu bar"
+        echo "   • Click icon to access menu"
+        echo "   • Select 'Arm' to enable protection"
+        echo "   • To stop: Click icon → 'Quit MagSafe Guard'"
+        echo ""
+        echo "🔧 Developer Tips:"
+        echo "   • Run 'task run' again to rebuild and restart"
+        echo "   • Use 'task run:debug' for debug builds"
+        echo "   • Attach Xcode debugger: Debug → Attach to Process → MagSafeGuard"
+        echo "   • View logs: log stream --predicate 'process == \"MagSafeGuard\"'"
+
+  run:sign:
+    desc: Build, sign, and run with full code signing (production-like)
+    silent: true
+    deps: [swift:setup-bundler]
+    cmds:
+      - |
+        echo "🔐 Signed Production Run"
+        echo "========================"
+        echo ""
+        echo "This mode uses full code signing for production-like testing"
+        echo ""
+        
+        # Check for certificates
+        echo "🔍 Checking available certificates..."
+        if security find-identity -v -p codesigning | grep -q "Developer ID"; then
+          echo "✅ Found Developer ID certificate"
+          CONFIG="release"
+        elif security find-identity -v -p codesigning | grep -q "Apple Development"; then
+          echo "✅ Found Apple Development certificate"
+          CONFIG="development"
+        else
+          echo "❌ No signing certificates found"
+          echo ""
+          echo "To create a certificate:"
+          echo "  1. Open Xcode → Settings → Accounts"
+          echo "  2. Select your Apple ID"
+          echo "  3. Click 'Manage Certificates'"
+          echo "  4. Click '+' → 'Apple Development'"
+          exit 1
+        fi
+        
+        # Kill existing instances
+        if pgrep -x "MagSafeGuard" > /dev/null 2>&1; then
+          echo "🔄 Stopping existing instances..."
+          killall MagSafeGuard 2>/dev/null || true
+          sleep 1
+        fi
+        
+        # Build and sign
+        echo ""
+        echo "🔨 Building with Swift Bundler..."
+        ./swift-bundler bundle --configuration release --universal
+        
+        APP_PATH="./.build/bundler/MagSafeGuard.app"
+        
+        echo ""
+        echo "🔐 Signing with $CONFIG configuration..."
+        ./scripts/sign-app.sh "$CONFIG" "$APP_PATH"
+        
+        echo ""
+        echo "🚀 Launching signed app..."
+        open "$APP_PATH"
+        
+        sleep 2
+        
+        if pgrep -x "MagSafeGuard" > /dev/null; then
+          echo ""
+          echo "✅ Signed app running successfully!"
+          echo ""
+          echo "This version is properly signed and notarization-ready."
+        else
+          echo "❌ Failed to launch signed app"
+          exit 1
+        fi
+  
+  run:watch:
+    desc: Watch for changes and auto-rebuild/restart (requires fswatch)
     silent: true
     cmds:
       - |
-        echo "🔍 Checking for existing MagSafe Guard instances..."
+        echo "👀 Watch Mode"
+        echo "============="
+        echo ""
+        
+        # Check for fswatch
+        if ! command -v fswatch &> /dev/null; then
+          echo "❌ fswatch not installed"
+          echo ""
+          echo "Install with: brew install fswatch"
+          exit 1
+        fi
+        
+        echo "Watching for changes in:"
+        echo "  • Sources/"
+        echo "  • Package.swift"
+        echo "  • Resources/"
+        echo ""
+        echo "Press Ctrl+C to stop"
+        echo ""
+        
+        # Initial run
+        task run:direct
+        
+        # Watch for changes
+        fswatch -o Sources Package.swift Resources | while read num ; do
+          echo ""
+          echo "📝 Changes detected, rebuilding..."
+          task run:direct
+        done
+  
+  run:help:
+    desc: Show detailed help for all run commands
+    silent: true
+    cmds:
+      - |
+        echo "🚀 MagSafe Guard Run Commands"
+        echo "============================="
+        echo ""
+        echo "Choose the best command for your situation:"
+        echo ""
+        echo "📋 Main Commands:"
+        echo ""
+        echo "  task run"
+        echo "    • Smart detection of environment"
+        echo "    • Automatic signing if certificates available"
+        echo "    • Best for most development scenarios"
+        echo "    • Works for both admin and standard users"
+        echo ""
+        echo "  task run:direct"
+        echo "    • Runs raw executable (no app bundle)"
+        echo "    • Bypasses all macOS security"
+        echo "    • Fastest startup time"
+        echo "    • Best for standard users without admin"
+        echo ""
+        echo "  task run:unsigned"
+        echo "    • Creates app bundle but skips signing"
+        echo "    • Faster than signed builds"
+        echo "    • May require security bypass"
+        echo ""
+        echo "  task run:debug"
+        echo "    • Debug build with symbols"
+        echo "    • Enables verbose logging"
+        echo "    • Allows Xcode attachment"
+        echo "    • Best for debugging issues"
+        echo ""
+        echo "  task run:sign"
+        echo "    • Full code signing"
+        echo "    • Production-like environment"
+        echo "    • Tests signing workflow"
+        echo "    • Requires certificates"
+        echo ""
+        echo "  task run:watch"
+        echo "    • Auto-rebuild on file changes"
+        echo "    • Great for rapid iteration"
+        echo "    • Requires fswatch installed"
+        echo ""
+        echo "🔧 Troubleshooting:"
+        echo ""
+        echo "  Standard user? → Use 'task run:direct'"
+        echo "  Gatekeeper issues? → Use 'task run:direct' or get admin help"
+        echo "  Need debugging? → Use 'task run:debug'"
+        echo "  Testing signing? → Use 'task run:sign'"
+        echo "  Rapid development? → Use 'task run:watch'"
+        echo ""
+        echo "💡 Pro Tips:"
+        echo "  • 'task run' adapts to your environment automatically"
+        echo "  • Use 'task run:direct' for fastest iteration"
+        echo "  • Debug with: log stream --predicate 'process == \"MagSafeGuard\"'"
+        echo "  • Kill app with: killall MagSafeGuard"
 
-        # Kill any existing MagSafeGuard processes gracefully
+  run:unsigned:
+    desc: Build and run MagSafe Guard without code signing (fastest iteration)
+    silent: true
+    cmds:
+      - |
+        echo "🚀 Running MagSafe Guard (Unsigned Mode)"
+        echo "======================================="
+        echo ""
+        echo "ℹ️  This mode skips all code signing for fastest iteration"
+        echo ""
+        
+        # Set environment variable and run
+        export SKIP_CODESIGN=1
+        task run
+  
+  run:direct:
+    desc: Run MagSafe Guard executable directly (bypasses all macOS security)
+    silent: true
+    cmds:
+      - |
+        echo "🚀 Direct Execution Mode"
+        echo "======================="
+        echo ""
+        echo "This mode runs the raw executable, bypassing:"
+        echo "  • App bundles"
+        echo "  • Code signing"
+        echo "  • Gatekeeper"
+        echo "  • Launch Services"
+        echo ""
+        
+        # Check for existing build
+        EXECUTABLE=".build/release/MagSafeGuard"
+        BUILD_AGE=999999
+        
+        if [ -f "$EXECUTABLE" ]; then
+          # Check if build is recent (within last 5 minutes)
+          if [ "$(uname)" = "Darwin" ]; then
+            BUILD_TIME=$(stat -f %m "$EXECUTABLE")
+            CURRENT_TIME=$(date +%s)
+            BUILD_AGE=$((CURRENT_TIME - BUILD_TIME))
+          fi
+        fi
+        
+        # Rebuild if executable is missing or older than 5 minutes
+        if [ ! -f "$EXECUTABLE" ] || [ $BUILD_AGE -gt 300 ]; then
+          echo "🔨 Building MagSafe Guard..."
+          swift build -c release --product MagSafeGuard
+          
+          if [ $? -ne 0 ]; then
+            echo "❌ Build failed"
+            exit 1
+          fi
+        else
+          echo "✅ Using existing build ($(( BUILD_AGE / 60 )) minutes old)"
+        fi
+        
+        if [ ! -f "$EXECUTABLE" ]; then
+          echo "❌ Executable not found at $EXECUTABLE"
+          exit 1
+        fi
+        
+        echo ""
+        
+        # Kill existing instances
         if pgrep -x "MagSafeGuard" > /dev/null 2>&1; then
-          echo "Found running MagSafe Guard process(es). Terminating..."
-          # Try graceful termination first
+          echo "🔄 Stopping existing instances..."
           killall MagSafeGuard 2>/dev/null || true
-          # Wait a moment for graceful shutdown
           sleep 1
-          # Force kill if still running
+          
+          # Force kill if needed
           if pgrep -x "MagSafeGuard" > /dev/null 2>&1; then
-            echo "Force terminating stubborn processes..."
             killall -9 MagSafeGuard 2>/dev/null || true
           fi
-          echo "✅ Previous instances terminated"
-        else
-          echo "✅ No existing instances found"
         fi
-
+        
+        echo "🚀 Starting MagSafe Guard (direct mode)..."
         echo ""
-        echo "🔨 Building MagSafe Guard..."
-
-        # Build in release mode for better performance
-        swift build -c release
-
-        # Find the built executable
-        EXECUTABLE_PATH=".build/release/MagSafeGuard"
-
-        if [ ! -f "$EXECUTABLE_PATH" ]; then
-          echo "❌ Build failed or executable not found"
+        
+        # Clear any extended attributes on the executable
+        xattr -cr "$EXECUTABLE" 2>/dev/null || true
+        
+        # Run directly with output capture
+        "$EXECUTABLE" 2>&1 | tee /tmp/magsafe-guard.log &
+        APP_PID=$!
+        
+        # Monitor startup
+        echo "Waiting for app to initialize..."
+        sleep 3
+        
+        # Check if running
+        if kill -0 $APP_PID 2>/dev/null || pgrep -x "MagSafeGuard" > /dev/null; then
+          echo ""
+          echo "✅ MagSafe Guard is running!"
+          echo ""
+          echo "📋 Runtime Information:"
+          echo "   • Process ID: $APP_PID"
+          echo "   • Log file: /tmp/magsafe-guard.log"
+          echo "   • Executable: $EXECUTABLE"
+          echo ""
+          echo "💡 Direct Mode Features:"
+          echo "   ✅ Full functionality"
+          echo "   ✅ No signing required"
+          echo "   ✅ Works for all users"
+          echo "   ❌ No app bundle (no Finder icon)"
+          echo "   ❌ No automatic CloudKit setup"
+          echo ""
+          echo "🛑 To stop: killall MagSafeGuard"
+          echo "📊 View logs: tail -f /tmp/magsafe-guard.log"
+        else
+          echo ""
+          echo "❌ App failed to start!"
+          echo ""
+          echo "Last 20 lines of output:"
+          tail -20 /tmp/magsafe-guard.log 2>/dev/null || echo "No log output found"
+          echo ""
+          echo "Try running manually to see full error:"
+          echo "  $EXECUTABLE"
           exit 1
         fi
 
-        echo "✅ Build complete"
-
-        # Create a minimal app bundle structure
-        APP_NAME="MagSafeGuard.app"
-        APP_PATH=".build/release/$APP_NAME"
-        CONTENTS_PATH="$APP_PATH/Contents"
-        MACOS_PATH="$CONTENTS_PATH/MacOS"
-
-        echo "📦 Creating app bundle..."
-
-        # Remove old app if exists
-        rm -rf "$APP_PATH"
-
-        # Create directory structure
-        mkdir -p "$MACOS_PATH"
-
-        # Copy executable
-        cp "$EXECUTABLE_PATH" "$MACOS_PATH/MagSafeGuard"
-
-        # Create Info.plist
-        cat > "$CONTENTS_PATH/Info.plist" <<EOF
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>CFBundleExecutable</key>
-            <string>MagSafeGuard</string>
-            <key>CFBundleIdentifier</key>
-            <string>com.lekman.MagSafeGuard</string>
-            <key>CFBundleName</key>
-            <string>MagSafe Guard</string>
-            <key>CFBundleShortVersionString</key>
-            <string>1.0</string>
-            <key>CFBundleVersion</key>
-            <string>1</string>
-            <key>LSMinimumSystemVersion</key>
-            <string>13.0</string>
-            <key>LSUIElement</key>
-            <true/>
-            <key>NSHighResolutionCapable</key>
-            <true/>
-        </dict>
-        </plist>
-        EOF
-
-        echo "✅ App bundle created at: $APP_PATH"
-
-        # Try to sign the app if certificates are available (unless SKIP_CODESIGN is set)
-        if [ "$SKIP_CODESIGN" = "1" ]; then
-          echo "⚠️  Skipping code signing (SKIP_CODESIGN=1)"
-        else
-          SIGNING_IDENTITY=$(security find-identity -v -p codesigning 2>/dev/null | grep -E "Developer ID Application|Apple Development" | head -1 | awk '{print $2}')
-          
-          if [ -n "$SIGNING_IDENTITY" ]; then
-          echo "🔐 Signing app with identity: ${SIGNING_IDENTITY:0:8}..."
-          
-          # Create entitlements file
-          ENTITLEMENTS_PATH=".build/release/MagSafeGuard.entitlements"
-          cat > "$ENTITLEMENTS_PATH" <<EOF
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>com.apple.security.app-sandbox</key>
-            <false/>
-            <key>com.apple.developer.aps-environment</key>
-            <string>development</string>
-            <key>com.apple.developer.icloud-container-identifiers</key>
-            <array>
-                <string>iCloud.com.lekman.magsafeguard</string>
-            </array>
-            <key>com.apple.developer.icloud-services</key>
-            <array>
-                <string>CloudKit</string>
-            </array>
-        </dict>
-        </plist>
-        EOF
-          
-          # Sign the app
-          if codesign --force --deep --sign "$SIGNING_IDENTITY" --entitlements "$ENTITLEMENTS_PATH" "$APP_PATH" 2>/dev/null; then
-            echo "✅ App signed successfully"
-            # Clean up entitlements file
-            rm -f "$ENTITLEMENTS_PATH"
-          else
-            echo "⚠️  Code signing failed, running unsigned"
-          fi
-          else
-            echo "⚠️  No signing identity found, running unsigned"
-            echo "   To enable signing, see: docs/maintainers/code-signing.md"
-          fi
-        fi
-
-        echo "🚀 Launching MagSafe Guard..."
-        echo ""
-        echo "ℹ️  The app will run in the menu bar (top right of your screen)"
-        echo "ℹ️  Look for 'MG' text or a shield icon"
-        echo ""
-
-        # Launch the app
-        open "$APP_PATH"
-
-        echo ""
-        echo "✅ MagSafe Guard is now running in your menu bar!"
-        echo ""
-        echo "💡 Tips:"
-        echo "   - Look for 'MG' text or shield icon in the menu bar"
-        echo "   - Click the icon to see the menu"
-        echo "   - Select 'Arm' to enable protection"
-        echo ""
-        echo "To stop the app: Click the menu bar icon and select 'Quit MagSafe Guard' or run 'task run' to replace the app with a new version."
-
-  sign:
-    desc: Sign the MagSafe Guard app (requires Developer ID)
-    deps: [build]
-    cmds:
-      - task: swift:sign
-
-  run:unsigned:
-    desc: Build and run MagSafe Guard without code signing
-    silent: true
-    cmds:
-      - |
-        # Set environment variable to skip signing
-        export SKIP_CODESIGN=1
-        task run
-
   build:
-    desc: Build MagSafe Guard app bundle
+    desc: Build MagSafe Guard app bundle using Swift Bundler
     silent: true
+    deps: [swift:setup-bundler]
     cmds:
       - |
-        echo "🔨 Building MagSafe Guard..."
-        swift build -c release
-
-        EXECUTABLE_PATH=".build/release/MagSafeGuard"
-        if [ ! -f "$EXECUTABLE_PATH" ]; then
+        echo "🔨 Building MagSafe Guard app bundle..."
+        
+        # Ensure Swift Bundler is available
+        BUNDLER="./swift-bundler"
+        if [ ! -f "$BUNDLER" ]; then
+          echo "Setting up Swift Bundler..."
+          task swift:setup-bundler
+        fi
+        
+        # Clean previous build
+        rm -rf ./.build/bundler/MagSafeGuard.app
+        
+        # Build with Swift Bundler
+        echo "Building universal binary..."
+        if $BUNDLER bundle --configuration release --universal; then
+          echo "✅ Build complete!"
+          echo ""
+          echo "App bundle: ./.build/bundler/MagSafeGuard.app"
+          echo ""
+          echo "Next steps:"
+          echo "  • Run the app: task run"
+          echo "  • Sign the app: task swift:sign"
+          echo "  • Create installer: task swift:package"
+        else
           echo "❌ Build failed"
           exit 1
         fi
 
-        # Create app bundle
-        APP_PATH="/tmp/MagSafeGuard.app"
-        rm -rf "$APP_PATH"
-        mkdir -p "$APP_PATH/Contents/MacOS"
-
-        cp "$EXECUTABLE_PATH" "$APP_PATH/Contents/MacOS/"
-
-        # Create Info.plist
-        cat > "$APP_PATH/Contents/Info.plist" <<EOF
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>CFBundleExecutable</key>
-            <string>MagSafeGuard</string>
-            <key>CFBundleIdentifier</key>
-            <string>com.lekman.MagSafeGuard</string>
-            <key>CFBundleName</key>
-            <string>MagSafe Guard</string>
-            <key>CFBundleShortVersionString</key>
-            <string>1.0</string>
-            <key>CFBundleVersion</key>
-            <string>1</string>
-            <key>LSMinimumSystemVersion</key>
-            <string>13.0</string>
-            <key>LSUIElement</key>
-            <true/>
-            <key>NSHighResolutionCapable</key>
-            <true/>
-        </dict>
-        </plist>
-        EOF
-
-        echo "✅ Build complete: $APP_PATH"
-
   run:debug:
-    desc: Build and run MagSafe Guard in debug mode
+    desc: Build and run MagSafe Guard in debug mode with enhanced debugging
     silent: true
+    deps: [swift:setup-bundler]
     cmds:
       - |
-        echo "🔨 Building MagSafe Guard (debug mode)..."
-
-        # Build in debug mode
-        swift build
-
-        # Find the built executable
-        EXECUTABLE_PATH=".build/debug/MagSafeGuard"
-
-        if [ ! -f "$EXECUTABLE_PATH" ]; then
-          echo "❌ Build failed or executable not found"
+        echo "🐛 Debug Mode Run"
+        echo "================="
+        echo ""
+        echo "This mode enables:"
+        echo "  • Debug symbols"
+        echo "  • Verbose logging"
+        echo "  • Assertion checks"
+        echo "  • Xcode attachment"
+        echo ""
+        
+        # Kill existing instances
+        if pgrep -x "MagSafeGuard" > /dev/null 2>&1; then
+          echo "🔄 Stopping existing instances..."
+          killall MagSafeGuard 2>/dev/null || true
+          sleep 1
+        fi
+        
+        echo "🔨 Building debug version..."
+        
+        # Clean debug build directory
+        rm -rf ./.build/bundler/MagSafeGuard.app
+        
+        # Build with Swift Bundler in debug mode
+        BUNDLER="./swift-bundler"
+        if [ ! -f "$BUNDLER" ]; then
+          echo "Setting up Swift Bundler..."
+          task swift:setup-bundler
+        fi
+        
+        # Build debug version
+        if ! $BUNDLER bundle --configuration debug --universal; then
+          echo "❌ Debug build failed"
           exit 1
         fi
-
-        echo "✅ Build complete"
-
-        # Create a minimal app bundle structure
-        APP_NAME="MagSafeGuard-Debug.app"
-        APP_PATH=".build/debug/$APP_NAME"
-        CONTENTS_PATH="$APP_PATH/Contents"
-        MACOS_PATH="$CONTENTS_PATH/MacOS"
-
-        echo "📦 Creating debug app bundle..."
-
-        # Remove old app if exists
-        rm -rf "$APP_PATH"
-
-        # Create directory structure
-        mkdir -p "$MACOS_PATH"
-
-        # Copy executable
-        cp "$EXECUTABLE_PATH" "$MACOS_PATH/MagSafeGuard"
-
-        # Create Info.plist
-        cat > "$CONTENTS_PATH/Info.plist" <<EOF
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>CFBundleExecutable</key>
-            <string>MagSafeGuard</string>
-            <key>CFBundleIdentifier</key>
-            <string>com.lekman.MagSafeGuard.debug</string>
-            <key>CFBundleName</key>
-            <string>MagSafe Guard (Debug)</string>
-            <key>CFBundleShortVersionString</key>
-            <string>1.0</string>
-            <key>CFBundleVersion</key>
-            <string>1</string>
-            <key>LSMinimumSystemVersion</key>
-            <string>13.0</string>
-            <key>LSUIElement</key>
-            <true/>
-            <key>NSHighResolutionCapable</key>
-            <true/>
-        </dict>
-        </plist>
-        EOF
-
-        echo "✅ Debug app bundle created"
-        echo "🚀 Launching MagSafe Guard (Debug)..."
-
-        # Launch the app
-        open "$APP_PATH"
-
+        
+        APP_PATH="./.build/bundler/MagSafeGuard.app"
+        
+        if [ ! -d "$APP_PATH" ]; then
+          echo "❌ Debug app bundle not found"
+          exit 1
+        fi
+        
+        echo "✅ Debug build complete"
         echo ""
-        echo "✅ Running in debug mode - check console for debug output"
+        
+        # Apply ad-hoc signing for debug
+        echo "🔐 Applying debug signing..."
+        codesign --force --deep --sign "-" "$APP_PATH" 2>/dev/null || true
+        xattr -cr "$APP_PATH" 2>/dev/null || true
+        
+        # Enable debug logging
+        export MAGSAFE_GUARD_DEBUG=1
+        export MAGSAFE_GUARD_LOG_LEVEL=debug
+        
+        echo "🚀 Launching in debug mode..."
+        
+        # Try normal launch first
+        if ! open "$APP_PATH" 2>/dev/null; then
+          echo "⚠️  Normal launch failed, using direct execution..."
+          "$APP_PATH/Contents/MacOS/MagSafeGuard" &
+          APP_PID=$!
+        fi
+        
+        sleep 2
+        
+        # Verify it's running
+        if pgrep -x "MagSafeGuard" > /dev/null; then
+          echo "✅ Debug version running!"
+          echo ""
+          echo "🐛 Debugging Options:"
+          echo ""
+          echo "1. Attach with Xcode:"
+          echo "   • Open Xcode"
+          echo "   • Debug → Attach to Process → MagSafeGuard"
+          echo ""
+          echo "2. View live logs:"
+          echo "   log stream --predicate 'process == \"MagSafeGuard\"' --level debug"
+          echo ""
+          echo "3. View Console.app:"
+          echo "   • Open Console.app"
+          echo "   • Filter by 'MagSafeGuard'"
+          echo ""
+          echo "4. Debug with lldb:"
+          echo "   lldb -n MagSafeGuard"
+          echo ""
+          echo "💡 Debug build includes:"
+          echo "   • Symbol information for stack traces"
+          echo "   • Assertion failures will crash (good for finding bugs)"
+          echo "   • Verbose logging enabled"
+          echo "   • Optimization disabled for better debugging"
+        else
+          echo "❌ Debug launch failed!"
+          exit 1
+        fi
 
   qa:
     desc: Run standard quality assurance checks
