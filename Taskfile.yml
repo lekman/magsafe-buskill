@@ -261,6 +261,7 @@ tasks:
         fi
 
         APP_PATH="./.build/bundler/MagSafeGuard.app"
+        APP_PATH_ABS="$(cd "$(dirname "$APP_PATH")" && pwd)/$(basename "$APP_PATH")"
 
         if [ ! -d "$APP_PATH" ]; then
           echo "❌ App bundle not found at $APP_PATH"
@@ -364,7 +365,7 @@ tasks:
             echo "🔧 For Standard Users:"
             echo ""
             echo "Option 1 - Get admin help:"
-            echo "  Ask an admin to run: su - ADMIN_USER -c 'xattr -cr \"$APP_PATH\"'"
+            echo "  Ask an admin to run: su - ADMIN_USER -c 'xattr -cr \"$APP_PATH_ABS\"'"
             echo ""
             echo "Option 2 - Use direct mode:"
             echo "  task run:direct"
