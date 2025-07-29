@@ -53,7 +53,7 @@ After granting permissions:
 ### 3. Test Your Setup
 
 1. **Arm the System**: Click "Arm Protection" in the menu
-2. **Test Safely**: 
+2. **Test Safely**:
    - Unplug your power adapter
    - You should see an alert
    - Plug it back in to cancel
@@ -92,6 +92,7 @@ To remove MagSafe Guard:
 1. Quit MagSafe Guard from the menu bar
 2. Delete from Applications folder
 3. Remove settings (optional):
+
    ```bash
    defaults delete com.lekman.MagSafeGuard
    ```

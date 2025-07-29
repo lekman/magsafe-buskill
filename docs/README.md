@@ -5,12 +5,14 @@ Welcome to the MagSafe Guard documentation. This directory contains all project 
 ## 🚀 Quick Start by Role
 
 ### 👤 For Users
+
 - [Installation Guide](users/installation-guide.md) - How to install and set up MagSafe Guard
 - [User Guide](users/user-guide.md) - Using MagSafe Guard effectively
 - [Troubleshooting](users/troubleshooting.md) - Common issues and solutions
 - [Security Policy](SECURITY.md) - How to report security issues
 
 ### 🔧 For Maintainers & Developers
+
 - [Building and Running](maintainers/building-and-running.md) - Development setup
 - [Testing Guide](maintainers/testing-guide.md) - Running and writing tests
 - [Architecture Overview](architecture/architecture-overview.md) - System design
@@ -19,12 +21,14 @@ Welcome to the MagSafe Guard documentation. This directory contains all project 
 - [Test Coverage](maintainers/test-coverage.md) - Coverage reports
 
 ### 🔒 For Security & Compliance Officers
+
 - [Security Implementation Guide](security/security-implementation-guide.md) - Security architecture
 - [SSDLC Case Study](security/ssdlc-case-study.md) - Secure development practices
 - [Software Bill of Materials](security/sbom-guide.md) - Component transparency
 - [Authentication Hardening](security/authentication-hardening.md) - Biometric security
 
 ### 🚀 For DevOps Engineers
+
 - [CI/CD Workflows](devops/ci-cd-workflows.md) - GitHub Actions & required secrets
 - [Git Hooks](devops/git-hooks.md) - Automated code quality checks
 - [Testing in CI](devops/testing-in-ci.md) - CI testing configuration
@@ -108,22 +112,26 @@ docs/
 ## 🔍 Finding Documentation
 
 ### Users
+
 - **Installing MagSafe Guard**: [Installation Guide](users/installation-guide.md)
 - **Using the App**: [User Guide](users/user-guide.md)
 - **Having Problems?**: [User Troubleshooting](users/troubleshooting.md)
 
 ### Developers
+
 - **Getting Started**: [Building and Running](maintainers/building-and-running.md)
 - **Contributing**: [Testing Guide](maintainers/testing-guide.md) and [Git Hooks](devops/git-hooks.md)
 - **Architecture**: [Architecture Overview](architecture/architecture-overview.md)
 - **Code Signing Issues**: [Code Signing Setup](maintainers/code-signing.md)
 
 ### Security Officers
+
 - **Security Architecture**: [Security Implementation Guide](security/security-implementation-guide.md)
 - **Compliance**: [SBOM Guide](security/sbom-guide.md) and [SSDLC Case Study](security/ssdlc-case-study.md)
 - **Vulnerability Reporting**: [Security Policy](SECURITY.md)
 
 ### DevOps Engineers
+
 - **CI/CD Setup**: [CI/CD Workflows](devops/ci-cd-workflows.md) (includes all required secrets)
 - **Automation**: [Maintenance Tasks](../tasks/README.md)
 - **Build Optimization**: [CI Caching Strategy](devops/ci-caching-strategy.md)
