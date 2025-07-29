@@ -1,0 +1,27 @@
+{
+  "_comment": "MagSafe Guard Feature Flags Configuration",
+  "_note": "Copy this file to feature-flags.json and customize as needed",
+  
+  "_core_features": "Essential application functionality",
+  "FEATURE_POWER_MONITORING": true,
+  "FEATURE_ACCESSIBILITY": true,
+  "FEATURE_NOTIFICATIONS": true,
+  "FEATURE_AUTHENTICATION": true,
+  "FEATURE_AUTO_ARM": true,
+  
+  "_optional_features": "Features that can be disabled if not needed",
+  "FEATURE_LOCATION": true,
+  "FEATURE_NETWORK_MONITOR": true,
+  "FEATURE_SECURITY_EVIDENCE": true,
+  "FEATURE_CLOUD_SYNC": true,
+  
+  "_telemetry": "Crash reporting and analytics",
+  "SENTRY_ENABLED": false,
+  "SENTRY_DEBUG": false,
+  "FEATURE_PERFORMANCE_METRICS": false,
+  
+  "_debug_options": "Development and debugging features",
+  "DEBUG_VERBOSE_LOGGING": false,
+  "DEBUG_MOCK_SERVICES": false,
+  "DEBUG_DISABLE_SANDBOX": false
+}
