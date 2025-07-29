@@ -16,6 +16,10 @@ struct MagSafeGuardApp: App {
     init() {
         // Start performance tracking
         StartupMetrics.shared.startMeasuring()
+        
+        // Initialize Sentry if enabled
+        SentryManager.shared.initialize()
+        StartupMetrics.shared.recordMilestone("sentry_initialized")
 
         // Preload critical resources
         ResourcePreloader.shared.preloadResources()
@@ -48,6 +52,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         StartupMetrics.shared.recordMilestone("app_did_finish_launching")
+        SentryManager.shared.reportAppLifecycle("applicationDidFinishLaunching")
 
         // Hide dock icon as this is a menu bar app
         NSApp.setActivationPolicy(.accessory)

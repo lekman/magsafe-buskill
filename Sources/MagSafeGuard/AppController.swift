@@ -592,6 +592,12 @@ public class AppController: ObservableObject {
     private func setupAutoArm() {
         // Skip auto-arm setup in test environment to avoid location permission issues
         guard !AppController.isTestEnvironment else { return }
+        
+        // Check if auto-arm feature is enabled
+        guard FeatureFlags.shared.isAutoArmEnabled else {
+            Log.info("Auto-arm feature disabled via feature flags", category: .general)
+            return
+        }
 
         // Initialize auto-arm manager
         autoArmManager = AutoArmManager(appController: self)
