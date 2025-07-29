@@ -152,7 +152,7 @@ public class NetworkMonitor {
     /// - Parameter networks: New set of trusted network SSIDs
     public func updateTrustedNetworks(_ networks: Set<String>) {
         trustedNetworks = networks
-        saveTrustedNetworks()
+        // Don't save here - this is called during settings load which would cause recursion
 
         // Re-evaluate current network
         checkCurrentNetwork()

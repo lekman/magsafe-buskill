@@ -1,8 +1,10 @@
 //
 //  AppConfiguration.swift
-//  MagSafeGuard
+//  MagSafe Guard
 //
-//  Created by Task Runner on 2025-07-28.
+//  Created on 2025-07-28.
+//
+//  Application configuration constants and environment variables
 //
 
 import Foundation

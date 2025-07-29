@@ -221,6 +221,7 @@ public class AppDelegateCore {
             keyEquivalent: "q",
             action: #selector(NSApplication.terminate(_:))
         )
+        quitItem.target = NSApp
         menu.addItem(quitItem)
 
         return menu

@@ -556,6 +556,44 @@ tasks:
         echo ""
         echo "To update all dependencies, run: task swift:update"
 
+  setup-bundler:
+    # Internal task - sets up Swift Bundler for signing
+    internal: true
+    silent: true
+    cmds:
+      - |
+        # Ensure swift-bundler is in .gitignore
+        if [ -f .gitignore ]; then
+          if ! grep -q "^swift-bundler$" .gitignore; then
+            echo "" >> .gitignore
+            echo "# Swift Bundler binary" >> .gitignore
+            echo "swift-bundler" >> .gitignore
+          fi
+        else
+          echo "# Swift Bundler binary" > .gitignore
+          echo "swift-bundler" >> .gitignore
+        fi
+        
+        # Check if already installed locally
+        if [ -f "./swift-bundler" ]; then
+          # Bundler already exists
+          exit 0
+        fi
+        
+        echo "📦 Setting up Swift Bundler..."
+        
+        # Download latest version
+        echo "Downloading Swift Bundler..."
+        curl -o swift-bundler -L https://github.com/stackotter/swift-bundler/releases/latest/download/swift-bundler
+        
+        if [ $? -ne 0 ]; then
+          echo "❌ Failed to download Swift Bundler"
+          exit 1
+        fi
+        
+        chmod +x ./swift-bundler
+        echo "✅ Swift Bundler installed"
+
   sbom:
     desc: Generate Software Bill of Materials (SBOM) in SPDX format
     silent: true
@@ -624,3 +662,185 @@ tasks:
     generates:
       - sbom.spdx
       - sbom-deps.json
+
+  sign:
+    desc: Sign the MagSafe Guard app with your Developer ID
+    deps: [setup-bundler]
+    silent: true
+    cmds:
+      - |
+        echo "🔐 Signing MagSafe Guard"
+        echo "======================"
+        echo ""
+        
+        # Swift Bundler should exist after setup-bundler task
+        BUNDLER="./swift-bundler"
+        
+        # Build with Swift Bundler
+        echo "🔨 Building with Swift Bundler..."
+        $BUNDLER bundle --configuration release
+        if [ $? -eq 0 ]; then
+          APP_PATH="./.build/bundler/MagSafeGuard.app"
+          echo "✅ Built with Swift Bundler"
+        else
+          echo "❌ Swift Bundler build failed"
+          exit 1
+        fi
+        
+        # Check for app
+        if [ ! -d "$APP_PATH" ]; then
+          echo "❌ App not found at $APP_PATH"
+          echo ""
+          echo "Build the app first with:"
+          echo "  task build"
+          exit 1
+        fi
+        
+        # Check for signing identity
+        IDENTITY=$(security find-identity -v -p codesigning 2>/dev/null | grep -E "Developer ID Application|Apple Development" | head -1 | awk '{print $2}')
+        
+        if [ -z "$IDENTITY" ]; then
+          echo "❌ No valid signing identity found!"
+          echo ""
+          echo "Checking for certificate files to import..."
+          
+          # Look for certificate in Desktop and Downloads
+          CERT_FILE=""
+          for file in ~/Desktop/developerID_application.cer ~/Downloads/developerID_application.cer ~/Desktop/developer_id_application.cer ~/Downloads/developer_id_application.cer; do
+            if [ -f "$file" ]; then
+              CERT_FILE="$file"
+              echo "✅ Found certificate: $CERT_FILE"
+              break
+            fi
+          done
+          
+          # Look for private key
+          KEY_FILE=""
+          if [ -f ~/Desktop/private_key.key ]; then
+            KEY_FILE=~/Desktop/private_key.key
+            echo "✅ Found private key: $KEY_FILE"
+          fi
+          
+          # Look for P12 in Desktop and Downloads
+          P12_FILE=""
+          for file in ~/Desktop/codesigning.p12 ~/Downloads/codesigning.p12; do
+            if [ -f "$file" ]; then
+              P12_FILE="$file"
+              echo "✅ Found P12 file: $P12_FILE"
+              break
+            fi
+          done
+          
+          echo ""
+          
+          # If we have a P12, try to import it
+          if [ -n "$P12_FILE" ]; then
+            echo "📥 Found P12 certificate bundle to import"
+            echo ""
+            echo "⚠️  IMPORTANT: Run this command directly in Terminal:"
+            echo ""
+            echo "security import \"$P12_FILE\" -k ~/Library/Keychains/login.keychain-db -T /usr/bin/codesign -T /usr/bin/security"
+            echo ""
+            echo "You'll be prompted for:"
+            echo "1. The P12 password (that you created)"
+            echo "2. Your macOS login password"
+            echo ""
+            echo "After importing, run 'task swift:sign' again."
+            exit 1
+          elif [ -n "$CERT_FILE" ] && [ -n "$KEY_FILE" ]; then
+            # Create P12 if we have both files
+            echo "📦 Creating certificate bundle from certificate and key..."
+            echo ""
+            
+            P12_FILE=~/Desktop/codesigning.p12
+            echo "Creating P12 file. You'll be asked to create a password:"
+            openssl pkcs12 -export -inkey "$KEY_FILE" -in "$CERT_FILE" -out "$P12_FILE" -name "Developer ID Application"
+            
+            if [ $? -eq 0 ]; then
+              echo ""
+              echo "✅ P12 created at: $P12_FILE"
+              echo ""
+              echo "Now run this command directly in Terminal to import it:"
+              echo ""
+              echo "security import \"$P12_FILE\" -k ~/Library/Keychains/login.keychain-db -T /usr/bin/codesign -T /usr/bin/security"
+              echo ""
+              echo "After importing, run 'task swift:sign' again."
+            else
+              echo "❌ Failed to create P12"
+            fi
+            exit 1
+          else
+            echo "To set up code signing:"
+            echo ""
+            echo "1. Go to https://developer.apple.com/account/resources/certificates"
+            echo "2. Create a 'Developer ID Application' certificate"
+            echo "3. Download the certificate to Desktop or Downloads"
+            echo "4. Run 'task swift:sign' again to import it"
+            echo ""
+            echo "Need a CSR? Run: task swift:create-csr"
+            echo ""
+            echo "For more details, see: docs/maintainers/code-signing.md"
+            exit 1
+          fi
+        fi
+        
+        echo "✅ Found signing identity: $(security find-identity -v -p codesigning | grep "$IDENTITY" | sed 's/^[^"]*"//' | sed 's/"$//')"
+        echo ""
+        
+        # Create entitlements
+        ENTITLEMENTS_PATH="/tmp/MagSafeGuard.entitlements"
+        cat > "$ENTITLEMENTS_PATH" <<'EOF'
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>com.apple.security.app-sandbox</key>
+            <false/>
+            <key>com.apple.developer.aps-environment</key>
+            <string>development</string>
+            <key>com.apple.developer.icloud-container-identifiers</key>
+            <array>
+                <string>iCloud.com.lekman.magsafeguard</string>
+            </array>
+            <key>com.apple.developer.icloud-services</key>
+            <array>
+                <string>CloudKit</string>
+            </array>
+        </dict>
+        </plist>
+        EOF
+        
+        # Sign the app
+        echo "Signing app..."
+        if codesign --force --deep --sign "$IDENTITY" --entitlements "$ENTITLEMENTS_PATH" "$APP_PATH"; then
+          echo "✅ Signing successful!"
+        else
+          echo "❌ Signing failed!"
+          rm -f "$ENTITLEMENTS_PATH"
+          exit 1
+        fi
+        
+        # Verify
+        echo ""
+        echo "Verifying signature..."
+        if codesign --verify --deep --verbose=2 "$APP_PATH" 2>&1; then
+          echo "✅ Signature verified!"
+        else
+          echo "❌ Signature verification failed!"
+          rm -f "$ENTITLEMENTS_PATH"
+          exit 1
+        fi
+        
+        # Clean up
+        rm -f "$ENTITLEMENTS_PATH"
+        
+        echo ""
+        echo "✅ App signed successfully!"
+        echo ""
+        echo "The signed app is at: $APP_PATH"
+        echo ""
+        echo "To install to Applications:"
+        echo "  sudo cp -r $APP_PATH /Applications/"
+        echo ""
+        echo "To run the signed app:"
+        echo "  open $APP_PATH"

@@ -206,11 +206,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let settingsView = SettingsView()
 
             settingsWindow = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 600, height: 400),
-                styleMask: [.titled, .closable, .miniaturizable],
+                contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
+                styleMask: [.titled, .closable, .miniaturizable, .resizable],
                 backing: .buffered,
                 defer: false
             )
+            
+            // Set minimum size to ensure navigation is always visible
+            settingsWindow?.minSize = NSSize(width: 700, height: 500)
 
             settingsWindow?.title = "MagSafe Guard Settings"
             settingsWindow?.contentView = NSHostingView(rootView: settingsView)
@@ -300,6 +303,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        Log.info("applicationShouldTerminate called", category: .ui)
+        Log.info("Current state: \(core.appController.currentState)", category: .ui)
+        
         // Check if we're in a critical state
         if core.appController.currentState == .gracePeriod {
             // Show alert asking user to confirm
@@ -312,10 +318,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             let response = alert.runModal()
             if response == .alertFirstButtonReturn {
+                Log.info("User cancelled quit during grace period", category: .ui)
                 return .terminateCancel
             }
         }
 
+        Log.info("Allowing app termination", category: .ui)
         return .terminateNow
     }
 

@@ -1,0 +1,27 @@
+# Swift Bundler configuration for MagSafe Guard
+
+[apps.MagSafeGuard]
+product = "MagSafeGuard"
+version = "1.0.0"
+
+[apps.MagSafeGuard.info]
+display_name = "MagSafe Guard"
+bundle_identifier = "com.lekman.magsafeguard"
+category = "public.app-category.utilities"
+minimum_macos_version = "13.0"
+lsuielement = true
+
+[apps.MagSafeGuard.signing]
+identity = "Developer ID Application: Tobias Lekman (PW6K4BERFV)"
+entitlements_path = "Entitlements.plist"
+
+[apps.MagSafeGuard.permissions]
+# Required for system actions
+app_sandbox = false
+
+# Notifications
+aps_environment = "development"
+
+# iCloud/CloudKit
+icloud_container_identifiers = ["iCloud.com.lekman.magsafeguard"]
+icloud_services = ["CloudKit"]

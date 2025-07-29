@@ -9,17 +9,20 @@
 
 import SwiftUI
 
-/// Main settings view with tabbed interface
+/// Main settings view with sidebar navigation interface
 public struct SettingsView: View {
     @StateObject private var settingsManager = UserDefaultsManager.shared
-    @State private var selectedTab = SettingsTab.general
+    @State private var selectedTab: SettingsTab? = .general
 
-    private enum SettingsTab: String, CaseIterable {
+    private enum SettingsTab: String, CaseIterable, Identifiable {
         case general = "General"
         case security = "Security"
         case autoArm = "Auto-Arm"
         case notifications = "Notifications"
+        case icloud = "iCloud"
         case advanced = "Advanced"
+        
+        var id: String { rawValue }
 
         var symbolName: String {
             switch self {
@@ -31,65 +34,56 @@ public struct SettingsView: View {
                 return "location.fill"
             case .notifications:
                 return "bell.badge"
+            case .icloud:
+                return "icloud"
             case .advanced:
                 return "wrench.and.screwdriver"
             }
         }
     }
 
-    /// The main view body containing the tabbed settings interface
+    /// The main view body containing the sidebar navigation interface
     public var body: some View {
-        TabView(selection: $selectedTab) {
-            GeneralSettingsView()
-                .tabItem {
-                    Label(
-                        SettingsTab.general.rawValue,
-                        systemImage: SettingsTab.general.symbolName
-                    )
+        NavigationSplitView {
+            // Sidebar
+            List(SettingsTab.allCases, selection: $selectedTab) { tab in
+                NavigationLink(value: tab) {
+                    Label(tab.rawValue, systemImage: tab.symbolName)
                 }
-                .tag(SettingsTab.general)
-
-            SecuritySettingsView()
-                .environmentObject(settingsManager)
-                .tabItem {
-                    Label(
-                        SettingsTab.security.rawValue,
-                        systemImage: SettingsTab.security.symbolName
-                    )
+            }
+            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 300)
+            .listStyle(SidebarListStyle())
+        } detail: {
+            // Detail view
+            if let selectedTab = selectedTab {
+                switch selectedTab {
+                case .general:
+                    GeneralSettingsView()
+                        .navigationTitle(SettingsTab.general.rawValue)
+                case .security:
+                    SecuritySettingsView()
+                        .navigationTitle(SettingsTab.security.rawValue)
+                case .autoArm:
+                    AutoArmSettingsView()
+                        .navigationTitle(SettingsTab.autoArm.rawValue)
+                case .notifications:
+                    NotificationSettingsView()
+                        .navigationTitle(SettingsTab.notifications.rawValue)
+                case .icloud:
+                    CloudSyncSettingsView()
+                        .navigationTitle(SettingsTab.icloud.rawValue)
+                case .advanced:
+                    AdvancedSettingsView()
+                        .navigationTitle(SettingsTab.advanced.rawValue)
                 }
-                .tag(SettingsTab.security)
-
-            AutoArmSettingsView()
-                .environmentObject(settingsManager)
-                .tabItem {
-                    Label(
-                        SettingsTab.autoArm.rawValue,
-                        systemImage: SettingsTab.autoArm.symbolName
-                    )
-                }
-                .tag(SettingsTab.autoArm)
-
-            NotificationSettingsView()
-                .environmentObject(settingsManager)
-                .tabItem {
-                    Label(
-                        SettingsTab.notifications.rawValue,
-                        systemImage: SettingsTab.notifications.symbolName
-                    )
-                }
-                .tag(SettingsTab.notifications)
-
-            AdvancedSettingsView()
-                .environmentObject(settingsManager)
-                .tabItem {
-                    Label(
-                        SettingsTab.advanced.rawValue,
-                        systemImage: SettingsTab.advanced.symbolName
-                    )
-                }
-                .tag(SettingsTab.advanced)
+            } else {
+                Text("Select a category")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
-        .frame(width: 600, height: 400)
+        .navigationSplitViewStyle(.balanced)
         .environmentObject(settingsManager)
     }
 }
@@ -97,7 +91,7 @@ public struct SettingsView: View {
 // MARK: - General Settings Tab
 
 struct GeneralSettingsView: View {
-    @EnvironmentObject var settingsManager: UserDefaultsManager
+    @ObservedObject var settingsManager = UserDefaultsManager.shared
 
     var body: some View {
         Form {
@@ -231,7 +225,7 @@ struct GeneralSettingsView: View {
 // MARK: - Security Settings Tab
 
 struct SecuritySettingsView: View {
-    @EnvironmentObject var settingsManager: UserDefaultsManager
+    @ObservedObject var settingsManager = UserDefaultsManager.shared
     @State private var selectedActions = Set<SecurityActionType>()
     @State private var showingEvidenceSettings = false
 
@@ -419,7 +413,7 @@ struct SecurityActionRow: View {
 // MARK: - Auto-Arm Settings Tab
 
 struct AutoArmSettingsView: View {
-    @EnvironmentObject var settingsManager: UserDefaultsManager
+    @ObservedObject var settingsManager = UserDefaultsManager.shared
     @State private var newNetwork = ""
     @State private var showingLocationManager = false
     @State private var showingAutoArmInfo = false
@@ -650,7 +644,7 @@ struct AutoArmSettingsView: View {
 // MARK: - Notification Settings Tab
 
 struct NotificationSettingsView: View {
-    @EnvironmentObject var settingsManager: UserDefaultsManager
+    @ObservedObject var settingsManager = UserDefaultsManager.shared
 
     var body: some View {
         Form {
@@ -738,14 +732,12 @@ struct NotificationSettingsView: View {
 // MARK: - Advanced Settings Tab
 
 struct AdvancedSettingsView: View {
-    @EnvironmentObject var settingsManager: UserDefaultsManager
+    @ObservedObject var settingsManager = UserDefaultsManager.shared
     @State private var showingExportSuccess = false
     @State private var showingImportDialog = false
-    @State private var showingiCloudSettings = false
 
     var body: some View {
         Form {
-            iCloudSyncSection
             customScriptsSection
             debugSection
             settingsManagementSection
@@ -790,49 +782,6 @@ struct AdvancedSettingsView: View {
 
     // MARK: - Computed Properties
 
-    private var iCloudSyncSection: some View {
-        Section(header: Text("iCloud Sync")) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Image(systemName: settingsManager.iCloudSyncStatus.symbolName)
-                            .foregroundColor(iCloudStatusColor)
-                        Text("iCloud Sync")
-                            .font(.headline)
-                    }
-                    Text("Status: \(settingsManager.iCloudSyncStatus.displayText)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                Spacer()
-
-                Button("Configure") {
-                    showingiCloudSettings = true
-                }
-            }
-            .padding(.vertical, 4)
-        }
-        .sheet(isPresented: $showingiCloudSettings) {
-            iCloudSyncSettingsView()
-                .environmentObject(settingsManager)
-        }
-    }
-
-    private var iCloudStatusColor: Color {
-        switch settingsManager.iCloudSyncStatus {
-        case .idle:
-            return .green
-        case .syncing:
-            return .blue
-        case .error:
-            return .red
-        case .noAccount, .restricted, .temporarilyUnavailable:
-            return .orange
-        case .unknown:
-            return .gray
-        }
-    }
 
     private var customScriptsSection: some View {
         Section(header: Text("Custom Scripts")) {

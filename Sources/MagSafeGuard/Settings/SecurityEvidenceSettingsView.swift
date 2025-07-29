@@ -136,14 +136,30 @@ struct SecurityEvidenceSettingsView: View {
     }
 
     private var storageSection: some View {
-        Section("Local Storage") {
-            VStack(alignment: .leading, spacing: 8) {
+        Section("Storage") {
+            VStack(alignment: .leading, spacing: 12) {
+                // Encryption info
                 encryptionInfo
+
+                // Local storage info
                 HStack {
                     Image(systemName: "folder.fill")
                         .foregroundColor(.blue)
-                    Text("Stored in: ~/Documents/Evidence/")
+                    Text("Local: ~/Documents/Evidence/")
                         .font(.subheadline)
+                }
+
+                // iCloud sync info
+                HStack {
+                    Image(systemName: "icloud.fill")
+                        .foregroundColor(.blue)
+                    VStack(alignment: .leading) {
+                        Text("iCloud backup enabled")
+                            .font(.subheadline)
+                        Text("Configure in iCloud tab")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
 
                 viewEvidenceFolderButton

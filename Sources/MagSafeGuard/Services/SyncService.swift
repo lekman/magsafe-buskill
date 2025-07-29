@@ -1,5 +1,5 @@
 //
-//  iCloudSyncService.swift
+//  SyncService.swift
 //  MagSafe Guard
 //
 //  Created on 2025-07-28.
@@ -10,6 +10,7 @@
 import CloudKit
 import Combine
 import Foundation
+import Network
 
 /// Service responsible for syncing data with iCloud
 ///
@@ -18,7 +19,12 @@ import Foundation
 /// - Evidence backup to iCloud
 /// - Conflict resolution
 /// - Sync status monitoring
-public class iCloudSyncService: NSObject, ObservableObject {
+public class SyncService: NSObject, ObservableObject {
+
+    // MARK: - Testing Support
+
+    /// Disable CloudKit initialization for testing
+    public static var disableForTesting = false
 
     // MARK: - Published Properties
 
@@ -40,6 +46,15 @@ public class iCloudSyncService: NSObject, ObservableObject {
     private let privateDatabase: CKDatabase
     private var syncTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
+    private var retryTimer: Timer?
+    private var retryCount = 0
+    private let maxRetries = 3
+    private let retryDelay: TimeInterval = 30.0
+
+    // Network monitoring
+    private let networkMonitor = NWPathMonitor()
+    private let monitorQueue = DispatchQueue(label: "com.magsafeguard.network")
+    private var wasOffline = false
 
     // Record types
     private let settingsRecordType = "Settings"
@@ -52,17 +67,37 @@ public class iCloudSyncService: NSObject, ObservableObject {
     // MARK: - Initialization
 
     public override init() {
-        // Initialize with specific container identifier
-        // Use the app's bundle identifier as the base
-        let containerIdentifier = "iCloud.com.lekman.magsafeguard"
-        self.container = CKContainer(identifier: containerIdentifier)
-        self.privateDatabase = container.privateCloudDatabase
+        // Check if we're in a test environment
+        let isTestEnvironment = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil ||
+                               Self.disableForTesting ||
+                               NSClassFromString("XCTest") != nil ||
+                               ProcessInfo.processInfo.environment["CI"] != nil
+
+        if isTestEnvironment {
+            // Use default container for tests to avoid crashes
+            self.container = CKContainer.default()
+            self.privateDatabase = container.privateCloudDatabase
+        } else {
+            // Initialize with specific container identifier
+            // Use the app's bundle identifier as the base
+            let containerIdentifier = "iCloud.com.lekman.magsafeguard"
+            
+            self.container = CKContainer(identifier: containerIdentifier)
+            self.privateDatabase = container.privateCloudDatabase
+        }
 
         super.init()
 
-        setupCloudKit()
-        checkiCloudAvailability()
-        startPeriodicSync()
+        // Skip CloudKit setup in test environment
+        if !isTestEnvironment {
+            // Delay CloudKit setup to avoid immediate permission prompts
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                self?.setupCloudKit()
+                self?.checkiCloudAvailability()
+                self?.startPeriodicSync()
+                self?.setupNetworkMonitoring()
+            }
+        }
     }
 
     // MARK: - Setup
@@ -88,38 +123,98 @@ public class iCloudSyncService: NSObject, ObservableObject {
     private func checkiCloudAvailability() {
         container.accountStatus { [weak self] status, error in
             DispatchQueue.main.async {
+                if let error = error {
+                    Log.error("Failed to check iCloud account status", error: error, category: .general)
+                    self?.isAvailable = false
+                    self?.syncStatus = .error
+                    self?.syncError = error
+                    
+                    // If it's a permission error, notify user
+                    if let ckError = error as? CKError {
+                        switch ckError.code {
+                        case .notAuthenticated, .permissionFailure:
+                            self?.notifyUserAboutPermissions()
+                        default:
+                            break
+                        }
+                    }
+                    return
+                }
+                
                 switch status {
                 case .available:
                     self?.isAvailable = true
                     self?.syncStatus = .idle
                     Log.info("iCloud is available", category: .general)
+                    // Perform initial sync
+                    Task {
+                        try? await self?.syncAll()
+                    }
                 case .noAccount:
                     self?.isAvailable = false
                     self?.syncStatus = .noAccount
                     Log.warning("No iCloud account configured", category: .general)
+                    self?.notifyUserAboutiCloudAccount()
                 case .restricted:
                     self?.isAvailable = false
                     self?.syncStatus = .restricted
                     Log.warning("iCloud access is restricted", category: .general)
+                    self?.notifyUserAboutRestrictions()
                 case .couldNotDetermine:
                     self?.isAvailable = false
                     self?.syncStatus = .unknown
                     Log.warning("Could not determine iCloud status", category: .general)
+                    // Schedule a retry
+                    self?.scheduleRetry()
                 case .temporarilyUnavailable:
                     self?.isAvailable = false
                     self?.syncStatus = .temporarilyUnavailable
                     Log.warning("iCloud is temporarily unavailable", category: .general)
+                    // Schedule a retry
+                    self?.scheduleRetry()
                 @unknown default:
                     self?.isAvailable = false
                     self?.syncStatus = .unknown
                 }
 
-                if let error = error {
+                if let error = error as? CKError {
+                    self?.syncError = error
+                    if error.code == .networkUnavailable || error.code == .networkFailure {
+                        Log.warning("Network unavailable for iCloud check", category: .general)
+                        self?.scheduleRetry()
+                    } else {
+                        Log.error("Error checking iCloud status", error: error, category: .general)
+                    }
+                } else if let error = error {
                     self?.syncError = error
                     Log.error("Error checking iCloud status", error: error, category: .general)
                 }
             }
         }
+    }
+
+    // MARK: - Network Monitoring
+
+    private func setupNetworkMonitoring() {
+        networkMonitor.pathUpdateHandler = { [weak self] path in
+            DispatchQueue.main.async {
+                if path.status == .satisfied {
+                    if self?.wasOffline == true {
+                        Log.info("Network connection restored - attempting iCloud sync", category: .general)
+                        self?.wasOffline = false
+                        self?.retryCount = 0 // Reset retry count on network restoration
+
+                        // Check iCloud availability again
+                        self?.checkiCloudAvailability()
+                    }
+                } else {
+                    Log.warning("Network connection lost - iCloud sync paused", category: .general)
+                    self?.wasOffline = true
+                    self?.syncStatus = .temporarilyUnavailable
+                }
+            }
+        }
+        networkMonitor.start(queue: monitorQueue)
     }
 
     // MARK: - Sync Control
@@ -128,8 +223,15 @@ public class iCloudSyncService: NSObject, ObservableObject {
     private func startPeriodicSync() {
         syncTimer?.invalidate()
         syncTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
+            // Check if sync is enabled before running periodic sync
+            guard UserDefaults.standard.bool(forKey: "iCloudSyncEnabled") else {
+                return
+            }
+
             Task {
                 try? await self?.syncAll()
+                // Run cleanup every sync cycle
+                try? await self?.cleanupOldEvidence()
             }
         }
     }
@@ -138,6 +240,8 @@ public class iCloudSyncService: NSObject, ObservableObject {
     public func stopPeriodicSync() {
         syncTimer?.invalidate()
         syncTimer = nil
+        retryTimer?.invalidate()
+        retryTimer = nil
     }
 
     // MARK: - Public Sync Methods
@@ -145,8 +249,16 @@ public class iCloudSyncService: NSObject, ObservableObject {
     /// Sync all data with iCloud
     @MainActor
     public func syncAll() async throws {
+        // Check if sync is enabled
+        guard UserDefaults.standard.bool(forKey: "iCloudSyncEnabled") else {
+            Log.debug("iCloud sync is disabled by user", category: .general)
+            syncStatus = .idle
+            return
+        }
+
         guard isAvailable else {
             Log.warning("Cannot sync - iCloud not available", category: .general)
+            syncStatus = .noAccount
             return
         }
 
@@ -163,10 +275,37 @@ public class iCloudSyncService: NSObject, ObservableObject {
             syncStatus = .idle
             lastSyncDate = Date()
             Log.info("Sync completed successfully", category: .general)
+        } catch let error as CKError {
+            // Handle specific CloudKit errors
+            switch error.code {
+            case .networkUnavailable, .networkFailure:
+                syncStatus = .temporarilyUnavailable
+                Log.warning("Network unavailable for iCloud sync", category: .general)
+                scheduleRetry()
+                // Don't throw - we'll retry later
+                return
+            case .serviceUnavailable, .requestRateLimited:
+                syncStatus = .temporarilyUnavailable
+                Log.warning("iCloud service temporarily unavailable", category: .general)
+                scheduleRetry()
+                // Don't throw - we'll retry later
+                return
+            case .quotaExceeded:
+                syncStatus = .error
+                syncError = error
+                Log.error("iCloud quota exceeded", error: error, category: .general)
+                throw error
+            default:
+                syncStatus = .error
+                syncError = error
+                Log.error("Sync failed", error: error, category: .general)
+                throw error
+            }
         } catch {
             syncStatus = .error
             syncError = error
             Log.error("Sync failed", error: error, category: .general)
+            throw error
         }
     }
 
@@ -219,6 +358,18 @@ public class iCloudSyncService: NSObject, ObservableObject {
 
             try await privateDatabase.save(newRecord)
             Log.info("Settings uploaded to iCloud (new record)", category: .general)
+        } catch let error as CKError {
+            // Handle specific CloudKit errors
+            switch error.code {
+            case .networkUnavailable, .networkFailure:
+                Log.warning("Network unavailable - settings will sync when connection restored", category: .general)
+                throw error
+            case .serviceUnavailable:
+                Log.warning("iCloud temporarily unavailable - settings will sync later", category: .general)
+                throw error
+            default:
+                throw error
+            }
         }
     }
 
@@ -244,8 +395,17 @@ public class iCloudSyncService: NSObject, ObservableObject {
         }
 
         // Get all evidence files
-        let files = try FileManager.default.contentsOfDirectory(at: evidenceDirectory, includingPropertiesForKeys: nil)
+        let files = try FileManager.default.contentsOfDirectory(at: evidenceDirectory, includingPropertiesForKeys: [.fileSizeKey, .creationDateKey])
         let evidenceFiles = files.filter { $0.pathExtension == "encrypted" }
+
+        // Get size and age limits from settings
+        let maxSizeMB = UserDefaults.standard.double(forKey: "iCloudDataLimitMB")
+        let maxAgeDays = UserDefaults.standard.double(forKey: "iCloudDataAgeLimitDays")
+        let maxSizeBytes = Int64(maxSizeMB * 1024 * 1024)
+        let maxAge = TimeInterval(maxAgeDays * 24 * 60 * 60)
+        let cutoffDate = Date().addingTimeInterval(-maxAge)
+
+        var totalSyncedSize: Int64 = 0
 
         for file in evidenceFiles {
             let evidenceID = file.deletingPathExtension().lastPathComponent
@@ -254,6 +414,23 @@ public class iCloudSyncService: NSObject, ObservableObject {
             let syncedKey = "synced_\(evidenceID)"
             if UserDefaults.standard.bool(forKey: syncedKey) {
                 continue
+            }
+
+            // Check file size
+            let resourceValues = try file.resourceValues(forKeys: [.fileSizeKey, .creationDateKey])
+            let fileSize = Int64(resourceValues.fileSize ?? 0)
+            let creationDate = resourceValues.creationDate ?? Date()
+
+            // Skip if file is too old
+            if creationDate < cutoffDate {
+                Log.debug("Skipping evidence \(evidenceID) - older than \(maxAgeDays) days", category: .general)
+                continue
+            }
+
+            // Skip if we've exceeded the size limit
+            if totalSyncedSize + fileSize > maxSizeBytes {
+                Log.warning("Reached iCloud size limit (\(maxSizeMB) MB) - skipping remaining evidence", category: .general)
+                break
             }
 
             // Create evidence record
@@ -265,13 +442,16 @@ public class iCloudSyncService: NSObject, ObservableObject {
             record["encryptedData"] = asset
             record["timestamp"] = Date()
             record["deviceName"] = ProcessInfo.processInfo.hostName
+            record["fileSize"] = fileSize
+            record["creationDate"] = creationDate
 
             do {
                 try await privateDatabase.save(record)
 
                 // Mark as synced
                 UserDefaults.standard.set(true, forKey: syncedKey)
-                Log.info("Evidence \(evidenceID) synced to iCloud", category: .general)
+                totalSyncedSize += fileSize
+                Log.info("Evidence \(evidenceID) synced to iCloud (\(fileSize / 1024) KB)", category: .general)
             } catch {
                 Log.error("Failed to sync evidence \(evidenceID)", error: error, category: .general)
                 throw error
@@ -340,9 +520,122 @@ public class iCloudSyncService: NSObject, ObservableObject {
             Log.error("Failed to save downloaded evidence", error: error, category: .general)
         }
     }
+}
 
-    // MARK: - Delete from iCloud
+// MARK: - Cleanup
 
+extension SyncService {
+    /// Remove old evidence from iCloud based on age limit
+    @MainActor
+    public func cleanupOldEvidence() async throws {
+        guard let zone = customZone else {
+            throw SyncError.zoneNotReady
+        }
+
+        let maxAgeDays = UserDefaults.standard.double(forKey: "iCloudDataAgeLimitDays")
+        let maxAge = TimeInterval(maxAgeDays * 24 * 60 * 60)
+        let cutoffDate = Date().addingTimeInterval(-maxAge)
+
+        // Query for all evidence records
+        let query = CKQuery(recordType: evidenceRecordType, predicate: NSPredicate(value: true))
+
+        do {
+            let (matchResults, _) = try await privateDatabase.records(matching: query, inZoneWith: zone.zoneID, desiredKeys: ["creationDate"], resultsLimit: 100)
+
+            var deletedCount = 0
+            for (recordID, result) in matchResults {
+                switch result {
+                case .success(let record):
+                    if let creationDate = record["creationDate"] as? Date, creationDate < cutoffDate {
+                        try await privateDatabase.deleteRecord(withID: recordID)
+                        deletedCount += 1
+                        Log.info("Deleted old evidence from iCloud: \(recordID.recordName)", category: .general)
+                    }
+                case .failure(let error):
+                    Log.error("Failed to fetch evidence record for cleanup", error: error, category: .general)
+                }
+            }
+
+            if deletedCount > 0 {
+                Log.info("Cleaned up \(deletedCount) old evidence records from iCloud", category: .general)
+            }
+        } catch {
+            Log.error("Failed to cleanup old evidence", error: error, category: .general)
+            throw error
+        }
+    }
+
+}
+
+// MARK: - Retry Logic
+
+extension SyncService {
+    private func scheduleRetry() {
+        // Cancel existing retry timer
+        retryTimer?.invalidate()
+
+        // Only retry if we haven't exceeded max retries
+        guard retryCount < maxRetries else {
+            Log.warning("Max retry attempts reached for iCloud sync", category: .general)
+            retryCount = 0
+            return
+        }
+
+        retryCount += 1
+        Log.info("Scheduling iCloud sync retry #\(retryCount) in \(retryDelay) seconds", category: .general)
+
+        retryTimer = Timer.scheduledTimer(withTimeInterval: retryDelay, repeats: false) { [weak self] _ in
+            Task {
+                do {
+                    try await self?.syncAll()
+                    self?.retryCount = 0 // Reset on success
+                } catch {
+                    // Will be handled by syncAll
+                }
+            }
+        }
+    }
+    
+    // MARK: - User Notifications
+    
+    private func notifyUserAboutPermissions() {
+        NotificationCenter.default.post(
+            name: Notification.Name("MagSafeGuardCloudKitPermissionNeeded"),
+            object: nil,
+            userInfo: [
+                "title": "iCloud Permission Required",
+                "message": "MagSafe Guard needs permission to sync your settings and logs to iCloud. Please check System Settings > Privacy & Security > iCloud."
+            ]
+        )
+    }
+    
+    private func notifyUserAboutiCloudAccount() {
+        NotificationCenter.default.post(
+            name: Notification.Name("MagSafeGuardCloudKitAccountNeeded"),
+            object: nil,
+            userInfo: [
+                "title": "iCloud Account Required",
+                "message": "Please sign in to iCloud in System Settings to enable sync features."
+            ]
+        )
+    }
+    
+    private func notifyUserAboutRestrictions() {
+        NotificationCenter.default.post(
+            name: Notification.Name("MagSafeGuardCloudKitRestricted"),
+            object: nil,
+            userInfo: [
+                "title": "iCloud Access Restricted",
+                "message": "iCloud access is restricted on this device. Contact your administrator."
+            ]
+        )
+    }
+
+}
+
+// MARK: - Delete Operations
+
+extension SyncService {
     /// Delete evidence from iCloud
     public func deleteEvidence(evidenceID: String) async throws {
         guard let zone = customZone else {
@@ -369,14 +662,22 @@ public class iCloudSyncService: NSObject, ObservableObject {
 
 /// Sync status states
 public enum SyncStatus {
+    /// Status is unknown
     case unknown
+    /// Sync is idle and up to date
     case idle
+    /// Currently syncing data
     case syncing
+    /// Sync encountered an error
     case error
+    /// No iCloud account configured
     case noAccount
+    /// iCloud access is restricted
     case restricted
+    /// iCloud is temporarily unavailable
     case temporarilyUnavailable
 
+    /// Human-readable display text for the status
     public var displayText: String {
         switch self {
         case .unknown:
@@ -396,6 +697,7 @@ public enum SyncStatus {
         }
     }
 
+    /// SF Symbol name for the status
     public var symbolName: String {
         switch self {
         case .unknown:
@@ -418,10 +720,14 @@ public enum SyncStatus {
 
 /// Sync errors
 public enum SyncError: LocalizedError {
+    /// CloudKit zone is not ready
     case zoneNotReady
+    /// iCloud sync is not available
     case notAvailable
+    /// Sync is already in progress
     case syncInProgress
 
+    /// Localized error description
     public var errorDescription: String? {
         switch self {
         case .zoneNotReady:
@@ -436,6 +742,8 @@ public enum SyncError: LocalizedError {
 
 // MARK: - Notifications
 
+/// Notification names for sync events
 public extension Notification.Name {
+    /// Posted when settings are synced from iCloud
     static let settingsSyncedFromiCloud = Notification.Name("settingsSyncedFromiCloud")
 }

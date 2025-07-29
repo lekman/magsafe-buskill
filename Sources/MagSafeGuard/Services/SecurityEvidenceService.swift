@@ -30,7 +30,7 @@ public class SecurityEvidenceService: NSObject {
     private var currentLocation: CLLocation?
     private var isCollectingEvidence = false
     private let fileManager = FileManager.default
-    private let iCloudSync = iCloudSyncService()
+    private var iCloudSync: SyncService?
 
     /// Delegate for evidence collection events
     public weak var delegate: SecurityEvidenceServiceDelegate?
@@ -45,6 +45,9 @@ public class SecurityEvidenceService: NSObject {
     public override init() {
         super.init()
         setupLocationManager()
+
+        // Initialize iCloud sync using factory
+        self.iCloudSync = SyncServiceFactory.create()
     }
 
     // MARK: - Public Methods
@@ -232,12 +235,14 @@ public class SecurityEvidenceService: NSObject {
         Log.info("Evidence stored locally with ID: \(evidenceId) (encrypted)", category: .general)
 
         // Sync to iCloud
-        Task {
-            do {
-                try await iCloudSync.syncEvidence()
-                Log.info("Evidence synced to iCloud", category: .general)
-            } catch {
-                Log.error("Failed to sync evidence to iCloud", error: error, category: .general)
+        if let iCloudSync = iCloudSync {
+            Task {
+                do {
+                    try await iCloudSync.syncEvidence()
+                    Log.info("Evidence synced to iCloud", category: .general)
+                } catch {
+                    Log.error("Failed to sync evidence to iCloud", error: error, category: .general)
+                }
             }
         }
 

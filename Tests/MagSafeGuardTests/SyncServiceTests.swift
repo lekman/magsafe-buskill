@@ -1,5 +1,5 @@
 //
-//  iCloudSyncServiceTests.swift
+//  SyncServiceTests.swift
 //  MagSafe Guard Tests
 //
 //  Created on 2025-07-28.
@@ -8,21 +8,19 @@
 //
 
 import XCTest
-import CloudKit
 @testable import MagSafeGuard
 
-class iCloudSyncServiceTests: XCTestCase {
+class SyncServiceTests: XCTestCase {
     
-    var syncService: iCloudSyncService!
+    var mockSyncService: MockSyncService!
     
     override func setUp() {
         super.setUp()
-        syncService = iCloudSyncService()
+        mockSyncService = MockSyncService()
     }
     
     override func tearDown() {
-        syncService.stopPeriodicSync()
-        syncService = nil
+        mockSyncService = nil
         super.tearDown()
     }
     
@@ -30,9 +28,9 @@ class iCloudSyncServiceTests: XCTestCase {
     
     func testSyncServiceInitialization() {
         // Test that sync service initializes with correct default state
-        XCTAssertEqual(syncService.syncStatus, .unknown)
-        XCTAssertNil(syncService.lastSyncDate)
-        XCTAssertNil(syncService.syncError)
+        XCTAssertEqual(mockSyncService.syncStatus, .idle)
+        XCTAssertNil(mockSyncService.lastSyncDate)
+        XCTAssertNil(mockSyncService.syncError)
     }
     
     func testSyncStatusValues() {
@@ -72,31 +70,46 @@ class iCloudSyncServiceTests: XCTestCase {
     
     func testPeriodicSyncStop() {
         // Test that periodic sync can be stopped
-        syncService.stopPeriodicSync()
+        mockSyncService.stopPeriodicSync()
         
         // Since timer is private, we can only verify the method doesn't crash
-        XCTAssertNotNil(syncService)
+        XCTAssertNotNil(mockSyncService)
     }
     
-    func testSyncAllWhenUnavailable() async {
-        // When iCloud is not available, sync should fail gracefully
-        // Note: In a real test environment, we'd mock the CloudKit container
-        // For now, just ensure the method can be called without crashing
+    func testSyncAllSuccess() async throws {
+        // Test successful sync
+        mockSyncService.shouldFailSync = false
         
-        try? await syncService.syncAll()
+        try await mockSyncService.syncAll()
         
-        // Verify service is still valid
-        XCTAssertNotNil(syncService)
+        XCTAssertEqual(mockSyncService.syncStatus, .idle)
+        XCTAssertNotNil(mockSyncService.lastSyncDate)
+        XCTAssertNil(mockSyncService.syncError)
+        XCTAssertEqual(mockSyncService.syncCallCount, 1)
+        XCTAssertEqual(mockSyncService.syncSettingsCallCount, 1)
+        XCTAssertEqual(mockSyncService.syncEvidenceCallCount, 1)
     }
     
-    func testDeleteEvidenceWithInvalidID() async {
-        // Test deleting non-existent evidence
+    func testSyncAllFailure() async {
+        // Test sync failure
+        mockSyncService.shouldFailSync = true
+        
         do {
-            try await syncService.deleteEvidence(evidenceID: "non-existent-id")
-            // Should succeed even if record doesn't exist
-            XCTAssertTrue(true, "Delete should succeed for non-existent records")
+            try await mockSyncService.syncAll()
+            XCTFail("Sync should have failed")
         } catch {
-            XCTFail("Delete should not throw for non-existent records: \(error)")
+            XCTAssertEqual(mockSyncService.syncStatus, .error)
+            XCTAssertNotNil(mockSyncService.syncError)
+            XCTAssertEqual(mockSyncService.syncCallCount, 1)
         }
+    }
+    
+    func testDeleteEvidence() async throws {
+        // Test deleting evidence
+        mockSyncService.shouldFailSync = false
+        
+        try await mockSyncService.deleteEvidence(evidenceID: "test-id")
+        
+        XCTAssertEqual(mockSyncService.deleteEvidenceCallCount, 1)
     }
 }

@@ -225,7 +225,7 @@ tasks:
 
         # Create a minimal app bundle structure
         APP_NAME="MagSafeGuard.app"
-        APP_PATH="/tmp/$APP_NAME"
+        APP_PATH=".build/release/$APP_NAME"
         CONTENTS_PATH="$APP_PATH/Contents"
         MACOS_PATH="$CONTENTS_PATH/MacOS"
 
@@ -267,6 +267,53 @@ tasks:
         EOF
 
         echo "✅ App bundle created at: $APP_PATH"
+
+        # Try to sign the app if certificates are available (unless SKIP_CODESIGN is set)
+        if [ "$SKIP_CODESIGN" = "1" ]; then
+          echo "⚠️  Skipping code signing (SKIP_CODESIGN=1)"
+        else
+          SIGNING_IDENTITY=$(security find-identity -v -p codesigning 2>/dev/null | grep -E "Developer ID Application|Apple Development" | head -1 | awk '{print $2}')
+          
+          if [ -n "$SIGNING_IDENTITY" ]; then
+          echo "🔐 Signing app with identity: ${SIGNING_IDENTITY:0:8}..."
+          
+          # Create entitlements file
+          ENTITLEMENTS_PATH=".build/release/MagSafeGuard.entitlements"
+          cat > "$ENTITLEMENTS_PATH" <<EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>com.apple.security.app-sandbox</key>
+            <false/>
+            <key>com.apple.developer.aps-environment</key>
+            <string>development</string>
+            <key>com.apple.developer.icloud-container-identifiers</key>
+            <array>
+                <string>iCloud.com.lekman.magsafeguard</string>
+            </array>
+            <key>com.apple.developer.icloud-services</key>
+            <array>
+                <string>CloudKit</string>
+            </array>
+        </dict>
+        </plist>
+        EOF
+          
+          # Sign the app
+          if codesign --force --deep --sign "$SIGNING_IDENTITY" --entitlements "$ENTITLEMENTS_PATH" "$APP_PATH" 2>/dev/null; then
+            echo "✅ App signed successfully"
+            # Clean up entitlements file
+            rm -f "$ENTITLEMENTS_PATH"
+          else
+            echo "⚠️  Code signing failed, running unsigned"
+          fi
+          else
+            echo "⚠️  No signing identity found, running unsigned"
+            echo "   To enable signing, see: docs/maintainers/code-signing.md"
+          fi
+        fi
+
         echo "🚀 Launching MagSafe Guard..."
         echo ""
         echo "ℹ️  The app will run in the menu bar (top right of your screen)"
@@ -283,11 +330,76 @@ tasks:
         echo "   - Look for 'MG' text or shield icon in the menu bar"
         echo "   - Click the icon to see the menu"
         echo "   - Select 'Arm' to enable protection"
-        echo "   - Select 'Show Demo...' to test power monitoring"
         echo ""
-        echo "To stop the app: Click the menu bar icon and select 'Quit MagSafe Guard'"
+        echo "To stop the app: Click the menu bar icon and select 'Quit MagSafe Guard' or run 'task run' to replace the app with a new version."
+
+  sign:
+    desc: Sign the MagSafe Guard app (requires Developer ID)
+    deps: [build]
+    cmds:
+      - task: swift:sign
+
+  run:unsigned:
+    desc: Build and run MagSafe Guard without code signing
+    silent: true
+    cmds:
+      - |
+        # Set environment variable to skip signing
+        export SKIP_CODESIGN=1
+        task run
+
+  build:
+    desc: Build MagSafe Guard app bundle
+    silent: true
+    cmds:
+      - |
+        echo "🔨 Building MagSafe Guard..."
+        swift build -c release
+
+        EXECUTABLE_PATH=".build/release/MagSafeGuard"
+        if [ ! -f "$EXECUTABLE_PATH" ]; then
+          echo "❌ Build failed"
+          exit 1
+        fi
+
+        # Create app bundle
+        APP_PATH="/tmp/MagSafeGuard.app"
+        rm -rf "$APP_PATH"
+        mkdir -p "$APP_PATH/Contents/MacOS"
+
+        cp "$EXECUTABLE_PATH" "$APP_PATH/Contents/MacOS/"
+
+        # Create Info.plist
+        cat > "$APP_PATH/Contents/Info.plist" <<EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>CFBundleExecutable</key>
+            <string>MagSafeGuard</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.lekman.MagSafeGuard</string>
+            <key>CFBundleName</key>
+            <string>MagSafe Guard</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0</string>
+            <key>CFBundleVersion</key>
+            <string>1</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>13.0</string>
+            <key>LSUIElement</key>
+            <true/>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+        </dict>
+        </plist>
+        EOF
+
+        echo "✅ Build complete: $APP_PATH"
+
   run:debug:
     desc: Build and run MagSafe Guard in debug mode
+    silent: true
     cmds:
       - |
         echo "🔨 Building MagSafe Guard (debug mode)..."
@@ -307,7 +419,7 @@ tasks:
 
         # Create a minimal app bundle structure
         APP_NAME="MagSafeGuard-Debug.app"
-        APP_PATH="/tmp/$APP_NAME"
+        APP_PATH=".build/debug/$APP_NAME"
         CONTENTS_PATH="$APP_PATH/Contents"
         MACOS_PATH="$CONTENTS_PATH/MacOS"
 
@@ -356,62 +468,7 @@ tasks:
 
         echo ""
         echo "✅ Running in debug mode - check console for debug output"
-  dev:setup:
-    desc: Complete development setup (hooks + tools)
-    silent: true
-    cmds:
-      - task: init
-      - |
-        echo ""
-        echo "📦 Setting up development tools..."
 
-        # Check if Homebrew is installed
-        if command -v brew &> /dev/null; then
-          echo "Checking and updating tools via Homebrew..."
-          
-          # Install/Update Semgrep
-          if ! command -v semgrep &> /dev/null; then
-            echo "📦 Installing Semgrep..."
-            brew install semgrep
-          else
-            echo "✅ Semgrep already installed"
-            if brew outdated | grep -q "^semgrep"; then
-              echo "📦 Updating Semgrep..."
-              brew upgrade semgrep
-            fi
-          fi
-          
-          # Install/Update SwiftLint (required)
-          if ! command -v swiftlint &> /dev/null; then
-            echo "📦 Installing SwiftLint..."
-            brew install swiftlint
-          else
-            echo "✅ SwiftLint already installed ($(swiftlint version))"
-            if brew outdated | grep -q "^swiftlint"; then
-              echo "📦 Updating SwiftLint..."
-              brew upgrade swiftlint
-            fi
-          fi
-          
-          # Install/Update markdownlint
-          if ! command -v markdownlint &> /dev/null; then
-            echo "📦 Installing markdownlint..."
-            brew install markdownlint-cli
-          else
-            echo "✅ markdownlint already installed"
-            if brew outdated | grep -q "^markdownlint-cli"; then
-              echo "📦 Updating markdownlint..."
-              brew upgrade markdownlint-cli
-            fi
-          fi
-          
-          echo "✅ Development tools setup complete"
-        else
-          echo "⚠️  Homebrew not found. Install tools manually:"
-          echo "   - Semgrep: https://semgrep.dev/docs/getting-started/"
-          echo "   - SwiftLint: https://github.com/realm/SwiftLint"
-          echo "   - markdownlint: npm install -g markdownlint-cli"
-        fi
   qa:
     desc: Run standard quality assurance checks
     silent: true

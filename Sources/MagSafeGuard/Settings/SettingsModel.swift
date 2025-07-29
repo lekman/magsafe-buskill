@@ -171,6 +171,26 @@ public struct Settings: Codable, Equatable {
     /// a theft is detected. This requires camera and location permissions.
     public var evidenceCollectionEnabled: Bool = false
 
+    // MARK: - iCloud Sync Settings
+
+    /// Whether iCloud sync is enabled.
+    ///
+    /// When enabled, settings and evidence are automatically synced to iCloud.
+    /// This provides backup and cross-device synchronization.
+    public var iCloudSyncEnabled: Bool = true
+
+    /// Maximum size of data to sync to iCloud in megabytes.
+    ///
+    /// Evidence older than this limit will not be synced to save iCloud storage.
+    /// Valid range is 10-1000 MB.
+    public var iCloudDataLimitMB: Double = 100.0
+
+    /// Maximum age of evidence to keep in iCloud in days.
+    ///
+    /// Evidence older than this limit will be removed from iCloud.
+    /// Valid range is 7-365 days.
+    public var iCloudDataAgeLimitDays: Double = 30.0
+
     // MARK: - Validation
 
     /// Validates settings and returns normalized version
@@ -194,6 +214,10 @@ public struct Settings: Codable, Equatable {
             seen.insert(action)
             return true
         }
+
+        // Validate iCloud settings
+        validated.iCloudDataLimitMB = max(10.0, min(1000.0, iCloudDataLimitMB))
+        validated.iCloudDataAgeLimitDays = max(7.0, min(365.0, iCloudDataAgeLimitDays))
 
         return validated
     }
