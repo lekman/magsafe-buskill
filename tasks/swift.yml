@@ -1,5 +1,18 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: "3"
+
+vars:
+  # Get package name dynamically from Package.swift
+  PACKAGE_NAME:
+    sh: swift package dump-package 2>/dev/null | jq -r '.name' || echo "SwiftPackage"
+  # Get executable name (first executable product)
+  EXECUTABLE_NAME:
+    sh: swift package dump-package 2>/dev/null | jq -r '.products[] | select(.type.executable != null) | .name' | head -1 || echo "{{.PACKAGE_NAME}}"
+  # Default app name for bundler
+  APP_NAME: '{{.EXECUTABLE_NAME | default .PACKAGE_NAME}}'
+  # Default bundler app path
+  APP_PATH: './.build/bundler/{{.APP_NAME}}.app'
+
 tasks:
   default:
     desc: List all Swift tasks
@@ -76,7 +89,7 @@ tasks:
             # Generate report with comprehensive filters matching CI
             xcrun llvm-cov report "$BINARY" \
               -instr-profile="$PROF_DATA" \
-              -ignore-filename-regex=".*Tests/.*|.*Tests\\.swift|.*Mocks?\\.swift|.*/MagSafeGuardApp\\.swift|.*/SettingsView\\.swift|.*/TrustedLocationsView\\.swift|.*/PowerMonitorService\\.swift|.*LAContext\\.swift|.*/MacSystemActions\\.swift|.*Protocol\\.swift|.*/runner\\.swift" \
+              -ignore-filename-regex=".*Tests/.*|.*Tests\\.swift|.*Mocks?\\.swift|.*/{{.APP_NAME}}App\\.swift|.*/SettingsView\\.swift|.*/TrustedLocationsView\\.swift|.*/PowerMonitorService\\.swift|.*LAContext\\.swift|.*/MacSystemActions\\.swift|.*Protocol\\.swift|.*/runner\\.swift" \
               -use-color=false | tee coverage-report.txt
             
             # Extract total coverage - look for the TOTAL line
@@ -124,7 +137,7 @@ tasks:
             -instr-profile="$PROF_DATA" \
             -format=html \
             -output-dir=coverage-html \
-            -ignore-filename-regex=".*Tests\\.swift|.*Mocks?\\.swift|.*/MagSafeGuardApp\\.swift|.*/SettingsView\\.swift|.*/TrustedLocationsView\\.swift|.*/PowerMonitorService\\.swift|.*LAContext\\.swift|.*/MacSystemActions\\.swift|.*Protocol\\.swift"
+            -ignore-filename-regex=".*Tests\\.swift|.*Mocks?\\.swift|.*/{{.APP_NAME}}App\\.swift|.*/SettingsView\\.swift|.*/TrustedLocationsView\\.swift|.*/PowerMonitorService\\.swift|.*LAContext\\.swift|.*/MacSystemActions\\.swift|.*Protocol\\.swift"
           
           echo "✅ Coverage report generated at: coverage-html/index.html"
           
@@ -442,8 +455,8 @@ tasks:
           
           jazzy \
             --clean \
-            --author "MagSafe Guard" \
-            --module MagSafeGuard \
+            --author "{{.PACKAGE_NAME}}" \
+            --module {{.PACKAGE_NAME}} \
             --source-directory Sources \
             --output {{.OUTPUT_PATH}} \
             --theme apple \
@@ -464,8 +477,8 @@ tasks:
         elif command -v swift-doc &> /dev/null; then
           echo "✅ Found swift-doc - generating documentation..."
           
-          swift-doc generate Sources/MagSafeGuard \
-            --module-name MagSafeGuard \
+          swift-doc generate Sources/{{.PACKAGE_NAME}} \
+            --module-name {{.PACKAGE_NAME}} \
             --output {{.OUTPUT_PATH}} \
             --format html
             
@@ -480,17 +493,17 @@ tasks:
           fi
           
         # Option 3: Check if in Xcode environment
-        elif command -v xcodebuild &> /dev/null && [ -d "MagSafeGuard.xcodeproj" ]; then
+        elif command -v xcodebuild &> /dev/null && [ -d "{{.PACKAGE_NAME}}.xcodeproj" ]; then
           echo "✅ Found Xcode - attempting to generate documentation..."
           echo ""
           echo "Note: Xcode documentation generation requires manual steps:"
-          echo "  1. Open MagSafeGuard.xcodeproj in Xcode"
+          echo "  1. Open {{.PACKAGE_NAME}}.xcodeproj in Xcode"
           echo "  2. Product → Build Documentation"
-          echo "  3. Right-click on MagSafeGuard in documentation window"
+          echo "  3. Right-click on {{.PACKAGE_NAME}} in documentation window"
           echo "  4. Export Documentation..."
           echo ""
           echo "For now, building project to ensure it compiles..."
-          xcodebuild -scheme MagSafeGuard -configuration Release build
+          xcodebuild -scheme {{.PACKAGE_NAME}} -configuration Release build
           
         else
           # No documentation tool found
@@ -690,7 +703,7 @@ tasks:
         esac
 
         # Build if needed
-        if [ ! -d "./.build/bundler/MagSafeGuard.app" ]; then
+        if [ ! -d "{{.APP_PATH}}" ]; then
           echo "🔨 Building app first..."
           ./swift-bundler bundle --configuration release
         fi
@@ -704,7 +717,7 @@ tasks:
     cmds:
       - |
         # Build if needed
-        if [ ! -d "./.build/bundler/MagSafeGuard.app" ]; then
+        if [ ! -d "{{.APP_PATH}}" ]; then
           echo "🔨 Building app first..."
           ./swift-bundler bundle --configuration release
         fi
@@ -717,7 +730,7 @@ tasks:
     cmds:
       - |
         # Build if needed
-        if [ ! -d "./.build/bundler/MagSafeGuard.app" ]; then
+        if [ ! -d "{{.APP_PATH}}" ]; then
           echo "🔨 Building app first..."
           ./swift-bundler bundle --configuration release
         fi
@@ -730,7 +743,7 @@ tasks:
     cmds:
       - |
         # Build if needed
-        if [ ! -d "./.build/bundler/MagSafeGuard.app" ]; then
+        if [ ! -d "{{.APP_PATH}}" ]; then
           echo "🔨 Building app first..."
           ./swift-bundler bundle --configuration release
         fi
@@ -743,7 +756,7 @@ tasks:
     cmds:
       - |
         # Build if needed
-        if [ ! -d "./.build/bundler/MagSafeGuard.app" ]; then
+        if [ ! -d "{{.APP_PATH}}" ]; then
           echo "🔨 Building app first..."
           ./swift-bundler bundle --configuration release
         fi
@@ -754,21 +767,19 @@ tasks:
     silent: true
     cmds:
       - |
-        APP_PATH="./.build/bundler/MagSafeGuard.app"
-
-        if [ ! -d "$APP_PATH" ]; then
-          echo "❌ App not found at $APP_PATH"
+        if [ ! -d "{{.APP_PATH}}" ]; then
+          echo "❌ App not found at {{.APP_PATH}}"
           echo "Build and sign the app first"
           exit 1
         fi
 
-        echo "🔍 Verifying MagSafe Guard Signature"
+        echo "🔍 Verifying {{.APP_NAME}} Signature"
         echo "===================================="
         echo ""
 
         # Basic signature verification
         echo "📋 Signature verification:"
-        if codesign --verify --deep --verbose=2 "$APP_PATH" 2>&1; then
+        if codesign --verify --deep --verbose=2 "{{.APP_PATH}}" 2>&1; then
           echo "✅ Signature is valid"
         else
           echo "❌ Signature verification failed"
@@ -777,19 +788,19 @@ tasks:
 
         echo ""
         echo "📋 Signature details:"
-        codesign -dvvv "$APP_PATH" 2>&1 | grep -E "Authority|TeamIdentifier|Signature|Identifier|Format|CDHash" | head -15
+        codesign -dvvv "{{.APP_PATH}}" 2>&1 | grep -E "Authority|TeamIdentifier|Signature|Identifier|Format|CDHash" | head -15
 
         echo ""
         echo "📋 Entitlements:"
-        codesign -d --entitlements - "$APP_PATH" 2>&1 | grep -E "key>" | sed 's/.*<key>/  - /' | sed 's/<\/key>.*//'
+        codesign -d --entitlements - "{{.APP_PATH}}" 2>&1 | grep -E "key>" | sed 's/.*<key>/  - /' | sed 's/<\/key>.*//'
 
         echo ""
         echo "📋 Gatekeeper assessment:"
-        spctl -a -t exec -vv "$APP_PATH" 2>&1 || true
+        spctl -a -t exec -vv "{{.APP_PATH}}" 2>&1 || true
 
         echo ""
         echo "📋 Notarization status:"
-        if spctl --assess -vv "$APP_PATH" 2>&1 | grep -q "accepted"; then
+        if spctl --assess -vv "{{.APP_PATH}}" 2>&1 | grep -q "accepted"; then
           echo "✅ App is notarized or accepted by Gatekeeper"
         else
           echo "⚠️  App is not notarized (required for distribution)"
@@ -816,7 +827,7 @@ tasks:
         echo "Found certificate: $CERT_NAME"
         echo ""
 
-        OUTPUT_PATH="$HOME/Desktop/MagSafeGuard-Certificate.p12"
+        OUTPUT_PATH="$HOME/Desktop/{{.APP_NAME}}-Certificate.p12"
 
         echo "This will export your certificate and private key."
         echo "You'll need to create a password to protect the exported file."

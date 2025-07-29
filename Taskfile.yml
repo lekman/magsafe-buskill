@@ -467,6 +467,23 @@ tasks:
         echo "✅ Build complete"
         echo ""
 
+        # Fix Info.plist - Swift Bundler doesn't include all required keys
+        echo "🔧 Fixing Info.plist for menu bar app..."
+        PLIST="$APP_PATH/Contents/Info.plist"
+        
+        # Add LSUIElement
+        /usr/libexec/PlistBuddy -c "Add :LSUIElement bool true" "$PLIST" 2>/dev/null || \
+        /usr/libexec/PlistBuddy -c "Set :LSUIElement true" "$PLIST"
+        
+        # Add Bundle Identifier if missing
+        if ! /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$PLIST" 2>/dev/null; then
+          /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string com.lekman.magsafeguard" "$PLIST"
+          echo "  ✅ Bundle identifier added"
+        fi
+        
+        echo "  ✅ Info.plist fixed for menu bar"
+        echo ""
+
         # Smart signing strategy
         echo "🔐 Code Signing Strategy..."
         SIGNING_SUCCESS=false
@@ -489,6 +506,22 @@ tasks:
             SIGNING_SUCCESS=true
           else
             echo "  ⚠️  Ad-hoc signing failed"
+          fi
+        fi
+
+        # Verify signature if signing was attempted
+        if [ "$SIGNING_SUCCESS" = true ]; then
+          echo ""
+          echo "🔍 Verifying signature..."
+          if codesign --verify --deep --verbose=2 "$APP_PATH" 2>&1 | grep -q "valid on disk"; then
+            echo "  ✅ Signature verification passed"
+            # Show key details
+            SIGNER=$(codesign -dvv "$APP_PATH" 2>&1 | grep "Authority=" | head -1 | cut -d= -f2)
+            TEAM_ID=$(codesign -dvv "$APP_PATH" 2>&1 | grep "TeamIdentifier=" | cut -d= -f2)
+            echo "  • Signed by: $SIGNER"
+            echo "  • Team ID: $TEAM_ID"
+          else
+            echo "  ⚠️  Signature verification failed"
           fi
         fi
 
@@ -1121,19 +1154,6 @@ tasks:
       - task: qa
       - task: sonar:scan
       - echo "✅ Full QA suite with SonarCloud completed!"
-  # Aliases for backward compatibility
-  pre-push:
-    desc: "(Deprecated) Use 'task qa' instead"
-    silent: true
-    cmds:
-      - echo "⚠️  'pre-push' is deprecated. Use 'task qa' instead."
-      - task: qa
-  pre-pr:
-    desc: "(Deprecated) Use 'task qa' instead"
-    silent: true
-    cmds:
-      - echo "⚠️  'pre-pr' is deprecated. Use 'task qa' instead."
-      - task: qa
   commit:
     desc: Interactive commit with conventional format
     silent: true
