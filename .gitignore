@@ -527,3 +527,9 @@ sbom-deps.json
 # SonarCloud local scan results
 .sonarcloud/
 .scannerwork/
+
+# GitHub reports
+.github/pr-comments/
+
+# Swift Bundler binary
+swift-bundler
