@@ -1,0 +1,61 @@
+// SigningConfig.xcconfig
+// Centralized code signing configuration for MagSafe Guard
+
+// MARK: - Bundle Identifier
+PRODUCT_BUNDLE_IDENTIFIER = com.lekman.magsafeguard
+
+// MARK: - Development Team
+// Set your Team ID here or in environment variable DEVELOPMENT_TEAM
+DEVELOPMENT_TEAM = ${DEVELOPMENT_TEAM}
+
+// MARK: - Code Signing Identities
+
+// Development builds
+CODE_SIGN_IDENTITY[config=Debug] = Apple Development
+CODE_SIGN_IDENTITY[config=Development] = Apple Development
+
+// Release builds for direct distribution
+CODE_SIGN_IDENTITY[config=Release] = Developer ID Application
+
+// App Store builds
+CODE_SIGN_IDENTITY[config=AppStore] = Apple Distribution
+CODE_SIGN_IDENTITY[config=Distribution] = Apple Distribution
+
+// CI/Testing builds (ad-hoc signing)
+CODE_SIGN_IDENTITY[config=CI] = -
+CODE_SIGN_IDENTITY[config=Test] = -
+
+// MARK: - Code Signing Style
+CODE_SIGN_STYLE = Manual
+
+// MARK: - Provisioning Profiles
+// These would need to be created in Apple Developer portal
+PROVISIONING_PROFILE_SPECIFIER[config=Debug] = 
+PROVISIONING_PROFILE_SPECIFIER[config=Release] = 
+PROVISIONING_PROFILE_SPECIFIER[config=AppStore] = 
+PROVISIONING_PROFILE_SPECIFIER[config=Distribution] = 
+
+// MARK: - Entitlements Files
+CODE_SIGN_ENTITLEMENTS[config=Debug] = Resources/MagSafeGuard.development.entitlements
+CODE_SIGN_ENTITLEMENTS[config=Development] = Resources/MagSafeGuard.development.entitlements
+CODE_SIGN_ENTITLEMENTS[config=Release] = Resources/MagSafeGuard.developerid.entitlements
+CODE_SIGN_ENTITLEMENTS[config=AppStore] = Resources/MagSafeGuard.entitlements
+CODE_SIGN_ENTITLEMENTS[config=Distribution] = Resources/MagSafeGuard.entitlements
+CODE_SIGN_ENTITLEMENTS[config=CI] = Resources/MagSafeGuard.ci.entitlements
+CODE_SIGN_ENTITLEMENTS[config=Test] = Resources/MagSafeGuard.ci.entitlements
+
+// MARK: - Hardened Runtime
+ENABLE_HARDENED_RUNTIME[config=Release] = YES
+ENABLE_HARDENED_RUNTIME[config=AppStore] = YES
+ENABLE_HARDENED_RUNTIME[config=Distribution] = YES
+ENABLE_HARDENED_RUNTIME[config=Debug] = NO
+ENABLE_HARDENED_RUNTIME[config=Development] = NO
+ENABLE_HARDENED_RUNTIME[config=CI] = NO
+ENABLE_HARDENED_RUNTIME[config=Test] = NO
+
+// MARK: - Other Code Signing Settings
+OTHER_CODE_SIGN_FLAGS = --timestamp --options=runtime
+OTHER_CODE_SIGN_FLAGS[config=Debug] = 
+OTHER_CODE_SIGN_FLAGS[config=Development] = 
+OTHER_CODE_SIGN_FLAGS[config=CI] = 
+OTHER_CODE_SIGN_FLAGS[config=Test] = 

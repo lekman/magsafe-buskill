@@ -90,19 +90,44 @@ task markdown:lint  # Lint markdown files
 task markdown:fix   # Auto-fix markdown issues
 ```
 
+### 🗃️ [Git Tasks](git.md)
+
+Git repository management, GitHub integration, and PR comment analysis.
+
+```bash
+task git:           # Show available Git tasks
+task git:pr:list    # List pull requests
+task git:pr:comments # Download PR comments and security alerts
+task git:cve:analyze # Analyze Dependabot vulnerabilities
+```
+
+### 🔧 [YAML Tasks](yaml.md)
+
+YAML file validation and linting tasks.
+
+```bash
+task yaml:          # Show available YAML tasks
+task yaml:lint      # Lint YAML files
+task yaml:validate  # Validate YAML syntax
+```
+
 ## Task File Structure
 
 ```ini
 tasks/
 ├── README.md       # This file
+├── git.yml         # Git and GitHub tasks
 ├── markdown.yml    # Markdown linting tasks
 ├── security.yml    # Security scanning tasks
 ├── sonar.yml       # SonarCloud analysis tasks
 ├── swift.yml       # Swift development tasks
+├── yaml.yml        # YAML validation tasks
+├── git.md          # Git module documentation
 ├── markdown.md     # Markdown module documentation
 ├── security.md     # Security module documentation
 ├── sonar.md        # SonarCloud module documentation
-└── swift.md        # Swift module documentation
+├── swift.md        # Swift module documentation
+└── yaml.md         # YAML module documentation
 ```
 
 ## Creating Custom Tasks

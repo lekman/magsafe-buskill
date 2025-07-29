@@ -1,0 +1,363 @@
+//
+//  SecurityEvidenceSettingsView.swift
+//  MagSafe Guard
+//
+//  Created on 2025-07-27.
+//
+//  Settings view for configuring evidence collection features
+//
+
+import AVFoundation
+import CoreLocation
+import SwiftUI
+
+/// Settings view for evidence collection configuration
+struct SecurityEvidenceSettingsView: View {
+    @EnvironmentObject var settingsManager: UserDefaultsManager
+    @State private var showingPermissionsAlert = false
+    @State private var permissionType: PermissionType = .camera
+    @State private var testInProgress = false
+    @State private var testResult: String = ""
+    @Environment(\.dismiss) private var dismiss
+
+    private enum PermissionType {
+        case camera
+        case location
+
+        var title: String {
+            switch self {
+            case .camera:
+                return "Camera Permission Required"
+            case .location:
+                return "Location Permission Required"
+            }
+        }
+
+        var message: String {
+            switch self {
+            case .camera:
+                return "MagSafe Guard needs camera access to capture photos as evidence when theft is detected. This helps identify the thief."
+            case .location:
+                return "MagSafe Guard needs location access to track your device when theft is detected. This helps recover your device."
+            }
+        }
+    }
+
+    private var headerIcon: some View {
+        Image(systemName: "camera.fill")
+            .font(.title2)
+            .foregroundColor(.orange)
+    }
+
+    private var headerTitle: some View {
+        Text("Evidence Collection Settings")
+            .font(.title2)
+            .fontWeight(.semibold)
+    }
+
+    private var headerContent: some View {
+        HStack {
+            headerIcon
+            headerTitle
+            Spacer()
+            doneButton
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            VStack(alignment: .leading, spacing: 8) {
+                headerContent
+                Text("Configure how evidence is collected and stored when theft is detected")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+
+            Divider()
+
+            // Settings
+            Form {
+                permissionsSection
+                storageSection
+                testSection
+            }
+            .formStyle(.grouped)
+        }
+        .frame(width: 500, height: 400)
+        .alert(permissionType.title, isPresented: $showingPermissionsAlert) {
+            Button("Open System Preferences") {
+                openSystemPreferences()
+            }
+            Button("Cancel", role: .cancel) {
+                // No action needed - dismisses alert automatically
+            }
+        } message: {
+            Text(permissionType.message)
+        }
+    }
+
+    private var permissionsSection: some View {
+        Section("Permissions") {
+            // Camera Permission
+            HStack {
+                Label("Camera Access", systemImage: "camera.fill")
+                Spacer()
+                Text(cameraPermissionStatus)
+                    .foregroundColor(cameraPermissionColor)
+                    .font(.caption)
+                if !hasCameraPermission {
+                    cameraRequestButton
+                }
+            }
+
+            // Location Permission
+            HStack {
+                Label("Location Access", systemImage: "location.fill")
+                Spacer()
+                Text(locationPermissionStatus)
+                    .foregroundColor(locationPermissionColor)
+                    .font(.caption)
+                if !hasLocationPermission {
+                    locationRequestButton
+                }
+            }
+        }
+    }
+
+    private var encryptionInfo: some View {
+        HStack {
+            Image(systemName: "lock.shield.fill")
+                .foregroundColor(.green)
+            Text("Evidence is encrypted before storage")
+                .font(.subheadline)
+        }
+    }
+
+    private var storageSection: some View {
+        Section("Storage") {
+            VStack(alignment: .leading, spacing: 12) {
+                // Encryption info
+                encryptionInfo
+
+                // Local storage info
+                HStack {
+                    Image(systemName: "folder.fill")
+                        .foregroundColor(.blue)
+                    Text("Local: ~/Documents/Evidence/")
+                        .font(.subheadline)
+                }
+
+                // iCloud sync info
+                HStack {
+                    Image(systemName: "icloud.fill")
+                        .foregroundColor(.blue)
+                    VStack(alignment: .leading) {
+                        Text("iCloud backup enabled")
+                            .font(.subheadline)
+                        Text("Configure in iCloud tab")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                viewEvidenceFolderButton
+            }
+        }
+    }
+
+    private var testDescription: some View {
+        Text("Test evidence collection to ensure everything works correctly")
+            .font(.caption)
+            .foregroundColor(.secondary)
+    }
+
+    private var testButtons: some View {
+        HStack {
+            testEvidenceButton
+            if testInProgress {
+                ProgressView()
+                    .scaleEffect(0.8)
+                    .padding(.leading, 8)
+            }
+        }
+    }
+
+    private var testResultView: some View {
+        Group {
+            if !testResult.isEmpty {
+                Text(testResult)
+                    .font(.caption)
+                    .foregroundColor(testResult.contains("Success") ? .green : .red)
+                    .padding(.top, 4)
+            }
+        }
+    }
+
+    private var testSection: some View {
+        Section("Test") {
+            VStack(alignment: .leading, spacing: 12) {
+                testDescription
+                testButtons
+                testResultView
+            }
+        }
+    }
+
+    private var testEvidenceButton: some View {
+        Button("Test Evidence Collection") {
+            testEvidenceCollection()
+        }
+        .disabled(testInProgress || !settingsManager.settings.evidenceCollectionEnabled)
+    }
+
+    // MARK: - Permission Status
+
+    private var hasCameraPermission: Bool {
+        AVCaptureDevice.authorizationStatus(for: .video) == .authorized
+    }
+
+    private var cameraPermissionStatus: String {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .notDetermined:
+            return "Not Requested"
+        case .restricted:
+            return "Restricted"
+        case .denied:
+            return "Denied"
+        case .authorized:
+            return "Granted"
+        @unknown default:
+            return "Unknown"
+        }
+    }
+
+    private var cameraPermissionColor: Color {
+        hasCameraPermission ? .green : .orange
+    }
+
+    private var hasLocationPermission: Bool {
+        let locationManager = CLLocationManager()
+        let status = locationManager.authorizationStatus
+        return status == .authorizedAlways
+    }
+
+    private var locationPermissionStatus: String {
+        let locationManager = CLLocationManager()
+        switch locationManager.authorizationStatus {
+        case .notDetermined:
+            return "Not Requested"
+        case .restricted:
+            return "Restricted"
+        case .denied:
+            return "Denied"
+        case .authorizedAlways:
+            return "Always"
+        @unknown default:
+            return "Unknown"
+        }
+    }
+
+    private var locationPermissionColor: Color {
+        hasLocationPermission ? .green : .orange
+    }
+
+    // MARK: - Bindings
+
+    // MARK: - Button Views
+
+    private var doneButton: some View {
+        Button("Done") {
+            dismiss()
+        }
+    }
+
+    private var cameraRequestButton: some View {
+        Button("Request") {
+            requestCameraPermission()
+        }
+        .buttonStyle(.link)
+    }
+
+    private var locationRequestButton: some View {
+        Button("Request") {
+            requestLocationPermission()
+        }
+        .buttonStyle(.link)
+    }
+
+    private var viewEvidenceFolderButton: some View {
+        Button("View Evidence Folder") {
+            openEvidenceFolder()
+        }
+        .buttonStyle(.link)
+    }
+
+    // MARK: - Actions
+
+    private func requestCameraPermission() {
+        AVCaptureDevice.requestAccess(for: .video) { granted in
+            if !granted {
+                DispatchQueue.main.async {
+                    permissionType = .camera
+                    showingPermissionsAlert = true
+                }
+            }
+        }
+    }
+
+    private func requestLocationPermission() {
+        let locationManager = CLLocationManager()
+        locationManager.requestAlwaysAuthorization()
+
+        // Check permission after a delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if !hasLocationPermission {
+                permissionType = .location
+                showingPermissionsAlert = true
+            }
+        }
+    }
+
+    private func openSystemPreferences() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func openEvidenceFolder() {
+        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let evidenceURL = documentsURL.appendingPathComponent("Evidence", isDirectory: true)
+
+        // Create folder if it doesn't exist
+        try? FileManager.default.createDirectory(at: evidenceURL, withIntermediateDirectories: true)
+
+        // Open in Finder
+        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: evidenceURL.path)
+    }
+
+    func testEvidenceCollection() {
+        testInProgress = true
+        testResult = ""
+
+        // Create evidence service
+        let evidenceService = SecurityEvidenceService()
+
+        // Simulate evidence collection
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            do {
+                try evidenceService.collectEvidence(reason: "Manual test from settings")
+                testResult = "✓ Success! Check evidence folder."
+            } catch {
+                testResult = "✗ Failed: \(error.localizedDescription)"
+            }
+            testInProgress = false
+
+            // Clear result after 5 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                testResult = ""
+            }
+        }
+    }
+}

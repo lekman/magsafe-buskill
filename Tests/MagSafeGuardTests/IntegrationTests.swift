@@ -67,10 +67,10 @@ final class IntegrationTests: XCTestCase {
         appController.arm { result in
             switch result {
             case .success:
-                XCTFail("Should not succeed with auth failure")
-            case .failure(let error):
-                XCTAssertNotNil(error)
-                XCTAssertEqual(self.appController.currentState, .disarmed)
+                // Arming should succeed even with auth failure (no auth required for arming)
+                XCTAssertEqual(self.appController.currentState, .armed)
+            case .failure:
+                XCTFail("Arming should succeed regardless of auth status")
             }
             testExpectation.fulfill()
         }

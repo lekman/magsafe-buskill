@@ -10,13 +10,14 @@
 
 import AppKit
 import Combine
+import CoreLocation
 import Foundation
 
 /// Application states representing the security system's current mode.
 ///
 /// The state machine flows: disarmed → armed → gracePeriod → triggered
 /// with the ability to return to disarmed from any state via authentication.
-public enum AppState: String {
+public enum AppState: String, Codable {
     /// System is not monitoring power disconnection
     case disarmed = "disarmed"
     /// System is actively monitoring for power disconnection
@@ -31,7 +32,7 @@ public enum AppState: String {
 ///
 /// These events are logged for audit trails and can trigger state changes
 /// or notifications based on the current configuration.
-public enum AppEvent: String {
+public enum AppEvent: String, Codable {
     /// System was armed successfully
     case armed
     /// System was disarmed successfully
@@ -60,7 +61,8 @@ public enum AppEvent: String {
 ///
 /// Used for audit trails, debugging, and user activity monitoring.
 /// Events are automatically logged by the AppController during state changes.
-public struct EventLogEntry {
+/// Includes location and device information for iCloud sync and companion app features.
+public struct EventLogEntry: Codable {
     /// When the event occurred
     public let timestamp: Date
     /// Type of event that occurred
@@ -69,6 +71,33 @@ public struct EventLogEntry {
     public let details: String?
     /// Application state when event occurred
     public let state: AppState
+    /// Device identifier (machine name)
+    public let deviceName: String
+    /// Device model (e.g., "MacBook Pro")
+    public let deviceModel: String
+    /// macOS version
+    public let osVersion: String
+    /// Location at time of event (if available and permitted)
+    public let location: LocationInfo?
+    /// User identifier for multi-device sync
+    public let userID: String
+
+    /// Location information for events
+    public struct LocationInfo: Codable {
+        /// The latitude coordinate
+        public let latitude: Double
+        /// The longitude coordinate
+        public let longitude: Double
+        /// The accuracy of the location in meters
+        public let accuracy: Double
+        /// When the location was captured
+        public let timestamp: Date
+
+        /// Google Maps URL for quick viewing
+        public var mapsURL: String {
+            AppConfiguration.googleMapsURL(latitude: latitude, longitude: longitude)
+        }
+    }
 }
 
 /// Main application controller that coordinates all services and manages application state.
@@ -108,6 +137,10 @@ public struct EventLogEntry {
 /// All public methods are thread-safe and coordinate through the main queue
 /// for UI updates and state changes.
 public class AppController: ObservableObject {
+
+    // MARK: - Constants
+
+    private static let appName = "MagSafe Guard"
 
     // MARK: - Published Properties
 
@@ -178,6 +211,13 @@ public class AppController: ObservableObject {
     /// Flag to disable auto-arm in test environments
     static var isTestEnvironment = false
 
+    /// Location manager for event logging
+    private lazy var eventLocationManager: LocationManager = {
+        let manager = LocationManager()
+        manager.startMonitoring()
+        return manager
+    }()
+
     // MARK: - Constants
 
     private static let userCancelledMessage = "User cancelled"
@@ -225,41 +265,22 @@ public class AppController: ObservableObject {
 
     // MARK: - Public Methods
 
-    /// Arms the system with authentication
+    /// Arms the system without authentication
     public func arm(completion: @escaping (Result<Void, Error>) -> Void) {
         guard currentState == .disarmed else {
             completion(.failure(AppControllerError.invalidState("Cannot arm from state: \(currentState)")))
             return
         }
 
-        // Require authentication
-        authService.authenticate(reason: "Authenticate to arm MagSafe Guard") { [weak self] result in
-            guard let self = self else { return }
+        // No authentication required for arming - users should be able to quickly protect their device
+        self.logEventInternal(.armed, details: "System armed successfully")
+        self.transitionToState(.armed)
+        self.onNotification?("MagSafe Guard Armed", "Protection is now active")
 
-            switch result {
-            case .success:
-                self.logEventInternal(.authenticationSucceeded, details: "Arming system")
-                self.transitionToState(.armed)
-                self.onNotification?("MagSafe Guard Armed", "Protection is now active")
+        // Accessibility announcement
+        AccessibilityAnnouncement.announceStateChange(component: AppController.appName, newState: "armed")
 
-                // Accessibility announcement
-                AccessibilityAnnouncement.announceStateChange(component: "MagSafe Guard", newState: "armed")
-
-                completion(.success(()))
-
-            case .failure(let error):
-                self.logEventInternal(.authenticationFailed, details: error.localizedDescription)
-
-                // Accessibility announcement for errors
-                AccessibilityAnnouncement.announceAlert("Failed to arm system: \(error.localizedDescription)")
-
-                completion(.failure(error))
-
-            case .cancelled:
-                self.logEventInternal(.authenticationFailed, details: AppController.userCancelledMessage)
-                completion(.failure(AppControllerError.authenticationRequired))
-            }
-        }
+        completion(.success(()))
     }
 
     /// Disarms the system with authentication
@@ -285,7 +306,7 @@ public class AppController: ObservableObject {
                 self.onNotification?("MagSafe Guard Disarmed", "Protection is now inactive")
 
                 // Accessibility announcement
-                AccessibilityAnnouncement.announceStateChange(component: "MagSafe Guard", newState: "disarmed")
+                AccessibilityAnnouncement.announceStateChange(component: AppController.appName, newState: "disarmed")
 
                 completion(.success(()))
 
@@ -385,6 +406,17 @@ public class AppController: ObservableObject {
                 self.handlePowerDisconnected()
             } else if powerInfo.state == .connected {
                 self.logEventInternal(.powerConnected, details: "Power adapter connected")
+
+                // Cancel grace period if power is reconnected
+                if self.isInGracePeriod {
+                    self.cancelGracePeriod()
+                    self.transitionToState(.armed)
+                    self.notificationService.showNotification(
+                        title: "Grace Period Cancelled",
+                        message: "Power reconnected - security actions cancelled"
+                    )
+                    Log.info("✅ Grace period cancelled - power reconnected", category: .security)
+                }
             }
         }
     }
@@ -413,13 +445,22 @@ public class AppController: ObservableObject {
         )
 
         // Start countdown timer
+        var lastLoggedSecond = Int(ceil(gracePeriodDuration))
         gracePeriodTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             guard let self = self else { return }
 
             let elapsed = Date().timeIntervalSince(self.gracePeriodStartTime ?? Date())
             self.gracePeriodRemaining = max(0, self.gracePeriodDuration - elapsed)
 
+            // Log countdown at whole second intervals
+            let remainingSeconds = Int(ceil(self.gracePeriodRemaining))
+            if remainingSeconds < lastLoggedSecond && remainingSeconds > 0 {
+                lastLoggedSecond = remainingSeconds
+                Log.warning("⏱️ GRACE PERIOD: \(remainingSeconds) seconds remaining...", category: .security)
+            }
+
             if self.gracePeriodRemaining <= 0 {
+                Log.warning("💥 GRACE PERIOD EXPIRED - Executing security actions NOW!", category: .security)
                 self.gracePeriodTimer?.invalidate()
                 self.gracePeriodTimer = nil
                 self.executeSecurityActions()
@@ -440,6 +481,17 @@ public class AppController: ObservableObject {
     private func executeSecurityActions() {
         transitionToState(.triggered)
         cancelGracePeriod()
+
+        // Check if evidence collection is enabled
+        if UserDefaultsManager.shared.settings.evidenceCollectionEnabled {
+            let evidenceService = SecurityEvidenceService()
+            do {
+                try evidenceService.collectEvidence(reason: "Power disconnection detected - potential theft")
+                logEventInternal(.securityActionExecuted, details: "Evidence collection initiated")
+            } catch {
+                Log.error("Failed to collect evidence", error: error, category: .security)
+            }
+        }
 
         securityActions.executeActions { [weak self] result in
             guard let self = self else { return }
@@ -481,11 +533,36 @@ public class AppController: ObservableObject {
         eventLogQueue.async { [weak self] in
             guard let self = self else { return }
 
+            // Get device information
+            let deviceName = Host.current().localizedName ?? "Unknown Mac"
+            let deviceModel = self.getDeviceModel()
+            let osVersion = ProcessInfo.processInfo.operatingSystemVersionString
+
+            // Get current location if available and permission granted
+            var locationInfo: EventLogEntry.LocationInfo?
+            if let location = self.eventLocationManager.currentLocation,
+               location.horizontalAccuracy > 0 {
+                locationInfo = EventLogEntry.LocationInfo(
+                    latitude: location.coordinate.latitude,
+                    longitude: location.coordinate.longitude,
+                    accuracy: location.horizontalAccuracy,
+                    timestamp: location.timestamp
+                )
+            }
+
+            // Get user ID (for now, use device identifier)
+            let userID = self.getUserIdentifier()
+
             let entry = EventLogEntry(
                 timestamp: Date(),
                 event: event,
                 details: details,
-                state: self.currentState
+                state: self.currentState,
+                deviceName: deviceName,
+                deviceModel: deviceModel,
+                osVersion: osVersion,
+                location: locationInfo,
+                userID: userID
             )
 
             self.eventLog.append(entry)
@@ -516,6 +593,12 @@ public class AppController: ObservableObject {
         // Skip auto-arm setup in test environment to avoid location permission issues
         guard !AppController.isTestEnvironment else { return }
 
+        // Check if auto-arm feature is enabled
+        guard FeatureFlags.shared.isAutoArmEnabled else {
+            Log.info("Auto-arm feature disabled via feature flags", category: .general)
+            return
+        }
+
         // Initialize auto-arm manager
         autoArmManager = AutoArmManager(appController: self)
 
@@ -538,6 +621,28 @@ public class AppController: ObservableObject {
             name: Notification.Name("MagSafeGuard.CancelGracePeriod"),
             object: nil
         )
+
+        // Listen for CloudKit permission notifications
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleCloudKitNotification(_:)),
+            name: Notification.Name("MagSafeGuardCloudKitPermissionNeeded"),
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleCloudKitNotification(_:)),
+            name: Notification.Name("MagSafeGuardCloudKitAccountNeeded"),
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleCloudKitNotification(_:)),
+            name: Notification.Name("MagSafeGuardCloudKitRestricted"),
+            object: nil
+        )
     }
 
     @objc private func handleGracePeriodCancellationRequest() {
@@ -548,6 +653,20 @@ public class AppController: ObservableObject {
                 // by the notification center, so no additional error handling is needed here.
             }
         }
+    }
+
+    @objc private func handleCloudKitNotification(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let title = userInfo["title"] as? String,
+              let message = userInfo["message"] as? String else {
+            return
+        }
+
+        // Show notification to user
+        notificationService.showNotification(title: title, message: message)
+
+        // Log the issue
+        Log.warning("CloudKit notification: \(title) - \(message)", category: .general)
     }
 }
 
@@ -616,6 +735,97 @@ extension AppController {
             return "Grace Period - \(Int(gracePeriodRemaining))s"
         case .triggered:
             return "Security Action Triggered"
+        }
+    }
+
+    // MARK: - Helper Methods for Enhanced Logging
+
+    /// Gets the device model name (e.g., "MacBook Pro")
+    private func getDeviceModel() -> String {
+        var size = 0
+        sysctlbyname("hw.model", nil, &size, nil, 0)
+        var model = [CChar](repeating: 0, count: size)
+        sysctlbyname("hw.model", &model, &size, nil, 0)
+        let modelString = String(cString: model)
+
+        // Convert model identifier to friendly name
+        if modelString.contains("MacBookPro") {
+            return "MacBook Pro"
+        } else if modelString.contains("MacBookAir") {
+            return "MacBook Air"
+        } else if modelString.contains("iMac") {
+            return "iMac"
+        } else if modelString.contains("MacMini") {
+            return "Mac mini"
+        } else if modelString.contains("MacStudio") {
+            return "Mac Studio"
+        } else if modelString.contains("MacPro") {
+            return "Mac Pro"
+        } else {
+            return modelString
+        }
+    }
+
+    /// Gets a unique user identifier for iCloud sync
+    private func getUserIdentifier() -> String {
+        // For now, use a combination of device name and a stored UUID
+        // In the future, this could be tied to iCloud account
+        let userDefaultsKey = "com.magsafeguard.userIdentifier"
+
+        if let existingID = UserDefaults.standard.string(forKey: userDefaultsKey) {
+            return existingID
+        } else {
+            let newID = UUID().uuidString
+            UserDefaults.standard.set(newID, forKey: userDefaultsKey)
+            return newID
+        }
+    }
+
+    // MARK: - Event Log Export for iCloud Sync
+
+    /// Exports recent event logs as JSON for iCloud sync
+    public func exportEventLogs(limit: Int = 100) -> Data? {
+        do {
+            let recentLogs = Array(eventLog.suffix(limit))
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            return try encoder.encode(recentLogs)
+        } catch {
+            Log.error("Failed to export event logs", error: error, category: .general)
+            return nil
+        }
+    }
+
+    /// Imports event logs from iCloud sync (merges with existing)
+    public func importEventLogs(from data: Data) {
+        do {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let importedLogs = try decoder.decode([EventLogEntry].self, from: data)
+
+            // Merge logs, avoiding duplicates based on timestamp and event
+            for log in importedLogs {
+                let isDuplicate = eventLog.contains { existing in
+                    existing.timestamp == log.timestamp &&
+                    existing.event == log.event &&
+                    existing.deviceName == log.deviceName
+                }
+
+                if !isDuplicate {
+                    eventLog.append(log)
+                }
+            }
+
+            // Sort by timestamp and maintain size limit
+            eventLog.sort { $0.timestamp < $1.timestamp }
+            if eventLog.count > 1000 {
+                eventLog.removeFirst(eventLog.count - 1000)
+            }
+
+            Log.info("Imported \(importedLogs.count) event logs", category: .general)
+        } catch {
+            Log.error("Failed to import event logs", error: error, category: .general)
         }
     }
 }

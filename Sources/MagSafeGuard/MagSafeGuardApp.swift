@@ -14,9 +14,11 @@ struct MagSafeGuardApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     init() {
+        // Minimal initialization to get app running
+        
         // Set a bundle identifier for development if needed
         if Bundle.main.bundleIdentifier == nil {
-            Log.info("Running in development mode without bundle identifier")
+            print("Running in development mode without bundle identifier")
         }
     }
 
@@ -29,9 +31,9 @@ struct MagSafeGuardApp: App {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
-    private var demoWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var windowDelegates: [NSWindow: WindowDelegate] = [:]
+    // Re-enable core to test
     let core = AppDelegateCore()
 
     // MARK: - Constants
@@ -41,58 +43,83 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Application Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        print("Application did finish launching")
+        
         // Hide dock icon as this is a menu bar app
         NSApp.setActivationPolicy(.accessory)
 
-        // Setup AppController callbacks
-        setupAppControllerCallbacks()
-
-        // Only request notification permissions if we have a valid bundle
-        if Bundle.main.bundleIdentifier != nil {
-            requestNotificationPermissions()
-        } else {
-            Log.warning("Running without bundle identifier - notifications disabled", category: .ui)
-            Log.info("TIP: To see menu bar icon in Xcode:", category: .ui)
-            Log.info("  1. Product > Scheme > Edit Scheme", category: .ui)
-            Log.info("  2. Run > Options > Launch: Wait for executable to be launched", category: .ui)
-            Log.info("  3. Build and Run, then manually launch from build folder", category: .ui)
-        }
-
-        // Create the status item - use a strong reference
+        // Create the status item immediately for fast UI response
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
+        // Setup critical UI first
+        setupCriticalUI()
+
+        // Simple direct startup
+        finishStartup()
+    }
+
+    private func setupCriticalUI() {
         // Ensure the status item is retained
         statusItem?.isVisible = true
 
         if let button = statusItem?.button {
-            // Set a title first to ensure visibility
-            button.title = "MG"
+            // Use preloaded icon for instant display
+            if let icon = ResourcePreloader.shared.getDefaultIcon() {
+                button.image = icon
+                button.title = ""
+            } else {
+                // Fallback to text
+                button.title = "MG"
+            }
 
-            // Then try to set the icon
-            updateStatusIcon()
             button.action = #selector(statusItemClicked)
             button.target = self
-
-            // Force the button to be visible
             button.appearsDisabled = false
-
-            // Log status
-            Log.debug("Status button created: \(button)", category: .ui)
-            Log.debug("Button frame: \(button.frame)", category: .ui)
-            Log.debug("Button superview: \(button.superview?.description ?? "nil")", category: .ui)
-            Log.debug("Button image: \(button.image?.description ?? "nil")", category: .ui)
-            Log.debug("Button title: \(button.title)", category: .ui)
         } else {
             Log.fault("Failed to create status button", category: .ui)
         }
 
-        // Create menu
+        // Create minimal loading menu
+        let loadingMenu = NSMenu()
+        loadingMenu.addItem(NSMenuItem(title: "MagSafe Guard is starting...", action: nil, keyEquivalent: ""))
+        statusItem?.menu = loadingMenu
+    }
+
+    private func performAsyncStartup() {
+        // Setup AppController callbacks
+        setupAppControllerCallbacks()
+        StartupMetrics.shared.recordMilestone("callbacks_setup")
+
+        // Initialize core services (lazy initialization)
+        _ = core.appController
+        StartupMetrics.shared.recordMilestone("core_initialized")
+
+        // Setup main UI on main thread
+        DispatchQueue.main.async { [weak self] in
+            self?.finishStartup()
+        }
+    }
+
+    private func finishStartup() {
+        // Setup the full menu
         setupMenu()
-
-        // Configure accessibility features
-        setupAccessibilityFeatures()
-
-        // AppController now handles power monitoring internally
+        
+        // Update the status icon based on initial state
+        updateStatusIcon()
+        
+        // Ensure proper activation
+        NSApp.activate(ignoringOtherApps: true)
+        
+        // Configure accessibility features after startup
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.setupAccessibilityFeatures()
+        }
+        
+        // Setup CloudKit notifications
+        setupCloudKitNotifications()
+        
+        print("MagSafe Guard startup complete")
+        StartupMetrics.shared.recordMilestone("startup_complete")
     }
 
     private func setupMenu() {
@@ -107,12 +134,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Configure status item accessibility
         if let button = statusItem?.button {
-            button.setAccessibilityLabel("MagSafe Guard")
-            button.setAccessibilityHelp("Click to open MagSafe Guard menu. Current status: \(core.appController.statusDescription)")
+            button.setAccessibilityLabel(AppDelegate.appName)
+            button.setAccessibilityHelp("Click to open \(AppDelegate.appName) menu. Current status: \(core.appController.statusDescription)")
             button.setAccessibilityRole(.menuButton)
         }
 
         Log.info("Accessibility features configured", category: .general)
+    }
+
+    private func setupCloudKitNotifications() {
+        // Listen for CloudKit initialization failures
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleCloudKitInitializationFailure(_:)),
+            name: Notification.Name("MagSafeGuardCloudKitInitializationFailed"),
+            object: nil
+        )
+
+        // Listen for CloudKit permission issues
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleCloudKitPermissionNeeded(_:)),
+            name: Notification.Name("MagSafeGuardCloudKitPermissionNeeded"),
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleCloudKitAccountNeeded(_:)),
+            name: Notification.Name("MagSafeGuardCloudKitAccountNeeded"),
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleCloudKitRestricted(_:)),
+            name: Notification.Name("MagSafeGuardCloudKitRestricted"),
+            object: nil
+        )
     }
 
     private func setupAppControllerCallbacks() {
@@ -134,36 +193,42 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let button = statusItem?.button {
             let iconName = core.statusIconName()
             let statusDescription = core.appController.statusDescription
-            let image = NSImage(systemSymbolName: iconName, accessibilityDescription: AppDelegate.appName)
 
-            // If SF Symbol works, use it
-            if let image = image {
-                // Create a copy and set as template to ensure proper dark/light mode handling
-                guard let templateImage = image.copy() as? NSImage else { return }
-                templateImage.isTemplate = true
-                button.image = templateImage
-                // Clear the title when we have an icon
+            // Try preloaded icon first for instant update
+            if let preloadedIcon = ResourcePreloader.shared.getIcon(named: iconName) {
+                button.image = preloadedIcon
                 button.title = ""
-
-                Log.debug("Icon updated: \(iconName)", category: .ui)
+                Log.debug("Icon updated with preloaded: \(iconName)", category: .ui)
             } else {
-                // Fallback to text if icon fails
-                Log.warning("Failed to load SF Symbol '\(iconName)', using text fallback", category: .ui)
-                button.image = nil
-                button.title = core.isArmed ? "MG!" : "MG"
+                // Try loading fresh if not preloaded
+                let image = NSImage(systemSymbolName: iconName, accessibilityDescription: AppDelegate.appName)
+
+                if let image = image {
+                    // Create a copy and set as template
+                    guard let templateImage = image.copy() as? NSImage else { return }
+                    templateImage.isTemplate = true
+                    button.image = templateImage
+                    button.title = ""
+                    Log.debug("Icon updated: \(iconName)", category: .ui)
+                } else {
+                    // Fallback to text if icon fails
+                    Log.warning("Failed to load SF Symbol '\(iconName)', using text fallback", category: .ui)
+                    button.image = nil
+                    button.title = core.isArmed ? "MG!" : "MG"
+                }
             }
 
             // Ensure the icon uses system appearance and supports high contrast
             button.contentTintColor = nil
 
             // Update accessibility properties to reflect current state
-            button.setAccessibilityLabel("MagSafe Guard")
+            button.setAccessibilityLabel(AppDelegate.appName)
             button.setAccessibilityValue(statusDescription)
-            button.setAccessibilityHelp("Click to open MagSafe Guard menu. Current status: \(statusDescription)")
+            button.setAccessibilityHelp("Click to open \(AppDelegate.appName) menu. Current status: \(statusDescription)")
 
             // Announce state changes if VoiceOver is enabled
             if AccessibilityManager.shared.isVoiceOverEnabled {
-                AccessibilityAnnouncement.announceStateChange(component: "MagSafe Guard status", newState: statusDescription)
+                AccessibilityAnnouncement.announceStateChange(component: "\(AppDelegate.appName) status", newState: statusDescription)
             }
         }
     }
@@ -173,33 +238,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func toggleArmed() {
-        if core.appController.currentState == .disarmed {
-            core.appController.arm { [weak self] result in
-                switch result {
-                case .success:
-                    // Notifications are handled by AppController callback
-                    break
-                case .failure(let error):
-                    self?.showNotification(
-                        title: AppDelegate.appName,
-                        message: "Failed to arm: \(error.localizedDescription)"
-                    )
-                }
-            }
-        } else {
-            core.appController.disarm { [weak self] result in
-                switch result {
-                case .success:
-                    // Notifications are handled by AppController callback
-                    break
-                case .failure(let error):
-                    self?.showNotification(
-                        title: AppDelegate.appName,
-                        message: "Failed to disarm: \(error.localizedDescription)"
-                    )
-                }
-            }
-        }
+        // DISABLED FOR DEBUGGING
+        print("toggleArmed called - core disabled")
     }
 
     @objc func showSettings() {
@@ -207,11 +247,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let settingsView = SettingsView()
 
             settingsWindow = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 600, height: 400),
-                styleMask: [.titled, .closable, .miniaturizable],
+                contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
+                styleMask: [.titled, .closable, .miniaturizable, .resizable],
                 backing: .buffered,
                 defer: false
             )
+
+            // Set minimum size to ensure navigation is always visible
+            settingsWindow?.minSize = NSSize(width: 700, height: 500)
 
             settingsWindow?.title = "MagSafe Guard Settings"
             settingsWindow?.contentView = NSHostingView(rootView: settingsView)
@@ -230,26 +273,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         settingsWindow?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-    }
-
-    @objc func showDemo() {
-        if demoWindow == nil {
-            let demoView = PowerMonitorDemoView()
-
-            demoWindow = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 480, height: 600),
-                styleMask: [.titled, .closable, .miniaturizable, .resizable],
-                backing: .buffered,
-                defer: false
-            )
-
-            demoWindow?.title = "Power Monitor Demo"
-            demoWindow?.contentView = NSHostingView(rootView: demoView)
-            demoWindow?.center()
-        }
-
-        demoWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -321,6 +344,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        Log.info("applicationShouldTerminate called", category: .ui)
+        Log.info("Current state: \(core.appController.currentState)", category: .ui)
+
         // Check if we're in a critical state
         if core.appController.currentState == .gracePeriod {
             // Show alert asking user to confirm
@@ -333,10 +359,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             let response = alert.runModal()
             if response == .alertFirstButtonReturn {
+                Log.info("User cancelled quit during grace period", category: .ui)
                 return .terminateCancel
             }
         }
 
+        Log.info("Allowing app termination", category: .ui)
         return .terminateNow
     }
 
@@ -348,6 +376,46 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         Log.debug("Saving state: \(state.rawValue)", category: .ui)
         Log.debug("Recent events: \(events.count)", category: .ui)
+    }
+
+    // MARK: - CloudKit Notification Handlers
+
+    @objc private func handleCloudKitInitializationFailure(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let title = userInfo["title"] as? String,
+              let message = userInfo["message"] as? String else { return }
+
+        // Show a non-blocking notification
+        showNotification(title: title, message: message)
+
+        // Log the error for debugging
+        if let error = userInfo["error"] as? Error {
+            Log.error("CloudKit initialization failed", error: error, category: .ui)
+        }
+    }
+
+    @objc private func handleCloudKitPermissionNeeded(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let title = userInfo["title"] as? String,
+              let message = userInfo["message"] as? String else { return }
+
+        showNotification(title: title, message: message)
+    }
+
+    @objc private func handleCloudKitAccountNeeded(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let title = userInfo["title"] as? String,
+              let message = userInfo["message"] as? String else { return }
+
+        showNotification(title: title, message: message)
+    }
+
+    @objc private func handleCloudKitRestricted(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let title = userInfo["title"] as? String,
+              let message = userInfo["message"] as? String else { return }
+
+        showNotification(title: title, message: message)
     }
 }
 

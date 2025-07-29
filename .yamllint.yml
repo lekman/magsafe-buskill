@@ -1,0 +1,37 @@
+---
+extends: default
+
+rules:
+  line-length:
+    max: 120
+    level: warning
+
+  # Allow multiple spaces after colon for alignment
+  colons:
+    max-spaces-after: -1
+
+  # Don't require document start marker
+  document-start: disable
+
+  # Allow both single and double quotes
+  quoted-strings:
+    quote-type: any
+    required: false
+
+  # Relax indentation rules for complex structures
+  indentation:
+    spaces: consistent
+    indent-sequences: true
+
+  # Don't complain about truthy values
+  truthy:
+    allowed-values: ["true", "false", "on", "off", "yes", "no"]
+
+# Ignore certain files
+ignore: |
+  .git/
+  node_modules/
+  vendor/
+  .build/
+  *.min.yml
+  *.min.yaml

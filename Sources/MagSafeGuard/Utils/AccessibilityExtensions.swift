@@ -195,7 +195,7 @@ extension View {
         self
             .accessibilityElement(children: .contain)
             .accessibilitySortPriority(sortPriority)
-            .if(!isImportant) { view in
+            .when(!isImportant) { view in
                 view.accessibilityHidden(true)
             }
     }
@@ -236,7 +236,7 @@ extension View {
     ///   - transform: The modifier to apply
     /// - Returns: Modified view if condition is true, otherwise original view
     @ViewBuilder
-    func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
+    func when<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
         if condition {
             transform(self)
         } else {

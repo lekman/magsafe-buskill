@@ -6,3 +6,6 @@ node_modules/
 
 # Ignore vendor directories
 vendor/
+
+# Ignore PR comments reports
+.github/pr-comments/

@@ -2,13 +2,57 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!-- App Store Distribution Entitlements -->
+    <!-- This file is used for App Store submissions -->
+    
+    <!-- Sandbox: Required for App Store -->
     <key>com.apple.security.app-sandbox</key>
     <true/>
-    <key>com.apple.security.files.user-selected.read-only</key>
+    
+    <!-- File Access: User selected files only -->
+    <key>com.apple.security.files.user-selected.read-write</key>
     <true/>
+    
+    <!-- Network: Client connections for iCloud sync -->
     <key>com.apple.security.network.client</key>
     <true/>
+    
+    <!-- Apple Events: For system automation -->
     <key>com.apple.security.automation.apple-events</key>
     <true/>
+    
+    <!-- Camera: For evidence collection -->
+    <key>com.apple.security.device.camera</key>
+    <true/>
+    
+    <!-- Location Services: For trusted locations -->
+    <key>com.apple.security.personal-information.location</key>
+    <true/>
+    
+    <!-- iCloud/CloudKit -->
+    <key>com.apple.developer.icloud-container-identifiers</key>
+    <array>
+        <string>iCloud.com.lekman.magsafeguard</string>
+    </array>
+    <key>com.apple.developer.icloud-services</key>
+    <array>
+        <string>CloudKit</string>
+    </array>
+    
+    <!-- Push Notifications -->
+    <key>com.apple.developer.aps-environment</key>
+    <string>production</string>
+    
+    <!-- Hardened Runtime (required for notarization) -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <false/>
+    <key>com.apple.security.cs.allow-jit</key>
+    <false/>
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <false/>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <false/>
+    <key>com.apple.security.cs.disable-executable-page-protection</key>
+    <false/>
 </dict>
 </plist>

@@ -5,13 +5,13 @@ This module provides code quality analysis and SonarCloud integration for compre
 ## Available Tasks
 
 ```bash
-task sonar:         # Show available SonarCloud tasks
-task sonar:scan     # Run full SonarCloud analysis
-task sonar:simulate # Simulate analysis using SwiftLint
-task sonar:download # Download findings from SonarCloud
-task sonar:view     # View latest simulation report
-task sonar:convert  # Convert Swift coverage to SonarQube XML
-task sonar:setup    # Install sonar-scanner
+task sonar:            # Show available SonarCloud tasks
+task sonar:scan        # Run full SonarCloud analysis
+task sonar:download    # Download findings from SonarCloud
+task sonar:download:pr # Download pull request report
+task sonar:convert     # Convert Swift coverage to SonarQube XML
+task sonar:setup       # Install sonar-scanner
+task sonar:issues      # Display findings from previous scan
 ```
 
 ## Task Details
@@ -30,19 +30,14 @@ Runs complete SonarCloud analysis with upload:
 - SonarCloud token in `.env` file
 - sonar-scanner installed
 
-### Simulate Analysis (`task sonar:simulate`)
+### Local Analysis Alternative
 
-Local analysis without SonarCloud upload:
+For quick local analysis without SonarCloud:
 
-- Uses SwiftLint for issue detection
-- Generates local quality report
+- Use `task swift:lint` for SwiftLint analysis
+- Use `task swift:test:coverage` for coverage reports
 - No token required
-- Quick feedback loop
-
-**Output:**
-
-- `.sonarcloud/simulation-report.txt`
-- `.sonarcloud/swiftlint-output.json`
+- Immediate feedback
 
 ### Download Findings (`task sonar:download`)
 
@@ -58,14 +53,45 @@ Fetches all current issues from SonarCloud:
 - `.sonarcloud/sonarcloud-issues.json`
 - `.sonarcloud/sonarcloud-findings.txt`
 
-### View Report (`task sonar:view`)
+### Download PR Report (`task sonar:download:pr`)
 
-Displays the latest simulation report:
+Downloads pull request analysis from SonarCloud:
 
-- Shows first 100 lines
-- Coverage summary
-- Issue breakdown
-- Quality metrics
+- Interactive PR selection
+- Quality metrics for PR
+- Issue details with severity
+- Markdown report generation
+
+**Usage:**
+
+```bash
+# Interactive mode (choose from list)
+task sonar:download:pr
+
+# Download specific PR by number
+PR=123 task sonar:download:pr
+
+# Download latest PR without interaction
+PR=latest task sonar:download:pr
+
+# Show usage help
+PR=help task sonar:download:pr
+```
+
+**Output:**
+
+- `.sonarcloud/pr-{number}-report.md`
+- `.sonarcloud/pr-{number}-issues.json`
+- `.sonarcloud/pr-{number}-measures.json`
+
+### Display Issues (`task sonar:issues`)
+
+Shows SonarCloud findings from previous scan:
+
+- Summary of open/closed issues
+- Breakdown by severity
+- Opens full report in VSCode
+- No network access required
 
 ### Convert Coverage (`task sonar:convert`)
 
@@ -149,9 +175,9 @@ Default thresholds:
 ### Local Development
 
 ```bash
-# Before committing
-task sonar:simulate
-task sonar:view
+# Before committing (quick check)
+task swift:lint
+task swift:test:coverage
 
 # Before pushing (with token)
 task sonar:scan
@@ -171,7 +197,7 @@ Add to pre-push workflow:
 
 ```bash
 # Quick local check
-task sonar:simulate
+task swift:lint
 
 # Full check (requires token)
 task qa:full
@@ -297,7 +323,7 @@ sonar-scanner \
 
 ### Performance
 
-- Use `sonar:simulate` for quick feedback
+- Use `task swift:lint` for quick feedback
 - Cache scanner downloads
 - Exclude generated files
 - Run coverage separately
@@ -311,7 +337,7 @@ sonar-scanner \
 
 ### Team Adoption
 
-- Start with simulation mode
+- Start with local linting
 - Gradually enable rules
 - Share success stories
 - Make it part of workflow

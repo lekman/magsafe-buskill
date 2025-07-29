@@ -1,15 +1,14 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: "3"
-
 vars:
   SEMGREP_CONFIG: auto
-
 tasks:
   default:
     desc: List available security tasks
     silent: true
     cmds:
-      - task --list | grep "^\\* security:" | grep -v "::" || true
-
+      - |
+        task --list | grep "^\\* security:" | grep -v "::" || true
   scan:
     desc: Run all security checks
     silent: true
@@ -18,7 +17,6 @@ tasks:
       - task: semgrep
       - task: pins
       - echo "✅ All security checks passed!"
-
   secrets:
     desc: Scan for hardcoded secrets and sensitive data
     silent: true
@@ -26,20 +24,20 @@ tasks:
       - |
         echo "🔍 Scanning for secrets and sensitive data..."
         echo ""
-        
+
         # Common patterns to check
         patterns=(
-          "password.*=.*['\"]" 
-          "api[_-]?key.*=.*['\"]"
-          "secret.*=.*['\"]"
-          "token.*=.*['\"]"
-          "private[_-]?key"
-          "-----BEGIN.*PRIVATE KEY-----"
-          "Bearer\s+[A-Za-z0-9\-_]+"
+          'password.*=.*["'"'"'"]'
+          'api[_-]?key.*=.*["'"'"'"]'
+          'secret.*=.*["'"'"'"]'
+          'token.*=.*["'"'"'"]'
+          'private[_-]?key'
+          '-----BEGIN.*PRIVATE KEY-----'
+          'Bearer\s+[A-Za-z0-9\-_]+'
         )
-        
+
         found_issues=0
-        
+
         for pattern in "${patterns[@]}"; do
           # Search in source files, excluding common false positives
           results=$(find . \
@@ -59,7 +57,7 @@ tasks:
             found_issues=$((found_issues + 1))
           fi
         done
-        
+
         # Check for .env files that might be committed
         env_files=$(find . -name ".env*" -not -path "./.git/*" -not -path "./node_modules/*" 2>/dev/null || true)
         if [ -n "$env_files" ]; then
@@ -80,7 +78,7 @@ tasks:
             found_issues=$((found_issues + 1))
           fi
         fi
-        
+
         if [ $found_issues -eq 0 ]; then
           echo "✅ No secrets or sensitive data found!"
         else
@@ -96,14 +94,14 @@ tasks:
     cmds:
       - |
         echo "🔍 Running Semgrep security analysis..."
-        
+
         if ! command -v semgrep &> /dev/null; then
           echo "⚠️  Semgrep not installed"
           echo "   Install with: task security:setup"
           echo "   Skipping Semgrep scan..."
           exit 0
         fi
-        
+
         # Run Semgrep with security rules
         semgrep --config={{.SEMGREP_CONFIG}} --error --quiet . || exit 1
         echo "✅ Semgrep scan passed"
@@ -114,24 +112,24 @@ tasks:
     cmds:
       - |
         echo "🔍 Checking GitHub Action pins..."
-        
+
         unpinned=0
         workflow_files=$(find .github/workflows -name "*.yml" -o -name "*.yaml" 2>/dev/null || true)
-        
+
         if [ -z "$workflow_files" ]; then
           echo "✅ No workflow files found"
           exit 0
         fi
-        
+
         for file in $workflow_files; do
           # Look for uses: statements that aren't pinned to SHA
-          if grep -E "uses:\s+[^@]+@(main|master|v[0-9]+)" "$file" >/dev/null 2>&1; then
+          if grep -E "uses:\\s+[^@]+@(main|master|v[0-9]+)" "$file" >/dev/null 2>&1; then
             echo "❌ Unpinned actions found in: $file"
-            grep -n -E "uses:\s+[^@]+@(main|master|v[0-9]+)" "$file" || true
+            grep -n -E "uses:\\s+[^@]+@(main|master|v[0-9]+)" "$file" || true
             unpinned=$((unpinned + 1))
           fi
         done
-        
+
         if [ $unpinned -eq 0 ]; then
           echo "✅ All GitHub Actions are properly pinned!"
         else
@@ -153,17 +151,17 @@ tasks:
           echo "   Install with: brew install jq"
           exit 1
         fi
-        
+
         # Check if gh CLI is installed
         if ! command -v gh &> /dev/null; then
           echo "❌ GitHub CLI is required but not installed"
           echo "   Install with: brew install gh"
           exit 1
         fi
-        
+
         echo "🔒 Pinning GitHub Actions to specific commit SHAs..."
         echo ""
-        
+
         # Function to get latest commit SHA for a tag
         get_sha_for_tag() {
           local repo=$1
@@ -182,17 +180,17 @@ tasks:
           
           echo "$sha"
         }
-        
+
         # Find all workflow files
         workflow_files=$(find .github/workflows -name "*.yml" -o -name "*.yaml" 2>/dev/null || true)
-        
+
         if [ -z "$workflow_files" ]; then
           echo "No workflow files found"
           exit 0
         fi
-        
+
         total_pinned=0
-        
+
         for file in $workflow_files; do
           echo "Processing: $file"
           temp_file="${file}.tmp"
@@ -216,8 +214,8 @@ tasks:
               
               if [ -n "$sha" ] && [ "$sha" != "null" ]; then
                 # Create the replacement with comment
-                escaped_action=$(echo "$action" | sed 's/[[\.*^$()+?{|]/\\&/g')
-                escaped_version=$(echo "$version" | sed 's/[[\.*^$()+?{|]/\\&/g')
+                escaped_action=$(echo "$action" | sed 's/[[\\.*^$()+?{|]/\\\\&/g')
+                escaped_version=$(echo "$version" | sed 's/[[\\.*^$()+?{|]/\\\\&/g')
                 
                 # Replace in temp file
                 sed -i '' "s|uses: ${escaped_action}@${escaped_version}|uses: ${action}@${sha} # ${version}|g" "$temp_file"
@@ -233,10 +231,10 @@ tasks:
           # Move temp file back
           mv "$temp_file" "$file"
         done
-        
+
         echo ""
         echo "✅ Pinned $total_pinned actions to specific SHAs"
-        
+
         if [ $total_pinned -gt 0 ]; then
           echo ""
           echo "📝 Remember to commit these changes!"
@@ -253,17 +251,17 @@ tasks:
           echo "   Install with: brew install jq"
           exit 1
         fi
-        
+
         # Check if gh CLI is installed
         if ! command -v gh &> /dev/null; then
           echo "❌ GitHub CLI is required but not installed"
           echo "   Install with: brew install gh"
           exit 1
         fi
-        
+
         echo "🔄 Updating GitHub Action pins to latest SHAs..."
         echo ""
-        
+
         # Function to get latest commit SHA for a tag
         get_sha_for_tag() {
           local repo=$1
@@ -282,17 +280,17 @@ tasks:
           
           echo "$sha"
         }
-        
+
         # Find all workflow files
         workflow_files=$(find .github/workflows -name "*.yml" -o -name "*.yaml" 2>/dev/null || true)
-        
+
         if [ -z "$workflow_files" ]; then
           echo "No workflow files found"
           exit 0
         fi
-        
+
         total_updated=0
-        
+
         for file in $workflow_files; do
           echo "Processing: $file"
           temp_file="${file}.tmp"
@@ -312,7 +310,7 @@ tasks:
               
               if [ -n "$new_sha" ] && [ "$new_sha" != "null" ] && [ "$new_sha" != "$current_sha" ]; then
                 # Replace in temp file
-                escaped_action=$(echo "$action" | sed 's/[[\.*^$()+?{|]/\\&/g')
+                escaped_action=$(echo "$action" | sed 's/[[\\.*^$()+?{|]/\\\\&/g')
                 
                 sed -i '' "s|uses: ${escaped_action}@${current_sha} # ${version}|uses: ${action}@${new_sha} # ${version}|g" "$temp_file"
                 
@@ -327,7 +325,7 @@ tasks:
           # Move temp file back
           mv "$temp_file" "$file"
         done
-        
+
         echo ""
         if [ $total_updated -gt 0 ]; then
           echo "✅ Updated $total_updated action pins"
@@ -343,10 +341,10 @@ tasks:
     cmds:
       - |
         echo "🤖 Setting up Dependabot for security updates..."
-        
+
         # Create .github directory if it doesn't exist
         mkdir -p .github
-        
+
         # Check if dependabot.yml already exists
         if [ -f ".github/dependabot.yml" ]; then
           echo "⚠️  .github/dependabot.yml already exists"
@@ -360,7 +358,7 @@ tasks:
             exit 0
           fi
         fi
-        
+
         # Create dependabot.yml
         cat > .github/dependabot.yml << 'EOF'
         version: 2
@@ -380,7 +378,7 @@ tasks:
             commit-message:
               prefix: "chore"
               include: "scope"
-        
+
           # Maintain dependencies for Swift Package Manager
           - package-ecosystem: "swift"
             directory: "/"
@@ -397,7 +395,7 @@ tasks:
               prefix: "chore"
               include: "scope"
         EOF
-        
+
         echo "✅ Created .github/dependabot.yml"
         echo ""
         echo "Dependabot will now:"
@@ -415,23 +413,23 @@ tasks:
     cmds:
       - |
         echo "🔧 Setting up security tools..."
-        
+
         # Detect OS
         OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-        
+
         if [ "$OS" != "darwin" ]; then
           echo "⚠️  This task is optimized for macOS"
           echo "   For other platforms, please install tools manually"
           exit 0
         fi
-        
+
         # Check for Homebrew
         if ! command -v brew &> /dev/null; then
           echo "❌ Homebrew not found"
           echo "   Install from: https://brew.sh"
           exit 1
         fi
-        
+
         # Install/Update Semgrep
         if ! command -v semgrep &> /dev/null; then
           echo "📦 Installing Semgrep..."
@@ -443,7 +441,7 @@ tasks:
             brew upgrade semgrep
           fi
         fi
-        
+
         # Install/Update truffleHog (secret scanner)
         if ! command -v trufflehog &> /dev/null; then
           echo "📦 Installing truffleHog..."
@@ -455,7 +453,7 @@ tasks:
             brew upgrade trufflehog
           fi
         fi
-        
+
         # Install/Update gitleaks (secret scanner)
         if ! command -v gitleaks &> /dev/null; then
           echo "📦 Installing gitleaks..."
@@ -467,7 +465,7 @@ tasks:
             brew upgrade gitleaks
           fi
         fi
-        
+
         # Install/Update jq (for JSON parsing)
         if ! command -v jq &> /dev/null; then
           echo "📦 Installing jq..."
@@ -479,7 +477,7 @@ tasks:
             brew upgrade jq
           fi
         fi
-        
+
         # Install/Update GitHub CLI (for pin operations)
         if ! command -v gh &> /dev/null; then
           echo "📦 Installing GitHub CLI..."
@@ -491,7 +489,7 @@ tasks:
             brew upgrade gh
           fi
         fi
-        
+
         echo ""
         echo "✅ Security tools installed"
         echo ""
@@ -508,13 +506,13 @@ tasks:
     cmds:
       - |
         echo "🔍 Running gitleaks secret scanner..."
-        
+
         if ! command -v gitleaks &> /dev/null; then
           echo "⚠️  gitleaks not installed"
           echo "   Install with: task security:setup"
           exit 0
         fi
-        
+
         # Run gitleaks
         if gitleaks detect --verbose --redact; then
           echo "✅ No secrets found by gitleaks"
@@ -529,13 +527,13 @@ tasks:
     cmds:
       - |
         echo "🔍 Running truffleHog secret scanner..."
-        
+
         if ! command -v trufflehog &> /dev/null; then
           echo "⚠️  truffleHog not installed"
           echo "   Install with: task security:setup"
           exit 0
         fi
-        
+
         # Run truffleHog on current directory
         echo "Scanning filesystem..."
         if trufflehog filesystem . --no-update --fail; then

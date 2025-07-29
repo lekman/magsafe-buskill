@@ -75,9 +75,9 @@ final class UserDefaultsManagerTests: XCTestCase {
     // MARK: - Validation Tests
     
     func testGracePeriodValidation() {
-        // Test lower bound
-        sut.updateSetting(\.gracePeriodDuration, value: 2.0)
-        XCTAssertEqual(sut.settings.gracePeriodDuration, 5.0) // Should be clamped to minimum
+        // Test lower bound (now 0)
+        sut.updateSetting(\.gracePeriodDuration, value: -1.0)
+        XCTAssertEqual(sut.settings.gracePeriodDuration, 0.0) // Should be clamped to minimum
         
         // Test upper bound
         sut.updateSetting(\.gracePeriodDuration, value: 45.0)
@@ -86,6 +86,10 @@ final class UserDefaultsManagerTests: XCTestCase {
         // Test valid range
         sut.updateSetting(\.gracePeriodDuration, value: 15.0)
         XCTAssertEqual(sut.settings.gracePeriodDuration, 15.0)
+        
+        // Test zero value (immediate action)
+        sut.updateSetting(\.gracePeriodDuration, value: 0.0)
+        XCTAssertEqual(sut.settings.gracePeriodDuration, 0.0)
     }
     
     func testSecurityActionsValidation() {

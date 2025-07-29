@@ -8,17 +8,17 @@ only_rules: []
 
 # Analyzer rules (requires 'swiftlint analyze')
 analyzer_rules:
-  - unused_import             # Check for unused imports
+  - unused_import # Check for unused imports
 
 # Opt-in rules (not enabled by default)
 opt_in_rules:
-  - missing_docs              # Require documentation for public APIs
-  - file_header                # Consistent file headers
-  - explicit_type_interface    # Explicit types for public APIs
-  - explicit_acl              # Explicit access control
-  - explicit_init             # Explicit initializers
+  - missing_docs # Require documentation for public APIs
+  - file_header # Consistent file headers
+  - explicit_type_interface # Explicit types for public APIs
+  - explicit_acl # Explicit access control
+  - explicit_init # Explicit initializers
   - redundant_type_annotation # Remove redundant type annotations
-  - sorted_imports            # Sort import statements
+  - sorted_imports # Sort import statements
   - vertical_parameter_alignment_on_call
   - closure_parameter_position
   - multiline_function_chains
@@ -30,27 +30,27 @@ opt_in_rules:
 
 # Disabled rules
 disabled_rules:
-  - todo                      # Allow TODO comments during development
-  - function_body_length     # Complex UI code can be longer
-  - explicit_type_interface  # Too strict for internal properties
-  - file_length             # Some files need to be longer temporarily
-  - explicit_acl            # Extension methods don't need explicit ACL
-  - large_tuple             # Notification tuples need 3 elements
-  - line_length             # Long lines are sometimes necessary for readability
+  - todo # Allow TODO comments during development
+  - function_body_length # Complex UI code can be longer
+  - explicit_type_interface # Too strict for internal properties
+  - file_length # Some files need to be longer temporarily
+  - explicit_acl # Extension methods don't need explicit ACL
+  - large_tuple # Notification tuples need 3 elements
+  - line_length # Long lines are sometimes necessary for readability
 
 # Rule configurations
 missing_docs:
   excludes_extensions: false
   excludes_inherited_types: false
-  
+
 file_header:
   required_pattern: |
-                    \/\/
-                    \/\/  .*\.swift
-                    \/\/  MagSafe Guard
-                    \/\/
-                    \/\/  Created on \d{4}-\d{2}-\d{2}\.
-                    \/\/
+    \/\/
+    \/\/  .*\.swift
+    \/\/  MagSafe Guard
+    \/\/
+    \/\/  Created on \d{4}-\d{2}-\d{2}\.
+    \/\/
 
 # Line length - disabled
 # line_length:
@@ -82,7 +82,7 @@ cyclomatic_complexity:
 # Nesting depth
 nesting:
   type_level: 2
-  function_level: 5  # SwiftUI can have deep nesting
+  function_level: 5 # SwiftUI can have deep nesting
 
 # Function parameter count
 function_parameter_count:
@@ -110,12 +110,12 @@ custom_rules:
     regex: 'print\('
     message: "Use proper logging instead of print statements"
     severity: warning
-    
+
   security_todo:
     name: "Security TODO"
     regex: '\/\/.*TODO.*[Ss]ecurity'
     message: "Security-related TODOs should be prioritized"
-    severity: warning  # Changed from error to warning
+    severity: warning # Changed from error to warning
 
 # Reporter type
 reporter: "xcode"

@@ -1,12 +1,11 @@
 name: Security Audit
-
 on:
   workflow_dispatch:
     inputs:
       audit_type:
-        description: 'Type of security audit to run'
+        description: "Type of security audit to run"
         required: true
-        default: 'full'
+        default: "full"
         type: choice
         options:
           - full
@@ -14,10 +13,8 @@ on:
           - secrets
           - code
           - permissions
-
 permissions:
   contents: read
-
 jobs:
   cancel-redundant:
     name: Cancel Redundant Workflows
@@ -32,136 +29,113 @@ jobs:
         uses: ./.github/actions/cancel-redundant-workflows
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-
   audit-report:
     name: Security Audit Report
     runs-on: ubuntu-latest
     needs: cancel-redundant
     permissions:
       contents: read
-    
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      with:
-        fetch-depth: 0
-        
-    - name: Create audit directory
-      run: mkdir -p security-audit
-      
-    - name: Dependency Audit
-      if: inputs.audit_type == 'full' || inputs.audit_type == 'dependencies'
-      run: |
-        echo "# Dependency Security Audit" > security-audit/dependency-audit.md
-        echo "Generated on: $(date)" >> security-audit/dependency-audit.md
-        echo "" >> security-audit/dependency-audit.md
-        
-        # Check for outdated dependencies
-        echo "## Swift Dependencies" >> security-audit/dependency-audit.md
-        if [ -f "Package.swift" ]; then
-          echo "Swift Package Manager dependencies found" >> security-audit/dependency-audit.md
-        else
-          echo "No Swift Package Manager file found" >> security-audit/dependency-audit.md
-        fi
-        
-        # Check for CocoaPods
-        if [ -f "Podfile" ]; then
-          echo "## CocoaPods Dependencies" >> security-audit/dependency-audit.md
-          echo "Podfile detected - manual review required" >> security-audit/dependency-audit.md
-        fi
-        
-    - name: Permission Audit
-      if: inputs.audit_type == 'full' || inputs.audit_type == 'permissions'
-      run: |
-        echo "# Permission Security Audit" > security-audit/permission-audit.md
-        echo "Generated on: $(date)" >> security-audit/permission-audit.md
-        echo "" >> security-audit/permission-audit.md
-        
-        echo "## File Permissions" >> security-audit/permission-audit.md
-        find . -type f -perm /111 -not -path "./.git/*" | head -20 >> security-audit/permission-audit.md
-        
-        echo "" >> security-audit/permission-audit.md
-        echo "## Workflow Permissions" >> security-audit/permission-audit.md
-        grep -r "permissions:" .github/workflows/ || echo "No permission declarations found" >> security-audit/permission-audit.md
-        
-    - name: Secret Pattern Audit
-      if: inputs.audit_type == 'full' || inputs.audit_type == 'secrets'
-      run: |
-        echo "# Secret Pattern Audit" > security-audit/secret-audit.md
-        echo "Generated on: $(date)" >> security-audit/secret-audit.md
-        echo "" >> security-audit/secret-audit.md
-        
-        echo "## Potential Secret Patterns" >> security-audit/secret-audit.md
-        echo "Checking for common secret patterns..." >> security-audit/secret-audit.md
-        
-        # Check for potential secrets (basic patterns)
-        patterns=(
-          "password.*=.*"
-          "api[_-]?key.*=.*"
-          "secret.*=.*"
-          "token.*=.*"
-          "private[_-]?key"
-        )
-        
-        for pattern in "${patterns[@]}"; do
-          echo "" >> security-audit/secret-audit.md
-          echo "### Pattern: $pattern" >> security-audit/secret-audit.md
-          grep -r -i "$pattern" . --exclude-dir=.git --exclude-dir=security-audit --exclude="*.md" | head -5 >> security-audit/secret-audit.md || echo "No matches found" >> security-audit/secret-audit.md
-        done
-        
-    - name: Code Security Audit
-      if: inputs.audit_type == 'full' || inputs.audit_type == 'code'
-      run: |
-        echo "# Code Security Audit" > security-audit/code-audit.md
-        echo "Generated on: $(date)" >> security-audit/code-audit.md
-        echo "" >> security-audit/code-audit.md
-        
-        echo "## Security-Sensitive Files" >> security-audit/code-audit.md
-        find . -name "*auth*" -o -name "*security*" -o -name "*crypt*" | grep -v ".git" | sort >> security-audit/code-audit.md
-        
-        echo "" >> security-audit/code-audit.md
-        echo "## TODO Security Items" >> security-audit/code-audit.md
-        grep -r "TODO.*security\|FIXME.*security\|XXX.*security" . --exclude-dir=.git || echo "No security TODOs found" >> security-audit/code-audit.md
-        
-    - name: Generate Summary Report
-      env:
-        AUDIT_TYPE: ${{ inputs.audit_type }}
-      run: |
-        echo "# Security Audit Summary" > security-audit/SUMMARY.md
-        echo "Generated on: $(date)" >> security-audit/SUMMARY.md
-        echo "Audit Type: $AUDIT_TYPE" >> security-audit/SUMMARY.md
-        echo "" >> security-audit/SUMMARY.md
-        
-        echo "## Reports Generated" >> security-audit/SUMMARY.md
-        ls -la security-audit/*.md | grep -v SUMMARY >> security-audit/SUMMARY.md
-        
-        echo "" >> security-audit/SUMMARY.md
-        echo "## Quick Stats" >> security-audit/SUMMARY.md
-        echo "- Total files scanned: $(find . -type f -not -path "./.git/*" | wc -l)" >> security-audit/SUMMARY.md
-        echo "- Swift files: $(find . -name "*.swift" | wc -l)" >> security-audit/SUMMARY.md
-        echo "- Workflow files: $(find .github/workflows -name "*.yml" 2>/dev/null | wc -l || echo 0)" >> security-audit/SUMMARY.md
-        
-    - name: Upload Audit Reports
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: security-audit-${{ github.run_number }}
-        path: security-audit/
-        retention-days: 30
-        
-    - name: Post Summary
-      env:
-        AUDIT_TYPE: ${{ inputs.audit_type }}
-      run: |
-        echo "## 🔒 Security Audit Complete" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Audit Type**: $AUDIT_TYPE" >> $GITHUB_STEP_SUMMARY
-        echo "**Date**: $(date)" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Reports Generated:" >> $GITHUB_STEP_SUMMARY
-        for file in security-audit/*.md; do
-          if [ -f "$file" ] && [ "$(basename $file)" != "SUMMARY.md" ]; then
-            echo "- $(basename $file)" >> $GITHUB_STEP_SUMMARY
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Create audit directory
+        run: mkdir -p security-audit
+      - name: Dependency Audit
+        if: inputs.audit_type == 'full' || inputs.audit_type == 'dependencies'
+        run: |
+          echo "# Dependency Security Audit" > security-audit/dependency-audit.md
+          echo "Generated on: $(date)" >> security-audit/dependency-audit.md
+          echo "" >> security-audit/dependency-audit.md
+
+          # Check for outdated dependencies
+          echo "## Swift Dependencies" >> security-audit/dependency-audit.md
+          if [ -f "Package.swift" ]; then
+            echo "Swift Package Manager dependencies found" >> security-audit/dependency-audit.md
+          else
+            echo "No Swift Package Manager file found" >> security-audit/dependency-audit.md
           fi
-        done
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "📥 Download the full audit report from the artifacts section." >> $GITHUB_STEP_SUMMARY
+
+          # Check for CocoaPods
+          if [ -f "Podfile" ]; then
+            echo "## CocoaPods Dependencies" >> security-audit/dependency-audit.md
+            echo "Podfile detected - manual review required" >> security-audit/dependency-audit.md
+          fi
+      - name: Permission Audit
+        if: inputs.audit_type == 'full' || inputs.audit_type == 'permissions'
+        run: |
+          echo "# Permission Security Audit" > security-audit/permission-audit.md
+          echo "Generated on: $(date)" >> security-audit/permission-audit.md
+          echo "" >> security-audit/permission-audit.md
+
+          echo "## File Permissions" >> security-audit/permission-audit.md
+          find . -type f -perm /111 -not -path "./.git/*" | head -20 >> security-audit/permission-audit.md
+
+          echo "" >> security-audit/permission-audit.md
+          echo "## Workflow Permissions" >> security-audit/permission-audit.md
+          grep -r "permissions:" .github/workflows/ || echo "No permission declarations found" >> security-audit/permission-audit.md
+      - name: Secret Pattern Audit
+        if: inputs.audit_type == 'full' || inputs.audit_type == 'secrets'
+        run: |
+          echo "# Secret Pattern Audit" > security-audit/secret-audit.md
+          echo "Generated on: $(date)" >> security-audit/secret-audit.md
+          echo "" >> security-audit/secret-audit.md
+
+          echo "## Potential Secret Patterns" >> security-audit/secret-audit.md
+          echo "Checking for common secret patterns..." >> security-audit/secret-audit.md
+
+          # Check for potential secrets (basic patterns)
+          patterns=(
+            "password.*=.*"
+            "api[_-]?key.*=.*"
+            "secret.*=.*"
+            "token.*=.*"
+            "private[_-]?key"
+          )
+
+          for pattern in "${patterns[@]}"; do
+            echo "" >> security-audit/secret-audit.md
+            echo "### Pattern: $pattern" >> security-audit/secret-audit.md
+            grep -r -i "$pattern" . --exclude-dir=.git --exclude-dir=security-audit --exclude="*.md" | head -5 >> security-audit/secret-audit.md || echo "No matches found" >> security-audit/secret-audit.md
+          done
+      - name: Code Security Audit
+        if: inputs.audit_type == 'full' || inputs.audit_type == 'code'
+        run: |
+          echo "# Code Security Audit" > security-audit/code-audit.md
+          echo "Generated on: $(date)" >> security-audit/code-audit.md
+          echo "" >> security-audit/code-audit.md
+
+          echo "## Security-Sensitive Files" >> security-audit/code-audit.md
+          find . -name "*auth*" -o -name "*security*" -o -name "*crypt*" | grep -v ".git" | sort >> security-audit/code-audit.md
+
+          echo "" >> security-audit/code-audit.md
+          echo "## TODO Security Items" >> security-audit/code-audit.md
+          grep -r "TODO.*security\|FIXME.*security\|XXX.*security" . --exclude-dir=.git || echo "No security TODOs found" >> security-audit/code-audit.md
+      - name: Generate Summary Report
+        env:
+          AUDIT_TYPE: ${{ inputs.audit_type }}
+        run: |
+          echo "# Security Audit Summary" > security-audit/SUMMARY.md
+          echo "Generated on: $(date)" >> security-audit/SUMMARY.md
+          echo "Audit Type: $AUDIT_TYPE" >> security-audit/SUMMARY.md
+          echo "" >> security-audit/SUMMARY.md
+
+          echo "## Reports Generated" >> security-audit/SUMMARY.md
+          ls -la security-audit/*.md | grep -v SUMMARY >> security-audit/SUMMARY.md
+
+          echo "" >> security-audit/SUMMARY.md
+          echo "## Quick Stats" >> security-audit/SUMMARY.md
+          echo "- Total files scanned: $(find . -type f -not -path "./.git/*" | wc -l)" >> security-audit/SUMMARY.md
+          echo "- Swift files: $(find . -name "*.swift" | wc -l)" >> security-audit/SUMMARY.md
+          echo "- Workflow files: $(find .github/workflows -name "*.yml" 2>/dev/null | wc -l || echo 0)" >> security-audit/SUMMARY.md
+      - name: Upload Audit Reports
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: security-audit-${{ github.run_number }}
+          path: security-audit/
+          retention-days: 30
+      - name: Post Summary
+        env:
+          AUDIT_TYPE: ${{ inputs.audit_type }}
+        run: "echo \"## \U0001F512 Security Audit Complete\" >> $GITHUB_STEP_SUMMARY\necho \"\" >> $GITHUB_STEP_SUMMARY\necho \"**Audit Type**: $AUDIT_TYPE\" >> $GITHUB_STEP_SUMMARY\necho \"**Date**: $(date)\" >> $GITHUB_STEP_SUMMARY\necho \"\" >> $GITHUB_STEP_SUMMARY\necho \"### Reports Generated:\" >> $GITHUB_STEP_SUMMARY\nfor file in security-audit/*.md; do\n  if [ -f \"$file\" ] && [ \"$(basename $file)\" != \"SUMMARY.md\" ]; then\n    echo \"- $(basename $file)\" >> $GITHUB_STEP_SUMMARY\n  fi\ndone\necho \"\" >> $GITHUB_STEP_SUMMARY\necho \"\U0001F4E5 Download the full audit report from the artifacts section.\" >> $GITHUB_STEP_SUMMARY"

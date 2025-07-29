@@ -9,17 +9,20 @@
 
 import SwiftUI
 
-/// Main settings view with tabbed interface
+/// Main settings view with sidebar navigation interface
 public struct SettingsView: View {
     @StateObject private var settingsManager = UserDefaultsManager.shared
-    @State private var selectedTab = SettingsTab.general
+    @State private var selectedTab: SettingsTab? = .general
 
-    private enum SettingsTab: String, CaseIterable {
+    private enum SettingsTab: String, CaseIterable, Identifiable {
         case general = "General"
         case security = "Security"
         case autoArm = "Auto-Arm"
         case notifications = "Notifications"
+        case icloud = "iCloud"
         case advanced = "Advanced"
+
+        var id: String { rawValue }
 
         var symbolName: String {
             switch self {
@@ -31,65 +34,56 @@ public struct SettingsView: View {
                 return "location.fill"
             case .notifications:
                 return "bell.badge"
+            case .icloud:
+                return "icloud"
             case .advanced:
                 return "wrench.and.screwdriver"
             }
         }
     }
 
-    /// The main view body containing the tabbed settings interface
+    /// The main view body containing the sidebar navigation interface
     public var body: some View {
-        TabView(selection: $selectedTab) {
-            GeneralSettingsView()
-                .tabItem {
-                    Label(
-                        SettingsTab.general.rawValue,
-                        systemImage: SettingsTab.general.symbolName
-                    )
+        NavigationSplitView {
+            // Sidebar
+            List(SettingsTab.allCases, selection: $selectedTab) { tab in
+                NavigationLink(value: tab) {
+                    Label(tab.rawValue, systemImage: tab.symbolName)
                 }
-                .tag(SettingsTab.general)
-
-            SecuritySettingsView()
-                .environmentObject(settingsManager)
-                .tabItem {
-                    Label(
-                        SettingsTab.security.rawValue,
-                        systemImage: SettingsTab.security.symbolName
-                    )
+            }
+            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 300)
+            .listStyle(SidebarListStyle())
+        } detail: {
+            // Detail view
+            if let selectedTab = selectedTab {
+                switch selectedTab {
+                case .general:
+                    GeneralSettingsView()
+                        .navigationTitle(SettingsTab.general.rawValue)
+                case .security:
+                    SecuritySettingsView()
+                        .navigationTitle(SettingsTab.security.rawValue)
+                case .autoArm:
+                    AutoArmSettingsView()
+                        .navigationTitle(SettingsTab.autoArm.rawValue)
+                case .notifications:
+                    NotificationSettingsView()
+                        .navigationTitle(SettingsTab.notifications.rawValue)
+                case .icloud:
+                    CloudSyncSettingsView()
+                        .navigationTitle(SettingsTab.icloud.rawValue)
+                case .advanced:
+                    AdvancedSettingsView()
+                        .navigationTitle(SettingsTab.advanced.rawValue)
                 }
-                .tag(SettingsTab.security)
-
-            AutoArmSettingsView()
-                .environmentObject(settingsManager)
-                .tabItem {
-                    Label(
-                        SettingsTab.autoArm.rawValue,
-                        systemImage: SettingsTab.autoArm.symbolName
-                    )
-                }
-                .tag(SettingsTab.autoArm)
-
-            NotificationSettingsView()
-                .environmentObject(settingsManager)
-                .tabItem {
-                    Label(
-                        SettingsTab.notifications.rawValue,
-                        systemImage: SettingsTab.notifications.symbolName
-                    )
-                }
-                .tag(SettingsTab.notifications)
-
-            AdvancedSettingsView()
-                .environmentObject(settingsManager)
-                .tabItem {
-                    Label(
-                        SettingsTab.advanced.rawValue,
-                        systemImage: SettingsTab.advanced.symbolName
-                    )
-                }
-                .tag(SettingsTab.advanced)
+            } else {
+                Text("Select a category")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
-        .frame(width: 600, height: 400)
+        .navigationSplitViewStyle(.balanced)
         .environmentObject(settingsManager)
     }
 }
@@ -97,7 +91,7 @@ public struct SettingsView: View {
 // MARK: - General Settings Tab
 
 struct GeneralSettingsView: View {
-    @EnvironmentObject var settingsManager: UserDefaultsManager
+    @ObservedObject var settingsManager = UserDefaultsManager.shared
 
     var body: some View {
         Form {
@@ -125,14 +119,33 @@ struct GeneralSettingsView: View {
         .padding()
     }
 
+    private var immediateActionBinding: Binding<Bool> {
+        Binding(
+            get: { settingsManager.settings.gracePeriodDuration == 0 },
+            set: { immediate in
+                let newValue = immediate ? 0.0 : 5.0
+                settingsManager.updateSetting(\.gracePeriodDuration, value: newValue)
+            }
+        )
+    }
+
     private var gracePeriodSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Grace Period Duration")
-                .font(.headline)
+            HStack {
+                Text("Grace Period Duration")
+                    .font(.headline)
+                Spacer()
+                Toggle("Immediate Action", isOn: immediateActionBinding)
+                    .toggleStyle(.checkbox)
+            }
 
             gracePeriodSlider
+                .disabled(settingsManager.settings.gracePeriodDuration == 0)
+                .opacity(settingsManager.settings.gracePeriodDuration == 0 ? 0.5 : 1.0)
 
-            Text("Time before security actions execute after power disconnection")
+            Text(settingsManager.settings.gracePeriodDuration == 0
+                ? "Security actions will execute immediately upon power disconnection"
+                : "Time before security actions execute after power disconnection")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -140,7 +153,7 @@ struct GeneralSettingsView: View {
 
     private var gracePeriodSlider: some View {
         HStack {
-            Text("5s")
+            Text("0s")
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -149,7 +162,7 @@ struct GeneralSettingsView: View {
                     get: { settingsManager.settings.gracePeriodDuration },
                     set: { settingsManager.updateSetting(\.gracePeriodDuration, value: $0) }
                 ),
-                in: 5...30,
+                in: 0...30,
                 step: 1
             )
 
@@ -173,7 +186,7 @@ struct GeneralSettingsView: View {
                 Text("Permits canceling security actions during grace period")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                Text("with authentication")
+                Text("by reconnecting MagSafe or authenticating to disarm")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -212,8 +225,9 @@ struct GeneralSettingsView: View {
 // MARK: - Security Settings Tab
 
 struct SecuritySettingsView: View {
-    @EnvironmentObject var settingsManager: UserDefaultsManager
+    @ObservedObject var settingsManager = UserDefaultsManager.shared
     @State private var selectedActions = Set<SecurityActionType>()
+    @State private var showingEvidenceSettings = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -223,12 +237,17 @@ struct SecuritySettingsView: View {
 
             // Action List
             List {
+                evidenceCollectionSection
                 enabledActionsSection
                 availableActionsSection
             }
             .listStyle(.inset)
 
             securityActionsFooter
+        }
+        .sheet(isPresented: $showingEvidenceSettings) {
+            SecurityEvidenceSettingsView()
+                .environmentObject(settingsManager)
         }
     }
 
@@ -242,6 +261,43 @@ struct SecuritySettingsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
+    }
+
+    private var evidenceCollectionHeader: some View {
+        HStack {
+            Image(systemName: "camera.fill")
+                .foregroundColor(.orange)
+            Text("Evidence Collection")
+                .font(.headline)
+        }
+    }
+
+    private var evidenceCollectionInfo: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            evidenceCollectionHeader
+            Text("Capture location and photos when theft is detected")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+
+    private var evidenceCollectionSection: some View {
+        Section(header: Text("Evidence Collection")) {
+            HStack {
+                evidenceCollectionInfo
+                Spacer()
+                Toggle("", isOn: evidenceCollectionBinding)
+                    .toggleStyle(.switch)
+            }
+            .padding(.vertical, 4)
+
+            if settingsManager.settings.evidenceCollectionEnabled {
+                Button("Configure Evidence Collection...") {
+                    showingEvidenceSettings = true
+                }
+                .buttonStyle(.link)
+            }
+        }
     }
 
     private var enabledActionsSection: some View {
@@ -287,6 +343,15 @@ struct SecuritySettingsView: View {
         SecurityActionType.allCases.filter { action in
             !settingsManager.settings.securityActions.contains(action)
         }
+    }
+
+    // MARK: - Bindings
+
+    private var evidenceCollectionBinding: Binding<Bool> {
+        Binding(
+            get: { settingsManager.settings.evidenceCollectionEnabled },
+            set: { settingsManager.updateSetting(\.evidenceCollectionEnabled, value: $0) }
+        )
     }
 
     private func moveSecurityActions(from source: IndexSet, to destination: Int) {
@@ -348,7 +413,7 @@ struct SecurityActionRow: View {
 // MARK: - Auto-Arm Settings Tab
 
 struct AutoArmSettingsView: View {
-    @EnvironmentObject var settingsManager: UserDefaultsManager
+    @ObservedObject var settingsManager = UserDefaultsManager.shared
     @State private var newNetwork = ""
     @State private var showingLocationManager = false
     @State private var showingAutoArmInfo = false
@@ -579,7 +644,7 @@ struct AutoArmSettingsView: View {
 // MARK: - Notification Settings Tab
 
 struct NotificationSettingsView: View {
-    @EnvironmentObject var settingsManager: UserDefaultsManager
+    @ObservedObject var settingsManager = UserDefaultsManager.shared
 
     var body: some View {
         Form {
@@ -667,7 +732,7 @@ struct NotificationSettingsView: View {
 // MARK: - Advanced Settings Tab
 
 struct AdvancedSettingsView: View {
-    @EnvironmentObject var settingsManager: UserDefaultsManager
+    @ObservedObject var settingsManager = UserDefaultsManager.shared
     @State private var showingExportSuccess = false
     @State private var showingImportDialog = false
 

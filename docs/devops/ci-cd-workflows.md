@@ -1,10 +1,11 @@
 # CI/CD Workflows Documentation
 
-This document describes all GitHub Actions workflows used in the MagSafe Guard project.
+This document describes all GitHub Actions workflows used in the MagSafe Guard project and the required secrets for their operation.
 
 ## Table of Contents
 
 - [Overview](#overview)
+- [Required GitHub Secrets](#required-github-secrets)
 - [Workflow Efficiency](#workflow-efficiency)
 - [Core Workflows](#core-workflows)
 - [Security Workflows](#security-workflows)
@@ -24,6 +25,112 @@ Our CI/CD pipeline uses GitHub Actions to automate testing, security scanning, a
 - **Commit message enforcement** - Maintains clean git history
 - **Automated testing** - Swift tests with code coverage
 - **Release automation** - Semantic versioning with release-please
+
+## Required GitHub Secrets
+
+### Code Signing Secrets (for Release Builds)
+
+These secrets are required for signing macOS applications with a Developer ID certificate:
+
+#### `SIGNING_CERTIFICATE_P12_DATA`
+
+- **Description**: Base64-encoded Developer ID Application certificate in P12 format
+- **Used in**: `.github/workflows/build-sign.yml` (release builds)
+- **How to generate**:
+
+  ```bash
+  # Export certificate from Keychain Access
+  # 1. Open Keychain Access
+  # 2. Find your "Developer ID Application" certificate
+  # 3. Right-click → Export
+  # 4. Save as .p12 with a password
+
+  # Convert to base64
+  base64 -i Certificates.p12 -o certificate_base64.txt
+
+  # Copy contents of certificate_base64.txt to GitHub secret
+  ```
+
+#### `SIGNING_CERTIFICATE_PASSWORD`
+
+- **Description**: Password used when exporting the P12 certificate
+- **Used in**: `.github/workflows/build-sign.yml` (release builds)
+- **Example**: `MySecureP12Password123!`
+
+### Apple Notarization Secrets (for Release Builds)
+
+These secrets are required for notarizing the application with Apple:
+
+#### `APPLE_ID`
+
+- **Description**: Your Apple ID email address used for notarization
+- **Used in**: `.github/workflows/build-sign.yml` (notarization step)
+- **Example**: `developer@example.com`
+
+#### `APPLE_APP_SPECIFIC_PASSWORD`
+
+- **Description**: App-specific password for notarization (NOT your regular Apple ID password)
+- **Used in**: `.github/workflows/build-sign.yml` (notarization step)
+- **How to generate**:
+  1. Go to https://appleid.apple.com
+  2. Sign in with your Apple ID
+  3. Navigate to Security → App-Specific Passwords
+  4. Click "Generate Password"
+  5. Label it "MagSafe Guard Notarization"
+  6. Copy the generated password
+
+#### `APPLE_TEAM_ID`
+
+- **Description**: Your Apple Developer Team ID (10-character alphanumeric)
+- **Used in**: `.github/workflows/build-sign.yml` (notarization step)
+- **How to find**:
+
+  ```bash
+  # Using Xcode
+  xcrun altool --list-providers -u "your-apple-id@example.com" -p "app-specific-password"
+
+  # Or find in Apple Developer Portal
+  # https://developer.apple.com/account → Membership → Team ID
+  ```
+
+- **Example**: `ABC123DEF4`
+
+### SonarCloud Secrets (Optional - for Code Quality)
+
+#### `SONAR_TOKEN`
+
+- **Description**: Authentication token for SonarCloud analysis
+- **Used in**: `.github/workflows/test.yml`, `.github/workflows/sonarcloud.yml`
+- **How to generate**:
+  1. Log in to https://sonarcloud.io
+  2. Go to Account → Security
+  3. Generate a new token
+  4. Name it "GitHub Actions"
+- **Required**: Only if using SonarCloud integration
+
+### Setting Up Secrets
+
+Via GitHub Web Interface:
+
+1. Navigate to your repository on GitHub
+2. Go to **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret**
+4. Add each secret with its name and value
+
+Via GitHub CLI:
+
+```bash
+# Authenticate first
+gh auth login
+
+# Add secrets
+gh secret set SIGNING_CERTIFICATE_P12_DATA < certificate_base64.txt
+gh secret set SIGNING_CERTIFICATE_PASSWORD
+gh secret set APPLE_ID
+gh secret set APPLE_APP_SPECIFIC_PASSWORD
+gh secret set APPLE_TEAM_ID
+gh secret set SONAR_TOKEN  # Optional
+```
 
 ## Workflow Efficiency
 
@@ -47,7 +154,35 @@ All workflows include automatic cancellation of redundant runs to optimize CI/CD
 
 ## Core Workflows
 
-### 1. Test Suite (`test.yml`)
+### 1. Build and Sign (`build-sign.yml`)
+
+**Trigger**: Push to main/develop, Pull requests to main, Git tags, Manual dispatch
+
+**Purpose**: Builds and signs the macOS application with appropriate certificates
+
+**Jobs**:
+
+- `cancel-redundant`: Cancels outdated runs
+- `build-and-sign`:
+  - Builds the application with Swift Bundler
+  - Signs based on context:
+    - **Pull Requests**: Ad-hoc signing (no certificate)
+    - **Branch pushes**: Development signing
+    - **Tag pushes**: Release signing + notarization
+  - Creates DMG for releases
+  - Uploads artifacts
+
+**Required Secrets** (for release builds only):
+
+- `SIGNING_CERTIFICATE_P12_DATA`
+- `SIGNING_CERTIFICATE_PASSWORD`
+- `APPLE_ID`
+- `APPLE_APP_SPECIFIC_PASSWORD`
+- `APPLE_TEAM_ID`
+
+**Required for merge**: No ❌
+
+### 2. Test Suite (`test.yml`)
 
 **Trigger**: Push to any branch, Pull requests
 
@@ -64,7 +199,7 @@ All workflows include automatic cancellation of redundant runs to optimize CI/CD
 
 **Required for merge**: Yes ✅
 
-### 2. Commit Message Check (`commit-message-check.yml`)
+### 3. Commit Message Check (`commit-message-check.yml`)
 
 **Trigger**: Pull requests
 
@@ -80,7 +215,7 @@ All workflows include automatic cancellation of redundant runs to optimize CI/CD
 
 **Required for merge**: Yes ✅
 
-### 3. Enforce Clean History (`enforce-clean-history.yml`)
+### 4. Enforce Clean History (`enforce-clean-history.yml`)
 
 **Trigger**: Pull requests
 
@@ -98,7 +233,7 @@ All workflows include automatic cancellation of redundant runs to optimize CI/CD
 
 ## Security Workflows
 
-### 4. Security Scanning (`security.yml`)
+### 5. Security Scanning (`security.yml`)
 
 **Trigger**: Pull requests, Push to main, Weekly schedule
 
@@ -119,7 +254,7 @@ All workflows include automatic cancellation of redundant runs to optimize CI/CD
 
 **Required for merge**: Yes (basic-checks) ✅
 
-### 5. Security Audit (`security-audit.yml`)
+### 6. Security Audit (`security-audit.yml`)
 
 **Trigger**: Weekly schedule, Manual dispatch
 
@@ -137,7 +272,7 @@ All workflows include automatic cancellation of redundant runs to optimize CI/CD
 
 ## Release Workflows
 
-### 6. Release Please (`release-please.yml`)
+### 7. Release Please (`release-please.yml`)
 
 **Trigger**: Push to main branch
 

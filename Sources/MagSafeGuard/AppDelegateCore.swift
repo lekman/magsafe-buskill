@@ -155,11 +155,11 @@ public class AppDelegateCore {
 
         // Arm/Disarm item with accessibility
         let armTitle = appController.armDisarmMenuTitle
-        let isArmed = appController.currentState == .armed || appController.currentState == .gracePeriod
+        let isCurrentlyArmed = appController.currentState == .armed || appController.currentState == .gracePeriod
         let armItem = NSMenuItem.accessibleMenuItem(
             title: armTitle,
             accessibilityLabel: armTitle,
-            hint: isArmed ? "Disarm the security system to stop protection" : "Arm the security system to enable protection",
+            hint: isCurrentlyArmed ? "Disarm the security system to stop protection" : "Arm the security system to enable protection",
             keyEquivalent: "a",
             action: #selector(AppDelegate.toggleArmed)
         )
@@ -201,16 +201,6 @@ public class AppDelegateCore {
         )
         menu.addItem(settingsItem)
 
-        // Demo item with accessibility
-        let demoItem = NSMenuItem.accessibleMenuItem(
-            title: "Run Demo...",
-            accessibilityLabel: "Run Demo",
-            hint: "Open power monitoring demonstration window",
-            keyEquivalent: "d",
-            action: #selector(AppDelegate.showDemo)
-        )
-        menu.addItem(demoItem)
-
         // Event log item with accessibility
         let logItem = NSMenuItem.accessibleMenuItem(
             title: "View Event Log...",
@@ -231,6 +221,7 @@ public class AppDelegateCore {
             keyEquivalent: "q",
             action: #selector(NSApplication.terminate(_:))
         )
+        quitItem.target = NSApp
         menu.addItem(quitItem)
 
         return menu

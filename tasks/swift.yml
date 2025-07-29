@@ -1,12 +1,11 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: "3"
-
 tasks:
   default:
     desc: List all Swift tasks
     silent: true
     cmds:
       - task --list | grep "^\\* swift:" | grep -v "::" || true
-
   test:
     desc: Run Swift tests
     silent: true
@@ -77,7 +76,7 @@ tasks:
             # Generate report with comprehensive filters matching CI
             xcrun llvm-cov report "$BINARY" \
               -instr-profile="$PROF_DATA" \
-              -ignore-filename-regex=".*Tests/.*|.*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/SettingsView\.swift|.*/TrustedLocationsView\.swift|.*/PowerMonitorService\.swift|.*LAContext\.swift|.*/MacSystemActions\.swift|.*Protocol\.swift|.*/runner\.swift" \
+              -ignore-filename-regex=".*Tests/.*|.*Tests\\.swift|.*Mocks?\\.swift|.*/MagSafeGuardApp\\.swift|.*/SettingsView\\.swift|.*/TrustedLocationsView\\.swift|.*/PowerMonitorService\\.swift|.*LAContext\\.swift|.*/MacSystemActions\\.swift|.*Protocol\\.swift|.*/runner\\.swift" \
               -use-color=false | tee coverage-report.txt
             
             # Extract total coverage - look for the TOTAL line
@@ -92,7 +91,7 @@ tasks:
               echo "⚠️  Coverage is ${COVERAGE}% (below 80% threshold)"
               echo ""
               echo "Files with low coverage:"
-              grep -E "^\S+\.swift" coverage-report.txt | grep -v "100.00%" | sort -k10 -n | head -10
+              grep -E "^\\S+\\.swift" coverage-report.txt | grep -v "100.00%" | sort -k10 -n | head -10
             fi
           fi
         else
@@ -125,7 +124,7 @@ tasks:
             -instr-profile="$PROF_DATA" \
             -format=html \
             -output-dir=coverage-html \
-            -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/SettingsView\.swift|.*/TrustedLocationsView\.swift|.*/PowerMonitorService\.swift|.*LAContext\.swift|.*/MacSystemActions\.swift|.*Protocol\.swift"
+            -ignore-filename-regex=".*Tests\\.swift|.*Mocks?\\.swift|.*/MagSafeGuardApp\\.swift|.*/SettingsView\\.swift|.*/TrustedLocationsView\\.swift|.*/PowerMonitorService\\.swift|.*LAContext\\.swift|.*/MacSystemActions\\.swift|.*Protocol\\.swift"
           
           echo "✅ Coverage report generated at: coverage-html/index.html"
           
@@ -159,7 +158,6 @@ tasks:
           echo "   Install with: brew install swiftlint"
           echo "   Or run: task swift:setup"
         fi
-
   lint:fix:
     desc: Auto-fix SwiftLint issues
     silent: true
@@ -180,7 +178,6 @@ tasks:
           echo "   Install with: brew install swiftlint"
           echo "   Or run: task swift:setup"
         fi
-
   format:
     desc: Format Swift code
     silent: true
@@ -214,7 +211,6 @@ tasks:
         rm -rf .swiftpm
         rm -f Package.resolved
         echo "✅ Build artifacts cleaned"
-
   build:
     desc: Build Swift package in debug mode
     silent: true
@@ -228,7 +224,6 @@ tasks:
           echo "❌ Build failed"
           exit 1
         fi
-
   build:release:
     desc: Build Swift package in release mode
     silent: true
@@ -249,7 +244,6 @@ tasks:
           echo "❌ Build failed"
           exit 1
         fi
-
   deps:
     desc: Show Swift package dependencies
     silent: true
@@ -258,7 +252,6 @@ tasks:
         echo "📦 Swift Package Dependencies:"
         echo ""
         swift package show-dependencies
-
   deps:tree:
     desc: Show Swift package dependency tree
     silent: true
@@ -267,7 +260,6 @@ tasks:
         echo "📦 Swift Package Dependency Tree:"
         echo ""
         swift package show-dependencies --format tree
-
   update:
     desc: Update Swift package dependencies
     silent: true
@@ -276,7 +268,6 @@ tasks:
         echo "📦 Updating Swift package dependencies..."
         swift package update
         echo "✅ Dependencies updated"
-
   resolve:
     desc: Resolve Swift package dependencies
     silent: true
@@ -285,7 +276,6 @@ tasks:
         echo "📦 Resolving Swift package dependencies..."
         swift package resolve
         echo "✅ Dependencies resolved"
-
   setup:
     desc: Setup Swift development tools
     silent: true
@@ -350,10 +340,11 @@ tasks:
           echo "📦 Installing jazzy to user directory..."
           
           # Check Ruby version first
-          RUBY_VERSION=$(ruby -v | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          RUBY_VERSION=$(ruby -v | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)
           MIN_VERSION="2.7.0"
           
-          if [ "$(printf '%s\n' "$MIN_VERSION" "$RUBY_VERSION" | sort -V | head -n1)" != "$MIN_VERSION" ]; then
+          if [ "$(printf '%s\
+        ' "$MIN_VERSION" "$RUBY_VERSION" | sort -V | head -n1)" != "$MIN_VERSION" ]; then
             echo "⚠️  Ruby version $RUBY_VERSION is too old for jazzy"
             echo "   jazzy requires Ruby >= 2.7"
             echo ""
@@ -381,7 +372,7 @@ tasks:
               if [[ ":$PATH:" != *":$GEM_BIN_PATH:"* ]]; then
                 echo ""
                 echo "⚠️  Add the following to your shell profile (.bashrc, .zshrc, etc.):"
-                echo "   export PATH=\"$GEM_BIN_PATH:\$PATH\""
+                echo "   export PATH=\\"$GEM_BIN_PATH:\\$PATH\\""
                 echo ""
                 echo "Then reload your shell or run: source ~/.zshrc"
               fi
@@ -403,10 +394,10 @@ tasks:
             fi
           fi
         else
-          echo "✅ jazzy already installed ($(jazzy --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1))"
+          echo "✅ jazzy already installed ($(jazzy --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1))"
           # Check if jazzy needs update
-          CURRENT_VERSION=$(jazzy --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-          LATEST_VERSION=$(gem search ^jazzy$ -r | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          CURRENT_VERSION=$(jazzy --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)
+          LATEST_VERSION=$(gem search ^jazzy$ -r | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)
           if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ] && [ -n "$LATEST_VERSION" ]; then
             echo "📦 Update available: $CURRENT_VERSION → $LATEST_VERSION"
             echo "   Run 'gem update jazzy' to update"
@@ -420,7 +411,7 @@ tasks:
         echo "  - SwiftLint: $(swiftlint version)"
         echo "  - swift-format: $(swift-format --version 2>&1 | head -1)"
         echo "  - SwiftGen: $(swiftgen --version 2>&1 | head -1)"
-        echo "  - jazzy: $(jazzy --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+        echo "  - jazzy: $(jazzy --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)"
 
   docs:
     desc: Generate Swift API documentation
@@ -430,21 +421,21 @@ tasks:
     cmds:
       - |
         echo "📚 Generating Swift API documentation..."
-        
+
         # Ensure output directory exists
         mkdir -p {{.OUTPUT_PATH}}
-        
+
         # Check if we're in a Swift package
         if [ ! -f "Package.swift" ]; then
           echo "❌ Not a Swift package. Package.swift not found."
           exit 1
         fi
-        
+
         # Get package name
         PACKAGE_NAME=$(swift package dump-package | jq -r '.name')
-        
+
         echo "🔍 Checking available documentation tools..."
-        
+
         # Option 1: Try jazzy if installed (most reliable)
         if command -v jazzy &> /dev/null; then
           echo "✅ Found jazzy - generating documentation..."
@@ -510,10 +501,11 @@ tasks:
           echo "Option 1: Jazzy (Recommended)"
           
           # Check Ruby version
-          RUBY_VERSION=$(ruby -v | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          RUBY_VERSION=$(ruby -v | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)
           MIN_VERSION="2.7.0"
           
-          if [ "$(printf '%s\n' "$MIN_VERSION" "$RUBY_VERSION" | sort -V | head -n1)" != "$MIN_VERSION" ]; then
+          if [ "$(printf '%s\
+        ' "$MIN_VERSION" "$RUBY_VERSION" | sort -V | head -n1)" != "$MIN_VERSION" ]; then
             echo "  ⚠️  Your Ruby version ($RUBY_VERSION) is too old for jazzy (requires >= 2.7)"
             echo ""
             echo "  First update Ruby:"
@@ -524,7 +516,7 @@ tasks:
             echo ""
             echo "  This installs to your user directory (no admin needed)."
             echo "  You may need to add the gem bin directory to your PATH:"
-            echo "     export PATH=\"$(ruby -r rubygems -e 'puts Gem.user_dir')/bin:\$PATH\""
+            echo "     export PATH=\\"$(ruby -r rubygems -e 'puts Gem.user_dir')/bin:\\$PATH\\""
             echo ""
             echo "  If you get a rouge dependency error:"
             echo "     gem install rouge -v 3.30.0 --user-install"
@@ -559,10 +551,48 @@ tasks:
 
         # This is a basic implementation since Swift PM doesn't have built-in outdated check
         echo "Current dependencies:"
-        swift package show-dependencies --format json | jq -r '.dependencies[] | "\(.name) @ \(.version // "unresolved")"'
+        swift package show-dependencies --format json | jq -r '.dependencies[] | "\\(.name) @ \\(.version // "unresolved")"'
 
         echo ""
         echo "To update all dependencies, run: task swift:update"
+
+  setup-bundler:
+    # Internal task - sets up Swift Bundler for signing
+    internal: true
+    silent: true
+    cmds:
+      - |
+        # Ensure swift-bundler is in .gitignore
+        if [ -f .gitignore ]; then
+          if ! grep -q "^swift-bundler$" .gitignore; then
+            echo "" >> .gitignore
+            echo "# Swift Bundler binary" >> .gitignore
+            echo "swift-bundler" >> .gitignore
+          fi
+        else
+          echo "# Swift Bundler binary" > .gitignore
+          echo "swift-bundler" >> .gitignore
+        fi
+
+        # Check if already installed locally
+        if [ -f "./swift-bundler" ]; then
+          # Bundler already exists
+          exit 0
+        fi
+
+        echo "📦 Setting up Swift Bundler..."
+
+        # Download latest version
+        echo "Downloading Swift Bundler..."
+        curl -o swift-bundler -L https://github.com/stackotter/swift-bundler/releases/latest/download/swift-bundler
+
+        if [ $? -ne 0 ]; then
+          echo "❌ Failed to download Swift Bundler"
+          exit 1
+        fi
+
+        chmod +x ./swift-bundler
+        echo "✅ Swift Bundler installed"
 
   sbom:
     desc: Generate Software Bill of Materials (SBOM) in SPDX format
@@ -602,7 +632,17 @@ tasks:
         # Dependencies
         echo "" >> sbom.spdx
         echo "# Dependencies" >> sbom.spdx
-        DEPS=$(swift package show-dependencies --format json | jq -r '.dependencies[]? | "PackageName: " + .name + "\nSPDXID: SPDXRef-Package-" + .identity + "\nPackageVersion: " + (.version // "unknown") + "\nPackageDownloadLocation: " + (.url // "NOASSERTION") + "\nFilesAnalyzed: false\nPackageLicenseConcluded: NOASSERTION\nPackageLicenseDeclared: NOASSERTION\nPackageCopyrightText: NOASSERTION\n\nRelationship: SPDXRef-Package-" + .identity + " DEPENDENCY_OF SPDXRef-Package-${PACKAGE_NAME}\n"' 2>/dev/null || echo "")
+        DEPS=$(swift package show-dependencies --format json | jq -r '.dependencies[]? | "PackageName: " + .name + "\
+        SPDXID: SPDXRef-Package-" + .identity + "\
+        PackageVersion: " + (.version // "unknown") + "\
+        PackageDownloadLocation: " + (.url // "NOASSERTION") + "\
+        FilesAnalyzed: false\
+        PackageLicenseConcluded: NOASSERTION\
+        PackageLicenseDeclared: NOASSERTION\
+        PackageCopyrightText: NOASSERTION\
+        \
+        Relationship: SPDXRef-Package-" + .identity + " DEPENDENCY_OF SPDXRef-Package-${PACKAGE_NAME}\
+        "' 2>/dev/null || echo "")
 
         if [ -n "$DEPS" ]; then
           echo "$DEPS" >> sbom.spdx
@@ -615,9 +655,205 @@ tasks:
         swift package show-dependencies --format json > sbom-deps.json
 
         echo "✅ Also generated: sbom-deps.json (Swift dependencies)"
+
     sources:
       - Package.swift
       - Sources/**/*.swift
     generates:
       - sbom.spdx
       - sbom-deps.json
+
+  sign:
+    desc: Sign the MagSafe Guard app (interactive - prompts for configuration)
+    deps: [setup-bundler]
+    silent: true
+    cmds:
+      - |
+        echo "🔐 MagSafe Guard Code Signing"
+        echo "============================="
+        echo ""
+        echo "Select signing configuration:"
+        echo "1) Development (local testing)"
+        echo "2) Release (Developer ID for direct distribution)"
+        echo "3) App Store (for App Store submission)"
+        echo "4) CI (ad-hoc signing for testing)"
+        echo ""
+        read -p "Enter choice (1-4) [1]: " choice
+        choice=${choice:-1}
+
+        case $choice in
+          1) CONFIG="development" ;;
+          2) CONFIG="release" ;;
+          3) CONFIG="appstore" ;;
+          4) CONFIG="ci" ;;
+          *) echo "Invalid choice"; exit 1 ;;
+        esac
+
+        # Build if needed
+        if [ ! -d "./.build/bundler/MagSafeGuard.app" ]; then
+          echo "🔨 Building app first..."
+          ./swift-bundler bundle --configuration release
+        fi
+
+        # Run signing script
+        ./scripts/sign-app.sh "$CONFIG"
+  sign:dev:
+    desc: Sign app for development
+    deps: [setup-bundler]
+    silent: true
+    cmds:
+      - |
+        # Build if needed
+        if [ ! -d "./.build/bundler/MagSafeGuard.app" ]; then
+          echo "🔨 Building app first..."
+          ./swift-bundler bundle --configuration release
+        fi
+        ./scripts/sign-app.sh development
+
+  sign:release:
+    desc: Sign app for release with Developer ID
+    deps: [setup-bundler]
+    silent: true
+    cmds:
+      - |
+        # Build if needed
+        if [ ! -d "./.build/bundler/MagSafeGuard.app" ]; then
+          echo "🔨 Building app first..."
+          ./swift-bundler bundle --configuration release
+        fi
+        ./scripts/sign-app.sh release
+
+  sign:appstore:
+    desc: Sign app for App Store distribution
+    deps: [setup-bundler]
+    silent: true
+    cmds:
+      - |
+        # Build if needed
+        if [ ! -d "./.build/bundler/MagSafeGuard.app" ]; then
+          echo "🔨 Building app first..."
+          ./swift-bundler bundle --configuration release
+        fi
+        ./scripts/sign-app.sh appstore
+
+  sign:ci:
+    desc: Ad-hoc sign app for CI testing
+    deps: [setup-bundler]
+    silent: true
+    cmds:
+      - |
+        # Build if needed
+        if [ ! -d "./.build/bundler/MagSafeGuard.app" ]; then
+          echo "🔨 Building app first..."
+          ./swift-bundler bundle --configuration release
+        fi
+        ./scripts/sign-app.sh ci
+
+  sign:verify:
+    desc: Verify app signature and notarization status
+    silent: true
+    cmds:
+      - |
+        APP_PATH="./.build/bundler/MagSafeGuard.app"
+
+        if [ ! -d "$APP_PATH" ]; then
+          echo "❌ App not found at $APP_PATH"
+          echo "Build and sign the app first"
+          exit 1
+        fi
+
+        echo "🔍 Verifying MagSafe Guard Signature"
+        echo "===================================="
+        echo ""
+
+        # Basic signature verification
+        echo "📋 Signature verification:"
+        if codesign --verify --deep --verbose=2 "$APP_PATH" 2>&1; then
+          echo "✅ Signature is valid"
+        else
+          echo "❌ Signature verification failed"
+          exit 1
+        fi
+
+        echo ""
+        echo "📋 Signature details:"
+        codesign -dvvv "$APP_PATH" 2>&1 | grep -E "Authority|TeamIdentifier|Signature|Identifier|Format|CDHash" | head -15
+
+        echo ""
+        echo "📋 Entitlements:"
+        codesign -d --entitlements - "$APP_PATH" 2>&1 | grep -E "key>" | sed 's/.*<key>/  - /' | sed 's/<\/key>.*//'
+
+        echo ""
+        echo "📋 Gatekeeper assessment:"
+        spctl -a -t exec -vv "$APP_PATH" 2>&1 || true
+
+        echo ""
+        echo "📋 Notarization status:"
+        if spctl --assess -vv "$APP_PATH" 2>&1 | grep -q "accepted"; then
+          echo "✅ App is notarized or accepted by Gatekeeper"
+        else
+          echo "⚠️  App is not notarized (required for distribution)"
+        fi
+
+  sign:export-cert:
+    desc: Export signing certificate for CI/CD
+    silent: true
+    cmds:
+      - |
+        echo "🔐 Export Signing Certificate"
+        echo "============================"
+        echo ""
+
+        # Find Developer ID certificate
+        IDENTITY=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | awk '{print $2}')
+
+        if [ -z "$IDENTITY" ]; then
+          echo "❌ No Developer ID Application certificate found"
+          exit 1
+        fi
+
+        CERT_NAME=$(security find-identity -v -p codesigning | grep "$IDENTITY" | sed 's/^[^"]*"//' | sed 's/"$//')
+        echo "Found certificate: $CERT_NAME"
+        echo ""
+
+        OUTPUT_PATH="$HOME/Desktop/MagSafeGuard-Certificate.p12"
+
+        echo "This will export your certificate and private key."
+        echo "You'll need to create a password to protect the exported file."
+        echo ""
+        echo "⚠️  SECURITY WARNING:"
+        echo "- Keep this file secure - it contains your private key"
+        echo "- Never commit it to version control"
+        echo "- Delete it after importing to CI/CD system"
+        echo ""
+        read -p "Continue? (y/n) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+          echo "Export cancelled"
+          exit 0
+        fi
+
+        echo ""
+        echo "Exporting certificate..."
+        security export -k ~/Library/Keychains/login.keychain-db -t identities -f pkcs12 -o "$OUTPUT_PATH" || {
+          echo ""
+          echo "❌ Export failed. Try using Keychain Access app instead:"
+          echo "1. Open Keychain Access"
+          echo "2. Find '$CERT_NAME'"
+          echo "3. Right-click → Export"
+          echo "4. Save as .p12 file"
+          exit 1
+        }
+
+        echo ""
+        echo "✅ Certificate exported to: $OUTPUT_PATH"
+        echo ""
+        echo "For GitHub Actions, convert to base64:"
+        echo "  base64 -i \"$OUTPUT_PATH\" | pbcopy"
+        echo "  (The base64 string is now in your clipboard)"
+        echo ""
+        echo "Then add to GitHub secrets:"
+        echo "  - SIGNING_CERTIFICATE_P12_DATA (the base64 string)"
+        echo "  - SIGNING_CERTIFICATE_PASSWORD (the password you created)"
+        echo ""
+        echo "Remember to delete the P12 file when done!"

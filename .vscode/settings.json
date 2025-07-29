@@ -30,7 +30,13 @@
     ".swiftlint.yml": true,
     ".scannerwork": true,
     ".sonarcloud": true,
-    ".task": true
+    ".task": true,
+    "coverage-report.txt": true,
+    ".github/pr-comments": true,
+    ".prettierignore": true,
+    ".prettierrc.yml": true,
+    ".eslintrc.yml": true,
+    ".yamllint.yml": true
   },
   "search.exclude": {
     "**/node_modules": true,
@@ -38,7 +44,8 @@
     "**/*.code-search": true,
     ".build/**": true,
     ".swiftpm/**": true,
-    "MagSafeGuard.xcodeproj/**": true
+    "MagSafeGuard.xcodeproj/**": true,
+    ".github/pr-comments/**": true
   },
   "editor.formatOnSave": true,
   "editor.rulers": [80, 120],
@@ -60,5 +67,13 @@
   "sonarlint.connectedMode.project": {
     "connectionId": "lekman",
     "projectKey": "lekman_magsafe-buskill"
+  },
+  "yaml.schemas": {
+    "https://taskfile.dev/schema.json": [
+      "tasks/*.yml",
+      "tasks/*.yaml",
+      "Taskfile.yml",
+      "Taskfile.yaml"
+    ]
   }
 }

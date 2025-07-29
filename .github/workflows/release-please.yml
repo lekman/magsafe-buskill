@@ -1,5 +1,4 @@
 name: Release Please
-
 on:
   push:
     branches:
@@ -8,14 +7,12 @@ on:
     types: [opened, synchronize, reopened]
     # Only run on files that release-please modifies
     paths:
-      - '.github/.release-please-manifest.json'
-      - '**/CHANGELOG.md'
-      - '**/package.json'
-      - '**/package-lock.json'
-
+      - ".github/.release-please-manifest.json"
+      - "**/CHANGELOG.md"
+      - "**/package.json"
+      - "**/package-lock.json"
 permissions:
   contents: read
-
 jobs:
   cancel-redundant:
     name: Cancel Redundant Workflows
@@ -27,7 +24,6 @@ jobs:
         uses: ./.github/actions/cancel-redundant-workflows
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-
   release-please:
     name: "Release Please"
     runs-on: ubuntu-latest
@@ -41,7 +37,6 @@ jobs:
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-
       - name: Release Please
         id: release
         uses: googleapis/release-please-action@a02a34c4d625f9be7cb89156071d8567266a2445 # v4.2.0
@@ -49,7 +44,6 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           config-file: .github/.release-please-config.json
           manifest-file: .github/.release-please-manifest.json
-
   auto-approve:
     name: Auto Approve
     needs: release-please
@@ -62,7 +56,6 @@ jobs:
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-
       - name: Auto-approve Release PR
         uses: lekman/auto-approve-action@25d5b39fc1a1e8a04ad7473a47f1a9ecd9748fa3 # v1.0.0
         with:
@@ -72,7 +65,6 @@ jobs:
           label-match-mode: "all"
           path-filters: ".github/.release-please-manifest.json,**/CHANGELOG.md,**/package.json,**/package-lock.json"
           merge-method: "merge"
-
   merge-on-approval:
     name: Merge
     needs: [release-please, auto-approve]
@@ -85,7 +77,6 @@ jobs:
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-
       - name: Enable Auto-merge
         run: |
           gh pr merge ${{ fromJson(needs.release-please.outputs.pr).number }} \

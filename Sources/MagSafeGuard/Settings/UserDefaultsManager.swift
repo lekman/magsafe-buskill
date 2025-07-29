@@ -72,6 +72,33 @@ public class UserDefaultsManager: ObservableObject {
     private let decoder = JSONDecoder()
     private var cancellables = Set<AnyCancellable>()
 
+    /// iCloud sync service for settings synchronization (lazy to avoid startup crash)
+    private var _iCloudSync: SyncService?
+    private var _iCloudSyncInitialized = false
+    private var isInitializing = true  // Flag to prevent sync during init
+
+    private var iCloudSync: SyncService? {
+        // Don't create sync service during initialization or if disabled
+        if isInitializing || !settings.iCloudSyncEnabled {
+            return nil
+        }
+
+        if !_iCloudSyncInitialized {
+            _iCloudSyncInitialized = true
+            _iCloudSync = SyncServiceFactory.create()
+
+            // Setup notification listener on first access
+            if _iCloudSync != nil {
+                NotificationCenter.default.publisher(for: .settingsSyncedFromiCloud)
+                    .sink { [weak self] _ in
+                        self?.reloadSettingsFromDisk()
+                    }
+                    .store(in: &cancellables)
+            }
+        }
+        return _iCloudSync
+    }
+
     // MARK: - Constants
 
     private enum Keys {
@@ -107,6 +134,11 @@ public class UserDefaultsManager: ObservableObject {
             userDefaults.set(true, forKey: Keys.hasLaunchedBefore)
             onFirstLaunch()
         }
+
+        // iCloud sync will be initialized lazily when first accessed
+
+        // Mark initialization complete
+        isInitializing = false
     }
 
     // MARK: - Public Methods
@@ -198,9 +230,17 @@ public class UserDefaultsManager: ObservableObject {
             let data = try encoder.encode(settings)
             userDefaults.set(data, forKey: Keys.settings)
             userDefaults.set(currentSettingsVersion, forKey: Keys.settingsVersion)
+            userDefaults.set(Date().timeIntervalSince1970, forKey: "settingsTimestamp")
 
             // Force synchronization to disk
             userDefaults.synchronize()
+
+            // Trigger iCloud sync only if enabled and not initializing
+            if !isInitializing && settings.iCloudSyncEnabled, let iCloudSync = iCloudSync {
+                Task {
+                    try? await iCloudSync.syncSettings()
+                }
+            }
         } catch {
             Log.error("Failed to save settings", error: error, category: .settings)
             // Try to at least log what went wrong
@@ -210,6 +250,15 @@ public class UserDefaultsManager: ObservableObject {
                 } else {
                     Log.error("Encoding error: \(encodingError)", category: .settings)
                 }
+            }
+        }
+    }
+
+    /// Reloads settings from disk (called when synced from iCloud)
+    private func reloadSettingsFromDisk() {
+        if let reloadedSettings = Self.loadSettings(from: userDefaults) {
+            DispatchQueue.main.async { [weak self] in
+                self?.settings = reloadedSettings
             }
         }
     }
@@ -279,5 +328,23 @@ extension UserDefaultsManager {
     public var autoArmEnabled: Bool {
         get { settings.autoArmEnabled }
         set { updateSetting(\.autoArmEnabled, value: newValue) }
+    }
+
+    /// Force an immediate iCloud sync
+    public func forceiCloudSync() async throws {
+        guard let iCloudSync = iCloudSync else {
+            throw SyncError.notAvailable
+        }
+        try await iCloudSync.syncAll()
+    }
+
+    /// Get current iCloud sync status
+    public var iCloudSyncStatus: SyncStatus {
+        iCloudSync?.syncStatus ?? .unknown
+    }
+
+    /// Check if iCloud is available
+    public var isiCloudAvailable: Bool {
+        iCloudSync?.isAvailable ?? false
     }
 }
