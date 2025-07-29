@@ -320,7 +320,7 @@ task swift:sign:verify
 6. **Use app-specific passwords** for notarization
 7. **Test signed apps** on a clean machine
 
-## Troubleshooting
+## Common Issues and Solutions
 
 ### "No identity found" Error
 

@@ -63,6 +63,7 @@ task swift:sign:export-cert
 ## Signing Script
 
 The main signing logic is in `/scripts/sign-app.sh`. It handles:
+
 - Certificate detection
 - Entitlements selection
 - Code signing

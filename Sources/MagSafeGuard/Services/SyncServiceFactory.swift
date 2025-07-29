@@ -21,12 +21,12 @@ public enum SyncServiceFactory {
             return nil
         }
         #endif
-        
+
         // Check if app bundle identifier is available (optional check for Xcode)
         if Bundle.main.bundleIdentifier == nil {
             Log.warning("No bundle identifier found - sync service may have limited functionality", category: .general)
         }
-        
+
         // Create sync service - it will handle initialization errors gracefully
         let syncService = SyncService()
         Log.info("Sync service created successfully", category: .general)

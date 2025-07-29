@@ -573,24 +573,24 @@ tasks:
           echo "# Swift Bundler binary" > .gitignore
           echo "swift-bundler" >> .gitignore
         fi
-        
+
         # Check if already installed locally
         if [ -f "./swift-bundler" ]; then
           # Bundler already exists
           exit 0
         fi
-        
+
         echo "📦 Setting up Swift Bundler..."
-        
+
         # Download latest version
         echo "Downloading Swift Bundler..."
         curl -o swift-bundler -L https://github.com/stackotter/swift-bundler/releases/latest/download/swift-bundler
-        
+
         if [ $? -ne 0 ]; then
           echo "❌ Failed to download Swift Bundler"
           exit 1
         fi
-        
+
         chmod +x ./swift-bundler
         echo "✅ Swift Bundler installed"
 
@@ -680,7 +680,7 @@ tasks:
         echo ""
         read -p "Enter choice (1-4) [1]: " choice
         choice=${choice:-1}
-        
+
         case $choice in
           1) CONFIG="development" ;;
           2) CONFIG="release" ;;
@@ -688,13 +688,13 @@ tasks:
           4) CONFIG="ci" ;;
           *) echo "Invalid choice"; exit 1 ;;
         esac
-        
+
         # Build if needed
         if [ ! -d "./.build/bundler/MagSafeGuard.app" ]; then
           echo "🔨 Building app first..."
           ./swift-bundler bundle --configuration release
         fi
-        
+
         # Run signing script
         ./scripts/sign-app.sh "$CONFIG"
   sign:dev:
@@ -709,7 +709,7 @@ tasks:
           ./swift-bundler bundle --configuration release
         fi
         ./scripts/sign-app.sh development
-  
+
   sign:release:
     desc: Sign app for release with Developer ID
     deps: [setup-bundler]
@@ -722,7 +722,7 @@ tasks:
           ./swift-bundler bundle --configuration release
         fi
         ./scripts/sign-app.sh release
-  
+
   sign:appstore:
     desc: Sign app for App Store distribution
     deps: [setup-bundler]
@@ -735,7 +735,7 @@ tasks:
           ./swift-bundler bundle --configuration release
         fi
         ./scripts/sign-app.sh appstore
-  
+
   sign:ci:
     desc: Ad-hoc sign app for CI testing
     deps: [setup-bundler]
@@ -748,24 +748,24 @@ tasks:
           ./swift-bundler bundle --configuration release
         fi
         ./scripts/sign-app.sh ci
-  
+
   sign:verify:
     desc: Verify app signature and notarization status
     silent: true
     cmds:
       - |
         APP_PATH="./.build/bundler/MagSafeGuard.app"
-        
+
         if [ ! -d "$APP_PATH" ]; then
           echo "❌ App not found at $APP_PATH"
           echo "Build and sign the app first"
           exit 1
         fi
-        
+
         echo "🔍 Verifying MagSafe Guard Signature"
         echo "===================================="
         echo ""
-        
+
         # Basic signature verification
         echo "📋 Signature verification:"
         if codesign --verify --deep --verbose=2 "$APP_PATH" 2>&1; then
@@ -774,19 +774,19 @@ tasks:
           echo "❌ Signature verification failed"
           exit 1
         fi
-        
+
         echo ""
         echo "📋 Signature details:"
         codesign -dvvv "$APP_PATH" 2>&1 | grep -E "Authority|TeamIdentifier|Signature|Identifier|Format|CDHash" | head -15
-        
+
         echo ""
         echo "📋 Entitlements:"
         codesign -d --entitlements - "$APP_PATH" 2>&1 | grep -E "key>" | sed 's/.*<key>/  - /' | sed 's/<\/key>.*//'
-        
+
         echo ""
         echo "📋 Gatekeeper assessment:"
         spctl -a -t exec -vv "$APP_PATH" 2>&1 || true
-        
+
         echo ""
         echo "📋 Notarization status:"
         if spctl --assess -vv "$APP_PATH" 2>&1 | grep -q "accepted"; then
@@ -794,7 +794,7 @@ tasks:
         else
           echo "⚠️  App is not notarized (required for distribution)"
         fi
-  
+
   sign:export-cert:
     desc: Export signing certificate for CI/CD
     silent: true
@@ -803,21 +803,21 @@ tasks:
         echo "🔐 Export Signing Certificate"
         echo "============================"
         echo ""
-        
+
         # Find Developer ID certificate
         IDENTITY=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | awk '{print $2}')
-        
+
         if [ -z "$IDENTITY" ]; then
           echo "❌ No Developer ID Application certificate found"
           exit 1
         fi
-        
+
         CERT_NAME=$(security find-identity -v -p codesigning | grep "$IDENTITY" | sed 's/^[^"]*"//' | sed 's/"$//')
         echo "Found certificate: $CERT_NAME"
         echo ""
-        
+
         OUTPUT_PATH="$HOME/Desktop/MagSafeGuard-Certificate.p12"
-        
+
         echo "This will export your certificate and private key."
         echo "You'll need to create a password to protect the exported file."
         echo ""
@@ -832,7 +832,7 @@ tasks:
           echo "Export cancelled"
           exit 0
         fi
-        
+
         echo ""
         echo "Exporting certificate..."
         security export -k ~/Library/Keychains/login.keychain-db -t identities -f pkcs12 -o "$OUTPUT_PATH" || {
@@ -844,7 +844,7 @@ tasks:
           echo "4. Save as .p12 file"
           exit 1
         }
-        
+
         echo ""
         echo "✅ Certificate exported to: $OUTPUT_PATH"
         echo ""

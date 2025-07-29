@@ -10,7 +10,7 @@ import AppKit
 /// Preloads critical resources during app initialization
 public class ResourcePreloader {
     public static let shared = ResourcePreloader()
-    
+
     private var preloadedIcons: [String: NSImage] = [:]
     private let iconNames = [
         "shield.fill",
@@ -20,14 +20,14 @@ public class ResourcePreloader {
         "lock.shield",
         "lock.shield.fill"
     ]
-    
+
     private init() {}
-    
+
     /// Preload all critical resources
     public func preloadResources() {
         preloadMenuBarIcons()
     }
-    
+
     /// Preload menu bar icons
     private func preloadMenuBarIcons() {
         for iconName in iconNames {
@@ -40,15 +40,15 @@ public class ResourcePreloader {
                 }
             }
         }
-        
+
         Log.debug("Preloaded \(preloadedIcons.count) icons", category: .general)
     }
-    
+
     /// Get a preloaded icon by name
     public func getIcon(named name: String) -> NSImage? {
         return preloadedIcons[name]
     }
-    
+
     /// Get the default shield icon
     public func getDefaultIcon() -> NSImage? {
         return getIcon(named: "shield.fill") ?? getIcon(named: "shield")

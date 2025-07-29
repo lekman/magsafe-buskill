@@ -615,7 +615,7 @@ public class AppController: ObservableObject {
             name: Notification.Name("MagSafeGuard.CancelGracePeriod"),
             object: nil
         )
-        
+
         // Listen for CloudKit permission notifications
         NotificationCenter.default.addObserver(
             self,
@@ -623,14 +623,14 @@ public class AppController: ObservableObject {
             name: Notification.Name("MagSafeGuardCloudKitPermissionNeeded"),
             object: nil
         )
-        
+
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handleCloudKitNotification(_:)),
             name: Notification.Name("MagSafeGuardCloudKitAccountNeeded"),
             object: nil
         )
-        
+
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handleCloudKitNotification(_:)),
@@ -648,17 +648,17 @@ public class AppController: ObservableObject {
             }
         }
     }
-    
+
     @objc private func handleCloudKitNotification(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
               let title = userInfo["title"] as? String,
               let message = userInfo["message"] as? String else {
             return
         }
-        
+
         // Show notification to user
         notificationService.showNotification(title: title, message: message)
-        
+
         // Log the issue
         Log.warning("CloudKit notification: \(title) - \(message)", category: .general)
     }

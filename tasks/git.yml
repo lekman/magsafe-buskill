@@ -835,3 +835,121 @@ tasks:
         fi
 
     aliases: [prc]
+  # Check workflow runs for current branch
+  runs:check:
+    desc: "Check GitHub workflow runs for current branch (or specified branch)"
+    silent: true
+    deps: [check-gh-cli]
+    dotenv: [".env"]
+    vars:
+      BRANCH: '{{.BRANCH | default ""}}'
+      LIMIT: '{{.LIMIT | default "10"}}'
+      STATUS: '{{.STATUS | default "all"}}'
+    cmds:
+      - |
+        # Set up authentication - prefer gh CLI auth, fallback to GITHUB_TOKEN
+        if ! gh auth status &>/dev/null; then
+          # Not authenticated via gh CLI, check for token from .env
+          if [ -n "${GITHUB_TOKEN}" ]; then
+            export GH_TOKEN="${GITHUB_TOKEN}"
+          else
+            echo -e "{{.RED}}GitHub authentication required{{.NC}}"
+            echo "Please either:"
+            echo "  1. Add GITHUB_TOKEN to your .env file"
+            echo "  2. Or authenticate with: gh auth login"
+            exit 1
+          fi
+        fi
+
+        # Get current branch if not specified
+        branch="{{.BRANCH}}"
+        if [ -z "$branch" ]; then
+          branch=$(git rev-parse --abbrev-ref HEAD)
+        fi
+
+        echo -e "{{.CYAN}}Checking workflow runs for branch: $branch{{.NC}}"
+        echo ""
+
+        # Get repository info
+        REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
+
+        # Build status filter
+        STATUS_FILTER=""
+        if [ "{{.STATUS}}" != "all" ]; then
+          STATUS_FILTER="-s {{.STATUS}}"
+        fi
+
+        # Get workflow runs
+        RUNS=$(gh run list -b "$branch" $STATUS_FILTER --limit {{.LIMIT}} --json databaseId,name,status,conclusion,event,workflowName,createdAt,headBranch,url,displayTitle)
+
+        # Count runs by status
+        TOTAL=$(echo "$RUNS" | jq 'length')
+        if [ "$TOTAL" -eq 0 ]; then
+          echo -e "{{.YELLOW}}No workflow runs found for branch: $branch{{.NC}}"
+          exit 0
+        fi
+
+        # Count by conclusion
+        SUCCESS_COUNT=$(echo "$RUNS" | jq '[.[] | select(.conclusion=="success")] | length')
+        FAILURE_COUNT=$(echo "$RUNS" | jq '[.[] | select(.conclusion=="failure")] | length')
+        CANCELLED_COUNT=$(echo "$RUNS" | jq '[.[] | select(.conclusion=="cancelled")] | length')
+        IN_PROGRESS=$(echo "$RUNS" | jq '[.[] | select(.status=="in_progress")] | length')
+        QUEUED=$(echo "$RUNS" | jq '[.[] | select(.status=="queued")] | length')
+
+        # Display summary
+        echo -e "{{.GREEN}}✅ Success: $SUCCESS_COUNT{{.NC}} | {{.RED}}❌ Failed: $FAILURE_COUNT{{.NC}} | {{.YELLOW}}🚫 Cancelled: $CANCELLED_COUNT{{.NC}} | {{.CYAN}}🔄 Running: $IN_PROGRESS{{.NC}} | {{.CYAN}}⏳ Queued: $QUEUED{{.NC}}"
+        echo ""
+
+        # Show failed runs first if any
+        if [ "$FAILURE_COUNT" -gt 0 ]; then
+          echo -e "{{.RED}}Failed Runs:{{.NC}}"
+          echo "$RUNS" | jq -r '.[] | select(.conclusion=="failure") | 
+            "  ❌ " + .workflowName + " - " + .displayTitle + "
+    ID: " + (.databaseId|tostring) + " | " + .event + " | " + (.createdAt | fromdateiso8601 | strftime("%Y-%m-%d %H:%M")) + "
+    URL: " + .url' | head -15
+          [ "$FAILURE_COUNT" -gt 5 ] && echo "  ... and $((FAILURE_COUNT - 5)) more failures"
+          echo ""
+        fi
+
+        # Show in-progress runs
+        if [ "$IN_PROGRESS" -gt 0 ]; then
+          echo -e "{{.CYAN}}In Progress:{{.NC}}"
+          echo "$RUNS" | jq -r '.[] | select(.status=="in_progress") | 
+            "  🔄 " + .workflowName + " - " + .displayTitle + "
+    ID: " + (.databaseId|tostring) + " | " + .event + " | Started: " + (.createdAt | fromdateiso8601 | strftime("%Y-%m-%d %H:%M"))'
+          echo ""
+        fi
+
+        # Show all runs in table format
+        echo -e "{{.CYAN}}All Runs (most recent first):{{.NC}}"
+        echo "$RUNS" | jq -r '.[] | 
+          (if .conclusion=="success" then "✅" 
+           elif .conclusion=="failure" then "❌" 
+           elif .conclusion=="cancelled" then "🚫" 
+           elif .status=="in_progress" then "🔄" 
+           elif .status=="queued" then "⏳" 
+           else "❓" end) + " | " +
+          (.workflowName | .[0:25]) + (if (.workflowName | length) > 25 then "..." else "" end) + " | " +
+          (.displayTitle | .[0:40]) + (if (.displayTitle | length) > 40 then "..." else "" end) + " | " +
+          .event + " | " +
+          (.createdAt | fromdateiso8601 | strftime("%Y-%m-%d %H:%M"))' | column -t -s '|'
+
+        echo ""
+        echo -e "{{.YELLOW}}Showing {{.LIMIT}} most recent runs (use LIMIT=n to change){{.NC}}"
+        echo -e "{{.YELLOW}}Status filter: {{.STATUS}} (use STATUS=completed|in_progress|queued|all){{.NC}}"
+
+        # Suggest actions for failed runs
+        if [ "$FAILURE_COUNT" -gt 0 ]; then
+          echo ""
+          echo -e "{{.YELLOW}}💡 To investigate failures:{{.NC}}"
+          echo "  gh run view <run-id>              # View run details"
+          echo "  gh run view <run-id> --log        # View full logs"
+          echo "  gh run view <run-id> --log-failed # View only failed steps"
+          echo "  gh run rerun <run-id>             # Re-run workflow"
+          echo "  gh run rerun <run-id> --failed    # Re-run only failed jobs"
+          echo ""
+          echo -e "{{.YELLOW}}💡 To clean up failed runs:{{.NC}}"
+          echo "  task git:delete-runs BRANCH=$branch STATUS=failure  # Delete all failed runs"
+        fi
+
+    aliases: [rc, check-runs]

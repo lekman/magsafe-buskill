@@ -16,6 +16,7 @@ Created four different entitlements files for different scenarios:
 ### 2. Signing Script
 
 Created `scripts/sign-app.sh` that:
+
 - Accepts configuration parameter (development, release, appstore, ci)
 - Automatically selects appropriate certificate and entitlements
 - Handles ad-hoc signing for CI environments
@@ -26,6 +27,7 @@ Created `scripts/sign-app.sh` that:
 ### 3. Taskfile Integration
 
 Updated `tasks/swift.yml` with new signing tasks:
+
 - `task swift:sign` - Interactive signing (prompts for configuration)
 - `task swift:sign:dev` - Development signing
 - `task swift:sign:release` - Developer ID signing
@@ -43,6 +45,7 @@ Updated `tasks/swift.yml` with new signing tasks:
 ### 5. CI/CD Support
 
 Created `.github/workflows/build-sign.yml` demonstrating:
+
 - Certificate import from secrets
 - Configuration-based signing
 - Notarization for releases
@@ -63,22 +66,26 @@ Created `.github/workflows/build-sign.yml` demonstrating:
 Each configuration has appropriate entitlements:
 
 **Development**:
+
 - Sandbox disabled for easier testing
 - Debugging enabled (`get-task-allow`)
 - All runtime restrictions relaxed
 
 **Release (Developer ID)**:
+
 - Sandbox disabled for system actions
 - Hardened runtime enabled
 - Production push notifications
 - No debugging
 
 **App Store**:
+
 - Sandbox enabled (required)
 - All capabilities properly declared
 - Hardened runtime enforced
 
 **CI**:
+
 - Minimal entitlements
 - Ad-hoc signing (no certificate)
 - Testing focused
@@ -86,6 +93,7 @@ Each configuration has appropriate entitlements:
 ### Required Capabilities
 
 All configurations properly declare:
+
 1. Menu bar operation (`LSUIElement`)
 2. CloudKit access (iCloud container)
 3. Security features (camera, location, Apple Events)
@@ -104,6 +112,7 @@ All configurations properly declare:
 ## Usage Examples
 
 ### Local Development
+
 ```bash
 # Build and sign for development
 task build
@@ -112,6 +121,7 @@ task run
 ```
 
 ### Release Distribution
+
 ```bash
 # Build and sign for release
 task build:release
@@ -123,6 +133,7 @@ xcrun notarytool submit ...
 ```
 
 ### CI/CD
+
 ```bash
 # In CI environment
 task build
@@ -130,6 +141,7 @@ task swift:sign:ci  # No certificate required
 ```
 
 ### Certificate Management
+
 ```bash
 # Export certificate for CI
 task swift:sign:export-cert

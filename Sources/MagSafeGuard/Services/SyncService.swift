@@ -69,53 +69,53 @@ public class SyncService: NSObject, ObservableObject {
 
     public override init() {
         super.init()
-        
+
         // Check if we're in a test environment
         let isTestEnvironment = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil ||
                                Self.disableForTesting ||
                                NSClassFromString("XCTest") != nil ||
                                ProcessInfo.processInfo.environment["CI"] != nil
-        
+
         if isTestEnvironment {
             Log.debug("Running in test environment - CloudKit disabled", category: .general)
             syncStatus = .unknown
             isAvailable = false
             return
         }
-        
+
         // Delay CloudKit initialization to avoid early crashes
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
             self?.initializeCloudKit()
         }
     }
-    
+
     // MARK: - CloudKit Initialization
-    
+
     private func initializeCloudKit() {
         guard !isCloudKitInitialized else { return }
-        
+
         // Try to initialize CloudKit container
         let containerIdentifier = determineContainerIdentifier()
-        
+
         Log.info("Initializing CloudKit with container: \(containerIdentifier)", category: .general)
-        
+
         // Create container - CloudKit will handle errors internally
         container = CKContainer(identifier: containerIdentifier)
         privateDatabase = container?.privateCloudDatabase
-        
+
         isCloudKitInitialized = true
-        
+
         // Continue with setup
         setupCloudKit()
         checkiCloudAvailability()
         startPeriodicSync()
         setupNetworkMonitoring()
     }
-    
+
     private func determineContainerIdentifier() -> String {
         // First try to use the configured container from entitlements
         let primaryIdentifier = "iCloud.com.lekman.magsafeguard"
-        
+
         // Check if we have a valid bundle identifier
         if let bundleId = Bundle.main.bundleIdentifier {
             // In development/debug builds, the bundle ID might be different
@@ -125,7 +125,7 @@ public class SyncService: NSObject, ObservableObject {
                 return "iCloud." + bundleId
             }
         }
-        
+
         return primaryIdentifier
     }
 
@@ -136,7 +136,7 @@ public class SyncService: NSObject, ObservableObject {
             Log.warning("CloudKit database not available", category: .general)
             return
         }
-        
+
         // Create custom zone for our data
         let zone = CKRecordZone(zoneName: customZoneName)
         customZone = zone
@@ -165,12 +165,12 @@ public class SyncService: NSObject, ObservableObject {
             }
         }
     }
-    
+
     private func handlePermissionError(_ error: CKError) {
         syncStatus = .error
         syncError = error
         isAvailable = false
-        
+
         // More specific error handling
         switch error.code {
         case .notAuthenticated:
@@ -189,7 +189,7 @@ public class SyncService: NSObject, ObservableObject {
             isAvailable = false
             return
         }
-        
+
         container.accountStatus { [weak self] status, error in
             DispatchQueue.main.async {
                 if let error = error {
@@ -197,7 +197,7 @@ public class SyncService: NSObject, ObservableObject {
                     self?.isAvailable = false
                     self?.syncStatus = .error
                     self?.syncError = error
-                    
+
                     // If it's a permission error, notify user
                     if let ckError = error as? CKError {
                         switch ckError.code {
@@ -209,7 +209,7 @@ public class SyncService: NSObject, ObservableObject {
                     }
                     return
                 }
-                
+
                 switch status {
                 case .available:
                     self?.isAvailable = true
@@ -664,9 +664,9 @@ extension SyncService {
             }
         }
     }
-    
+
     // MARK: - User Notifications
-    
+
     private func notifyUserAboutPermissions() {
         NotificationCenter.default.post(
             name: Notification.Name("MagSafeGuardCloudKitPermissionNeeded"),
@@ -677,7 +677,7 @@ extension SyncService {
             ]
         )
     }
-    
+
     private func notifyUserAboutiCloudAccount() {
         NotificationCenter.default.post(
             name: Notification.Name("MagSafeGuardCloudKitAccountNeeded"),
@@ -688,7 +688,7 @@ extension SyncService {
             ]
         )
     }
-    
+
     private func notifyUserAboutRestrictions() {
         NotificationCenter.default.post(
             name: Notification.Name("MagSafeGuardCloudKitRestricted"),

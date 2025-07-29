@@ -21,7 +21,7 @@ public struct SettingsView: View {
         case notifications = "Notifications"
         case icloud = "iCloud"
         case advanced = "Advanced"
-        
+
         var id: String { rawValue }
 
         var symbolName: String {
@@ -781,7 +781,6 @@ struct AdvancedSettingsView: View {
     }
 
     // MARK: - Computed Properties
-
 
     private var customScriptsSection: some View {
         Section(header: Text("Custom Scripts")) {

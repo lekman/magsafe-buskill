@@ -76,17 +76,17 @@ public class UserDefaultsManager: ObservableObject {
     private var _iCloudSync: SyncService?
     private var _iCloudSyncInitialized = false
     private var isInitializing = true  // Flag to prevent sync during init
-    
+
     private var iCloudSync: SyncService? {
         // Don't create sync service during initialization or if disabled
         if isInitializing || !settings.iCloudSyncEnabled {
             return nil
         }
-        
+
         if !_iCloudSyncInitialized {
             _iCloudSyncInitialized = true
             _iCloudSync = SyncServiceFactory.create()
-            
+
             // Setup notification listener on first access
             if _iCloudSync != nil {
                 NotificationCenter.default.publisher(for: .settingsSyncedFromiCloud)
@@ -136,7 +136,7 @@ public class UserDefaultsManager: ObservableObject {
         }
 
         // iCloud sync will be initialized lazily when first accessed
-        
+
         // Mark initialization complete
         isInitializing = false
     }

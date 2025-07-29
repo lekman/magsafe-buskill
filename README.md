@@ -107,20 +107,21 @@ Need help or found an issue? We're here to assist:
    Look for the lock shield icon in your menu bar.
 
    **For Standard Users (non-admin):**
-   
+
    If you're running as a standard user and encounter Gatekeeper issues:
-   
+
    ```bash
    # Run directly without app bundle (bypasses Gatekeeper)
    task run:direct
    ```
-   
+
    This runs the raw executable without macOS app bundle packaging. Some limitations apply:
    - No Dock icon
    - Limited system integration
    - Manual CloudKit setup required
-   
+
    For full functionality, ask an admin to approve the app:
+
    ```bash
    su - ADMIN_USERNAME -c 'xattr -cr "./.build/bundler/MagSafeGuard.app"'
    ```
@@ -212,7 +213,6 @@ For details on the project progress, planned initiatives and current status, exp
 | In Progress | 0 |
 | Pending | 37 |
 
-
 | ID | Title | Status | Priority | Dependencies | Complexity |
 | :- | :-    | :-     | :-       | :-           | :-         |
 | 1 | Setup Project Repository and Structure | ✓&nbsp;done | high | None | ● 4 |
@@ -234,6 +234,5 @@ For details on the project progress, planned initiatives and current status, exp
 
 > 📋 **End of Taskmaster Export** - Tasks are synced from your project using the `sync-readme` command.
 <!-- TASKMASTER_EXPORT_END -->
-
 
 </details>

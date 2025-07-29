@@ -18,7 +18,7 @@ struct CloudSyncSettingsView: View {
     @State private var isSyncing = false
     @State private var showingError = false
     @State private var errorMessage = ""
-    
+
     // Temporary mock values while SyncService is disabled
     private let mockSyncStatus = SyncStatus.idle
     private let mockIsAvailable = false
