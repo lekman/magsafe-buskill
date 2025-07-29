@@ -350,45 +350,42 @@ tasks:
           fi
         fi
 
-        # If launch failed, provide detailed help
+        # If launch failed, try automatic recovery
         if [ "$LAUNCH_SUCCESS" = false ]; then
           echo ""
-          echo "❌ Unable to launch MagSafe Guard"
-          echo ""
-          echo "📋 Diagnostic Information:"
-          echo "   - User type: $([ "$IS_ADMIN" = true ] && echo "Admin" || echo "Standard")"
-          echo "   - Signing: $([ "$SIGNING_SUCCESS" = true ] && echo "Success" || echo "Failed")"
-          echo "   - Gatekeeper: $(spctl -a "$APP_PATH" 2>&1 | head -1)"
+          echo "⚠️  Initial launch failed, trying automatic recovery..."
           echo ""
           
-          if [ "$IS_ADMIN" = false ]; then
-            echo "🔧 For Standard Users:"
+          # Try copying to /tmp and running from there
+          echo "📋 Copying to /tmp to bypass permission issues..."
+          rm -rf /tmp/MagSafeGuard.app 2>/dev/null || true
+          cp -R "$APP_PATH" /tmp/
+          
+          echo "🔓 Removing quarantine attributes..."
+          xattr -cr /tmp/MagSafeGuard.app 2>/dev/null || true
+          
+          echo "🚀 Launching from /tmp..."
+          open /tmp/MagSafeGuard.app
+          
+          sleep 2
+          
+          if pgrep -x "MagSafeGuard" > /dev/null; then
             echo ""
-            echo "Option 1 - Use tmp mode (simplest):"
-            echo "  task run:tmp"
+            echo "✅ Recovery successful! App running from /tmp"
             echo ""
-            echo "Option 2 - Get admin help (replace 'admin' with your admin username if different):"
-            echo "  su - admin -c 'xattr -cr \"$APP_PATH_ABS\"'"
-            echo ""
-            echo "Option 3 - Run with sudo (requires your password):"
-            echo "  sudo xattr -cr \"$APP_PATH_ABS\""
-            echo ""
-            echo "Option 4 - Use direct mode:"
-            echo "  task run:direct"
-            echo ""
-            echo "Option 5 - Use unsigned mode:"
-            echo "  task run:unsigned"
+            echo "Note: This is a temporary copy that will be cleared on reboot."
+            LAUNCH_SUCCESS=true
           else
-            echo "🔧 For Admin Users:"
             echo ""
-            echo "Try these commands:"
-            echo "  1. xattr -cr '$APP_PATH'"
-            echo "  2. spctl --add '$APP_PATH'"
-            echo "  3. codesign --force --deep --sign - '$APP_PATH'"
+            echo "❌ Automatic recovery failed"
             echo ""
-            echo "Or check Console.app for crash logs"
+            echo "Try one of these alternatives:"
+            echo "  • task run:direct    (run without app bundle)"
+            echo "  • task run:debug     (with debug logging)"
+            echo ""
+            echo "For persistent issues, check Console.app for crash logs."
+            exit 1
           fi
-          exit 1
         fi
 
         # Verify app is running and stable
