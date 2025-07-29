@@ -33,6 +33,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     private var settingsWindow: NSWindow?
     private var windowDelegates: [NSWindow: WindowDelegate] = [:]
+    // Re-enable core to test
     let core = AppDelegateCore()
 
     // MARK: - Constants
@@ -100,16 +101,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func finishStartup() {
-        // Setup AppController callbacks
-        setupAppControllerCallbacks()
-        
-        // Update status icon with proper state
-        updateStatusIcon()
-
-        // Create full menu
+        // Setup the full menu
         setupMenu()
-
+        
+        // Update the status icon based on initial state
+        updateStatusIcon()
+        
+        // Ensure proper activation
+        NSApp.activate(ignoringOtherApps: true)
+        
+        // Configure accessibility features after startup
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.setupAccessibilityFeatures()
+        }
+        
+        // Setup CloudKit notifications
+        setupCloudKitNotifications()
+        
         print("MagSafe Guard startup complete")
+        StartupMetrics.shared.recordMilestone("startup_complete")
     }
 
     private func setupMenu() {
@@ -228,33 +238,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func toggleArmed() {
-        if core.appController.currentState == .disarmed {
-            core.appController.arm { [weak self] result in
-                switch result {
-                case .success:
-                    // Notifications are handled by AppController callback
-                    break
-                case .failure(let error):
-                    self?.showNotification(
-                        title: AppDelegate.appName,
-                        message: "Failed to arm: \(error.localizedDescription)"
-                    )
-                }
-            }
-        } else {
-            core.appController.disarm { [weak self] result in
-                switch result {
-                case .success:
-                    // Notifications are handled by AppController callback
-                    break
-                case .failure(let error):
-                    self?.showNotification(
-                        title: AppDelegate.appName,
-                        message: "Failed to disarm: \(error.localizedDescription)"
-                    )
-                }
-            }
-        }
+        // DISABLED FOR DEBUGGING
+        print("toggleArmed called - core disabled")
     }
 
     @objc func showSettings() {
