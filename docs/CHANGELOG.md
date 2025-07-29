@@ -8,6 +8,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- This changelog is automatically maintained by release-please -->
 <!-- Do not manually edit below this line -->
 
+## [1.8.0](https://github.com/lekman/magsafe-buskill/compare/v1.7.0...v1.8.0) (2025-07-29)
+
+
+### Features
+
+* add feature flag system with JSON configuration ([4536a5a](https://github.com/lekman/magsafe-buskill/commit/4536a5a8d597f3b827c862d56b4a5445f6ca45a6))
+* Enhance accessibility audit results and extend VoiceOver announcement support ([74a49ee](https://github.com/lekman/magsafe-buskill/commit/74a49eefe82e671f99e6fdb7cae510c231fd2e28))
+
+
+### Bug Fixes
+
+* Improve coverage check logic and add warning for missing coverage data ([5e7982e](https://github.com/lekman/magsafe-buskill/commit/5e7982e1c70a8bbdcfc6e63a32a4cc9c087949bc))
+* Update SBOM document namespace and creation timestamp for version 1.6.0-54 ([78ca3aa](https://github.com/lekman/magsafe-buskill/commit/78ca3aab2eba9c41c79961b414bc78749054772c))
+* Update SPDX document namespace and creation timestamp for accuracy ([e90a96c](https://github.com/lekman/magsafe-buskill/commit/e90a96c1f4f631a2e7fedc1a5fa760e3e4be3586))
+* Update VSCode settings to exclude files and enhance README debug instructions ([009697e](https://github.com/lekman/magsafe-buskill/commit/009697ebc9da8ab6ba74f56f4474b8879f0cbc6b))
+
+
+### Documentation
+
+* Update README to reflect project transition to Swift Package and enhance development instructions ([9528a1d](https://github.com/lekman/magsafe-buskill/commit/9528a1d516d430e4f3827b9b3bd68ae0ef1a6d4e))
+
+
+### Code Refactoring
+
+* Enhance system path configuration and accessibility features in MacSystemActions ([7a79f57](https://github.com/lekman/magsafe-buskill/commit/7a79f5769b5280828a358f39363e426c6493c6d0))
+* Simplify location removal handling and enhance UI structure in TrustedLocationsView ([dc1071e](https://github.com/lekman/magsafe-buskill/commit/dc1071ee910faefba0814772295b1ed6f8dcfd93))
+* Update setup instructions and enhance tool installation messages ([54f0dd4](https://github.com/lekman/magsafe-buskill/commit/54f0dd44f369428508a0b8ae9359c310951045aa))
+
 ## [1.7.0](https://github.com/lekman/magsafe-buskill/compare/v1.6.0...v1.7.0) (2025-07-27)
 
 

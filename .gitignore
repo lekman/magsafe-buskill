@@ -422,6 +422,9 @@ FodyWeavers.xsd
 .claude
 .env
 
+# Feature flags (use feature-flags.example.json as template)
+feature-flags.json
+
 # Don't ignore important markdown files
 !README.md
 
@@ -524,3 +527,9 @@ sbom-deps.json
 # SonarCloud local scan results
 .sonarcloud/
 .scannerwork/
+
+# GitHub reports
+.github/pr-comments/
+
+# Swift Bundler binary
+swift-bundler
