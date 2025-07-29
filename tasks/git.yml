@@ -594,7 +594,7 @@ tasks:
 
         # If that fails, extract from git remote
         if [ -z "$REPO" ]; then
-          REPO=$(git remote get-url origin | sed -E 's|^(https://github.com/\\|git@github.com:)||' | sed 's|\\.git$||')
+          REPO=$(git remote get-url origin | sed -E 's|^(https://github.com/|git@github.com:)||' | sed 's|\.git$||')
         fi
 
         echo -e "{{.CYAN}}Pull Requests for: $REPO{{.NC}}"
@@ -608,15 +608,7 @@ tasks:
         fi
 
         # Show PRs in a nice table format
-        gh pr list $STATE_FILTER --limit {{.LIMIT}} --json number,title,state,author,createdAt,isDraft,headRefName,baseRefName \\
-          --jq '.[] | 
-            "#\\(.number) | " + 
-            (if .isDraft then "\U0001F4DD " else "" end) + 
-            (.title | .[0:60]) + (if (.title | length) > 60 then "..." else "" end) + " | " +
-            (.state | ascii_upcase) + " | " +
-            .author.login + " | " +
-            (.headRefName + " → " + .baseRefName) + " | " +
-            (.createdAt | fromdateiso8601 | strftime("%Y-%m-%d"))' | column -t -s '|'
+        gh pr list $STATE_FILTER --limit {{.LIMIT}} --json number,title,state,author,createdAt,isDraft,headRefName,baseRefName --jq '.[] | "#\(.number) | " + (if .isDraft then "📝 " else "" end) + (.title | .[0:60]) + (if (.title | length) > 60 then "..." else "" end) + " | " + (.state | ascii_upcase) + " | " + .author.login + " | " + (.headRefName + " → " + .baseRefName) + " | " + (.createdAt | fromdateiso8601 | strftime("%Y-%m-%d"))' | column -t -s '|'
 
         echo ""
         echo -e "{{.YELLOW}}Total shown: {{.LIMIT}} (use LIMIT=n to change){{.NC}}"
@@ -654,7 +646,7 @@ tasks:
 
         # If that fails, extract from git remote
         if [ -z "$REPO" ]; then
-          REPO=$(git remote get-url origin | sed -E 's|^(https://github.com/\\|git@github.com:)||' | sed 's|\\.git$||')
+          REPO=$(git remote get-url origin | sed -E 's|^(https://github.com/|git@github.com:)||' | sed 's|\.git$||')
         fi
 
         echo -e "{{.CYAN}}Repository: $REPO{{.NC}}"
@@ -904,9 +896,7 @@ tasks:
         if [ "$FAILURE_COUNT" -gt 0 ]; then
           echo -e "{{.RED}}Failed Runs:{{.NC}}"
           echo "$RUNS" | jq -r '.[] | select(.conclusion=="failure") | 
-            "  ❌ " + .workflowName + " - " + .displayTitle + "
-    ID: " + (.databaseId|tostring) + " | " + .event + " | " + (.createdAt | fromdateiso8601 | strftime("%Y-%m-%d %H:%M")) + "
-    URL: " + .url' | head -15
+            "  ❌ " + .workflowName + " - " + .displayTitle + "\n    ID: " + (.databaseId|tostring) + " | " + .event + " | " + (.createdAt | fromdateiso8601 | strftime("%Y-%m-%d %H:%M")) + "\n    URL: " + .url' | head -15
           [ "$FAILURE_COUNT" -gt 5 ] && echo "  ... and $((FAILURE_COUNT - 5)) more failures"
           echo ""
         fi
@@ -915,8 +905,7 @@ tasks:
         if [ "$IN_PROGRESS" -gt 0 ]; then
           echo -e "{{.CYAN}}In Progress:{{.NC}}"
           echo "$RUNS" | jq -r '.[] | select(.status=="in_progress") | 
-            "  🔄 " + .workflowName + " - " + .displayTitle + "
-    ID: " + (.databaseId|tostring) + " | " + .event + " | Started: " + (.createdAt | fromdateiso8601 | strftime("%Y-%m-%d %H:%M"))'
+            "  🔄 " + .workflowName + " - " + .displayTitle + "\n    ID: " + (.databaseId|tostring) + " | " + .event + " | Started: " + (.createdAt | fromdateiso8601 | strftime("%Y-%m-%d %H:%M"))'
           echo ""
         fi
 
