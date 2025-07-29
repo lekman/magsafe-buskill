@@ -1,12 +1,11 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: "3"
-
 tasks:
   default:
     desc: List available Markdown tasks
     silent: true
     cmds:
       - task --list | grep "^\\* markdown:" | grep -v "::" || true
-
   lint:
     desc: Lint Markdown files
     silent: true
@@ -53,7 +52,7 @@ tasks:
         # Show which files were modified
         echo ""
         echo "Modified files:"
-        git diff --name-only | grep '\.md$' || echo "  No changes needed"
+        git diff --name-only | grep '\\.md$' || echo "  No changes needed"
 
   setup:
     desc: Setup markdownlint CLI tool
@@ -61,23 +60,23 @@ tasks:
     cmds:
       - |
         echo "🔧 Setting up markdownlint..."
-        
+
         # Detect OS
         OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-        
+
         if [ "$OS" != "darwin" ]; then
           echo "⚠️  This task is optimized for macOS"
           echo "   For other platforms, please install markdownlint manually"
           exit 0
         fi
-        
+
         # Check if already installed
         if command -v markdownlint &> /dev/null; then
           echo "✅ markdownlint is already installed ($(markdownlint --version))"
           
           # Check for updates
           if command -v npm &> /dev/null && npm list -g markdownlint-cli &>/dev/null; then
-            CURRENT_VERSION=$(markdownlint --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            CURRENT_VERSION=$(markdownlint --version | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)
             LATEST_VERSION=$(npm view markdownlint-cli version 2>/dev/null)
             if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ] && [ -n "$LATEST_VERSION" ]; then
               echo "📦 Update available: $CURRENT_VERSION → $LATEST_VERSION"
@@ -92,7 +91,7 @@ tasks:
           fi
           exit 0
         fi
-        
+
         # Try to install with npm first (most universal)
         if command -v npm &> /dev/null; then
           echo "📦 Installing markdownlint with npm..."
@@ -108,7 +107,7 @@ tasks:
               echo ""
               echo "Alternative: Install to user directory:"
               echo "  npm install --prefix ~/.npm-global markdownlint-cli"
-              echo "  export PATH=~/.npm-global/bin:\$PATH"
+              echo "  export PATH=~/.npm-global/bin:\\$PATH"
               exit 1
             fi
           fi
@@ -124,7 +123,7 @@ tasks:
           echo "  - Homebrew: https://brew.sh/"
           exit 1
         fi
-        
+
         # Verify installation
         if command -v markdownlint &> /dev/null; then
           echo ""

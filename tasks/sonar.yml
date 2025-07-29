@@ -1,12 +1,19 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: "3"
-
+# SonarCloud Tasks
+# This file is self-contained and can be reused in other projects.
+# All scripts are embedded inline for maximum portability.
+#
+# Configuration:
+# - Set PROJECT_KEY and ORGANIZATION vars for your project
+# - Add SONAR_TOKEN to your .env file
+# - Adjust exclusion patterns as needed
 tasks:
   default:
     desc: List available SonarCloud tasks
     silent: true
     cmds:
       - task --list | grep "^\\* sonar:" | grep -v "::" || true
-
   scan:
     desc: Run SonarCloud scan locally
     silent: true
@@ -35,7 +42,7 @@ tasks:
           echo "To install on Linux:"
           echo "  Download from https://docs.sonarcloud.io/advanced-setup/ci-based-analysis/sonarscanner-cli/"
           echo ""
-          echo "Alternative: Use 'task sonar:simulate' to simulate issues based on SwiftLint"
+          echo "Alternative: Use SwiftLint locally for basic code analysis"
           echo ""
           exit 1
         fi
@@ -50,7 +57,7 @@ tasks:
           echo "   echo 'SONAR_TOKEN=your-token-here' >> .env"
           echo "3. Run this task again"
           echo ""
-          echo "Alternative: Use 'task sonar:simulate' for local analysis without SonarCloud"
+          echo "Alternative: Run 'task swift:lint' for local code analysis"
           exit 1
         fi
 
@@ -93,11 +100,11 @@ tasks:
 
         # Check result (capture exit code before it's lost)
         SCAN_RESULT=$?
-        
+
         # Extract issues from the scan log to create findings file
         echo ""
         echo "📋 Extracting findings from scan log..."
-        
+
         # Create findings file from the scanner log
         if [ -f "{{.REPORT_PATH}}/sonar-scanner.log" ]; then
           {
@@ -120,14 +127,14 @@ tasks:
             echo ""
             
             # Look for Swift file issues in the log
-            grep -E "(ERROR|WARN|INFO).*Sources.*\.swift" {{.REPORT_PATH}}/sonar-scanner.log | while read -r line; do
+            grep -E "(ERROR|WARN|INFO).*Sources.*\\.swift" {{.REPORT_PATH}}/sonar-scanner.log | while read -r line; do
               echo "[CODE_SMELL] $line"
               echo "  Status: OPEN"
               echo ""
             done
             
             # If no issues found in log, create placeholder
-            if ! grep -q -E "(ERROR|WARN|INFO).*Sources.*\.swift" {{.REPORT_PATH}}/sonar-scanner.log; then
+            if ! grep -q -E "(ERROR|WARN|INFO).*Sources.*\\.swift" {{.REPORT_PATH}}/sonar-scanner.log; then
               echo "No issues found in scan log."
               echo "For detailed analysis results, view online at:"
               echo "https://sonarcloud.io/summary/overall?id=lekman_magsafe-buskill"
@@ -137,17 +144,17 @@ tasks:
           
           echo "✅ Findings extracted to {{.REPORT_PATH}}/sonarcloud-findings.txt"
         fi
-        
+
         # Show any open issues as warnings
         if [ -f "{{.REPORT_PATH}}/sonarcloud-findings.txt" ]; then
-          OPEN_ISSUES=$(grep -c "Status: OPEN\|Status: CONFIRMED\|Status: REOPENED" {{.REPORT_PATH}}/sonarcloud-findings.txt 2>/dev/null || echo 0)
+          OPEN_ISSUES=$(grep -c "Status: OPEN\\|Status: CONFIRMED\\|Status: REOPENED" {{.REPORT_PATH}}/sonarcloud-findings.txt 2>/dev/null || echo 0)
           if [ $OPEN_ISSUES -gt 0 ]; then
             echo ""
             echo "⚠️  Found $OPEN_ISSUES open issues:"
             echo "─────────────────────────────"
             # Show first 5 open issues with their details
             awk '
-              /^\[CODE_SMELL\]/ { 
+              /^\\[CODE_SMELL\\]/ { 
                 issue = $0
                 getline
                 rule = $0
@@ -170,7 +177,7 @@ tasks:
             echo "─────────────────────────────"
           fi
         fi
-        
+
         if [ $SCAN_RESULT -eq 0 ]; then
           echo ""
           echo "✅ SonarCloud scan completed successfully"
@@ -217,8 +224,8 @@ tasks:
           echo ""
           
           # Show summary
-          TOTAL_ISSUES=$(grep -c "^\[CODE_SMELL\]" "$FINDINGS_FILE" 2>/dev/null || echo 0)
-          OPEN_ISSUES=$(grep -c "Status: OPEN\|Status: CONFIRMED\|Status: REOPENED" "$FINDINGS_FILE" 2>/dev/null || echo 0)
+          TOTAL_ISSUES=$(grep -c "^\\[CODE_SMELL\\]" "$FINDINGS_FILE" 2>/dev/null || echo 0)
+          OPEN_ISSUES=$(grep -c "Status: OPEN\\|Status: CONFIRMED\\|Status: REOPENED" "$FINDINGS_FILE" 2>/dev/null || echo 0)
           CLOSED_ISSUES=$(grep -c "Status: CLOSED" "$FINDINGS_FILE" 2>/dev/null || echo 0)
           
           echo "📊 Summary:"
@@ -232,7 +239,7 @@ tasks:
             echo "⚠️  Open Issues:"
             echo "─────────────────────────────"
             awk '
-              /^\[CODE_SMELL\]/ { 
+              /^\\[CODE_SMELL\\]/ { 
                 issue = $0
                 getline
                 rule = $0
@@ -270,90 +277,6 @@ tasks:
           echo ""
           echo "Note: Local scan requires sonar-scanner to be installed"
           echo "      Download requires SONAR_TOKEN in your .env file"
-        fi
-
-  simulate:
-    desc: Simulate SonarCloud analysis using SwiftLint (when sonar-scanner is not available)
-    silent: true
-    vars:
-      REPORT_PATH: .sonarcloud
-    cmds:
-      - |
-        echo "🔍 Simulating SonarCloud analysis using SwiftLint..."
-
-        # Create report directory
-        mkdir -p {{.REPORT_PATH}}
-
-        # Run tests with coverage first
-        echo "📊 Generating coverage data..."
-        task swift:test:coverage || true
-
-        # Run SwiftLint and format as SonarCloud-like issues
-        echo "🚀 Running SwiftLint analysis..."
-
-        # First run SwiftLint to get JSON output
-        swiftlint lint --reporter json > {{.REPORT_PATH}}/swiftlint-output.json 2>/dev/null || true
-
-        # Create a formatted report
-        echo "=== SonarCloud Simulation Report ===" > {{.REPORT_PATH}}/simulation-report.txt
-        echo "Generated: $(date)" >> {{.REPORT_PATH}}/simulation-report.txt
-        echo "" >> {{.REPORT_PATH}}/simulation-report.txt
-        echo "📊 Coverage Summary:" >> {{.REPORT_PATH}}/simulation-report.txt
-
-        # Add coverage info
-        if [ -f "coverage-report.txt" ]; then
-          tail -n 20 coverage-report.txt | grep -E "(Total coverage:|Files with low coverage:)" -A 10 >> {{.REPORT_PATH}}/simulation-report.txt || true
-        else
-          echo "No coverage data available" >> {{.REPORT_PATH}}/simulation-report.txt
-        fi
-
-        echo "" >> {{.REPORT_PATH}}/simulation-report.txt
-        echo "🐛 Code Issues (from SwiftLint):" >> {{.REPORT_PATH}}/simulation-report.txt
-        echo "" >> {{.REPORT_PATH}}/simulation-report.txt
-
-        # Process SwiftLint JSON with Python script
-        python3 scripts/format_swiftlint_sonar.py >> {{.REPORT_PATH}}/simulation-report.txt
-
-        # Add metrics summary
-        echo "" >> {{.REPORT_PATH}}/simulation-report.txt
-        echo "📈 Quality Metrics:" >> {{.REPORT_PATH}}/simulation-report.txt
-        echo "- Technical Debt: Estimated based on issue count" >> {{.REPORT_PATH}}/simulation-report.txt
-        echo "- Maintainability Rating: Based on code smells" >> {{.REPORT_PATH}}/simulation-report.txt
-        echo "- Reliability Rating: Based on bugs" >> {{.REPORT_PATH}}/simulation-report.txt
-        echo "- Security Rating: Based on vulnerabilities" >> {{.REPORT_PATH}}/simulation-report.txt
-
-        # Count issues and display summary
-        ISSUE_COUNT=$(cat {{.REPORT_PATH}}/swiftlint-output.json | python3 -c "import json,sys; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
-
-        echo ""
-        echo "Total issues found: $ISSUE_COUNT"
-
-        echo ""
-        echo "✅ Simulation completed"
-        echo ""
-        echo "Results saved to:"
-        echo "  - Report: {{.REPORT_PATH}}/simulation-report.txt"
-        echo "  - SwiftLint JSON: {{.REPORT_PATH}}/swiftlint-output.json"
-        echo ""
-        echo "Note: This is a simulation using SwiftLint. For full SonarCloud analysis:"
-        echo "  1. Install sonar-scanner: brew install sonar-scanner"
-        echo "  2. Run: task sonar:scan"
-
-  view:
-    desc: View the most recent SonarCloud simulation report
-    silent: true
-    cmds:
-      - |
-        if [ -f ".sonarcloud/simulation-report.txt" ]; then
-          echo "📋 Viewing SonarCloud simulation report..."
-          echo ""
-          cat .sonarcloud/simulation-report.txt | head -100
-          echo ""
-          echo "---"
-          echo "Note: Showing first 100 lines. Full report: .sonarcloud/simulation-report.txt"
-        else
-          echo "❌ No simulation report found."
-          echo "Run 'task sonar:simulate' first to generate a report."
         fi
 
   download:
@@ -423,11 +346,128 @@ tasks:
 
         # Generate human-readable report
         echo "📝 Generating readable report..."
-        python3 scripts/process_sonarcloud_issues.py {{.REPORT_PATH}} {{.PROJECT_KEY}} || exit 1
+
+        # Create temp Python script for processing
+        cat > {{.REPORT_PATH}}/process_issues.py << 'SCRIPT_EOF'
+        import json
+        import sys
+        from datetime import datetime
+
+        report_path = '.sonarcloud'
+        project_key = 'lekman_magsafe-buskill'
+
+        try:
+            with open(f'{report_path}/sonarcloud-issues.json', 'r') as f:
+                data = json.load(f)
+            
+            issues = data.get('issues', [])
+            
+            # Generate report
+            with open(f'{report_path}/sonarcloud-findings.txt', 'w') as report:
+                report.write(f'=== SonarCloud Findings Report ===\
+        ')
+                report.write(f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\
+        ')
+                report.write(f'Project: {project_key}\
+        ')
+                report.write(f'Total issues: {len(issues)}\
+        \
+        ')
+                
+                # Group by severity
+                by_severity = {}
+                for issue in issues:
+                    severity = issue.get('severity', 'UNKNOWN')
+                    if severity not in by_severity:
+                        by_severity[severity] = []
+                    by_severity[severity].append(issue)
+                
+                # Write issues by severity
+                for severity in ['BLOCKER', 'CRITICAL', 'MAJOR', 'MINOR', 'INFO']:
+                    if severity not in by_severity:
+                        continue
+                    
+                    report.write(f'\
+        {"=" * 50}\
+        ')
+                    report.write(f'{severity} ISSUES ({len(by_severity[severity])})\
+        ')
+                    report.write(f'{"=" * 50}\
+        \
+        ')
+                    
+                    for issue in by_severity[severity]:
+                        component = issue.get('component', 'unknown').replace(f'{project_key}:', '')
+                        line = issue.get('textRange', {}).get('startLine', 0)
+                        
+                        report.write(f'[{issue.get("type", "UNKNOWN")}] {component}:{line}\
+        ')
+                        report.write(f'  Rule: {issue.get("rule", "unknown")}\
+        ')
+                        report.write(f'  Message: {issue.get("message", "No message")}\
+        ')
+                        
+                        # Add effort if available
+                        effort = issue.get('effort')
+                        if effort:
+                            report.write(f'  Effort: {effort}\
+        ')
+                        
+                        # Add status
+                        status = issue.get('status', 'OPEN')
+                        if status != 'OPEN':
+                            report.write(f'  Status: {status}\
+        ')
+                        
+                        report.write('\
+        ')
+            
+            print(f'✅ Successfully processed {len(issues)} issues')
+            
+        except Exception as e:
+            print(f'Error processing SonarCloud response: {e}')
+            sys.exit(1)
+        SCRIPT_EOF
+
+        python3 {{.REPORT_PATH}}/process_issues.py || exit 1
+        rm -f {{.REPORT_PATH}}/process_issues.py
 
         echo ""
         echo "📊 Summary:"
-        python3 scripts/sonarcloud_summary.py {{.REPORT_PATH}}
+
+        # Create temp Python script for summary
+        cat > {{.REPORT_PATH}}/summary.py << 'SCRIPT_EOF'
+        import json
+        import sys
+
+        report_path = '.sonarcloud'
+
+        with open(f'{report_path}/sonarcloud-issues.json', 'r') as f:
+            data = json.load(f)
+            issues = data.get('issues', [])
+            
+            # Count by type
+            types = {}
+            severities = {}
+            for issue in issues:
+                issue_type = issue.get('type', 'UNKNOWN')
+                severity = issue.get('severity', 'UNKNOWN')
+                types[issue_type] = types.get(issue_type, 0) + 1
+                severities[severity] = severities.get(severity, 0) + 1
+            
+            print('By Type:')
+            for t, count in sorted(types.items()):
+                print(f'  - {t}: {count}')
+            
+            print('\
+        By Severity:')
+            for s in ['BLOCKER', 'CRITICAL', 'MAJOR', 'MINOR', 'INFO']:
+                if s in severities:
+                    print(f'  - {s}: {severities[s]}')
+        SCRIPT_EOF
+
+        python3 {{.REPORT_PATH}}/summary.py
+        rm -f {{.REPORT_PATH}}/summary.py
 
         echo ""
         echo "✅ Download completed"
@@ -437,6 +477,208 @@ tasks:
         echo "  - Readable report: {{.REPORT_PATH}}/sonarcloud-findings.txt"
         echo ""
         echo "To view the report: cat {{.REPORT_PATH}}/sonarcloud-findings.txt | less"
+
+  download:pr:
+    desc: Download SonarCloud pull request report (use PR=123 to specify PR number)
+    silent: true
+    vars:
+      REPORT_PATH: .sonarcloud
+      PROJECT_KEY: lekman_magsafe-buskill
+      ORGANIZATION: lekman
+      SONAR_API_BASE: https://sonarcloud.io/api
+    cmds:
+      - |
+        echo "📥 Downloading SonarCloud pull request report..."
+
+        # Show usage if help is requested
+        if [ "${PR}" = "help" ] || [ "${PR}" = "--help" ]; then
+          echo ""
+          echo "Usage:"
+          echo "  task sonar:download:pr         # Interactive mode - choose from list"
+          echo "  PR=123 task sonar:download:pr  # Download specific PR"
+          echo "  PR=latest task sonar:download:pr  # Download latest PR (non-interactive)"
+          echo ""
+          exit 0
+        fi
+
+        # Source .env file if it exists
+        if [ -f .env ]; then
+          set -a
+          source .env
+          set +a
+        fi
+
+        # Check for SONAR_TOKEN
+        if [ -z "$SONAR_TOKEN" ]; then
+          echo "❌ SONAR_TOKEN environment variable is not set"
+          echo ""
+          echo "To download SonarCloud findings, you need to:"
+          echo "1. Get your token from: https://sonarcloud.io/account/security"
+          echo "2. Add it to your .env file:"
+          echo "   echo 'SONAR_TOKEN=your-token-here' >> .env"
+          echo "3. Run this task again"
+          exit 1
+        fi
+
+        # Get current branch for reference
+        CURRENT_BRANCH=$(git branch --show-current)
+
+        # Get PR number from CLI args or try to detect
+        PR_NUMBER="${PR:-}"
+        PR_TITLE=""
+        PR_BRANCH=""
+
+        # First, list all pull requests
+        echo "📋 Fetching pull requests from SonarCloud..."
+        PR_LIST=$(curl -s -X GET \
+          "{{.SONAR_API_BASE}}/project_pull_requests/list?project={{.PROJECT_KEY}}" \
+          -H "Authorization: Bearer $SONAR_TOKEN")
+
+        if [ $? -ne 0 ] || [ -z "$PR_LIST" ]; then
+          echo "❌ Failed to fetch pull request list"
+          exit 1
+        fi
+
+        # Handle "latest" keyword
+        if [ "$PR_NUMBER" = "latest" ]; then
+          PR_NUMBER=$(echo "$PR_LIST" | jq -r '.pullRequests[0].key' 2>/dev/null || echo "")
+          if [ -n "$PR_NUMBER" ]; then
+            echo "📌 Using latest PR: #$PR_NUMBER"
+          else
+            echo "❌ No pull requests found"
+            exit 1
+          fi
+        elif [ -z "$PR_NUMBER" ]; then
+          echo "🔍 Current git branch: $CURRENT_BRANCH"
+          
+          # Display available PRs
+          echo ""
+          echo "Available pull requests:"
+          echo "$PR_LIST" | jq -r '.pullRequests[] | "  PR #\\(.key): \\(.title) [\\(.status)]"' 2>/dev/null || echo "  Unable to parse PR list"
+          
+          echo ""
+          echo "Enter PR number, 'latest' for most recent, or press Enter to choose latest:"
+          read -p "PR selection: " PR_NUMBER
+          
+          # If still empty or "latest", get the latest PR
+          if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "latest" ]; then
+            PR_NUMBER=$(echo "$PR_LIST" | jq -r '.pullRequests[0].key' 2>/dev/null || echo "")
+            if [ -n "$PR_NUMBER" ]; then
+              echo "📌 Using latest PR: #$PR_NUMBER"
+            else
+              echo "❌ No pull requests found"
+              exit 1
+            fi
+          fi
+        else
+          echo "📌 Using specified PR: #$PR_NUMBER"
+        fi
+
+        # Extract PR details
+        PR_DATA=$(echo "$PR_LIST" | jq -r ".pullRequests[] | select(.key == \"$PR_NUMBER\")" 2>/dev/null)
+        if [ -n "$PR_DATA" ]; then
+          PR_TITLE=$(echo "$PR_DATA" | jq -r '.title' 2>/dev/null || echo "")
+          PR_BRANCH=$(echo "$PR_DATA" | jq -r '.branch' 2>/dev/null || echo "")
+        fi
+
+        # Create report directory
+        mkdir -p {{.REPORT_PATH}}
+
+        echo "🔍 Fetching PR #$PR_NUMBER analysis..."
+
+        # Function to make API calls
+        api_call() {
+          local endpoint="$1"
+          curl -s -H "Authorization: Bearer $SONAR_TOKEN" "{{.SONAR_API_BASE}}/$endpoint"
+        }
+
+        # Get PR issues
+        echo "📋 Fetching PR issues..."
+        ISSUES_DATA=$(api_call "issues/search?pullRequest=$PR_NUMBER&componentKeys={{.PROJECT_KEY}}&resolved=false")
+        echo "$ISSUES_DATA" > "{{.REPORT_PATH}}/pr-$PR_NUMBER-issues.json"
+
+        # Get PR measures
+        echo "📊 Fetching PR measures..."
+        MEASURES_DATA=$(api_call "measures/component?component={{.PROJECT_KEY}}&pullRequest=$PR_NUMBER&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density")
+        echo "$MEASURES_DATA" > "{{.REPORT_PATH}}/pr-$PR_NUMBER-measures.json"
+
+        # Process to Markdown
+        echo "📝 Generating markdown report..."
+
+        # Extract data for report
+        TOTAL_ISSUES=$(echo "$ISSUES_DATA" | jq -r '.total' 2>/dev/null || echo "0")
+        BUGS=$(echo "$MEASURES_DATA" | jq -r '.component.measures[] | select(.metric == "bugs") | .value' 2>/dev/null || echo "N/A")
+        VULNERABILITIES=$(echo "$MEASURES_DATA" | jq -r '.component.measures[] | select(.metric == "vulnerabilities") | .value' 2>/dev/null || echo "N/A")
+        CODE_SMELLS=$(echo "$MEASURES_DATA" | jq -r '.component.measures[] | select(.metric == "code_smells") | .value' 2>/dev/null || echo "N/A")
+        COVERAGE=$(echo "$MEASURES_DATA" | jq -r '.component.measures[] | select(.metric == "coverage") | .value' 2>/dev/null || echo "N/A")
+        DUPLICATION=$(echo "$MEASURES_DATA" | jq -r '.component.measures[] | select(.metric == "duplicated_lines_density") | .value' 2>/dev/null || echo "N/A")
+
+        # Create markdown report using echo to avoid YAML parsing issues
+        {
+          echo "# SonarCloud Analysis Report"
+          echo ""
+          echo "**Project:** {{.PROJECT_KEY}}  "
+          echo "**Organization:** {{.ORGANIZATION}}  "
+          echo "**Pull Request:** #$PR_NUMBER${PR_TITLE:+ - $PR_TITLE}  "
+          echo "**Branch:** ${PR_BRANCH:-Unknown}  "
+          echo "**Current Git Branch:** $CURRENT_BRANCH  "
+          echo "**Generated:** $(date)  "
+          echo ""
+          echo "## Quality Metrics"
+          echo ""
+          echo "| Metric | Value |"
+          echo "|--------|-------|"
+          echo "| 🐛 Bugs | $BUGS |"
+          echo "| 🔒 Vulnerabilities | $VULNERABILITIES |"
+          echo "| 🌫️ Code Smells | $CODE_SMELLS |"
+          echo "| 📊 Coverage | ${COVERAGE}% |"
+          echo "| 📋 Duplication | ${DUPLICATION}% |"
+          echo ""
+          echo "## Issues ($TOTAL_ISSUES)"
+          echo ""
+        } > "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
+
+        if [[ "$TOTAL_ISSUES" -gt 0 ]]; then
+          echo "### By Severity" >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
+          echo "" >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
+          
+          for severity in BLOCKER CRITICAL MAJOR MINOR INFO; do
+            COUNT=$(echo "$ISSUES_DATA" | jq -r ".issues[] | select(.severity == \"$severity\") | .key" 2>/dev/null | wc -l | tr -d ' ')
+            if [[ "$COUNT" -gt 0 ]]; then
+              echo "- **$severity**: $COUNT issues" >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
+            fi
+          done
+          
+          echo "" >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
+          echo "### Issue Details" >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
+          echo "" >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
+          
+          # List issues (limit to first 50)
+          echo "$ISSUES_DATA" | jq -r '.issues[] | "- **\(.severity)** [\(.rule)](https://rules.sonarsource.com/swift/RSPEC-\(.rule | split(":")[1])): \(.message) (`\(.component | split(":")[1]):\(.line)`)"' 2>/dev/null | head -50 >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md" || true
+          
+          REMAINING=$((TOTAL_ISSUES - 50))
+          if [[ $REMAINING -gt 0 ]]; then
+            echo "" >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
+            echo "*... and $REMAINING more issues*" >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
+          fi
+        else
+          echo "*No issues found! 🎉*" >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
+        fi
+
+        echo "" >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
+        echo "---" >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
+        echo "[View full report on SonarCloud](https://sonarcloud.io/pullrequests/overview?id={{.PROJECT_KEY}}&pullRequest=$PR_NUMBER)" >> "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
+
+        echo ""
+        echo "✅ PR report downloaded"
+        echo ""
+        echo "Results saved to:"
+        echo "  - Markdown report: {{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
+        echo "  - Issues JSON: {{.REPORT_PATH}}/pr-$PR_NUMBER-issues.json"
+        echo "  - Measures JSON: {{.REPORT_PATH}}/pr-$PR_NUMBER-measures.json"
+        echo ""
+        echo "📂 Opening report in VSCode..."
+        code "{{.REPORT_PATH}}/pr-$PR_NUMBER-report.md"
 
   convert:
     desc: Convert Swift coverage to SonarQube generic XML format
@@ -464,18 +706,21 @@ tasks:
         if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
           echo "📊 Generating SonarQube generic coverage XML..."
           
-          # Function to convert xcov output to generic XML format
-          convert_to_xml() {
+          # Generate the coverage XML directly (avoiding function definition in YAML)
+          PROJECT_ROOT=$(pwd)
+          {
             echo '<coverage version="1">'
             xcrun llvm-cov show "$EXECUTABLE" \
               -instr-profile="$PROF_DATA" \
               -use-color=false \
-              -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*/PowerMonitorCore\.swift|.*LAContext\.swift|.*/MacSystemActions\.swift|.*Protocol\.swift" | \
-            awk '
+              -ignore-filename-regex=".*Tests\\.swift|.*Mocks?\\.swift|.*/MagSafeGuardApp\\.swift|.*/PowerMonitorService\\.swift|.*/PowerMonitorCore\\.swift|.*LAContext\\.swift|.*/MacSystemActions\\.swift|.*Protocol\\.swift" | \
+            awk -v root="$PROJECT_ROOT" '
               /^[[:space:]]*[^[:space:]]+:$/ {
                 if (in_file) print "  </file>"
                 gsub(/:$/, "", $1)
                 gsub(/&/, "\\&amp;", $1)
+                # Make path relative to project root
+                sub("^" root "/", "", $1)
                 print "  <file path=\"" $1 "\">"
                 in_file = 1
                 next
@@ -498,10 +743,7 @@ tasks:
               }
             '
             echo '</coverage>'
-          }
-          
-          # Generate the coverage XML
-          convert_to_xml > coverage.xml
+          } > coverage.xml
           
           if [ -f "coverage.xml" ] && [ -s "coverage.xml" ]; then
             echo "✅ Successfully generated coverage.xml"
@@ -527,7 +769,7 @@ tasks:
 
         # Check if already installed
         if command -v sonar-scanner &> /dev/null; then
-          echo "✅ sonar-scanner already installed ($(sonar-scanner -v | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1))"
+          echo "✅ sonar-scanner already installed ($(sonar-scanner -v | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1))"
           
           # Check for updates on macOS
           if command -v brew &> /dev/null && brew list sonar-scanner &>/dev/null; then
@@ -549,7 +791,7 @@ tasks:
             brew install sonar-scanner
           else
             echo "❌ Homebrew not found. Please install Homebrew first:"
-            echo "   /bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+            echo "   /bin/bash -c \\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\\""
             exit 1
           fi
         elif [ "$OS" = "linux" ]; then
