@@ -21,7 +21,12 @@ public class StartupMetrics {
     public func startMeasuring() {
         queue.sync {
             startTime = CFAbsoluteTimeGetCurrent()
-            recordMilestone("startup_begin")
+            let elapsed = CFAbsoluteTimeGetCurrent() - startTime
+            metrics["startup_begin"] = elapsed
+            
+            #if DEBUG
+            Log.debug("Startup milestone 'startup_begin': \(String(format: "%.3f", elapsed))s", category: .general)
+            #endif
         }
     }
 
