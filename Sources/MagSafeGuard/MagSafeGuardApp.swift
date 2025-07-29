@@ -14,20 +14,11 @@ struct MagSafeGuardApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     init() {
-        // Start performance tracking
-        StartupMetrics.shared.startMeasuring()
-
-        // Initialize Sentry if enabled
-        SentryManager.shared.initialize()
-        StartupMetrics.shared.recordMilestone("sentry_initialized")
-
-        // Preload critical resources
-        ResourcePreloader.shared.preloadResources()
-        StartupMetrics.shared.recordMilestone("resources_preloaded")
-
+        // Minimal initialization to get app running
+        
         // Set a bundle identifier for development if needed
         if Bundle.main.bundleIdentifier == nil {
-            Log.info("Running in development mode without bundle identifier")
+            print("Running in development mode without bundle identifier")
         }
     }
 
@@ -51,9 +42,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Application Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        StartupMetrics.shared.recordMilestone("app_did_finish_launching")
-        SentryManager.shared.reportAppLifecycle("applicationDidFinishLaunching")
-
+        print("Application did finish launching")
+        
         // Hide dock icon as this is a menu bar app
         NSApp.setActivationPolicy(.accessory)
 
@@ -62,12 +52,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Setup critical UI first
         setupCriticalUI()
-        StartupMetrics.shared.recordMilestone("critical_ui_setup")
 
-        // Perform async initialization
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.performAsyncStartup()
-        }
+        // Simple direct startup
+        finishStartup()
     }
 
     private func setupCriticalUI() {
@@ -113,36 +100,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func finishStartup() {
+        // Setup AppController callbacks
+        setupAppControllerCallbacks()
+        
         // Update status icon with proper state
         updateStatusIcon()
 
         // Create full menu
         setupMenu()
 
-        // Configure accessibility features
-        setupAccessibilityFeatures()
-        StartupMetrics.shared.recordMilestone("accessibility_setup")
-
-        // Setup CloudKit failure notifications
-        setupCloudKitNotifications()
-
-        // Request notification permissions asynchronously
-        if Bundle.main.bundleIdentifier != nil {
-            requestNotificationPermissions()
-        } else {
-            Log.warning("Running without bundle identifier - notifications disabled", category: .ui)
-            Log.info("TIP: To see menu bar icon in Xcode:", category: .ui)
-            Log.info("  1. Product > Scheme > Edit Scheme", category: .ui)
-            Log.info("  2. Run > Options > Launch: Wait for executable to be launched", category: .ui)
-            Log.info("  3. Build and Run, then manually launch from build folder", category: .ui)
-        }
-
-        StartupMetrics.shared.recordMilestone("startup_complete")
-
-        // Log startup performance
-        #if DEBUG
-        StartupMetrics.shared.logReport()
-        #endif
+        print("MagSafe Guard startup complete")
     }
 
     private func setupMenu() {

@@ -22,6 +22,68 @@ vars:
   HOOKS_PATH: .githooks
   SEMGREP_CONFIG: auto
 tasks:
+  run:simple:
+    desc: Simple build and run without any signing or bundling
+    cmds:
+      - |
+        echo "🚀 Simple MagSafe Guard Launch..."
+        echo ""
+        
+        # Kill any existing instances
+        echo "🔄 Stopping any existing instances..."
+        pkill -x MagSafeGuard 2>/dev/null || true
+        sleep 1
+        
+        # Build the debug executable
+        echo "🔨 Building debug executable..."
+        swift build --disable-sandbox
+        
+        # Run directly with verbose output to see crash reason
+        echo "🚀 Starting MagSafe Guard..."
+        echo "   Running: .build/debug/MagSafeGuard"
+        
+        # Run in foreground first to see any immediate crash output
+        .build/debug/MagSafeGuard &
+        APP_PID=$!
+        
+        # Give it a moment to start
+        sleep 2
+        
+        # Check if it crashed immediately
+        if ! kill -0 $APP_PID 2>/dev/null; then
+          echo "❌ MagSafe Guard crashed immediately!"
+          echo ""
+          echo "Checking crash reports..."
+          # Look for crash reports
+          CRASH_REPORT=$(find ~/Library/Logs/DiagnosticReports -name "MagSafeGuard*.crash" -mtime -1 -print -quit)
+          if [ -n "$CRASH_REPORT" ]; then
+            echo "Found crash report: $CRASH_REPORT"
+            tail -50 "$CRASH_REPORT"
+          fi
+          echo ""
+          echo "Recent error logs:"
+          tail -20 ~/Library/Logs/MagSafeGuard/errors-*.log 2>/dev/null || echo "No error logs found"
+          exit 1
+        fi
+        
+        # Wait more for full startup
+        echo "⏳ Waiting for full startup..."
+        sleep 8
+        
+        # Final check
+        if kill -0 $APP_PID 2>/dev/null; then
+          echo "✅ MagSafe Guard is running!"
+          echo "   PID: $APP_PID"
+          echo ""
+          echo "   To stop: pkill -x MagSafeGuard"
+        else
+          echo "❌ MagSafe Guard crashed during startup"
+          echo ""
+          echo "Recent error logs:"
+          tail -20 ~/Library/Logs/MagSafeGuard/errors-*.log 2>/dev/null || echo "No error logs found"
+          exit 1
+        fi
+
   default:
     desc: Show available tasks
     cmds:

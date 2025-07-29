@@ -53,7 +53,8 @@ public class StartupMetrics {
     public func generateReport() -> String {
         queue.sync {
             var report = "Startup Performance Report:\n"
-            report += "Total time: \(String(format: "%.3f", getTotalTime()))s\n\n"
+            let totalTime = CFAbsoluteTimeGetCurrent() - startTime
+            report += "Total time: \(String(format: "%.3f", totalTime))s\n\n"
 
             for (milestone, time) in metrics.sorted(by: { $0.value < $1.value }) {
                 report += "  \(milestone): \(String(format: "%.3f", time))s\n"
