@@ -45,7 +45,7 @@ vim Sources/MagSafeGuard/SomeFile.swift
 
 The command generates messages following this format:
 
-```
+```text
 type(scope): subject
 
 - file1: what changed

@@ -23,7 +23,7 @@ public class StartupMetrics {
             startTime = CFAbsoluteTimeGetCurrent()
             let elapsed = CFAbsoluteTimeGetCurrent() - startTime
             metrics["startup_begin"] = elapsed
-            
+
             #if DEBUG
             Log.debug("Startup milestone 'startup_begin': \(String(format: "%.3f", elapsed))s", category: .general)
             #endif

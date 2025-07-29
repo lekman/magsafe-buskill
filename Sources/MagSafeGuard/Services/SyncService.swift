@@ -312,9 +312,11 @@ public class SyncService: NSObject, ObservableObject {
         retryTimer?.invalidate()
         retryTimer = nil
     }
+}
 
-    // MARK: - Public Sync Methods
+// MARK: - Public Sync Methods
 
+extension SyncService {
     /// Sync all data with iCloud
     @MainActor
     public func syncAll() async throws {

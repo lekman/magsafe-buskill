@@ -181,7 +181,7 @@ tasks:
         echo "🚩 MagSafe Guard Feature Flag Configuration"
         echo "=========================================="
         echo ""
-        
+
         # Check if .env exists
         if [ ! -f .env ]; then
           if [ -f .env.example ]; then
@@ -192,7 +192,7 @@ tasks:
             touch .env
           fi
         fi
-        
+
         # Function to update or add flag
         update_flag() {
           local key=$1
@@ -209,69 +209,69 @@ tasks:
             echo "$key=$value" >> .env
           fi
         }
-        
+
         # Core features
         echo "Core Features:"
         echo "--------------"
-        
+
         echo -n "Enable Power Monitoring? (core functionality) [Y/n]: "
         read -r power_monitoring
         power_monitoring=${power_monitoring:-Y}
         update_flag "FEATURE_POWER_MONITORING" $([ "${power_monitoring^^}" = "Y" ] && echo "true" || echo "false")
-        
+
         echo -n "Enable Accessibility Manager? (required for system actions) [Y/n]: "
         read -r accessibility
         accessibility=${accessibility:-Y}
         update_flag "FEATURE_ACCESSIBILITY" $([ "${accessibility^^}" = "Y" ] && echo "true" || echo "false")
-        
+
         echo -n "Enable Notifications? [Y/n]: "
         read -r notifications
         notifications=${notifications:-Y}
         update_flag "FEATURE_NOTIFICATIONS" $([ "${notifications^^}" = "Y" ] && echo "true" || echo "false")
-        
+
         echo -n "Enable Authentication (Touch ID)? [Y/n]: "
         read -r auth
         auth=${auth:-Y}
         update_flag "FEATURE_AUTHENTICATION" $([ "${auth^^}" = "Y" ] && echo "true" || echo "false")
-        
+
         echo ""
         echo "Optional Features:"
         echo "------------------"
-        
+
         echo -n "Enable Auto-Arm Manager? [y/N]: "
         read -r auto_arm
         auto_arm=${auto_arm:-N}
         update_flag "FEATURE_AUTO_ARM" $([ "${auto_arm^^}" = "Y" ] && echo "true" || echo "false")
-        
+
         echo -n "Enable Location Services? [y/N]: "
         read -r location
         location=${location:-N}
         update_flag "FEATURE_LOCATION" $([ "${location^^}" = "Y" ] && echo "true" || echo "false")
-        
+
         echo -n "Enable Network Monitor? [y/N]: "
         read -r network
         network=${network:-N}
         update_flag "FEATURE_NETWORK_MONITOR" $([ "${network^^}" = "Y" ] && echo "true" || echo "false")
-        
+
         echo -n "Enable Security Evidence Collection? [y/N]: "
         read -r evidence
         evidence=${evidence:-N}
         update_flag "FEATURE_SECURITY_EVIDENCE" $([ "${evidence^^}" = "Y" ] && echo "true" || echo "false")
-        
+
         echo -n "Enable iCloud Sync? [y/N]: "
         read -r cloud
         cloud=${cloud:-N}
         update_flag "FEATURE_CLOUD_SYNC" $([ "${cloud^^}" = "Y" ] && echo "true" || echo "false")
-        
+
         echo ""
         echo "Telemetry & Monitoring:"
         echo "-----------------------"
-        
+
         echo -n "Enable Sentry crash reporting? [y/N]: "
         read -r sentry
         sentry=${sentry:-N}
         update_flag "SENTRY_ENABLED" $([ "${sentry^^}" = "Y" ] && echo "true" || echo "false")
-        
+
         if [ "${sentry^^}" = "Y" ]; then
           echo -n "Enable Sentry debug mode? [y/N]: "
           read -r sentry_debug
@@ -283,21 +283,21 @@ tasks:
             update_flag "SENTRY_DSN" "https://e74a158126b00e128ebdda98f6a36b76@o4509752039243776.ingest.de.sentry.io/4509752042127440"
           fi
         fi
-        
+
         echo -n "Enable Performance Metrics? [y/N]: "
         read -r metrics
         metrics=${metrics:-N}
         update_flag "FEATURE_PERFORMANCE_METRICS" $([ "${metrics^^}" = "Y" ] && echo "true" || echo "false")
-        
+
         echo ""
         echo "Debug Options:"
         echo "--------------"
-        
+
         echo -n "Enable Verbose Logging? [y/N]: "
         read -r verbose
         verbose=${verbose:-N}
         update_flag "DEBUG_VERBOSE_LOGGING" $([ "${verbose^^}" = "Y" ] && echo "true" || echo "false")
-        
+
         echo ""
         echo "✅ Feature flags configured in .env"
         echo ""
@@ -629,28 +629,28 @@ tasks:
         echo ""
         echo "This bypasses permission issues by running from a temporary location."
         echo ""
-        
+
         # Build if needed
         if [ ! -d ".build/bundler/MagSafeGuard.app" ]; then
           echo "📦 Building app bundle..."
           swift bundler run --no-build
         fi
-        
+
         # Copy to /tmp
         echo "📋 Copying to /tmp..."
         rm -rf /tmp/MagSafeGuard.app 2>/dev/null || true
         cp -R .build/bundler/MagSafeGuard.app /tmp/
-        
+
         # Remove quarantine
         echo "🔓 Removing quarantine attributes..."
         xattr -cr /tmp/MagSafeGuard.app 2>/dev/null || true
-        
+
         # Launch
         echo "🚀 Launching from /tmp..."
         open /tmp/MagSafeGuard.app
-        
+
         sleep 2
-        
+
         if pgrep -x "MagSafeGuard" > /dev/null; then
           echo ""
           echo "✅ App running from /tmp successfully!"

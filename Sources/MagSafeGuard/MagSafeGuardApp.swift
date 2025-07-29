@@ -16,7 +16,7 @@ struct MagSafeGuardApp: App {
     init() {
         // Start performance tracking
         StartupMetrics.shared.startMeasuring()
-        
+
         // Initialize Sentry if enabled
         SentryManager.shared.initialize()
         StartupMetrics.shared.recordMilestone("sentry_initialized")

@@ -360,15 +360,9 @@ struct CloudSyncSettingsView: View {
         isSyncing = true
 
         Task {
-            do {
-                // try await syncService.syncAll()
-                // Temporarily disabled
-                isSyncing = false
-            } catch {
-                isSyncing = false
-                errorMessage = error.localizedDescription
-                showingError = true
-            }
+            // try await syncService.syncAll()
+            // Temporarily disabled
+            isSyncing = false
         }
     }
 }
