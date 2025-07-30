@@ -163,6 +163,25 @@ public struct Settings: Codable, Equatable {
     /// Debug logs may contain sensitive information and should be disabled in production.
     public var debugLoggingEnabled: Bool = false
 
+    // MARK: - Cloud Sync Settings
+
+    /// Whether iCloud sync is enabled.
+    ///
+    /// When enabled, settings and security events will be synchronized across devices
+    /// using the same iCloud account.
+    public var iCloudSyncEnabled: Bool = false
+
+    /// Maximum amount of data to store in iCloud (in MB).
+    ///
+    /// This limits the amount of evidence data that can be uploaded to iCloud
+    /// to prevent excessive storage usage.
+    public var iCloudDataLimitMB: Double = 100.0
+
+    /// How long to retain evidence data in iCloud (in days).
+    ///
+    /// Older evidence data will be automatically deleted to save storage space.
+    public var iCloudDataAgeLimitDays: Double = 30.0
+
     // MARK: - Validation
 
     /// Validates settings and returns normalized version

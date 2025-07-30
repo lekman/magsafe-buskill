@@ -72,6 +72,9 @@ public class UserDefaultsManager: ObservableObject {
     private let decoder = JSONDecoder()
     private var cancellables = Set<AnyCancellable>()
 
+    /// Cloud sync service for settings synchronization
+    private let syncService: SyncService?
+
     // MARK: - Constants
 
     private enum Keys {
@@ -89,8 +92,10 @@ public class UserDefaultsManager: ObservableObject {
     /// or creates defaults if none exist.
     ///
     /// - Parameter userDefaults: UserDefaults instance for persistence (default: .standard)
-    public init(userDefaults: UserDefaults = .standard) {
+    /// - Parameter syncService: Cloud sync service (defaults to CloudKit implementation)
+    public init(userDefaults: UserDefaults = .standard, syncService: SyncService? = nil) {
         self.userDefaults = userDefaults
+        self.syncService = syncService ?? SyncServiceFactory.create()
 
         // Load settings or create defaults
         if let loadedSettings = Self.loadSettings(from: userDefaults) {
@@ -101,6 +106,13 @@ public class UserDefaultsManager: ObservableObject {
         }
 
         // Auto-save disabled to prevent conflicts with SwiftUI bindings
+
+        // Listen for sync notifications
+        NotificationCenter.default.publisher(for: NSNotification.Name("SyncServiceDidUpdate"))
+            .sink { [weak self] _ in
+                self?.reloadSettingsFromDisk()
+            }
+            .store(in: &cancellables)
 
         // Mark first launch
         if !userDefaults.bool(forKey: Keys.hasLaunchedBefore) {
@@ -201,6 +213,13 @@ public class UserDefaultsManager: ObservableObject {
 
             // Force synchronization to disk
             userDefaults.synchronize()
+
+            // Trigger cloud sync
+            if let syncService = syncService {
+                Task {
+                    try? await syncService.syncSettings()
+                }
+            }
         } catch {
             Log.error("Failed to save settings", error: error, category: .settings)
             // Try to at least log what went wrong
@@ -210,6 +229,15 @@ public class UserDefaultsManager: ObservableObject {
                 } else {
                     Log.error("Encoding error: \(encodingError)", category: .settings)
                 }
+            }
+        }
+    }
+
+    /// Reloads settings from disk (called when synced from cloud)
+    private func reloadSettingsFromDisk() {
+        if let reloadedSettings = Self.loadSettings(from: userDefaults) {
+            DispatchQueue.main.async { [weak self] in
+                self?.settings = reloadedSettings
             }
         }
     }
@@ -279,5 +307,25 @@ extension UserDefaultsManager {
     public var autoArmEnabled: Bool {
         get { settings.autoArmEnabled }
         set { updateSetting(\.autoArmEnabled, value: newValue) }
+    }
+
+    // MARK: - Cloud Sync
+
+    /// Force an immediate cloud sync
+    public func forceCloudSync() async throws {
+        guard let syncService = syncService else {
+            throw NSError(domain: "com.magsafeguard", code: -1, userInfo: [NSLocalizedDescriptionKey: "Sync service not available"])
+        }
+        try await syncService.syncAll()
+    }
+
+    /// Get current cloud sync status
+    public var cloudSyncStatus: SyncStatus {
+        syncService?.syncStatus ?? .unknown
+    }
+
+    /// Check if cloud sync is available
+    public var isCloudSyncAvailable: Bool {
+        syncService?.isAvailable ?? false
     }
 }

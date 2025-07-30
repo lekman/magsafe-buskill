@@ -670,9 +670,11 @@ struct AdvancedSettingsView: View {
     @EnvironmentObject var settingsManager: UserDefaultsManager
     @State private var showingExportSuccess = false
     @State private var showingImportDialog = false
+    @State private var showingCloudSettings = false
 
     var body: some View {
         Form {
+            cloudSyncSection
             customScriptsSection
             debugSection
             settingsManagementSection
@@ -716,6 +718,50 @@ struct AdvancedSettingsView: View {
     }
 
     // MARK: - Computed Properties
+
+    private var cloudSyncSection: some View {
+        Section(header: Text("Cloud Sync")) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Image(systemName: settingsManager.cloudSyncStatus.symbolName)
+                            .foregroundColor(cloudStatusColor)
+                        Text("iCloud Sync")
+                            .font(.headline)
+                    }
+                    Text("Status: \(settingsManager.cloudSyncStatus.displayText)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                Button("Configure") {
+                    showingCloudSettings = true
+                }
+            }
+            .padding(.vertical, 4)
+        }
+        .sheet(isPresented: $showingCloudSettings) {
+            CloudSyncSettingsView()
+                .environmentObject(settingsManager)
+        }
+    }
+
+    private var cloudStatusColor: Color {
+        switch settingsManager.cloudSyncStatus {
+        case .idle:
+            return .green
+        case .syncing:
+            return .blue
+        case .error:
+            return .red
+        case .noAccount, .restricted, .temporarilyUnavailable:
+            return .orange
+        case .unknown:
+            return .gray
+        }
+    }
 
     private var customScriptsSection: some View {
         Section(header: Text("Custom Scripts")) {
