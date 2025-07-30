@@ -8,6 +8,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- This changelog is automatically maintained by release-please -->
 <!-- Do not manually edit below this line -->
 
+## [1.9.0](https://github.com/lekman/magsafe-buskill/compare/v1.8.0...v1.9.0) (2025-07-30)
+
+
+### Features
+
+* add comprehensive code signing infrastructure and improve build tooling ([a3ae4d5](https://github.com/lekman/magsafe-buskill/commit/a3ae4d5cdd00d592138fcf10b92047f1e44ded16))
+* add tasks for checking workflow run status and downloading logs ([5509fa8](https://github.com/lekman/magsafe-buskill/commit/5509fa85e8c775eb13c9436f56d68e4719b963bb))
+* enhance feature flag management with additional flags and convenience properties ([48d5d64](https://github.com/lekman/magsafe-buskill/commit/48d5d6411879bd2fc14354481f7d04077351db7a))
+* enhance security measures for GitHub Actions and fork PRs with comprehensive policies and workflows ([ac44ca5](https://github.com/lekman/magsafe-buskill/commit/ac44ca5b5b1f25078ad0cd2780d2a8a78f81f130))
+
+
+### Bug Fixes
+
+* **ci:** split artifact upload to handle PR and release builds separately ([6216e08](https://github.com/lekman/magsafe-buskill/commit/6216e088a77129ba31e7384b2444090c5d59805a))
+* improve build tooling and make swift tasks generic ([b0e6110](https://github.com/lekman/magsafe-buskill/commit/b0e61108bcc576806f3c9a2dc3ea36637f885456))
+* remove unnecessary blank lines in workflow and task files for cleaner code ([b43a0f8](https://github.com/lekman/magsafe-buskill/commit/b43a0f85fbaebc133060316d13881d4579561ba8))
+* update build task command to use swift for application build process ([9100ec9](https://github.com/lekman/magsafe-buskill/commit/9100ec9654ef09a448518cb3d262209bffa20ede))
+* update Snyk action references in workflows and tasks for improved security scanning ([ad962d1](https://github.com/lekman/magsafe-buskill/commit/ad962d167b5be0c72d790520f8e0a74a634a3115))
+
+
+### Code Refactoring
+
+* update Swift setup to use custom action and improve caching ([ea944c6](https://github.com/lekman/magsafe-buskill/commit/ea944c65bd56b8e542101eae01f96f493e1a59a6))
+
+
+### Tests
+
+* add comprehensive unit tests for FeatureFlags ([19137cd](https://github.com/lekman/magsafe-buskill/commit/19137cdb408456f9fd2f121a6c3e28d44bcec7f6))
+
 ## [1.8.0](https://github.com/lekman/magsafe-buskill/compare/v1.7.0...v1.8.0) (2025-07-29)
 
 
