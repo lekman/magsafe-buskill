@@ -1,15 +1,14 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: "3"
-
 vars:
   SEMGREP_CONFIG: auto
-
 tasks:
   default:
     desc: List available security tasks
     silent: true
     cmds:
-      - task --list | grep "^\\* security:" | grep -v "::" || true
-
+      - |
+        task --list | grep "^\\* security:" | grep -v "::" || true
   scan:
     desc: Run all security checks
     silent: true
@@ -18,7 +17,6 @@ tasks:
       - task: semgrep
       - task: pins
       - echo "✅ All security checks passed!"
-
   secrets:
     desc: Scan for hardcoded secrets and sensitive data
     silent: true
@@ -26,20 +24,20 @@ tasks:
       - |
         echo "🔍 Scanning for secrets and sensitive data..."
         echo ""
-        
+
         # Common patterns to check
         patterns=(
-          "password.*=.*['\"]" 
-          "api[_-]?key.*=.*['\"]"
-          "secret.*=.*['\"]"
-          "token.*=.*['\"]"
-          "private[_-]?key"
-          "-----BEGIN.*PRIVATE KEY-----"
-          "Bearer\s+[A-Za-z0-9\-_]+"
+          'password.*=.*["'"'"'"]'
+          'api[_-]?key.*=.*["'"'"'"]'
+          'secret.*=.*["'"'"'"]'
+          'token.*=.*["'"'"'"]'
+          'private[_-]?key'
+          '-----BEGIN.*PRIVATE KEY-----'
+          'Bearer\s+[A-Za-z0-9\-_]+'
         )
-        
+
         found_issues=0
-        
+
         for pattern in "${patterns[@]}"; do
           # Search in source files, excluding common false positives
           results=$(find . \
@@ -51,7 +49,7 @@ tasks:
             -not -path "./vendor/*" \
             -not -path "*test*" \
             -exec grep -l -E "$pattern" {} \; 2>/dev/null || true)
-          
+
           if [ -n "$results" ]; then
             echo "⚠️  Found potential secrets matching pattern: $pattern"
             echo "$results" | head -5
@@ -59,7 +57,7 @@ tasks:
             found_issues=$((found_issues + 1))
           fi
         done
-        
+
         # Check for .env files that might be committed
         env_files=$(find . -name ".env*" -not -path "./.git/*" -not -path "./node_modules/*" 2>/dev/null || true)
         if [ -n "$env_files" ]; then
@@ -72,7 +70,7 @@ tasks:
               unignored_env_files="$unignored_env_files$env_file\n"
             fi
           done
-          
+
           if [ -n "$unignored_env_files" ]; then
             echo "⚠️  Found .env files that are NOT in .gitignore:"
             echo -e "$unignored_env_files"
@@ -80,7 +78,7 @@ tasks:
             found_issues=$((found_issues + 1))
           fi
         fi
-        
+
         if [ $found_issues -eq 0 ]; then
           echo "✅ No secrets or sensitive data found!"
         else
@@ -96,14 +94,14 @@ tasks:
     cmds:
       - |
         echo "🔍 Running Semgrep security analysis..."
-        
+
         if ! command -v semgrep &> /dev/null; then
           echo "⚠️  Semgrep not installed"
           echo "   Install with: task security:setup"
           echo "   Skipping Semgrep scan..."
           exit 0
         fi
-        
+
         # Run Semgrep with security rules
         semgrep --config={{.SEMGREP_CONFIG}} --error --quiet . || exit 1
         echo "✅ Semgrep scan passed"
@@ -114,24 +112,24 @@ tasks:
     cmds:
       - |
         echo "🔍 Checking GitHub Action pins..."
-        
+
         unpinned=0
         workflow_files=$(find .github/workflows -name "*.yml" -o -name "*.yaml" 2>/dev/null || true)
-        
+
         if [ -z "$workflow_files" ]; then
           echo "✅ No workflow files found"
           exit 0
         fi
-        
+
         for file in $workflow_files; do
           # Look for uses: statements that aren't pinned to SHA
-          if grep -E "uses:\s+[^@]+@(main|master|v[0-9]+)" "$file" >/dev/null 2>&1; then
+          if grep -E "uses:\\s+[^@]+@(main|master|v[0-9]+)" "$file" >/dev/null 2>&1; then
             echo "❌ Unpinned actions found in: $file"
-            grep -n -E "uses:\s+[^@]+@(main|master|v[0-9]+)" "$file" || true
+            grep -n -E "uses:\\s+[^@]+@(main|master|v[0-9]+)" "$file" || true
             unpinned=$((unpinned + 1))
           fi
         done
-        
+
         if [ $unpinned -eq 0 ]; then
           echo "✅ All GitHub Actions are properly pinned!"
         else
@@ -147,81 +145,151 @@ tasks:
     silent: true
     cmds:
       - |
+        # Set default paths if TARGET_PATH is not provided
+        if [ -z "{{.TARGET_PATH}}" ]; then
+          SEARCH_PATHS=".github/workflows .github/actions"
+        else
+          SEARCH_PATHS="{{.TARGET_PATH}}"
+        fi
         # Check if jq is installed
         if ! command -v jq &> /dev/null; then
           echo "❌ jq is required but not installed"
           echo "   Install with: brew install jq"
           exit 1
         fi
-        
-        # Check if gh CLI is installed
-        if ! command -v gh &> /dev/null; then
-          echo "❌ GitHub CLI is required but not installed"
-          echo "   Install with: brew install gh"
+
+        # Check if curl is installed
+        if ! command -v curl &> /dev/null; then
+          echo "❌ curl is required but not installed"
           exit 1
         fi
-        
+
+        # Source GitHub token from .env file
+        if [ -f .env ]; then
+          export $(grep -E '^GITHUB_TOKEN=' .env | xargs)
+        fi
+
+        if [ -z "$GITHUB_TOKEN" ]; then
+          echo "⚠️  Warning: GITHUB_TOKEN not found in .env file"
+          echo "   API requests may be rate limited without authentication"
+          echo "   Add GITHUB_TOKEN=your_token to .env file for better results"
+          echo ""
+        fi
+
         echo "🔒 Pinning GitHub Actions to specific commit SHAs..."
         echo ""
-        
-        # Function to get latest commit SHA for a tag
+
+        # Function to get latest commit SHA for a tag using GitHub API
         get_sha_for_tag() {
           local repo=$1
           local tag=$2
+          local sha=""
           
-          # Try to get SHA from GitHub API
-          sha=$(gh api repos/$repo/git/refs/tags/$tag 2>/dev/null | jq -r '.object.sha // empty')
-          
-          if [ -z "$sha" ]; then
-            # If tag not found, try to get default branch
-            sha=$(gh api repos/$repo 2>/dev/null | jq -r '.default_branch // empty')
-            if [ -n "$sha" ]; then
-              sha=$(gh api repos/$repo/git/refs/heads/$sha 2>/dev/null | jq -r '.object.sha // empty')
+          # Set auth header if token is available
+          local auth_header=""
+          if [ -n "$GITHUB_TOKEN" ]; then
+            auth_header="Authorization: Bearer $GITHUB_TOKEN"
+          fi
+
+          # Try to get SHA from GitHub API for the tag
+          response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/git/refs/tags/$tag")
+          sha=$(echo "$response" | jq -r '.object.sha // empty' 2>/dev/null)
+
+          if [ -z "$sha" ] || [ "$sha" = "null" ]; then
+            # If tag not found, try to get the tag from releases
+            response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/releases/tags/$tag")
+            sha=$(echo "$response" | jq -r '.target_commitish // empty' 2>/dev/null)
+            
+            # If we got a branch name instead of SHA, resolve it
+            if [ -n "$sha" ] && [ "$sha" != "null" ] && ! echo "$sha" | grep -qE '^[a-f0-9]{40}$'; then
+              branch_response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/git/refs/heads/$sha")
+              resolved_sha=$(echo "$branch_response" | jq -r '.object.sha // empty' 2>/dev/null)
+              if [ -n "$resolved_sha" ] && [ "$resolved_sha" != "null" ]; then
+                sha="$resolved_sha"
+              fi
             fi
           fi
-          
+
+          if [ -z "$sha" ] || [ "$sha" = "null" ]; then
+            # Last resort: try to get default branch and use its SHA
+            response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo")
+            default_branch=$(echo "$response" | jq -r '.default_branch // empty' 2>/dev/null)
+            
+            if [ -n "$default_branch" ] && [ "$default_branch" != "null" ]; then
+              response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/git/refs/heads/$default_branch")
+              sha=$(echo "$response" | jq -r '.object.sha // empty' 2>/dev/null)
+            fi
+          fi
+
           echo "$sha"
         }
-        
-        # Find all workflow files
-        workflow_files=$(find .github/workflows -name "*.yml" -o -name "*.yaml" 2>/dev/null || true)
-        
+
+        # Find all workflow and action files in the specified path
+        if [ -f "$SEARCH_PATHS" ]; then
+          # Single file specified
+          workflow_files="$SEARCH_PATHS"
+        else
+          # Multiple directories or single directory specified
+          workflow_files=""
+          for path in $SEARCH_PATHS; do
+            if [ -d "$path" ]; then
+              files=$(find "$path" \( -name "*.yml" -o -name "*.yaml" -o -name "action.yml" -o -name "action.yaml" \) 2>/dev/null || true)
+              if [ -n "$files" ]; then
+                workflow_files=$(printf "%s\n%s" "$workflow_files" "$files")
+              fi
+            fi
+          done
+          # Remove empty lines
+          workflow_files=$(echo "$workflow_files" | grep -v '^$' || true)
+        fi
+
         if [ -z "$workflow_files" ]; then
-          echo "No workflow files found"
+          echo "No workflow or action files found in $SEARCH_PATHS"
           exit 0
         fi
-        
+
         total_pinned=0
-        
+
         for file in $workflow_files; do
           echo "Processing: $file"
           temp_file="${file}.tmp"
           cp "$file" "$temp_file"
-          
+
           # Find all uses statements
           while IFS= read -r line; do
-            if [[ $line =~ uses:[[:space:]]*([^@]+)@([^[:space:]]+) ]]; then
-              action="${BASH_REMATCH[1]}"
-              version="${BASH_REMATCH[2]}"
+            # Check if line contains uses: and has @ symbol (external actions only)
+            if echo "$line" | grep -qE '^[[:space:]]*uses:[[:space:]]*[^[:space:]]+@[^[:space:]]+'; then
+              # Extract action and full version string (including potential SHA and comment)
+              action=$(echo "$line" | sed -E 's/^[[:space:]]*uses:[[:space:]]*([^@]+)@.*/\1/')
+              full_version=$(echo "$line" | sed -E 's/^[[:space:]]*uses:[[:space:]]*[^@]+@(.*)/\1/')
               
-              # Skip if already pinned to SHA (40 character hex)
-              if [[ $version =~ ^[a-f0-9]{40}$ ]]; then
+              # Check if already pinned (has SHA followed by comment with version)
+              if echo "$full_version" | grep -qE '^[a-f0-9]{40}[[:space:]]*#'; then
                 continue
               fi
               
-              echo "  Found: $action@$version"
+              # Extract just the version part (remove any trailing comments or spaces)
+              version=$(echo "$full_version" | sed 's/[[:space:]]*#.*//' | sed 's/[[:space:]]*$//')
               
+              # Skip if version is already a SHA (40 character hex)
+              if echo "$version" | grep -qE '^[a-f0-9]{40}$'; then
+                continue
+              fi
+
+              echo "  Found: $action@$version"
+
               # Get the SHA for this version
               sha=$(get_sha_for_tag "$action" "$version")
-              
+
               if [ -n "$sha" ] && [ "$sha" != "null" ]; then
-                # Create the replacement with comment
+                # Escape special characters for sed
                 escaped_action=$(echo "$action" | sed 's/[[\.*^$()+?{|]/\\&/g')
                 escaped_version=$(echo "$version" | sed 's/[[\.*^$()+?{|]/\\&/g')
-                
-                # Replace in temp file
-                sed -i '' "s|uses: ${escaped_action}@${escaped_version}|uses: ${action}@${sha} # ${version}|g" "$temp_file"
-                
+
+                # Replace in temp file - preserve exact formatting
+                # Match the entire line including any existing comments
+                sed -i '' "s|uses: ${escaped_action}@${escaped_version}.*$|uses: ${action}@${sha} # ${version}|g" "$temp_file"
+
                 echo "    ✅ Pinned to: $sha"
                 total_pinned=$((total_pinned + 1))
               else
@@ -229,14 +297,14 @@ tasks:
               fi
             fi
           done < "$file"
-          
+
           # Move temp file back
           mv "$temp_file" "$file"
         done
-        
+
         echo ""
         echo "✅ Pinned $total_pinned actions to specific SHAs"
-        
+
         if [ $total_pinned -gt 0 ]; then
           echo ""
           echo "📝 Remember to commit these changes!"
@@ -253,25 +321,25 @@ tasks:
           echo "   Install with: brew install jq"
           exit 1
         fi
-        
+
         # Check if gh CLI is installed
         if ! command -v gh &> /dev/null; then
           echo "❌ GitHub CLI is required but not installed"
           echo "   Install with: brew install gh"
           exit 1
         fi
-        
+
         echo "🔄 Updating GitHub Action pins to latest SHAs..."
         echo ""
-        
+
         # Function to get latest commit SHA for a tag
         get_sha_for_tag() {
           local repo=$1
           local tag=$2
-          
+
           # Try to get SHA from GitHub API
           sha=$(gh api repos/$repo/git/refs/tags/$tag 2>/dev/null | jq -r '.object.sha // empty')
-          
+
           if [ -z "$sha" ]; then
             # If tag not found, try to get default branch
             sha=$(gh api repos/$repo 2>/dev/null | jq -r '.default_branch // empty')
@@ -279,43 +347,43 @@ tasks:
               sha=$(gh api repos/$repo/git/refs/heads/$sha 2>/dev/null | jq -r '.object.sha // empty')
             fi
           fi
-          
+
           echo "$sha"
         }
-        
+
         # Find all workflow files
         workflow_files=$(find .github/workflows -name "*.yml" -o -name "*.yaml" 2>/dev/null || true)
-        
+
         if [ -z "$workflow_files" ]; then
           echo "No workflow files found"
           exit 0
         fi
-        
+
         total_updated=0
-        
+
         for file in $workflow_files; do
           echo "Processing: $file"
           temp_file="${file}.tmp"
           cp "$file" "$temp_file"
-          
+
           # Find all uses statements with SHA and comment showing version
           while IFS= read -r line; do
             if [[ $line =~ uses:[[:space:]]*([^@]+)@([a-f0-9]{40})[[:space:]]*#[[:space:]]*([^[:space:]]+) ]]; then
               action="${BASH_REMATCH[1]}"
               current_sha="${BASH_REMATCH[2]}"
               version="${BASH_REMATCH[3]}"
-              
+
               echo "  Found: $action@$current_sha # $version"
-              
+
               # Get the latest SHA for this version
               new_sha=$(get_sha_for_tag "$action" "$version")
-              
+
               if [ -n "$new_sha" ] && [ "$new_sha" != "null" ] && [ "$new_sha" != "$current_sha" ]; then
                 # Replace in temp file
-                escaped_action=$(echo "$action" | sed 's/[[\.*^$()+?{|]/\\&/g')
-                
+                escaped_action=$(echo "$action" | sed 's/[[\\.*^$()+?{|]/\\\\&/g')
+
                 sed -i '' "s|uses: ${escaped_action}@${current_sha} # ${version}|uses: ${action}@${new_sha} # ${version}|g" "$temp_file"
-                
+
                 echo "    ✅ Updated to: $new_sha"
                 total_updated=$((total_updated + 1))
               else
@@ -323,11 +391,11 @@ tasks:
               fi
             fi
           done < "$file"
-          
+
           # Move temp file back
           mv "$temp_file" "$file"
         done
-        
+
         echo ""
         if [ $total_updated -gt 0 ]; then
           echo "✅ Updated $total_updated action pins"
@@ -343,10 +411,10 @@ tasks:
     cmds:
       - |
         echo "🤖 Setting up Dependabot for security updates..."
-        
+
         # Create .github directory if it doesn't exist
         mkdir -p .github
-        
+
         # Check if dependabot.yml already exists
         if [ -f ".github/dependabot.yml" ]; then
           echo "⚠️  .github/dependabot.yml already exists"
@@ -360,7 +428,7 @@ tasks:
             exit 0
           fi
         fi
-        
+
         # Create dependabot.yml
         cat > .github/dependabot.yml << 'EOF'
         version: 2
@@ -380,7 +448,7 @@ tasks:
             commit-message:
               prefix: "chore"
               include: "scope"
-        
+
           # Maintain dependencies for Swift Package Manager
           - package-ecosystem: "swift"
             directory: "/"
@@ -397,7 +465,7 @@ tasks:
               prefix: "chore"
               include: "scope"
         EOF
-        
+
         echo "✅ Created .github/dependabot.yml"
         echo ""
         echo "Dependabot will now:"
@@ -409,29 +477,343 @@ tasks:
         echo ""
         echo "📝 Remember to commit this file to enable Dependabot!"
 
+  audit-workflows:
+    desc: Audit GitHub Actions workflows for security vulnerabilities
+    silent: true
+    cmds:
+      - |
+        echo "🔍 GitHub Actions Security Audit"
+        echo "================================"
+        echo ""
+
+        ISSUES_FOUND=0
+
+        # Function to report issues
+        report_issue() {
+            local severity=$1
+            local file=$2
+            local issue=$3
+            echo "[$severity] $file: $issue"
+            ((ISSUES_FOUND++))
+        }
+
+        # Check 1: Dangerous event combinations
+        echo "Checking for dangerous event combinations..."
+        for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
+            [ -f "$workflow" ] || continue
+            
+            # Check for pull_request_target with checkout of PR head
+            if grep -q "pull_request_target:" "$workflow"; then
+                if grep -A 20 "actions/checkout" "$workflow" | grep -q "github.event.pull_request.head"; then
+                    report_issue "CRITICAL" "$workflow" "Uses pull_request_target with checkout of PR head - secrets can be exposed!"
+                fi
+            fi
+            
+            # Check for workflow_run triggered by pull_request
+            if grep -q "workflow_run:" "$workflow"; then
+                if grep -A 5 "workflow_run:" "$workflow" | grep -q "pull_request"; then
+                    report_issue "HIGH" "$workflow" "workflow_run triggered by pull_request can expose secrets"
+                fi
+            fi
+        done
+
+        # Check 2: Overly permissive permissions
+        echo ""
+        echo "Checking for overly permissive permissions..."
+        for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
+            [ -f "$workflow" ] || continue
+            
+            # Check for write-all permissions
+            if grep -q "permissions: write-all" "$workflow"; then
+                report_issue "HIGH" "$workflow" "Uses write-all permissions - use minimal permissions instead"
+            fi
+            
+            # Check for missing permissions block in workflows that handle PRs
+            if grep -q "pull_request" "$workflow"; then
+                if ! grep -q "permissions:" "$workflow"; then
+                    report_issue "MEDIUM" "$workflow" "Handles PRs but missing explicit permissions block"
+                fi
+            fi
+        done
+
+        # Check 3: Unpinned actions
+        echo ""
+        echo "Checking for unpinned actions..."
+        for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
+            [ -f "$workflow" ] || continue
+            
+            # Find uses: statements without SHA pinning
+            while IFS= read -r line; do
+                if echo "$line" | grep -E "uses:.*@(main|master|v[0-9]+)$" >/dev/null; then
+                    action=$(echo "$line" | sed -E 's/.*uses: *([^@]+@[^[:space:]]+).*/\1/')
+                    report_issue "MEDIUM" "$workflow" "Unpinned action: $action"
+                fi
+            done < <(grep "uses:" "$workflow" || true)
+        done
+
+        # Check 4: Direct secret usage in run commands
+        echo ""
+        echo "Checking for secrets in run commands..."
+        for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
+            [ -f "$workflow" ] || continue
+            
+            # Check for secrets in run commands (potential command injection)
+            if grep -E "run:.*\$\{\{.*secrets\." "$workflow" >/dev/null; then
+                report_issue "HIGH" "$workflow" "Direct secret interpolation in run command - use env vars instead"
+            fi
+        done
+
+        # Check 5: Missing security features
+        echo ""
+        echo "Checking for missing security features..."
+
+        # Check for CODEOWNERS
+        if [ ! -f ".github/CODEOWNERS" ]; then
+            report_issue "LOW" "repository" "Missing CODEOWNERS file for workflow protection"
+        fi
+
+        # Check for security policy
+        if [ ! -f "SECURITY.md" ] && [ ! -f ".github/SECURITY.md" ] && [ ! -f "docs/SECURITY.md" ]; then
+            report_issue "LOW" "repository" "Missing SECURITY.md file"
+        fi
+
+        # Check 6: Dangerous patterns in workflows
+        echo ""
+        echo "Checking for dangerous patterns..."
+        for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
+            [ -f "$workflow" ] || continue
+            
+            # Check for curl | bash pattern
+            if grep -E "curl.*\|.*bash" "$workflow" >/dev/null; then
+                report_issue "HIGH" "$workflow" "Uses curl | bash pattern - download and verify scripts instead"
+            fi
+            
+            # Check for base64 decode execution
+            if grep -E "base64.*-d.*\|.*sh" "$workflow" >/dev/null; then
+                report_issue "CRITICAL" "$workflow" "Executes base64 decoded content - extremely dangerous!"
+            fi
+            
+            # Check for eval usage
+            if grep -E "eval.*\$\{\{" "$workflow" >/dev/null; then
+                report_issue "HIGH" "$workflow" "Uses eval with GitHub context - potential command injection"
+            fi
+        done
+
+        # Check 7: Fork PR specific checks
+        echo ""
+        echo "Checking fork PR handling..."
+        has_fork_safe_workflows=false
+        for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
+            [ -f "$workflow" ] || continue
+            
+            if grep -q "pull_request:" "$workflow"; then
+                has_fork_safe_workflows=true
+                # Check if it has explicit minimal permissions
+                if ! grep -A 5 "permissions:" "$workflow" | grep -q "contents: read"; then
+                    report_issue "MEDIUM" "$workflow" "PR workflow should explicitly set 'contents: read' permission"
+                fi
+            fi
+        done
+
+        if ! $has_fork_safe_workflows; then
+            report_issue "MEDIUM" "repository" "No fork-safe PR workflows found"
+        fi
+
+        # Summary
+        echo ""
+        echo "================================"
+        echo "Security Audit Summary"
+        echo "================================"
+        if [ $ISSUES_FOUND -eq 0 ]; then
+            echo "✅ No security issues found!"
+        else
+            echo "❌ Found $ISSUES_FOUND security issues"
+            echo ""
+            echo "Recommendations:"
+            echo "1. Pin all actions to specific SHAs using: task security:pin-actions"
+            echo "2. Use minimal permissions in all workflows"
+            echo "3. Never use pull_request_target with untrusted code checkout"
+            echo "4. Store secrets in environment variables, not run commands"
+            echo "5. Require approval for all fork PR workflows"
+            echo ""
+            echo "See .github/fork-pr-policy.md for detailed security guidelines"
+        fi
+
+        exit $ISSUES_FOUND
+
+  verify-actions-whitelist:
+    desc: Verify all GitHub Actions are in the allowed whitelist
+    silent: true
+    cmds:
+      - |
+        echo "🔍 Verifying GitHub Actions Whitelist"
+        echo "===================================="
+        echo ""
+
+        # Expected actions (from whitelist)
+        # Note: actions/* and lekman/* are automatically allowed by GitHub settings
+        # This list only includes third-party actions that need explicit whitelisting
+        WHITELIST=(
+            "codecov/codecov-action"
+            "returntocorp/semgrep-action"
+            "trufflesecurity/trufflehog"
+            "fossas/fossa-action"
+            "ossf/scorecard-action"
+            "snyk/actions/setup"
+            "swift-actions/setup-swift"
+            "maxim-lobanov/setup-xcode"
+            "webiny/action-conventional-commits"
+            "softprops/action-gh-release"
+            "googleapis/release-please-action"
+        )
+
+        # Actions that are automatically allowed (for reference)
+        AUTO_ALLOWED_PREFIXES=(
+            "actions/"
+            "lekman/"
+            "github/"  # GitHub owns both 'actions' and 'github' orgs
+        )
+
+        # Find all used actions (excluding local actions)
+        echo "Scanning for all used actions..."
+        USED_ACTIONS=$(find .github -name "*.yml" -o -name "*.yaml" | \
+            xargs grep -h "uses:" | \
+            grep -v "^\s*#" | \
+            grep -v "\./" | \
+            sed 's/.*uses: *//' | \
+            sed 's/@.*//' | \
+            sort -u)
+
+        # Track results
+        ALL_GOOD=true
+        NOT_IN_WHITELIST=()
+        IN_WHITELIST=()
+
+        # Check each used action
+        for action in $USED_ACTIONS; do
+            found=false
+            # Extract the owner/repo part (without subpath)
+            owner_repo=$(echo "$action" | cut -d'/' -f1-2)
+            
+            # First check if it's automatically allowed
+            for auto_prefix in "${AUTO_ALLOWED_PREFIXES[@]}"; do
+                if [[ "$action" == "$auto_prefix"* ]]; then
+                    found=true
+                    IN_WHITELIST+=("$action (auto-allowed)")
+                    break
+                fi
+            done
+            
+            # If not auto-allowed, check against whitelist
+            if ! $found; then
+                for allowed in "${WHITELIST[@]}"; do
+                    # Check if the action matches the whitelist entry
+                    if [[ "$owner_repo" == "$allowed" ]] || [[ "$action" == "$allowed"* ]]; then
+                        found=true
+                        IN_WHITELIST+=("$action")
+                        break
+                    fi
+                done
+            fi
+            
+            if ! $found; then
+                NOT_IN_WHITELIST+=("$action")
+                ALL_GOOD=false
+            fi
+        done
+
+        # Display results
+        echo ""
+        echo "✅ Actions in whitelist (${#IN_WHITELIST[@]}):"
+        for action in "${IN_WHITELIST[@]}"; do
+            echo "   - $action"
+        done
+
+        if [ ${#NOT_IN_WHITELIST[@]} -gt 0 ]; then
+            echo ""
+            echo "❌ Actions NOT in whitelist (${#NOT_IN_WHITELIST[@]}):"
+            for action in "${NOT_IN_WHITELIST[@]}"; do
+                echo "   - $action"
+            done
+        fi
+
+        # Check for unused whitelist entries
+        echo ""
+        echo "Checking for unused whitelist entries..."
+        UNUSED_WHITELIST=()
+        for allowed in "${WHITELIST[@]}"; do
+            used=false
+            for action in $USED_ACTIONS; do
+                if [[ "$action" == "$allowed"* ]]; then
+                    used=true
+                    break
+                fi
+            done
+            
+            if ! $used; then
+                UNUSED_WHITELIST+=("$allowed")
+            fi
+        done
+
+        if [ ${#UNUSED_WHITELIST[@]} -gt 0 ]; then
+            echo ""
+            echo "⚠️  Unused whitelist entries (${#UNUSED_WHITELIST[@]}):"
+            for action in "${UNUSED_WHITELIST[@]}"; do
+                echo "   - $action"
+            done
+            echo ""
+            echo "Consider removing these from the whitelist if they're no longer needed."
+        fi
+
+        # Summary
+        echo ""
+        echo "===================================="
+        echo "Summary"
+        echo "===================================="
+        echo "Total actions used: $(echo "$USED_ACTIONS" | wc -w)"
+        echo "Actions in whitelist: ${#IN_WHITELIST[@]}"
+        echo "Actions NOT in whitelist: ${#NOT_IN_WHITELIST[@]}"
+        echo "Unused whitelist entries: ${#UNUSED_WHITELIST[@]}"
+
+        if $ALL_GOOD; then
+            echo ""
+            echo "✅ All used actions are in the whitelist!"
+            exit 0
+        else
+            echo ""
+            echo "❌ Some actions are not in the whitelist!"
+            echo ""
+            echo "To fix this, either:"
+            echo "1. Add the missing actions to your GitHub Actions whitelist"
+            echo "2. Remove/replace the actions from your workflows"
+            echo ""
+            echo "See .github/actions-whitelist.md for configuration details"
+            exit 1
+        fi
+
   setup:
     desc: Setup security scanning tools
     silent: true
     cmds:
       - |
         echo "🔧 Setting up security tools..."
-        
+
         # Detect OS
         OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-        
+
         if [ "$OS" != "darwin" ]; then
           echo "⚠️  This task is optimized for macOS"
           echo "   For other platforms, please install tools manually"
           exit 0
         fi
-        
+
         # Check for Homebrew
         if ! command -v brew &> /dev/null; then
           echo "❌ Homebrew not found"
           echo "   Install from: https://brew.sh"
           exit 1
         fi
-        
+
         # Install/Update Semgrep
         if ! command -v semgrep &> /dev/null; then
           echo "📦 Installing Semgrep..."
@@ -443,7 +825,7 @@ tasks:
             brew upgrade semgrep
           fi
         fi
-        
+
         # Install/Update truffleHog (secret scanner)
         if ! command -v trufflehog &> /dev/null; then
           echo "📦 Installing truffleHog..."
@@ -455,7 +837,7 @@ tasks:
             brew upgrade trufflehog
           fi
         fi
-        
+
         # Install/Update gitleaks (secret scanner)
         if ! command -v gitleaks &> /dev/null; then
           echo "📦 Installing gitleaks..."
@@ -467,7 +849,7 @@ tasks:
             brew upgrade gitleaks
           fi
         fi
-        
+
         # Install/Update jq (for JSON parsing)
         if ! command -v jq &> /dev/null; then
           echo "📦 Installing jq..."
@@ -479,7 +861,7 @@ tasks:
             brew upgrade jq
           fi
         fi
-        
+
         # Install/Update GitHub CLI (for pin operations)
         if ! command -v gh &> /dev/null; then
           echo "📦 Installing GitHub CLI..."
@@ -491,7 +873,7 @@ tasks:
             brew upgrade gh
           fi
         fi
-        
+
         echo ""
         echo "✅ Security tools installed"
         echo ""
@@ -508,13 +890,13 @@ tasks:
     cmds:
       - |
         echo "🔍 Running gitleaks secret scanner..."
-        
+
         if ! command -v gitleaks &> /dev/null; then
           echo "⚠️  gitleaks not installed"
           echo "   Install with: task security:setup"
           exit 0
         fi
-        
+
         # Run gitleaks
         if gitleaks detect --verbose --redact; then
           echo "✅ No secrets found by gitleaks"
@@ -529,13 +911,13 @@ tasks:
     cmds:
       - |
         echo "🔍 Running truffleHog secret scanner..."
-        
+
         if ! command -v trufflehog &> /dev/null; then
           echo "⚠️  truffleHog not installed"
           echo "   Install with: task security:setup"
           exit 0
         fi
-        
+
         # Run truffleHog on current directory
         echo "Scanning filesystem..."
         if trufflehog filesystem . --no-update --fail; then

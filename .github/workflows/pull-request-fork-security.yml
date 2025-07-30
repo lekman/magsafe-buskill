@@ -1,0 +1,57 @@
+name: Fork PR Security Check
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  # This workflow runs with read-only permissions and no secrets
+  # It's safe to run on fork PRs
+  check-fork-pr:
+    name: Validate Fork PR
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name != github.repository
+
+    steps:
+      - name: Comment on first-time contributors
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
+        with:
+          script: |
+            const creator = context.payload.pull_request.user.login;
+            const repo = context.repo;
+
+            // Check if this is a first-time contributor
+            const { data: pullRequests } = await github.rest.pulls.list({
+              ...repo,
+              state: 'all',
+              creator: creator,
+              per_page: 2
+            });
+
+            if (pullRequests.length === 1) {
+              await github.rest.issues.createComment({
+                ...repo,
+                issue_number: context.issue.number,
+                body: `## Welcome @${creator}! 👋
+                
+                This appears to be your first pull request to this repository. 
+                
+                **Security Notice**: This PR will run with restricted permissions and no access to secrets until approved by a maintainer.
+                
+                A maintainer will review your changes soon. Thank you for your contribution!`
+              });
+            }
+
+      - name: Label fork PRs
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
+        with:
+          script: |
+            await github.rest.issues.addLabels({
+              ...context.repo,
+              issue_number: context.issue.number,
+              labels: ['fork-pr', 'needs-review']
+            });

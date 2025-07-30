@@ -1,0 +1,168 @@
+name: Build and Sign MagSafe Guard
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  SWIFT_VERSION: "5.9"
+
+permissions:
+  contents: read
+  # Additional permissions added per job as needed
+
+jobs:
+  build-and-sign:
+    name: Build and Sign
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Setup Swift Build Environment
+        uses: ./.github/actions/setup-swift-build
+        with:
+          swift-version: "5.9"
+          cache-key-suffix: "-test-v2" # Increment this to bust cache
+
+      - name: Install Task
+        run: |
+          brew install go-task/tap/go-task
+
+      - name: Import Signing Certificate
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        env:
+          CERTIFICATE_P12: ${{ secrets.SIGNING_CERTIFICATE_P12_DATA }}
+          CERTIFICATE_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          # Create temporary keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+
+          # Create and configure keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Import certificate
+          echo "$CERTIFICATE_P12" | base64 --decode > certificate.p12
+          security import certificate.p12 \
+            -k "$KEYCHAIN_PATH" \
+            -P "$CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security
+
+          # Configure keychain
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Add to search list
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed 's/"//g')
+          security default-keychain -s "$KEYCHAIN_PATH"
+
+          # Clean up
+          rm -f certificate.p12
+
+      - name: Build Application
+        run: |
+          task swift:build:release
+
+      - name: Sign Application
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]] && [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            # Production release signing
+            task swift:sign:release
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            # Development signing for main/develop branches
+            task swift:sign:dev
+          else
+            # CI signing for PRs
+            task swift:sign:ci
+          fi
+
+      - name: Verify Signature
+        run: |
+          task swift:sign:verify
+
+      - name: Notarize Application
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # Create zip for notarization
+          ditto -c -k --keepParent \
+            .build/bundler/MagSafeGuard.app \
+            MagSafeGuard.zip
+
+          # Submit for notarization
+          xcrun notarytool submit MagSafeGuard.zip \
+            --apple-id "$APPLE_ID" \
+            --team-id "$TEAM_ID" \
+            --password "$APPLE_PASSWORD" \
+            --wait
+
+          # Staple the notarization
+          xcrun stapler staple .build/bundler/MagSafeGuard.app
+
+          # Clean up
+          rm -f MagSafeGuard.zip
+
+      - name: Create DMG
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        run: |
+          # Install create-dmg
+          brew install create-dmg
+
+          # Create DMG
+          create-dmg \
+            --volname "MagSafe Guard" \
+            --volicon "Resources/Assets.xcassets/AppIcon.appiconset/icon_512x512.png" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "MagSafeGuard.app" 150 185 \
+            --hide-extension "MagSafeGuard.app" \
+            --app-drop-link 450 185 \
+            --no-internet-enable \
+            "MagSafeGuard-${{ github.ref_name }}.dmg" \
+            ".build/bundler/"
+
+      - name: Upload App Bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: magsafe-guard-app-${{ github.sha }}
+          path: .build/bundler/MagSafeGuard.app
+          if-no-files-found: error
+
+      - name: Upload DMG
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: magsafe-guard-dmg-${{ github.sha }}
+          path: MagSafeGuard-*.dmg
+          if-no-files-found: error
+
+      - name: Create Release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@26994186c0ac3ef5cae75ac16aa32e8153525f77 # v1
+        with:
+          files: |
+            MagSafeGuard-*.dmg
+          draft: true
+          prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
+          generate_release_notes: true
+
+      - name: Clean Up Keychain
+        if: always() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        run: |
+          if [[ -f "$RUNNER_TEMP/build.keychain" ]]; then
+            security delete-keychain "$RUNNER_TEMP/build.keychain"
+          fi

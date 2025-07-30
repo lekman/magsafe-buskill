@@ -36,7 +36,7 @@ public class MacSystemActions: SystemActionsProtocol {
         private struct UtilityConfig {
             static let basePath = "/usr/bin"
             static let bashBasePath = "/bin"
-            
+
             static let utilities: [String: (envVar: String, defaultPath: String)] = [
                 "pmset": (pmsetPathEnvVar, "\(basePath)/pmset"),
                 "osascript": (osascriptPathEnvVar, "\(basePath)/osascript"),
@@ -45,7 +45,7 @@ public class MacSystemActions: SystemActionsProtocol {
                 "bash": (bashPathEnvVar, "\(bashBasePath)/bash")
             ]
         }
-        
+
         /// Get default system paths from configuration
         /// This satisfies SonarCloud's requirement for customizable URIs
         private static func getDefaultPath(for utility: String) -> String {

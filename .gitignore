@@ -533,3 +533,6 @@ sbom-deps.json
 
 # Swift Bundler binary
 swift-bundler
+
+# GitHub Actions run logs
+logs/

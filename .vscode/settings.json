@@ -30,7 +30,8 @@
     ".swiftlint.yml": true,
     ".scannerwork": true,
     ".sonarcloud": true,
-    ".task": true
+    ".task": true,
+    "coverage*.txt": true
   },
   "search.exclude": {
     "**/node_modules": true,

@@ -59,7 +59,7 @@ jobs:
       actions: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Cancel redundant workflow runs
         uses: ./.github/actions/cancel-redundant-workflows
         with:
@@ -76,7 +76,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 0 # Full history for SonarCloud blame data
 
@@ -84,7 +84,7 @@ jobs:
         uses: ./.github/actions/setup-swift-build
         with:
           swift-version: "5.9"
-          cache-key-suffix: "-test-v2"  # Increment this to bust cache
+          cache-key-suffix: "-test-v2" # Increment this to bust cache
 
       - name: Clean build artifacts
         run: |
@@ -107,7 +107,7 @@ jobs:
 
           if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
             echo "Generating SonarQube generic coverage XML..."
-            
+
             # Convert llvm-cov output to SonarQube generic XML format
             {
               echo '<coverage version="1">'
@@ -129,7 +129,7 @@ jobs:
                   linenum = parts[1]
                   gsub(/^[[:space:]]+/, "", linenum)
                   gsub(/[[:space:]]+$/, "", linenum)
-                  
+
                   # Check if line is covered (has execution count)
                   if (match(parts[2], /^[[:space:]]*[0-9]+/)) {
                     print "    <lineToCover lineNumber=\"" linenum "\" covered=\"true\"/>"
@@ -143,11 +143,11 @@ jobs:
               '
               echo '</coverage>'
             } > coverage.xml
-            
+
             echo "Coverage files created:"
             ls -la coverage.xml || echo "No coverage files found"
             echo "Coverage report size: $(wc -c < coverage.xml) bytes"
-            
+
             # Also generate LCOV format for Codecov
             echo "Generating LCOV format..."
             xcrun llvm-cov export "$EXECUTABLE" \
@@ -155,7 +155,7 @@ jobs:
               -format=lcov \
               -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*LAContext\.swift|.*/MacSystemActions\.swift|.*Protocol\.swift" \
               > coverage.lcov
-            
+
             echo "LCOV file created:"
             ls -la coverage.lcov || echo "No LCOV file found"
             echo "LCOV report size: $(wc -c < coverage.lcov) bytes"
@@ -182,7 +182,7 @@ jobs:
           fi
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@5c47607acb93fed5485fdbf7232e8a31425f672a # v5.0.2
+        uses: codecov/codecov-action@5c47607acb93fed5485fdbf7232e8a31425f672a # v5
         with:
           use_oidc: true
           codecov_yml_path: .codecov.yml

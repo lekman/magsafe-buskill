@@ -64,7 +64,7 @@ jobs:
       actions: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Cancel redundant workflow runs
         uses: ./.github/actions/cancel-redundant-workflows
         with:
@@ -81,7 +81,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 0
 
@@ -196,10 +196,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Dependency Review
-        uses: actions/dependency-review-action@da24556b548a50705dd671f47852072ea4c105d9 # v4.7.1
+        uses: actions/dependency-review-action@da24556b548a50705dd671f47852072ea4c105d9 # v4
         with:
           # Fail on high severity vulnerabilities
           fail-on-severity: high
@@ -219,13 +219,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 0 # Fetch all history for scanning
 
       - name: TruffleHog OSS
         id: trufflehog
-        uses: trufflesecurity/trufflehog@a05cf0859455b5b16317ee22d809887a4043cdf0 # v3.90.2
+        uses: trufflesecurity/trufflehog@a05cf0859455b5b16317ee22d809887a4043cdf0 # v3
         with:
           path: ./
           base: ${{ github.event.repository.default_branch }}
@@ -240,11 +240,11 @@ jobs:
         run: |
           if [[ "$TRUFFLEHOG_OUTCOME" == "failure" ]]; then
             echo "TruffleHog scan failed. Checking if it's due to BASE==HEAD..."
-            
+
             # Get the default branch commit
             BASE_COMMIT=$(git rev-parse "origin/${DEFAULT_BRANCH}" 2>/dev/null || echo "")
             HEAD_COMMIT=$(git rev-parse HEAD)
-            
+
             if [[ "$BASE_COMMIT" == "$HEAD_COMMIT" ]]; then
               echo "✅ BASE and HEAD commits are the same. This is expected for direct pushes to ${DEFAULT_BRANCH}."
               echo "No incremental scan needed - all secrets would have been caught in previous scans."
@@ -267,7 +267,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Check for security policy
         run: |
@@ -291,11 +291,11 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       # Run Semgrep - automatically uses cloud rules if SEMGREP_APP_TOKEN is set
       - name: Run Semgrep
-        uses: returntocorp/semgrep-action@713efdd345f3035192eaa63f56867b88e63e4e5d # v1
+        uses: returntocorp/semgrep-action@713efdd345f3035192eaa63f56867b88e63e4e5d # 713efdd345f3035192eaa63f56867b88e63e4e5d
         env:
           # If token is set, Semgrep will use cloud configuration
           # If not set, it will use the default rules
@@ -310,31 +310,35 @@ jobs:
           sarif_file: semgrep.sarif
         continue-on-error: true
 
-  # Snyk Security Scanning (Free for Open Source)
-  # TODO: Enable once SNYK_TOKEN is configured
-  # snyk:
-  #   name: Snyk Security
-  #   runs-on: ubuntu-latest
-  #   if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
-  #
-  #   steps:
-  #   - name: Checkout repository
-  #     uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-  #
-  #   - name: Run Snyk to check for vulnerabilities
-  #     uses: snyk/actions/swift@cdb760004ba9ea4d525f2e043745dfe85bb9077e # master
-  #     env:
-  #       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-  #     with:
-  #       args: --severity-threshold=high
-  #     continue-on-error: true  # Don't fail if Snyk is not configured
-  #
-  #   - name: Upload Snyk results to GitHub Code Scanning
-  #     uses: github/codeql-action/upload-sarif@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
-  #     if: always() && env.SNYK_TOKEN != ''
-  #     with:
-  #       sarif_file: snyk.sarif
-  #     continue-on-error: true
+  # Snyk Security Scanning
+  snyk:
+    name: Snyk Security
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Setup Snyk
+        uses: snyk/actions/setup@b98d498629f1c368650224d6d212bf7dfa89e4bf # v0.4.0
+
+      - name: Run Snyk to check for vulnerabilities
+        run: |
+          # Test Swift Package Manager dependencies
+          snyk test --severity-threshold=high --file=Package.swift || true
+          # Generate SARIF output for GitHub Code Scanning
+          snyk test --severity-threshold=high --file=Package.swift --sarif-file-output=snyk.sarif || true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true # Don't fail if Snyk is not configured
+
+      - name: Upload Snyk results to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
+        if: always() && env.SNYK_TOKEN != ''
+        with:
+          sarif_file: snyk.sarif
+        continue-on-error: true
 
   # License scanning
   license-scan:
@@ -347,10 +351,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Run License Scan
-        uses: fossas/fossa-action@af5662f6f8877dad2ea85109ee5444f4ca3b0fe2 # main
+        uses: fossas/fossa-action@af5662f6f8877dad2ea85109ee5444f4ca3b0fe2 # v1
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
         continue-on-error: true # Don't fail if FOSSA is not configured
@@ -370,12 +374,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           persist-credentials: false
 
       - name: Run Scorecard
-        uses: ossf/scorecard-action@62b2cac7ed8198b15735ed49ab1e5cf35480ba46 # v2.4.0
+        uses: ossf/scorecard-action@62b2cac7ed8198b15735ed49ab1e5cf35480ba46 # v2
         with:
           results_file: results.sarif
           results_format: sarif

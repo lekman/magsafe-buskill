@@ -16,7 +16,7 @@ jobs:
       actions: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Cancel redundant workflow runs
         uses: ./.github/actions/cancel-redundant-workflows
         with:
@@ -29,39 +29,39 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 0
-          
+
       - name: Scan and require clean history
         env:
           BASE_REF: ${{ github.base_ref }}
           HEAD_REF: ${{ github.head_ref }}
         run: |
           echo "🔍 Scanning commit history for prohibited content..."
-          
+
           # Define blocked words
           BLOCKED_WORDS=("claude" "anthropic" "co-authored")
-          
+
           # Get all commits in this PR
           COMMITS=$(git log --format="%H %s" "origin/${BASE_REF}..HEAD")
-          
+
           # Check for blocked words
           VIOLATIONS=""
           while IFS= read -r commit; do
             HASH=$(echo "$commit" | cut -d' ' -f1)
             MESSAGE=$(echo "$commit" | cut -d' ' -f2-)
-            
+
             for word in "${BLOCKED_WORDS[@]}"; do
               if echo "$MESSAGE" | grep -qi "$word"; then
                 VIOLATIONS="$VIOLATIONS\n  • $HASH: $MESSAGE (contains '$word')"
               fi
             done
           done <<< "$COMMITS"
-          
+
           if [ -n "$VIOLATIONS" ]; then
             echo "❌ COMMIT HISTORY CONTAINS PROHIBITED WORDS"
             echo ""
@@ -83,7 +83,7 @@ jobs:
             echo "  git push -u origin clean-branch"
             echo ""
             echo "⚠️ This PR cannot be merged until the history is clean."
-            
+
             # Write detailed instructions to GitHub Step Summary
             echo "## ❌ Commit History Violation Detected" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -126,17 +126,17 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### 📋 Blocked Words:" >> $GITHUB_STEP_SUMMARY
             echo "- \`claude\`" >> $GITHUB_STEP_SUMMARY
-            echo "- \`anthropic\`" >> $GITHUB_STEP_SUMMARY  
+            echo "- \`anthropic\`" >> $GITHUB_STEP_SUMMARY
             echo "- \`co-authored\`" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### 🔄 After Fixing:" >> $GITHUB_STEP_SUMMARY
             echo "Once you've cleaned your commit history and force-pushed, this check will run again automatically." >> $GITHUB_STEP_SUMMARY
-            
+
             exit 1
           fi
-          
+
           echo "✅ Commit history is clean"
-          
+
           # Write success message to GitHub Step Summary
           echo "## ✅ Commit History Clean" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -148,10 +148,10 @@ jobs:
           echo "- \`co-authored\` ✓" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "This PR is ready for review from a commit history perspective." >> $GITHUB_STEP_SUMMARY
-      
+
       - name: Add PR comment for violations
         if: failure()
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
         with:
           script: |
             const body = `## ❌ Commit History Violation
