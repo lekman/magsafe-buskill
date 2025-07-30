@@ -23,7 +23,7 @@ jobs:
           script: |
             const creator = context.payload.pull_request.user.login;
             const repo = context.repo;
-            
+
             // Check if this is a first-time contributor
             const { data: pullRequests } = await github.rest.pulls.list({
               ...repo,
@@ -31,7 +31,7 @@ jobs:
               creator: creator,
               per_page: 2
             });
-            
+
             if (pullRequests.length === 1) {
               await github.rest.issues.createComment({
                 ...repo,

@@ -147,8 +147,8 @@ task git:delete-runs BRANCH=feature/new-feature STATUS=failure
 task git:delete-runs BRANCH=all STATUS=cancelled
 
 # Valid statuses
-# queued, completed, in_progress, requested, waiting, 
-# action_required, cancelled, failure, neutral, skipped, 
+# queued, completed, in_progress, requested, waiting,
+# action_required, cancelled, failure, neutral, skipped,
 # stale, startup_failure, success, timed_out
 ```
 
@@ -176,6 +176,7 @@ task git:rc
 ```
 
 **Features:**
+
 - Shows run summary with counts by status
 - Lists failed runs with IDs and URLs
 - Shows in-progress runs with start times
@@ -203,6 +204,7 @@ task git:rl
 ```
 
 **Features:**
+
 - Downloads complete workflow logs as zip archive
 - Extracts to organized directory structure: `logs/<workflow-name>/<run-id>/`
 - Supports workflow name matching (partial match)
@@ -211,7 +213,8 @@ task git:rl
 - Uses GitHub token from `.env` file
 
 **Output Structure:**
-```
+
+```text
 logs/
 └── build-and-sign-magsafe-guard/
     └── 16614742239/
@@ -391,7 +394,7 @@ Use in GitHub Actions:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   run: |
     task git:pr:comments PR=${{ github.event.pull_request.number }}
-    
+
 - name: Upload PR Report
   uses: actions/upload-artifact@v3
   with:
