@@ -477,6 +477,320 @@ tasks:
         echo ""
         echo "📝 Remember to commit this file to enable Dependabot!"
 
+  audit-workflows:
+    desc: Audit GitHub Actions workflows for security vulnerabilities
+    silent: true
+    cmds:
+      - |
+        echo "🔍 GitHub Actions Security Audit"
+        echo "================================"
+        echo ""
+
+        ISSUES_FOUND=0
+
+        # Function to report issues
+        report_issue() {
+            local severity=$1
+            local file=$2
+            local issue=$3
+            echo "[$severity] $file: $issue"
+            ((ISSUES_FOUND++))
+        }
+
+        # Check 1: Dangerous event combinations
+        echo "Checking for dangerous event combinations..."
+        for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
+            [ -f "$workflow" ] || continue
+            
+            # Check for pull_request_target with checkout of PR head
+            if grep -q "pull_request_target:" "$workflow"; then
+                if grep -A 20 "actions/checkout" "$workflow" | grep -q "github.event.pull_request.head"; then
+                    report_issue "CRITICAL" "$workflow" "Uses pull_request_target with checkout of PR head - secrets can be exposed!"
+                fi
+            fi
+            
+            # Check for workflow_run triggered by pull_request
+            if grep -q "workflow_run:" "$workflow"; then
+                if grep -A 5 "workflow_run:" "$workflow" | grep -q "pull_request"; then
+                    report_issue "HIGH" "$workflow" "workflow_run triggered by pull_request can expose secrets"
+                fi
+            fi
+        done
+
+        # Check 2: Overly permissive permissions
+        echo ""
+        echo "Checking for overly permissive permissions..."
+        for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
+            [ -f "$workflow" ] || continue
+            
+            # Check for write-all permissions
+            if grep -q "permissions: write-all" "$workflow"; then
+                report_issue "HIGH" "$workflow" "Uses write-all permissions - use minimal permissions instead"
+            fi
+            
+            # Check for missing permissions block in workflows that handle PRs
+            if grep -q "pull_request" "$workflow"; then
+                if ! grep -q "permissions:" "$workflow"; then
+                    report_issue "MEDIUM" "$workflow" "Handles PRs but missing explicit permissions block"
+                fi
+            fi
+        done
+
+        # Check 3: Unpinned actions
+        echo ""
+        echo "Checking for unpinned actions..."
+        for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
+            [ -f "$workflow" ] || continue
+            
+            # Find uses: statements without SHA pinning
+            while IFS= read -r line; do
+                if echo "$line" | grep -E "uses:.*@(main|master|v[0-9]+)$" >/dev/null; then
+                    action=$(echo "$line" | sed -E 's/.*uses: *([^@]+@[^[:space:]]+).*/\1/')
+                    report_issue "MEDIUM" "$workflow" "Unpinned action: $action"
+                fi
+            done < <(grep "uses:" "$workflow" || true)
+        done
+
+        # Check 4: Direct secret usage in run commands
+        echo ""
+        echo "Checking for secrets in run commands..."
+        for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
+            [ -f "$workflow" ] || continue
+            
+            # Check for secrets in run commands (potential command injection)
+            if grep -E "run:.*\$\{\{.*secrets\." "$workflow" >/dev/null; then
+                report_issue "HIGH" "$workflow" "Direct secret interpolation in run command - use env vars instead"
+            fi
+        done
+
+        # Check 5: Missing security features
+        echo ""
+        echo "Checking for missing security features..."
+
+        # Check for CODEOWNERS
+        if [ ! -f ".github/CODEOWNERS" ]; then
+            report_issue "LOW" "repository" "Missing CODEOWNERS file for workflow protection"
+        fi
+
+        # Check for security policy
+        if [ ! -f "SECURITY.md" ] && [ ! -f ".github/SECURITY.md" ] && [ ! -f "docs/SECURITY.md" ]; then
+            report_issue "LOW" "repository" "Missing SECURITY.md file"
+        fi
+
+        # Check 6: Dangerous patterns in workflows
+        echo ""
+        echo "Checking for dangerous patterns..."
+        for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
+            [ -f "$workflow" ] || continue
+            
+            # Check for curl | bash pattern
+            if grep -E "curl.*\|.*bash" "$workflow" >/dev/null; then
+                report_issue "HIGH" "$workflow" "Uses curl | bash pattern - download and verify scripts instead"
+            fi
+            
+            # Check for base64 decode execution
+            if grep -E "base64.*-d.*\|.*sh" "$workflow" >/dev/null; then
+                report_issue "CRITICAL" "$workflow" "Executes base64 decoded content - extremely dangerous!"
+            fi
+            
+            # Check for eval usage
+            if grep -E "eval.*\$\{\{" "$workflow" >/dev/null; then
+                report_issue "HIGH" "$workflow" "Uses eval with GitHub context - potential command injection"
+            fi
+        done
+
+        # Check 7: Fork PR specific checks
+        echo ""
+        echo "Checking fork PR handling..."
+        has_fork_safe_workflows=false
+        for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
+            [ -f "$workflow" ] || continue
+            
+            if grep -q "pull_request:" "$workflow"; then
+                has_fork_safe_workflows=true
+                # Check if it has explicit minimal permissions
+                if ! grep -A 5 "permissions:" "$workflow" | grep -q "contents: read"; then
+                    report_issue "MEDIUM" "$workflow" "PR workflow should explicitly set 'contents: read' permission"
+                fi
+            fi
+        done
+
+        if ! $has_fork_safe_workflows; then
+            report_issue "MEDIUM" "repository" "No fork-safe PR workflows found"
+        fi
+
+        # Summary
+        echo ""
+        echo "================================"
+        echo "Security Audit Summary"
+        echo "================================"
+        if [ $ISSUES_FOUND -eq 0 ]; then
+            echo "✅ No security issues found!"
+        else
+            echo "❌ Found $ISSUES_FOUND security issues"
+            echo ""
+            echo "Recommendations:"
+            echo "1. Pin all actions to specific SHAs using: task security:pin-actions"
+            echo "2. Use minimal permissions in all workflows"
+            echo "3. Never use pull_request_target with untrusted code checkout"
+            echo "4. Store secrets in environment variables, not run commands"
+            echo "5. Require approval for all fork PR workflows"
+            echo ""
+            echo "See .github/fork-pr-policy.md for detailed security guidelines"
+        fi
+
+        exit $ISSUES_FOUND
+
+  verify-actions-whitelist:
+    desc: Verify all GitHub Actions are in the allowed whitelist
+    silent: true
+    cmds:
+      - |
+        echo "🔍 Verifying GitHub Actions Whitelist"
+        echo "===================================="
+        echo ""
+
+        # Expected actions (from whitelist)
+        # Note: actions/* and lekman/* are automatically allowed by GitHub settings
+        # This list only includes third-party actions that need explicit whitelisting
+        WHITELIST=(
+            "codecov/codecov-action"
+            "returntocorp/semgrep-action"
+            "trufflesecurity/trufflehog"
+            "fossas/fossa-action"
+            "ossf/scorecard-action"
+            "snyk/actions"
+            "swift-actions/setup-swift"
+            "maxim-lobanov/setup-xcode"
+            "webiny/action-conventional-commits"
+            "softprops/action-gh-release"
+            "googleapis/release-please-action"
+        )
+
+        # Actions that are automatically allowed (for reference)
+        AUTO_ALLOWED_PREFIXES=(
+            "actions/"
+            "lekman/"
+            "github/"  # GitHub owns both 'actions' and 'github' orgs
+        )
+
+        # Find all used actions (excluding local actions)
+        echo "Scanning for all used actions..."
+        USED_ACTIONS=$(find .github -name "*.yml" -o -name "*.yaml" | \
+            xargs grep -h "uses:" | \
+            grep -v "^\s*#" | \
+            grep -v "\./" | \
+            sed 's/.*uses: *//' | \
+            sed 's/@.*//' | \
+            sort -u)
+
+        # Track results
+        ALL_GOOD=true
+        NOT_IN_WHITELIST=()
+        IN_WHITELIST=()
+
+        # Check each used action
+        for action in $USED_ACTIONS; do
+            found=false
+            # Extract the owner/repo part (without subpath)
+            owner_repo=$(echo "$action" | cut -d'/' -f1-2)
+            
+            # First check if it's automatically allowed
+            for auto_prefix in "${AUTO_ALLOWED_PREFIXES[@]}"; do
+                if [[ "$action" == "$auto_prefix"* ]]; then
+                    found=true
+                    IN_WHITELIST+=("$action (auto-allowed)")
+                    break
+                fi
+            done
+            
+            # If not auto-allowed, check against whitelist
+            if ! $found; then
+                for allowed in "${WHITELIST[@]}"; do
+                    # Check if the action matches the whitelist entry
+                    if [[ "$owner_repo" == "$allowed" ]] || [[ "$action" == "$allowed"* ]]; then
+                        found=true
+                        IN_WHITELIST+=("$action")
+                        break
+                    fi
+                done
+            fi
+            
+            if ! $found; then
+                NOT_IN_WHITELIST+=("$action")
+                ALL_GOOD=false
+            fi
+        done
+
+        # Display results
+        echo ""
+        echo "✅ Actions in whitelist (${#IN_WHITELIST[@]}):"
+        for action in "${IN_WHITELIST[@]}"; do
+            echo "   - $action"
+        done
+
+        if [ ${#NOT_IN_WHITELIST[@]} -gt 0 ]; then
+            echo ""
+            echo "❌ Actions NOT in whitelist (${#NOT_IN_WHITELIST[@]}):"
+            for action in "${NOT_IN_WHITELIST[@]}"; do
+                echo "   - $action"
+            done
+        fi
+
+        # Check for unused whitelist entries
+        echo ""
+        echo "Checking for unused whitelist entries..."
+        UNUSED_WHITELIST=()
+        for allowed in "${WHITELIST[@]}"; do
+            used=false
+            for action in $USED_ACTIONS; do
+                if [[ "$action" == "$allowed"* ]]; then
+                    used=true
+                    break
+                fi
+            done
+            
+            if ! $used; then
+                UNUSED_WHITELIST+=("$allowed")
+            fi
+        done
+
+        if [ ${#UNUSED_WHITELIST[@]} -gt 0 ]; then
+            echo ""
+            echo "⚠️  Unused whitelist entries (${#UNUSED_WHITELIST[@]}):"
+            for action in "${UNUSED_WHITELIST[@]}"; do
+                echo "   - $action"
+            done
+            echo ""
+            echo "Consider removing these from the whitelist if they're no longer needed."
+        fi
+
+        # Summary
+        echo ""
+        echo "===================================="
+        echo "Summary"
+        echo "===================================="
+        echo "Total actions used: $(echo "$USED_ACTIONS" | wc -w)"
+        echo "Actions in whitelist: ${#IN_WHITELIST[@]}"
+        echo "Actions NOT in whitelist: ${#NOT_IN_WHITELIST[@]}"
+        echo "Unused whitelist entries: ${#UNUSED_WHITELIST[@]}"
+
+        if $ALL_GOOD; then
+            echo ""
+            echo "✅ All used actions are in the whitelist!"
+            exit 0
+        else
+            echo ""
+            echo "❌ Some actions are not in the whitelist!"
+            echo ""
+            echo "To fix this, either:"
+            echo "1. Add the missing actions to your GitHub Actions whitelist"
+            echo "2. Remove/replace the actions from your workflows"
+            echo ""
+            echo "See .github/actions-whitelist.md for configuration details"
+            exit 1
+        fi
+
   setup:
     desc: Setup security scanning tools
     silent: true

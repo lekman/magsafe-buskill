@@ -11,6 +11,10 @@ on:
 env:
   SWIFT_VERSION: "5.9"
 
+permissions:
+  contents: read
+  # Additional permissions added per job as needed
+
 jobs:
   build-and-sign:
     name: Build and Sign

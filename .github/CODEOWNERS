@@ -8,13 +8,33 @@
 *.swift @lekman
 Sources/ @lekman
 
-# GitHub Actions workflows
+# GitHub Actions workflows - Critical security boundary
 .github/workflows/ @lekman
+.github/actions/ @lekman
+.github/actions-whitelist.md @lekman
+.github/fork-pr-policy.md @lekman
+.github/security-settings.md @lekman
+.github/SECURITY_WORKFLOWS.md @lekman
 
 # Security-related files
 SECURITY.md @lekman
 .github/SECURITY.md @lekman
 docs/security/ @lekman
+docs/SECURITY.md @lekman
+
+# Security scripts and configuration
+scripts/audit-workflow-security.sh @lekman
+scripts/verify-actions-whitelist.sh @lekman
+tasks/security.yml @lekman
+tasks/security.md @lekman
+
+# CI/CD configuration that could affect security
+.github/dependabot.yml @lekman
+.codecov.yml @lekman
+.snyk @lekman
+.env.example @lekman
+Taskfile.yml @lekman
+tasks/ @lekman
 
 # Documentation
 docs/ @lekman

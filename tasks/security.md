@@ -13,6 +13,8 @@ task security:pin-actions    # Pin GitHub Actions to SHAs
 task security:update-pins    # Update pinned action SHAs
 task security:check-pins     # Check if all actions are pinned
 task security:dependabot     # Setup Dependabot configuration
+task security:audit-workflows  # Audit GitHub Actions for security vulnerabilities
+task security:verify-actions-whitelist  # Verify all actions are in whitelist
 ```
 
 ## Task Details
