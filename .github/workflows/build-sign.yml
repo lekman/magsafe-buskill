@@ -135,13 +135,19 @@ jobs:
             "MagSafeGuard-${{ github.ref_name }}.dmg" \
             ".build/bundler/"
 
-      - name: Upload Artifacts
+      - name: Upload App Bundle
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: magsafe-guard-${{ github.sha }}
-          path: |
-            .build/bundler/MagSafeGuard.app
-            MagSafeGuard-*.dmg
+          name: magsafe-guard-app-${{ github.sha }}
+          path: .build/bundler/MagSafeGuard.app
+          if-no-files-found: error
+
+      - name: Upload DMG
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: magsafe-guard-dmg-${{ github.sha }}
+          path: MagSafeGuard-*.dmg
           if-no-files-found: error
 
       - name: Create Release
