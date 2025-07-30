@@ -24,52 +24,15 @@ struct CloudSyncSettingsView: View {
     private let mockIsAvailable = false
     private let mockLastSyncDate: Date? = nil
 
-    private var headerIcon: some View {
-        Image(systemName: "icloud.fill")
-            .font(.title2)
-            .foregroundColor(.blue)
-    }
-
-    private var headerTitle: some View {
-        Text("iCloud Sync Settings")
-            .font(.title2)
-            .fontWeight(.semibold)
-    }
-
-    private var headerContent: some View {
-        HStack {
-            headerIcon
-            headerTitle
-            Spacer()
-        }
-    }
-
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            VStack(alignment: .leading, spacing: 8) {
-                headerContent
-                Text("Configure iCloud backup and synchronization")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-            .padding()
-
-            Divider()
-
-            // Settings
-            ScrollView {
-                VStack(spacing: 20) {
-                    enableSection
-                    statusSection
-                    syncSection
-                    limitsSection
-                    dataSection
-                }
-                .padding()
-            }
+        Form {
+            enableSection
+            statusSection
+            syncSection
+            limitsSection
+            dataSection
         }
-        .frame(width: 500, height: 600)
+        .formStyle(.grouped)
         .alert("Sync Error", isPresented: $showingError) {
             Button("OK", role: .cancel) {
                 // Dismisses alert automatically
@@ -80,10 +43,7 @@ struct CloudSyncSettingsView: View {
     }
 
     private var statusSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Section header
-            Label("iCloud Status", systemImage: "cloud")
-                .font(.headline)
+        Section(header: Label("iCloud Status", systemImage: "cloud")) {
             HStack {
                 Label("Status", systemImage: mockSyncStatus.symbolName)
                 Spacer()
@@ -110,7 +70,6 @@ struct CloudSyncSettingsView: View {
                         Text("iCloud not available")
                             .font(.subheadline)
                     }
-
                     Text(unavailabilityReason)
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -118,118 +77,91 @@ struct CloudSyncSettingsView: View {
                 .padding(.vertical, 4)
             }
         }
-        .padding()
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(8)
     }
 
     private var syncSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Section header
-            Label("Sync Actions", systemImage: "arrow.triangle.2.circlepath")
-                .font(.headline)
-
-            VStack(alignment: .leading, spacing: 12) {
-                // Manual sync button
-                HStack {
-                    Button(action: performManualSync) {
-                        Label("Sync Now", systemImage: "arrow.triangle.2.circlepath")
-                    }
-                    .disabled(!mockIsAvailable || isSyncing)
-
-                    if isSyncing {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                            .padding(.leading, 8)
-                    }
+        Section(header: Label("Sync Actions", systemImage: "arrow.triangle.2.circlepath")) {
+            HStack {
+                Button(action: performManualSync) {
+                    Label("Sync Now", systemImage: "arrow.triangle.2.circlepath")
                 }
+                .disabled(!mockIsAvailable || isSyncing)
 
-                Text("Manually sync all settings and evidence to iCloud")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                if isSyncing {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .padding(.leading, 8)
+                }
+                
+                Spacer()
             }
+            
+            Text("Manually sync all settings and evidence to iCloud")
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
-        .padding()
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(8)
         .disabled(!settingsManager.settings.iCloudSyncEnabled)
         .opacity(settingsManager.settings.iCloudSyncEnabled ? 1.0 : 0.6)
     }
 
     private var dataSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Section header
-            Label("Synced Data", systemImage: "externaldrive.badge.icloud")
-                .font(.headline)
-
-            VStack(alignment: .leading, spacing: 12) {
-                // Settings sync
-                HStack {
-                    Image(systemName: "gearshape.fill")
-                        .foregroundColor(.gray)
-                    VStack(alignment: .leading) {
-                        Text("Settings")
-                            .font(.subheadline)
-                        Text("All app preferences and configurations")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+        Section(header: Label("Synced Data", systemImage: "externaldrive.badge.icloud")) {
+            // Settings sync
+            HStack {
+                Image(systemName: "gearshape.fill")
+                    .foregroundColor(.gray)
+                VStack(alignment: .leading) {
+                    Text("Settings")
+                        .font(.subheadline)
+                    Text("All app preferences and configurations")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
+            }
 
-                // Evidence sync
-                HStack {
-                    Image(systemName: "camera.fill")
-                        .foregroundColor(.orange)
-                    VStack(alignment: .leading) {
-                        Text("Security Evidence")
-                            .font(.subheadline)
-                        Text("Photos and location data (encrypted)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+            // Evidence sync
+            HStack {
+                Image(systemName: "camera.fill")
+                    .foregroundColor(.orange)
+                VStack(alignment: .leading) {
+                    Text("Security Evidence")
+                        .font(.subheadline)
+                    Text("Photos and location data (encrypted)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
+            }
 
-                // Storage info
-                HStack {
-                    Image(systemName: "lock.shield.fill")
-                        .foregroundColor(.green)
-                    VStack(alignment: .leading) {
-                        Text("End-to-End Encrypted")
-                            .font(.subheadline)
-                        Text("Your data is encrypted before upload")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+            // Storage info
+            HStack {
+                Image(systemName: "lock.shield.fill")
+                    .foregroundColor(.green)
+                VStack(alignment: .leading) {
+                    Text("End-to-End Encrypted")
+                        .font(.subheadline)
+                    Text("Your data is encrypted before upload")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
             }
         }
-        .padding()
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(8)
         .disabled(!settingsManager.settings.iCloudSyncEnabled)
         .opacity(settingsManager.settings.iCloudSyncEnabled ? 1.0 : 0.6)
     }
 
     private var enableSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Section header
-            Label("Enable iCloud Sync", systemImage: "icloud.and.arrow.up")
-                .font(.headline)
-
-            // Enable toggle
+        Section(header: Label("Enable iCloud Sync", systemImage: "icloud.and.arrow.up")) {
             Toggle(isOn: Binding(
                 get: { settingsManager.settings.iCloudSyncEnabled },
                 set: { settingsManager.updateSetting(\.iCloudSyncEnabled, value: $0) }
             )) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Enable iCloud Sync")
-                        .font(.system(size: 13))
                     Text("Sync settings and evidence to iCloud")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
-            .toggleStyle(.switch)
             .onChange(of: settingsManager.settings.iCloudSyncEnabled) { newValue in
                 if newValue {
                     // Trigger initial sync when enabled
@@ -240,17 +172,10 @@ struct CloudSyncSettingsView: View {
                 }
             }
         }
-        .padding()
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(8)
     }
 
     private var limitsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Section header
-            Label("Storage Limits", systemImage: "internaldrive")
-                .font(.headline)
-
+        Section(header: Label("Storage Limits", systemImage: "internaldrive")) {
             // Data size limit
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
@@ -282,8 +207,6 @@ struct CloudSyncSettingsView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-
-            Divider()
 
             // Data age limit
             VStack(alignment: .leading, spacing: 8) {
@@ -317,9 +240,6 @@ struct CloudSyncSettingsView: View {
                     .foregroundColor(.secondary)
             }
         }
-        .padding()
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(8)
         .disabled(!settingsManager.settings.iCloudSyncEnabled)
         .opacity(settingsManager.settings.iCloudSyncEnabled ? 1.0 : 0.6)
     }

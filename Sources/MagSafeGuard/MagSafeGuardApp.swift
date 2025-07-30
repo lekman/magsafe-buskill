@@ -31,6 +31,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     private var demoWindow: NSWindow?
     private var settingsWindow: NSWindow?
+    private var settingsHostingController: NSViewController?
+    private var demoHostingController: NSViewController?
     private var windowDelegates: [NSWindow: WindowDelegate] = [:]
     let core = AppDelegateCore()
 
@@ -207,23 +209,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let settingsView = SettingsView()
 
             settingsWindow = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 600, height: 400),
-                styleMask: [.titled, .closable, .miniaturizable],
+                contentRect: NSRect(x: 0, y: 0, width: 800, height: 500),
+                styleMask: [.titled, .closable, .miniaturizable, .resizable],
                 backing: .buffered,
                 defer: false
             )
 
             settingsWindow?.title = "MagSafe Guard Settings"
-            settingsWindow?.contentView = NSHostingView(rootView: settingsView)
+            
+            // Create and retain the hosting controller
+            let hostingController = NSHostingController(rootView: settingsView)
+            settingsHostingController = hostingController
+            settingsWindow?.contentViewController = hostingController
+            
             settingsWindow?.center()
             settingsWindow?.setFrameAutosaveName("SettingsWindow")
+            settingsWindow?.animationBehavior = .none
+            settingsWindow?.isReleasedWhenClosed = false  // Prevent window from being released
 
             // Clean up when window closes
             let delegate = WindowDelegate { [weak self] in
-                if let window = self?.settingsWindow {
-                    self?.windowDelegates.removeValue(forKey: window)
+                DispatchQueue.main.async {
+                    if let window = self?.settingsWindow {
+                        self?.windowDelegates.removeValue(forKey: window)
+                        window.contentViewController = nil
+                    }
+                    self?.settingsWindow = nil
+                    self?.settingsHostingController = nil
                 }
-                self?.settingsWindow = nil
             }
             
             if let window = settingsWindow {
@@ -248,8 +261,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             )
 
             demoWindow?.title = "Power Monitor Demo"
-            demoWindow?.contentView = NSHostingView(rootView: demoView)
+            
+            // Create and retain the hosting controller
+            let hostingController = NSHostingController(rootView: demoView)
+            demoHostingController = hostingController
+            demoWindow?.contentViewController = hostingController
+            
             demoWindow?.center()
+            demoWindow?.isReleasedWhenClosed = false  // Prevent window from being released
+            
+            // Clean up when window closes
+            let delegate = WindowDelegate { [weak self] in
+                DispatchQueue.main.async {
+                    if let window = self?.demoWindow {
+                        self?.windowDelegates.removeValue(forKey: window)
+                        window.contentViewController = nil
+                    }
+                    self?.demoWindow = nil
+                    self?.demoHostingController = nil
+                }
+            }
+            
+            if let window = demoWindow {
+                window.delegate = delegate
+                windowDelegates[window] = delegate
+            }
         }
 
         demoWindow?.makeKeyAndOrderFront(nil)
@@ -323,6 +359,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         Log.info("Application resigned active", category: .ui)
     }
 
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        // Menu bar apps should not quit when the last window is closed
+        return false
+    }
+    
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         // Check if we're in a critical state
         if core.appController.currentState == .gracePeriod {
