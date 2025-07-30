@@ -220,13 +220,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             // Clean up when window closes
             let delegate = WindowDelegate { [weak self] in
-                self?.settingsWindow = nil
                 if let window = self?.settingsWindow {
                     self?.windowDelegates.removeValue(forKey: window)
                 }
+                self?.settingsWindow = nil
             }
-            settingsWindow?.delegate = delegate
-            windowDelegates[settingsWindow!] = delegate
+            
+            if let window = settingsWindow {
+                window.delegate = delegate
+                windowDelegates[window] = delegate
+            }
         }
 
         settingsWindow?.makeKeyAndOrderFront(nil)

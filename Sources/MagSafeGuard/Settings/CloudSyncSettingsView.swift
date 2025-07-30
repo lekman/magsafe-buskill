@@ -12,7 +12,7 @@ import SwiftUI
 
 /// Settings view for iCloud sync configuration
 struct CloudSyncSettingsView: View {
-    @ObservedObject var settingsManager = UserDefaultsManager.shared
+    @EnvironmentObject var settingsManager: UserDefaultsManager
     // TEMPORARILY DISABLED: Comment out SyncService to debug startup crash
     // @StateObject private var syncService = SyncService()
     @State private var isSyncing = false

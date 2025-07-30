@@ -83,10 +83,23 @@ public class SyncService: NSObject, ObservableObject {
             return
         }
 
-        // Delay CloudKit initialization to avoid early crashes
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
-            self?.initializeCloudKit()
+        // Disable CloudKit by default to prevent crashes
+        // CloudKit requires proper provisioning and container setup
+        #if DEBUG
+        Log.info("CloudKit sync disabled by default - enable via iCloudSyncEnabled setting", category: .general)
+        syncStatus = .noAccount
+        isAvailable = false
+        #else
+        // Only initialize CloudKit if explicitly enabled in production
+        if UserDefaults.standard.bool(forKey: "com.lekman.magsafeguard.cloudkit.enabled") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                self?.initializeCloudKit()
+            }
+        } else {
+            syncStatus = .noAccount
+            isAvailable = false
         }
+        #endif
     }
 
     // MARK: - CloudKit Initialization

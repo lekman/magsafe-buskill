@@ -107,12 +107,14 @@ public class UserDefaultsManager: ObservableObject {
 
         // Auto-save disabled to prevent conflicts with SwiftUI bindings
 
-        // Listen for sync notifications
-        NotificationCenter.default.publisher(for: NSNotification.Name("SyncServiceDidUpdate"))
-            .sink { [weak self] _ in
-                self?.reloadSettingsFromDisk()
-            }
-            .store(in: &cancellables)
+        // Listen for sync notifications if sync service is available
+        if syncService != nil {
+            NotificationCenter.default.publisher(for: NSNotification.Name("SyncServiceDidUpdate"))
+                .sink { [weak self] _ in
+                    self?.reloadSettingsFromDisk()
+                }
+                .store(in: &cancellables)
+        }
 
         // Mark first launch
         if !userDefaults.bool(forKey: Keys.hasLaunchedBefore) {
