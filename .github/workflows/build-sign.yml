@@ -20,20 +20,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Swift
-        uses: swift-actions/setup-swift@v1
+      - name: Setup Swift Build Environment
+        uses: ./.github/actions/setup-swift-build
         with:
-          swift-version: ${{ env.SWIFT_VERSION }}
-
-      - name: Cache Swift Dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            .build
-            ~/Library/Caches/org.swift.swiftpm
-          key: ${{ runner.os }}-swift-${{ hashFiles('Package.resolved') }}
-          restore-keys: |
-            ${{ runner.os }}-swift-
+          swift-version: "5.9"
+          cache-key-suffix: "-test-v2" # Increment this to bust cache
 
       - name: Install Task
         run: |
