@@ -62,6 +62,25 @@ Runs Semgrep with auto-configured rules for:
 
 Pins all GitHub Actions to specific commit SHAs for supply chain security.
 
+**Usage:**
+
+```bash
+# Pin all workflows and actions in default directories (.github/workflows and .github/actions)
+task security:pin-actions
+
+# Pin a specific workflow file
+task security:pin-actions TARGET_PATH=.github/workflows/build-sign.yml
+
+# Pin a specific composite action file
+task security:pin-actions TARGET_PATH=.github/actions/cancel-redundant-workflows/action.yml
+
+# Pin only workflows (override default)
+task security:pin-actions TARGET_PATH=.github/workflows
+
+# Pin only composite actions (override default)
+task security:pin-actions TARGET_PATH=.github/actions
+```
+
 **Example transformation:**
 
 ```yaml
@@ -75,8 +94,10 @@ uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v3
 **Features:**
 
 - Preserves version as comment
-- Supports GitHub API authentication
-- Handles rate limiting
+- Uses token-based authentication from `.env` file
+- Handles rate limiting gracefully
+- Skips local actions (starting with `./`)
+- Supports both individual files and directories
 
 #### Update Pins (`task security:update-pins`)
 

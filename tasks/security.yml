@@ -145,6 +145,12 @@ tasks:
     silent: true
     cmds:
       - |
+        # Set default paths if TARGET_PATH is not provided
+        if [ -z "{{.TARGET_PATH}}" ]; then
+          SEARCH_PATHS=".github/workflows .github/actions"
+        else
+          SEARCH_PATHS="{{.TARGET_PATH}}"
+        fi
         # Check if jq is installed
         if ! command -v jq &> /dev/null; then
           echo "❌ jq is required but not installed"
@@ -152,40 +158,93 @@ tasks:
           exit 1
         fi
 
-        # Check if gh CLI is installed
-        if ! command -v gh &> /dev/null; then
-          echo "❌ GitHub CLI is required but not installed"
-          echo "   Install with: brew install gh"
+        # Check if curl is installed
+        if ! command -v curl &> /dev/null; then
+          echo "❌ curl is required but not installed"
           exit 1
+        fi
+
+        # Source GitHub token from .env file
+        if [ -f .env ]; then
+          export $(grep -E '^GITHUB_TOKEN=' .env | xargs)
+        fi
+
+        if [ -z "$GITHUB_TOKEN" ]; then
+          echo "⚠️  Warning: GITHUB_TOKEN not found in .env file"
+          echo "   API requests may be rate limited without authentication"
+          echo "   Add GITHUB_TOKEN=your_token to .env file for better results"
+          echo ""
         fi
 
         echo "🔒 Pinning GitHub Actions to specific commit SHAs..."
         echo ""
 
-        # Function to get latest commit SHA for a tag
+        # Function to get latest commit SHA for a tag using GitHub API
         get_sha_for_tag() {
           local repo=$1
           local tag=$2
+          local sha=""
+          
+          # Set auth header if token is available
+          local auth_header=""
+          if [ -n "$GITHUB_TOKEN" ]; then
+            auth_header="Authorization: Bearer $GITHUB_TOKEN"
+          fi
 
-          # Try to get SHA from GitHub API
-          sha=$(gh api repos/$repo/git/refs/tags/$tag 2>/dev/null | jq -r '.object.sha // empty')
+          # Try to get SHA from GitHub API for the tag
+          response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/git/refs/tags/$tag")
+          sha=$(echo "$response" | jq -r '.object.sha // empty' 2>/dev/null)
 
-          if [ -z "$sha" ]; then
-            # If tag not found, try to get default branch
-            sha=$(gh api repos/$repo 2>/dev/null | jq -r '.default_branch // empty')
-            if [ -n "$sha" ]; then
-              sha=$(gh api repos/$repo/git/refs/heads/$sha 2>/dev/null | jq -r '.object.sha // empty')
+          if [ -z "$sha" ] || [ "$sha" = "null" ]; then
+            # If tag not found, try to get the tag from releases
+            response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/releases/tags/$tag")
+            sha=$(echo "$response" | jq -r '.target_commitish // empty' 2>/dev/null)
+            
+            # If we got a branch name instead of SHA, resolve it
+            if [ -n "$sha" ] && [ "$sha" != "null" ] && ! echo "$sha" | grep -qE '^[a-f0-9]{40}$'; then
+              branch_response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/git/refs/heads/$sha")
+              resolved_sha=$(echo "$branch_response" | jq -r '.object.sha // empty' 2>/dev/null)
+              if [ -n "$resolved_sha" ] && [ "$resolved_sha" != "null" ]; then
+                sha="$resolved_sha"
+              fi
+            fi
+          fi
+
+          if [ -z "$sha" ] || [ "$sha" = "null" ]; then
+            # Last resort: try to get default branch and use its SHA
+            response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo")
+            default_branch=$(echo "$response" | jq -r '.default_branch // empty' 2>/dev/null)
+            
+            if [ -n "$default_branch" ] && [ "$default_branch" != "null" ]; then
+              response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/git/refs/heads/$default_branch")
+              sha=$(echo "$response" | jq -r '.object.sha // empty' 2>/dev/null)
             fi
           fi
 
           echo "$sha"
         }
 
-        # Find all workflow files
-        workflow_files=$(find .github/workflows -name "*.yml" -o -name "*.yaml" 2>/dev/null || true)
+        # Find all workflow and action files in the specified path
+        if [ -f "$SEARCH_PATHS" ]; then
+          # Single file specified
+          workflow_files="$SEARCH_PATHS"
+        else
+          # Multiple directories or single directory specified
+          workflow_files=""
+          for path in $SEARCH_PATHS; do
+            if [ -d "$path" ]; then
+              files=$(find "$path" \( -name "*.yml" -o -name "*.yaml" -o -name "action.yml" -o -name "action.yaml" \) 2>/dev/null || true)
+              if [ -n "$files" ]; then
+                workflow_files=$(printf "%s\n%s" "$workflow_files" "$files")
+              fi
+            fi
+          done
+          # Remove empty lines
+          workflow_files=$(echo "$workflow_files" | grep -v '^$' || true)
+        fi
 
         if [ -z "$workflow_files" ]; then
-          echo "No workflow files found"
+          echo "No workflow or action files found in $SEARCH_PATHS"
           exit 0
         fi
 
@@ -198,12 +257,22 @@ tasks:
 
           # Find all uses statements
           while IFS= read -r line; do
-            if [[ $line =~ uses:[[:space:]]*([^@]+)@([^[:space:]]+) ]]; then
-              action="${BASH_REMATCH[1]}"
-              version="${BASH_REMATCH[2]}"
-
-              # Skip if already pinned to SHA (40 character hex)
-              if [[ $version =~ ^[a-f0-9]{40}$ ]]; then
+            # Check if line contains uses: and has @ symbol (external actions only)
+            if echo "$line" | grep -qE '^[[:space:]]*uses:[[:space:]]*[^[:space:]]+@[^[:space:]]+'; then
+              # Extract action and full version string (including potential SHA and comment)
+              action=$(echo "$line" | sed -E 's/^[[:space:]]*uses:[[:space:]]*([^@]+)@.*/\1/')
+              full_version=$(echo "$line" | sed -E 's/^[[:space:]]*uses:[[:space:]]*[^@]+@(.*)/\1/')
+              
+              # Check if already pinned (has SHA followed by comment with version)
+              if echo "$full_version" | grep -qE '^[a-f0-9]{40}[[:space:]]*#'; then
+                continue
+              fi
+              
+              # Extract just the version part (remove any trailing comments or spaces)
+              version=$(echo "$full_version" | sed 's/[[:space:]]*#.*//' | sed 's/[[:space:]]*$//')
+              
+              # Skip if version is already a SHA (40 character hex)
+              if echo "$version" | grep -qE '^[a-f0-9]{40}$'; then
                 continue
               fi
 
@@ -213,12 +282,13 @@ tasks:
               sha=$(get_sha_for_tag "$action" "$version")
 
               if [ -n "$sha" ] && [ "$sha" != "null" ]; then
-                # Create the replacement with comment
-                escaped_action=$(echo "$action" | sed 's/[[\\.*^$()+?{|]/\\\\&/g')
-                escaped_version=$(echo "$version" | sed 's/[[\\.*^$()+?{|]/\\\\&/g')
+                # Escape special characters for sed
+                escaped_action=$(echo "$action" | sed 's/[[\.*^$()+?{|]/\\&/g')
+                escaped_version=$(echo "$version" | sed 's/[[\.*^$()+?{|]/\\&/g')
 
-                # Replace in temp file
-                sed -i '' "s|uses: ${escaped_action}@${escaped_version}|uses: ${action}@${sha} # ${version}|g" "$temp_file"
+                # Replace in temp file - preserve exact formatting
+                # Match the entire line including any existing comments
+                sed -i '' "s|uses: ${escaped_action}@${escaped_version}.*$|uses: ${action}@${sha} # ${version}|g" "$temp_file"
 
                 echo "    ✅ Pinned to: $sha"
                 total_pinned=$((total_pinned + 1))
