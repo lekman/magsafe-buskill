@@ -14,8 +14,6 @@ vars:
         echo ".tasks/common/templates/prepare-commit-msg.template"
       elif [ -f "tasks/common/templates/prepare-commit-msg.template" ]; then
         echo "tasks/common/templates/prepare-commit-msg.template"
-      elif [ -f "node_modules/@evinova/devops-tasks/common/templates/prepare-commit-msg.template" ]; then
-        echo "node_modules/@evinova/devops-tasks/common/templates/prepare-commit-msg.template"
       else
         echo ".tasks/common/templates/prepare-commit-msg.template"
       fi

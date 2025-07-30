@@ -310,31 +310,30 @@ jobs:
           sarif_file: semgrep.sarif
         continue-on-error: true
 
-  # Snyk Security Scanning (Free for Open Source)
-  # TODO: Enable once SNYK_TOKEN is configured
-  # snyk:
-  #   name: Snyk Security
-  #   runs-on: ubuntu-latest
-  #   if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
-  #
-  #   steps:
-  #   - name: Checkout repository
-  #     uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-  #
-  #   - name: Run Snyk to check for vulnerabilities
-  #     uses: snyk/actions/swift@cdb760004ba9ea4d525f2e043745dfe85bb9077e # master
-  #     env:
-  #       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-  #     with:
-  #       args: --severity-threshold=high
-  #     continue-on-error: true  # Don't fail if Snyk is not configured
-  #
-  #   - name: Upload Snyk results to GitHub Code Scanning
-  #     uses: github/codeql-action/upload-sarif@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
-  #     if: always() && env.SNYK_TOKEN != ''
-  #     with:
-  #       sarif_file: snyk.sarif
-  #     continue-on-error: true
+  # Snyk Security Scanning
+  snyk:
+    name: Snyk Security
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/swift@cdb760004ba9ea4d525f2e043745dfe85bb9077e # master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+        continue-on-error: true # Don't fail if Snyk is not configured
+
+      - name: Upload Snyk results to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
+        if: always() && env.SNYK_TOKEN != ''
+        with:
+          sarif_file: snyk.sarif
+        continue-on-error: true
 
   # License scanning
   license-scan:
