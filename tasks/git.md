@@ -15,6 +15,8 @@ task git:cve:analyze     # Analyze security vulnerabilities
 task git:cve:list        # List Dependabot alerts
 task git:pr:list         # List pull requests
 task git:pr:comments     # Download PR comments (including GHAS)
+task git:runs:check      # Check workflow run status
+task git:runs:log        # Download workflow run logs
 ```
 
 ## Task Details
@@ -148,6 +150,78 @@ task git:delete-runs BRANCH=all STATUS=cancelled
 # queued, completed, in_progress, requested, waiting, 
 # action_required, cancelled, failure, neutral, skipped, 
 # stale, startup_failure, success, timed_out
+```
+
+#### Check Workflow Runs (`task git:runs:check`)
+
+Monitor GitHub Actions workflow status for current or specific branch:
+
+```bash
+# Check runs for current branch
+task git:runs:check
+
+# Check specific branch
+task git:runs:check BRANCH=main
+
+# Show more runs
+task git:runs:check LIMIT=50
+
+# Filter by status
+task git:runs:check STATUS=failure
+task git:runs:check STATUS=in_progress
+
+# Aliases
+task git:check-runs
+task git:rc
+```
+
+**Features:**
+- Shows run summary with counts by status
+- Lists failed runs with IDs and URLs
+- Shows in-progress runs with start times
+- Provides commands to investigate failures
+- Customizable limit and status filters
+
+#### Download Workflow Logs (`task git:runs:log`)
+
+Download detailed logs from GitHub Actions workflow runs:
+
+```bash
+# Download logs from latest run of a workflow
+task git:runs:log WORKFLOW="Build and Sign"
+
+# Download logs from specific run ID
+task git:runs:log RUN_ID=16614742239
+
+# Use partial workflow name or filename
+task git:runs:log WORKFLOW="build-sign"
+task git:runs:log WORKFLOW="security"
+
+# Aliases
+task git:runs-log
+task git:rl
+```
+
+**Features:**
+- Downloads complete workflow logs as zip archive
+- Extracts to organized directory structure: `logs/<workflow-name>/<run-id>/`
+- Supports workflow name matching (partial match)
+- Saves run metadata JSON
+- Provides grep commands for error searching
+- Uses GitHub token from `.env` file
+
+**Output Structure:**
+```
+logs/
+└── build-and-sign-magsafe-guard/
+    └── 16614742239/
+        ├── run-metadata.json
+        ├── 0_Build and Sign.txt
+        ├── Build and Sign/
+        │   ├── 1_Set up job.txt
+        │   ├── 2_Checkout Code.txt
+        │   ├── 6_Build Application.txt
+        │   └── ...
 ```
 
 ### Security Analysis

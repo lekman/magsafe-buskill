@@ -833,7 +833,7 @@ tasks:
     dotenv: [".env"]
     vars:
       BRANCH: '{{.BRANCH | default ""}}'
-      LIMIT: '{{.LIMIT | default "10"}}'
+      LIMIT: '{{.LIMIT | default "25"}}'
       STATUS: '{{.STATUS | default "all"}}'
     cmds:
       - |
@@ -940,3 +940,125 @@ tasks:
         fi
 
     aliases: [rc, check-runs]
+
+  runs:log:
+    desc: Download logs from a GitHub Actions workflow run
+    summary: |
+      Download logs from the latest run of a workflow or a specific run ID.
+      
+      Usage:
+        task git:runs:log WORKFLOW="Build and Sign"  # Download latest run of workflow
+        task git:runs:log RUN_ID=16614742239         # Download specific run ID
+        task git:runs:log WORKFLOW="build-sign"      # Partial filename match
+        
+      The logs will be downloaded to logs/<workflow-name>/<run-id>/ directory.
+    vars:
+      RUN_ID: "{{.RUN_ID}}"
+      WORKFLOW: "{{.WORKFLOW}}"
+    deps: [load-env]
+    cmds:
+      - |
+        # Source .env file for GITHUB_TOKEN
+        if [ -f .env ]; then
+          export $(grep -E '^GITHUB_TOKEN=' .env | xargs)
+        fi
+        
+        if [ -z "$GITHUB_TOKEN" ]; then
+          echo -e "{{.RED}}Error: GITHUB_TOKEN not found in .env file{{.NC}}"
+          echo "Please add GITHUB_TOKEN=your_token to .env file"
+          exit 1
+        fi
+        
+        # Determine run ID
+        if [ -n "{{.RUN_ID}}" ]; then
+          RUN_ID="{{.RUN_ID}}"
+          echo -e "{{.CYAN}}Downloading logs for run ID: $RUN_ID{{.NC}}"
+        elif [ -n "{{.WORKFLOW}}" ]; then
+          echo -e "{{.CYAN}}Finding latest run for workflow: {{.WORKFLOW}}{{.NC}}"
+          
+          # Get all workflows and find matching one
+          WORKFLOW_ID=$(GITHUB_TOKEN=$GITHUB_TOKEN gh api "/repos/{owner}/{repo}/actions/workflows" \
+            --jq '.workflows[] | select((.name | ascii_downcase | contains("{{.WORKFLOW}}" | ascii_downcase)) or (.path | ascii_downcase | contains("{{.WORKFLOW}}" | ascii_downcase))) | .id' | head -1)
+          
+          if [ -z "$WORKFLOW_ID" ]; then
+            echo -e "{{.RED}}Error: No workflow found matching '{{.WORKFLOW}}'{{.NC}}"
+            echo ""
+            echo "Available workflows:"
+            GITHUB_TOKEN=$GITHUB_TOKEN gh workflow list
+            exit 1
+          fi
+          
+          # Get latest run for this workflow
+          RUN_ID=$(GITHUB_TOKEN=$GITHUB_TOKEN gh api "/repos/{owner}/{repo}/actions/workflows/$WORKFLOW_ID/runs" \
+            --jq '.workflow_runs[0].id')
+          
+          if [ -z "$RUN_ID" ]; then
+            echo -e "{{.RED}}Error: No runs found for workflow{{.NC}}"
+            exit 1
+          fi
+          
+          echo -e "{{.GREEN}}Found latest run ID: $RUN_ID{{.NC}}"
+        else
+          echo -e "{{.RED}}Error: Either WORKFLOW or RUN_ID must be specified{{.NC}}"
+          echo ""
+          echo "Usage:"
+          echo "  task git:runs:log WORKFLOW=\"Build and Sign\""
+          echo "  task git:runs:log RUN_ID=16614742239"
+          exit 1
+        fi
+        
+        # Get run details
+        RUN_INFO=$(GITHUB_TOKEN=$GITHUB_TOKEN gh api "/repos/{owner}/{repo}/actions/runs/$RUN_ID")
+        WORKFLOW_NAME=$(echo "$RUN_INFO" | jq -r '.name' | tr ' ' '-' | tr '[:upper:]' '[:lower:]')
+        RUN_NUMBER=$(echo "$RUN_INFO" | jq -r '.run_number')
+        STATUS=$(echo "$RUN_INFO" | jq -r '.status')
+        CONCLUSION=$(echo "$RUN_INFO" | jq -r '.conclusion // "in_progress"')
+        CREATED_AT=$(echo "$RUN_INFO" | jq -r '.created_at')
+        
+        # Create logs directory
+        LOG_DIR="logs/${WORKFLOW_NAME}/${RUN_ID}"
+        mkdir -p "$LOG_DIR"
+        
+        echo -e "{{.CYAN}}Downloading logs to: $LOG_DIR{{.NC}}"
+        echo ""
+        echo "Run details:"
+        echo "  Workflow: $(echo "$RUN_INFO" | jq -r '.name')"
+        echo "  Run #: $RUN_NUMBER"
+        echo "  Status: $STATUS ($CONCLUSION)"
+        echo "  Created: $CREATED_AT"
+        echo ""
+        
+        # Download logs as zip
+        echo -e "{{.YELLOW}}Downloading log archive...{{.NC}}"
+        GITHUB_TOKEN=$GITHUB_TOKEN gh api "/repos/{owner}/{repo}/actions/runs/$RUN_ID/logs" \
+          --header "Accept: application/vnd.github.v3+json" \
+          > "$LOG_DIR/logs.zip"
+        
+        # Extract logs
+        echo -e "{{.YELLOW}}Extracting logs...{{.NC}}"
+        cd "$LOG_DIR"
+        unzip -q logs.zip
+        rm logs.zip
+        cd - > /dev/null
+        
+        # Save run metadata
+        echo "$RUN_INFO" | jq '.' > "$LOG_DIR/run-metadata.json"
+        
+        # Create summary
+        echo -e "{{.GREEN}}✅ Logs downloaded successfully!{{.NC}}"
+        echo ""
+        echo "Log files:"
+        find "$LOG_DIR" -name "*.txt" -type f | sort | while read -r file; do
+          echo "  📄 ${file#$LOG_DIR/}"
+        done
+        
+        echo ""
+        echo -e "{{.CYAN}}View logs:{{.NC}}"
+        echo "  cd $LOG_DIR"
+        echo "  ls -la"
+        echo ""
+        echo -e "{{.CYAN}}Search logs for errors:{{.NC}}"
+        echo "  grep -r \"error\" $LOG_DIR --include=\"*.txt\""
+        echo "  grep -r \"failed\" $LOG_DIR --include=\"*.txt\""
+    
+    aliases: [rl, runs-log]
