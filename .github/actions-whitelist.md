@@ -14,7 +14,7 @@ returntocorp/semgrep-action@*
 trufflesecurity/trufflehog@*
 fossas/fossa-action@*
 ossf/scorecard-action@*
-snyk/actions/*@*
+snyk/actions/setup@*
 ```
 
 ### Build & Development Tools
@@ -37,7 +37,7 @@ googleapis/release-please-action@*
 Copy this entire list and paste it into the GitHub Actions settings:
 
 ```text
-codecov/codecov-action@*,returntocorp/semgrep-action@*,trufflesecurity/trufflehog@*,fossas/fossa-action@*,ossf/scorecard-action@*,snyk/actions/*@*,swift-actions/setup-swift@*,maxim-lobanov/setup-xcode@*,webiny/action-conventional-commits@*,softprops/action-gh-release@*,googleapis/release-please-action@*
+codecov/codecov-action@*,returntocorp/semgrep-action@*,trufflesecurity/trufflehog@*,fossas/fossa-action@*,ossf/scorecard-action@*,snyk/actions/setup@*,swift-actions/setup-swift@*,maxim-lobanov/setup-xcode@*,webiny/action-conventional-commits@*,softprops/action-gh-release@*,googleapis/release-please-action@*
 ```
 
 ## Security Considerations
@@ -129,7 +129,7 @@ done
 - **GitHub and lekman actions are automatically allowed** when you select "Allow lekman, and select non-lekman, actions"
 - The whitelist must be **comma-separated** with no spaces between entries
 - The `@*` suffix allows any version of the action
-- For `snyk/actions/*@*`, the `/*` allows subpaths like `/swift` and other language-specific actions
+- For `snyk/actions/setup@*`, the `/*` allows subpaths like `/swift` and other language-specific actions
 - Always prefer actions from verified publishers (has checkmark on GitHub Marketplace)
 
 ## What's Automatically Allowed

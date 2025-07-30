@@ -320,12 +320,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
+      - name: Setup Snyk
+        uses: snyk/actions/setup@b98d498629f1c368650224d6d212bf7dfa89e4bf # v0.4.0
+        
       - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/swift@cdb760004ba9ea4d525f2e043745dfe85bb9077e # master
+        run: |
+          # Test Swift Package Manager dependencies
+          snyk test --severity-threshold=high --file=Package.swift || true
+          # Generate SARIF output for GitHub Code Scanning
+          snyk test --severity-threshold=high --file=Package.swift --sarif-file-output=snyk.sarif || true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=high
         continue-on-error: true # Don't fail if Snyk is not configured
 
       - name: Upload Snyk results to GitHub Code Scanning

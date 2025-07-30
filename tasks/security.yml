@@ -659,7 +659,7 @@ tasks:
             "trufflesecurity/trufflehog"
             "fossas/fossa-action"
             "ossf/scorecard-action"
-            "snyk/actions"
+            "snyk/actions/setup"
             "swift-actions/setup-swift"
             "maxim-lobanov/setup-xcode"
             "webiny/action-conventional-commits"
