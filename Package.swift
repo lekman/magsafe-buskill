@@ -25,7 +25,21 @@ let package = Package(
         .executableTarget(
             name: "MagSafeGuard",
             dependencies: [],
-            path: "Sources/MagSafeGuard"
+            path: "Sources/MagSafeGuard",
+            resources: [
+                .copy("../../Resources/Assets.xcassets"),
+                .copy("../../Resources/Info.plist")
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ],
+            linkerSettings: [
+                .linkedFramework("IOKit"),
+                .linkedFramework("ServiceManagement"),
+                .linkedFramework("LocalAuthentication"),
+                .linkedFramework("CloudKit"),
+                .linkedFramework("CoreLocation")
+            ]
         ),
         .testTarget(
             name: "MagSafeGuardTests",

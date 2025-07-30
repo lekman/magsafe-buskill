@@ -536,3 +536,6 @@ swift-bundler
 
 # GitHub Actions run logs
 logs/
+
+# Local profiles, do not sync
+profiles/

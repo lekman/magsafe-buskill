@@ -14,10 +14,33 @@ struct MagSafeGuardApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     init() {
+        // Configure crash reporting early
+        configureCrashReporting()
+        
         // Set a bundle identifier for development if needed
         if Bundle.main.bundleIdentifier == nil {
             Log.info("Running in development mode without bundle identifier")
         }
+    }
+    
+    private func configureCrashReporting() {
+        #if DEBUG
+        // Configure debug crash handlers
+        NSSetUncaughtExceptionHandler { exception in
+            Log.critical("Uncaught exception: \(exception)")
+            Log.critical("Reason: \(exception.reason ?? "Unknown")")
+            Log.critical("Stack trace: \(exception.callStackSymbols)")
+            
+            // Save crash info for debugging
+            let crashInfo = [
+                "exception": exception.name.rawValue,
+                "reason": exception.reason ?? "Unknown",
+                "stackTrace": exception.callStackSymbols,
+                "timestamp": Date().formatted(.iso8601)
+            ]
+            UserDefaults.standard.set(crashInfo, forKey: "lastCrashInfo")
+        }
+        #endif
     }
 
     var body: some Scene {
@@ -43,6 +66,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Application Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Check for previous crashes
+        checkForPreviousCrashes()
+        
         // Hide dock icon as this is a menu bar app
         NSApp.setActivationPolicy(.accessory)
 
@@ -205,47 +231,50 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func showSettings() {
-        if settingsWindow == nil {
-            let settingsView = SettingsView()
-
-            settingsWindow = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 800, height: 500),
-                styleMask: [.titled, .closable, .miniaturizable, .resizable],
-                backing: .buffered,
-                defer: false
-            )
-
-            settingsWindow?.title = "MagSafe Guard Settings"
-            
-            // Create and retain the hosting controller
-            let hostingController = NSHostingController(rootView: settingsView)
-            settingsHostingController = hostingController
-            settingsWindow?.contentViewController = hostingController
-            
-            settingsWindow?.center()
-            settingsWindow?.setFrameAutosaveName("SettingsWindow")
-            settingsWindow?.animationBehavior = .none
-            settingsWindow?.isReleasedWhenClosed = false  // Prevent window from being released
-
-            // Clean up when window closes
-            let delegate = WindowDelegate { [weak self] in
-                DispatchQueue.main.async {
-                    if let window = self?.settingsWindow {
-                        self?.windowDelegates.removeValue(forKey: window)
-                        window.contentViewController = nil
-                    }
-                    self?.settingsWindow = nil
-                    self?.settingsHostingController = nil
-                }
-            }
-            
-            if let window = settingsWindow {
-                window.delegate = delegate
-                windowDelegates[window] = delegate
+        // Safe window management pattern
+        if let existingWindow = settingsWindow {
+            existingWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        
+        // Create new window safely
+        let settingsView = SettingsView()
+        
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 800, height: 500),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        
+        window.title = "MagSafe Guard Settings"
+        
+        // Create and retain the hosting controller
+        let hostingController = NSHostingController(rootView: settingsView)
+        settingsHostingController = hostingController
+        window.contentViewController = hostingController
+        
+        window.center()
+        window.setFrameAutosaveName("SettingsWindow")
+        window.animationBehavior = .none
+        window.isReleasedWhenClosed = false  // Prevent window from being released
+        
+        // Clean up when window closes
+        let delegate = WindowDelegate { [weak self] in
+            Task { @MainActor in
+                self?.windowDelegates.removeValue(forKey: window)
+                window.contentViewController = nil
+                self?.settingsWindow = nil
+                self?.settingsHostingController = nil
             }
         }
-
-        settingsWindow?.makeKeyAndOrderFront(nil)
+        
+        window.delegate = delegate
+        windowDelegates[window] = delegate
+        settingsWindow = window
+        
+        window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -362,6 +391,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         // Menu bar apps should not quit when the last window is closed
         return false
+    }
+    
+    // MARK: - Crash Reporting
+    
+    private func checkForPreviousCrashes() {
+        #if DEBUG
+        if let crashInfo = UserDefaults.standard.dictionary(forKey: "lastCrashInfo") {
+            Log.warning("Previous crash detected:", category: .ui)
+            Log.warning("  Exception: \(crashInfo["exception"] ?? "Unknown")", category: .ui)
+            Log.warning("  Reason: \(crashInfo["reason"] ?? "Unknown")", category: .ui)
+            Log.warning("  Time: \(crashInfo["timestamp"] ?? "Unknown")", category: .ui)
+            
+            // Clear the crash info
+            UserDefaults.standard.removeObject(forKey: "lastCrashInfo")
+            
+            // Show alert if running in development
+            if Bundle.main.bundleIdentifier == nil {
+                DispatchQueue.main.async {
+                    let alert = NSAlert()
+                    alert.messageText = "Previous Crash Detected"
+                    alert.informativeText = "Exception: \(crashInfo["exception"] ?? "Unknown")\nReason: \(crashInfo["reason"] ?? "Unknown")"
+                    alert.alertStyle = .warning
+                    alert.addButton(withTitle: "OK")
+                    alert.runModal()
+                }
+            }
+        }
+        #endif
     }
     
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

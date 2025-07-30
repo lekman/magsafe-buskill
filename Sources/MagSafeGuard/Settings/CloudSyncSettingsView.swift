@@ -13,16 +13,10 @@ import SwiftUI
 /// Settings view for iCloud sync configuration
 struct CloudSyncSettingsView: View {
     @EnvironmentObject var settingsManager: UserDefaultsManager
-    // TEMPORARILY DISABLED: Comment out SyncService to debug startup crash
-    // @StateObject private var syncService = SyncService()
+    @StateObject private var syncService = SyncServiceFactory.create() ?? SyncService()
     @State private var isSyncing = false
     @State private var showingError = false
     @State private var errorMessage = ""
-
-    // Temporary mock values while SyncService is disabled
-    private let mockSyncStatus = SyncStatus.idle
-    private let mockIsAvailable = false
-    private let mockLastSyncDate: Date? = nil
 
     var body: some View {
         Form {
@@ -45,14 +39,14 @@ struct CloudSyncSettingsView: View {
     private var statusSection: some View {
         Section(header: Label("iCloud Status", systemImage: "cloud")) {
             HStack {
-                Label("Status", systemImage: mockSyncStatus.symbolName)
+                Label("Status", systemImage: syncService.syncStatus.symbolName)
                 Spacer()
-                Text(mockSyncStatus.displayText)
+                Text(syncService.syncStatus.displayText)
                     .foregroundColor(statusColor)
                     .font(.caption)
             }
 
-            if let lastSync = mockLastSyncDate {
+            if let lastSync = syncService.lastSyncDate {
                 HStack {
                     Label("Last Sync", systemImage: "clock.fill")
                     Spacer()
@@ -62,7 +56,7 @@ struct CloudSyncSettingsView: View {
                 }
             }
 
-            if !mockIsAvailable {
+            if !syncService.isAvailable {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
@@ -85,7 +79,7 @@ struct CloudSyncSettingsView: View {
                 Button(action: performManualSync) {
                     Label("Sync Now", systemImage: "arrow.triangle.2.circlepath")
                 }
-                .disabled(!mockIsAvailable || isSyncing)
+                .disabled(!syncService.isAvailable || isSyncing)
 
                 if isSyncing {
                     ProgressView()
@@ -164,11 +158,17 @@ struct CloudSyncSettingsView: View {
             }
             .onChange(of: settingsManager.settings.iCloudSyncEnabled) { newValue in
                 if newValue {
-                    // Trigger initial sync when enabled
+                    // Enable CloudKit sync
+                    syncService.enableSync()
+                    
+                    // Trigger initial sync after a short delay
                     Task {
-                        // try? await syncService.syncAll()
-                        // Temporarily disabled
+                        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                        try? await syncService.syncAll()
                     }
+                } else {
+                    // Disable CloudKit sync
+                    syncService.disableSync()
                 }
             }
         }
@@ -247,7 +247,7 @@ struct CloudSyncSettingsView: View {
     // MARK: - Helper Properties
 
     private var statusColor: Color {
-        switch mockSyncStatus {
+        switch syncService.syncStatus {
         case .idle:
             return .green
         case .syncing:
@@ -262,7 +262,7 @@ struct CloudSyncSettingsView: View {
     }
 
     private var unavailabilityReason: String {
-        switch mockSyncStatus {
+        switch syncService.syncStatus {
         case .noAccount:
             return "Sign in to iCloud in System Preferences to enable sync"
         case .restricted:
@@ -280,8 +280,12 @@ struct CloudSyncSettingsView: View {
         isSyncing = true
 
         Task {
-            // try await syncService.syncAll()
-            // Temporarily disabled
+            do {
+                try await syncService.syncAll()
+            } catch {
+                errorMessage = error.localizedDescription
+                showingError = true
+            }
             isSyncing = false
         }
     }

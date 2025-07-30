@@ -12,6 +12,19 @@ import Combine
 import Foundation
 import Network
 
+// Debug logging extension
+private extension Data {
+    func append(to url: URL) throws {
+        if let fileHandle = FileHandle(forWritingAtPath: url.path) {
+            defer { fileHandle.closeFile() }
+            fileHandle.seekToEndOfFile()
+            fileHandle.write(self)
+        } else {
+            try write(to: url)
+        }
+    }
+}
+
 /// Service responsible for syncing data with iCloud
 ///
 /// This service handles:
@@ -70,6 +83,10 @@ public class SyncService: NSObject, ObservableObject {
     public override init() {
         super.init()
 
+        // Debug logging to file
+        let logFile = URL(fileURLWithPath: "/tmp/magsafe-sync.log")
+        let timestamp = Date().formatted(.iso8601)
+        
         // Check if we're in a test environment
         let isTestEnvironment = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil ||
                                Self.disableForTesting ||
@@ -78,68 +95,105 @@ public class SyncService: NSObject, ObservableObject {
 
         if isTestEnvironment {
             Log.debug("Running in test environment - CloudKit disabled", category: .general)
+            try? "\(timestamp): Running in test environment - CloudKit disabled\n".data(using: .utf8)?.append(to: logFile)
             syncStatus = .unknown
             isAvailable = false
             return
         }
 
-        // Disable CloudKit by default to prevent crashes
-        // CloudKit requires proper provisioning and container setup
-        #if DEBUG
-        Log.info("CloudKit sync disabled by default - enable via iCloudSyncEnabled setting", category: .general)
-        syncStatus = .noAccount
+        // Defer initialization to avoid circular dependency
+        // The UserDefaultsManager will call enableSync() if needed
+        Log.info("SyncService created - waiting for explicit initialization", category: .general)
+        try? "\(timestamp): SyncService created - waiting for explicit initialization\n".data(using: .utf8)?.append(to: logFile)
+        syncStatus = .unknown
         isAvailable = false
-        #else
-        // Only initialize CloudKit if explicitly enabled in production
-        if UserDefaults.standard.bool(forKey: "com.lekman.magsafeguard.cloudkit.enabled") {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
-                self?.initializeCloudKit()
-            }
-        } else {
-            syncStatus = .noAccount
-            isAvailable = false
+    }
+
+    // MARK: - Public Methods
+    
+    /// Enable CloudKit sync when user enables it in settings
+    public func enableSync() {
+        let logFile = URL(fileURLWithPath: "/tmp/magsafe-sync.log")
+        let timestamp = Date().formatted(.iso8601)
+        
+        guard !isCloudKitInitialized else { 
+            Log.info("CloudKit already initialized", category: .general)
+            try? "\(timestamp): CloudKit already initialized\n".data(using: .utf8)?.append(to: logFile)
+            return 
         }
-        #endif
+        
+        Log.info("Enabling CloudKit sync", category: .general)
+        try? "\(timestamp): Enabling CloudKit sync\n".data(using: .utf8)?.append(to: logFile)
+        initializeCloudKit()
+    }
+    
+    /// Disable CloudKit sync when user disables it in settings
+    public func disableSync() {
+        Log.info("Disabling CloudKit sync", category: .general)
+        
+        // Stop timers
+        syncTimer?.invalidate()
+        syncTimer = nil
+        retryTimer?.invalidate()
+        retryTimer = nil
+        
+        // Reset state
+        isCloudKitInitialized = false
+        isAvailable = false
+        syncStatus = .noAccount
+        
+        // Clear references
+        container = nil
+        privateDatabase = nil
+        customZone = nil
     }
 
     // MARK: - CloudKit Initialization
 
     private func initializeCloudKit() {
+        let logFile = URL(fileURLWithPath: "/tmp/magsafe-sync.log")
+        let timestamp = Date().formatted(.iso8601)
+        
         guard !isCloudKitInitialized else { return }
 
-        // Try to initialize CloudKit container
-        let containerIdentifier = determineContainerIdentifier()
+        // Use default container since provisioning profile doesn't specify containers
+        Log.info("Initializing CloudKit with default container", category: .general)
+        try? "\(timestamp): Initializing CloudKit with default container\n".data(using: .utf8)?.append(to: logFile)
 
-        Log.info("Initializing CloudKit with container: \(containerIdentifier)", category: .general)
+        do {
+            // Create default container - this uses the app's bundle ID automatically
+            container = CKContainer.default()
+            privateDatabase = container?.privateCloudDatabase
+            
+            guard container != nil else {
+                throw SyncError.notAvailable
+            }
+            
+            let containerID = container?.containerIdentifier ?? "nil"
+            try? "\(timestamp): Container ID: \(containerID)\n".data(using: .utf8)?.append(to: logFile)
 
-        // Create container - CloudKit will handle errors internally
-        container = CKContainer(identifier: containerIdentifier)
-        privateDatabase = container?.privateCloudDatabase
+            isCloudKitInitialized = true
 
-        isCloudKitInitialized = true
-
-        // Continue with setup
-        setupCloudKit()
-        checkiCloudAvailability()
-        startPeriodicSync()
-        setupNetworkMonitoring()
+            // Continue with setup
+            setupCloudKit()
+            checkiCloudAvailability()
+            startPeriodicSync()
+            setupNetworkMonitoring()
+            
+        } catch {
+            Log.error("Failed to initialize CloudKit", error: error, category: .general)
+            try? "\(timestamp): Failed to initialize CloudKit: \(error)\n".data(using: .utf8)?.append(to: logFile)
+            syncStatus = .error
+            syncError = error
+            isAvailable = false
+        }
     }
 
     private func determineContainerIdentifier() -> String {
-        // First try to use the configured container from entitlements
-        let primaryIdentifier = "iCloud.com.lekman.magsafeguard"
-
-        // Check if we have a valid bundle identifier
-        if let bundleId = Bundle.main.bundleIdentifier {
-            // In development/debug builds, the bundle ID might be different
-            if bundleId.contains("xcode") || bundleId.contains("lldb") {
-                Log.warning("Running with development bundle ID: \(bundleId)", category: .general)
-                // Try default container as fallback
-                return "iCloud." + bundleId
-            }
-        }
-
-        return primaryIdentifier
+        // Use the default container since the provisioning profile doesn't specify one
+        // This will use the app's bundle identifier automatically
+        Log.info("Using default CloudKit container", category: .general)
+        return CKContainer.default().containerIdentifier ?? "iCloud.com.lekman.magsafeguard"
     }
 
     // MARK: - Setup
@@ -196,17 +250,26 @@ public class SyncService: NSObject, ObservableObject {
     }
 
     private func checkiCloudAvailability() {
+        let logFile = URL(fileURLWithPath: "/tmp/magsafe-sync.log")
+        let timestamp = Date().formatted(.iso8601)
+        
+        Log.info("Checking iCloud availability...", category: .general)
+        try? "\(timestamp): Checking iCloud availability...\n".data(using: .utf8)?.append(to: logFile)
+        
         guard let container = container else {
             Log.warning("CloudKit container not available", category: .general)
+            try? "\(timestamp): CloudKit container not available\n".data(using: .utf8)?.append(to: logFile)
             syncStatus = .error
             isAvailable = false
             return
         }
 
         container.accountStatus { [weak self] status, error in
+            let statusTimestamp = Date().formatted(.iso8601)
             DispatchQueue.main.async {
                 if let error = error {
                     Log.error("Failed to check iCloud account status", error: error, category: .general)
+                    try? "\(statusTimestamp): Failed to check iCloud account status: \(error)\n".data(using: .utf8)?.append(to: logFile)
                     self?.isAvailable = false
                     self?.syncStatus = .error
                     self?.syncError = error
@@ -228,6 +291,7 @@ public class SyncService: NSObject, ObservableObject {
                     self?.isAvailable = true
                     self?.syncStatus = .idle
                     Log.info("iCloud is available", category: .general)
+                    try? "\(statusTimestamp): iCloud is available\n".data(using: .utf8)?.append(to: logFile)
                     // Perform initial sync
                     Task {
                         try? await self?.syncAll()
@@ -236,27 +300,32 @@ public class SyncService: NSObject, ObservableObject {
                     self?.isAvailable = false
                     self?.syncStatus = .noAccount
                     Log.warning("No iCloud account configured", category: .general)
+                    try? "\(statusTimestamp): No iCloud account configured\n".data(using: .utf8)?.append(to: logFile)
                     self?.notifyUserAboutiCloudAccount()
                 case .restricted:
                     self?.isAvailable = false
                     self?.syncStatus = .restricted
                     Log.warning("iCloud access is restricted", category: .general)
+                    try? "\(statusTimestamp): iCloud access is restricted\n".data(using: .utf8)?.append(to: logFile)
                     self?.notifyUserAboutRestrictions()
                 case .couldNotDetermine:
                     self?.isAvailable = false
                     self?.syncStatus = .unknown
                     Log.warning("Could not determine iCloud status", category: .general)
+                    try? "\(statusTimestamp): Could not determine iCloud status\n".data(using: .utf8)?.append(to: logFile)
                     // Schedule a retry
                     self?.scheduleRetry()
                 case .temporarilyUnavailable:
                     self?.isAvailable = false
                     self?.syncStatus = .temporarilyUnavailable
                     Log.warning("iCloud is temporarily unavailable", category: .general)
+                    try? "\(statusTimestamp): iCloud is temporarily unavailable\n".data(using: .utf8)?.append(to: logFile)
                     // Schedule a retry
                     self?.scheduleRetry()
                 @unknown default:
                     self?.isAvailable = false
                     self?.syncStatus = .unknown
+                    try? "\(statusTimestamp): Unknown iCloud status\n".data(using: .utf8)?.append(to: logFile)
                 }
 
                 if let error = error as? CKError {
@@ -333,6 +402,9 @@ extension SyncService {
     /// Sync all data with iCloud
     @MainActor
     public func syncAll() async throws {
+        // Check for cancellation
+        try Task.checkCancellation()
+        
         // Check if sync is enabled
         guard UserDefaults.standard.bool(forKey: "iCloudSyncEnabled") else {
             Log.debug("iCloud sync is disabled by user", category: .general)
@@ -346,45 +418,58 @@ extension SyncService {
             return
         }
 
+        // Prevent concurrent syncs
+        guard syncStatus != .syncing else {
+            Log.debug("Sync already in progress", category: .general)
+            return
+        }
+
         syncStatus = .syncing
         syncError = nil
 
         do {
+            // Check for cancellation before each operation
+            try Task.checkCancellation()
+            
             // Sync settings first
-            try await syncSettings()
+            try await withTaskCancellationHandler {
+                try await syncSettings()
+            } onCancel: {
+                Log.info("Settings sync cancelled", category: .general)
+            }
+
+            // Check for cancellation between operations
+            try Task.checkCancellation()
 
             // Then sync evidence
-            try await syncEvidence()
+            try await withTaskCancellationHandler {
+                try await syncEvidence()
+            } onCancel: {
+                Log.info("Evidence sync cancelled", category: .general)
+            }
 
             syncStatus = .idle
             lastSyncDate = Date()
             Log.info("Sync completed successfully", category: .general)
+            
+        } catch is CancellationError {
+            syncStatus = .idle
+            Log.info("Sync cancelled", category: .general)
+            throw CancellationError()
+            
         } catch let error as CKError {
             // Handle specific CloudKit errors
+            handleCloudKitError(error)
+            
+            // Only throw for non-recoverable errors
             switch error.code {
-            case .networkUnavailable, .networkFailure:
-                syncStatus = .temporarilyUnavailable
-                Log.warning("Network unavailable for iCloud sync", category: .general)
-                scheduleRetry()
+            case .networkUnavailable, .networkFailure, .serviceUnavailable, .requestRateLimited:
                 // Don't throw - we'll retry later
                 return
-            case .serviceUnavailable, .requestRateLimited:
-                syncStatus = .temporarilyUnavailable
-                Log.warning("iCloud service temporarily unavailable", category: .general)
-                scheduleRetry()
-                // Don't throw - we'll retry later
-                return
-            case .quotaExceeded:
-                syncStatus = .error
-                syncError = error
-                Log.error("iCloud quota exceeded", error: error, category: .general)
-                throw error
             default:
-                syncStatus = .error
-                syncError = error
-                Log.error("Sync failed", error: error, category: .general)
                 throw error
             }
+            
         } catch {
             syncStatus = .error
             syncError = error
@@ -392,16 +477,43 @@ extension SyncService {
             throw error
         }
     }
+    
+    private func handleCloudKitError(_ error: CKError) {
+        switch error.code {
+        case .networkUnavailable, .networkFailure:
+            syncStatus = .temporarilyUnavailable
+            Log.warning("Network unavailable for iCloud sync", category: .general)
+            scheduleRetry()
+        case .serviceUnavailable, .requestRateLimited:
+            syncStatus = .temporarilyUnavailable
+            Log.warning("iCloud service temporarily unavailable", category: .general)
+            scheduleRetry()
+        case .quotaExceeded:
+            syncStatus = .error
+            syncError = error
+            Log.error("iCloud quota exceeded", error: error, category: .general)
+        default:
+            syncStatus = .error
+            syncError = error
+            Log.error("Sync failed", error: error, category: .general)
+        }
+    }
 
     /// Force sync settings to iCloud
     @MainActor
     public func syncSettings() async throws {
+        // Check for cancellation
+        try Task.checkCancellation()
+        
         guard let zone = customZone, let database = privateDatabase else {
             throw SyncError.zoneNotReady
         }
 
-        // Get current settings
-        let settings = UserDefaults.standard.data(forKey: "com.lekman.magsafeguard.settings") ?? Data()
+        // Get current settings safely
+        guard let settings = UserDefaults.standard.data(forKey: "com.lekman.magsafeguard.settings") else {
+            Log.warning("No settings to sync", category: .general)
+            return
+        }
 
         // Create or update settings record
         let recordID = CKRecord.ID(recordName: "user-settings", zoneID: zone.zoneID)
@@ -425,14 +537,17 @@ extension SyncService {
             } else if remoteTimestamp > localTimestamp {
                 // Update local with remote
                 if let remoteData = existingRecord["data"] as? Data {
-                    UserDefaults.standard.set(remoteData, forKey: "com.lekman.magsafeguard.settings")
-                    UserDefaults.standard.set(remoteTimestamp, forKey: "settingsTimestamp")
-
-                    // Notify settings manager to reload
-                    NotificationCenter.default.post(name: .settingsSyncedFromiCloud, object: nil)
+                    await MainActor.run {
+                        UserDefaults.standard.set(remoteData, forKey: "com.lekman.magsafeguard.settings")
+                        UserDefaults.standard.set(remoteTimestamp, forKey: "settingsTimestamp")
+                        
+                        // Notify settings manager to reload
+                        NotificationCenter.default.post(name: .settingsSyncedFromiCloud, object: nil)
+                    }
                     Log.info("Settings downloaded from iCloud", category: .general)
                 }
             }
+            
         } catch let error as CKError where error.code == .unknownItem {
             // Record doesn't exist, create new one
             let newRecord = CKRecord(recordType: settingsRecordType, recordID: recordID)
@@ -442,18 +557,11 @@ extension SyncService {
 
             try await database.save(newRecord)
             Log.info("Settings uploaded to iCloud (new record)", category: .general)
-        } catch let error as CKError {
-            // Handle specific CloudKit errors
-            switch error.code {
-            case .networkUnavailable, .networkFailure:
-                Log.warning("Network unavailable - settings will sync when connection restored", category: .general)
-                throw error
-            case .serviceUnavailable:
-                Log.warning("iCloud temporarily unavailable - settings will sync later", category: .general)
-                throw error
-            default:
-                throw error
-            }
+            
+        } catch {
+            // Re-throw with context
+            Log.error("Settings sync failed", error: error, category: .general)
+            throw error
         }
     }
 

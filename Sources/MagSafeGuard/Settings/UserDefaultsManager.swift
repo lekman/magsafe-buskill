@@ -95,20 +95,31 @@ public class UserDefaultsManager: ObservableObject {
     /// - Parameter syncService: Cloud sync service (defaults to CloudKit implementation)
     public init(userDefaults: UserDefaults = .standard, syncService: SyncService? = nil) {
         self.userDefaults = userDefaults
-        self.syncService = syncService ?? SyncServiceFactory.create()
-
-        // Load settings or create defaults
+        
+        // Load settings first (before any service initialization)
         if let loadedSettings = Self.loadSettings(from: userDefaults) {
             self.settings = loadedSettings
         } else {
             self.settings = Settings()
+            // Don't save yet - wait until after initialization
+        }
+        
+        // Now initialize sync service if enabled
+        if syncService != nil {
+            self.syncService = syncService
+        } else if FeatureFlags.shared.isCloudSyncEnabled {
+            self.syncService = SyncServiceFactory.create()
+        } else {
+            self.syncService = nil
+        }
+
+        // Save settings after all initialization
+        if Self.loadSettings(from: userDefaults) == nil {
             self.saveSettings()
         }
 
-        // Auto-save disabled to prevent conflicts with SwiftUI bindings
-
         // Listen for sync notifications if sync service is available
-        if syncService != nil {
+        if self.syncService != nil {
             NotificationCenter.default.publisher(for: NSNotification.Name("SyncServiceDidUpdate"))
                 .sink { [weak self] _ in
                     self?.reloadSettingsFromDisk()
@@ -120,6 +131,14 @@ public class UserDefaultsManager: ObservableObject {
         if !userDefaults.bool(forKey: Keys.hasLaunchedBefore) {
             userDefaults.set(true, forKey: Keys.hasLaunchedBefore)
             onFirstLaunch()
+        }
+        
+        // Enable sync after initialization if needed
+        if settings.iCloudSyncEnabled, let syncService = self.syncService {
+            // Defer sync enablement to avoid circular dependency
+            Task { @MainActor in
+                syncService.enableSync()
+            }
         }
     }
 
