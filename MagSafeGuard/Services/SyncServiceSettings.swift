@@ -89,19 +89,19 @@ final class SyncServiceSettings {
 
     private func applySettingsFromRecord(_ record: CKRecord) {
         let manager = UserDefaultsManager.shared
-        
+
         // Apply numeric settings
         applyNumericSettings(from: record, to: manager)
-        
+
         // Apply boolean settings
         applyBooleanSettings(from: record, to: manager)
-        
+
         // Apply string settings
         if let value = record["customCommand"] as? String {
             manager.updateSetting(\.customCommand, value: value)
         }
     }
-    
+
     private func applyNumericSettings(from record: CKRecord, to manager: UserDefaultsManager) {
         let numericMappings: [(key: String, keyPath: WritableKeyPath<Settings, Double>)] = [
             ("gracePeriodDuration", \.gracePeriodDuration),
@@ -111,14 +111,14 @@ final class SyncServiceSettings {
             ("soundFrequency", \.soundFrequency),
             ("autoArmDelay", \.autoArmDelay)
         ]
-        
+
         for mapping in numericMappings {
             if let value = record[mapping.key] as? Double {
                 manager.updateSetting(mapping.keyPath, value: value)
             }
         }
     }
-    
+
     private func applyBooleanSettings(from record: CKRecord, to manager: UserDefaultsManager) {
         let booleanMappings: [(key: String, keyPath: WritableKeyPath<Settings, Bool>)] = [
             ("cancelGracePeriodOnReconnect", \.cancelGracePeriodOnReconnect),
@@ -142,7 +142,7 @@ final class SyncServiceSettings {
             ("collectSystemInfoEvidence", \.collectSystemInfoEvidence),
             ("cloudSyncEnabled", \.cloudSyncEnabled)
         ]
-        
+
         for mapping in booleanMappings {
             if let value = record[mapping.key] as? Int {
                 manager.updateSetting(mapping.keyPath, value: value == 1)

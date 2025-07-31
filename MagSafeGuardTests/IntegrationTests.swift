@@ -111,7 +111,6 @@ final class IntegrationTests: XCTestCase {
     }
 
     // NOTE: Tests requiring PowerMonitorService mocking have been disabled
-    // TODO: Refactor PowerMonitorService to be testable
     // Disabled tests:
     // - testCompleteSecurityFlow
     // - testGracePeriodCancellationFlow

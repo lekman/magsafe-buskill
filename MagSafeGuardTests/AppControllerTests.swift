@@ -177,7 +177,7 @@ final class AppControllerTests: XCTestCase {
     // MARK: - Grace Period Tests
 
     // Skip grace period tests for now - PowerMonitorService can't be easily mocked
-    // TODO: Refactor PowerMonitorService to be testable
+    // Task #18: Refactor PowerMonitorService for testability with protocol-based dependency injection
     /*
     func testGracePeriodTriggering() {
         // Configure short grace period for testing
