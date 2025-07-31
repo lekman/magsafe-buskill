@@ -131,8 +131,9 @@ public class AppDelegateCore {
     /// labels, hints, and keyboard shortcuts for VoiceOver and other
     /// assistive technologies.
     ///
+    /// - Parameter appDelegate: The AppDelegate instance to use as the target for menu actions
     /// - Returns: Configured NSMenu ready for display with accessibility support
-    public func createMenu() -> NSMenu {
+    public func createMenu(for appDelegate: AppDelegate) -> NSMenu {
         let menu = NSMenu()
 
         // Configure menu accessibility
@@ -161,7 +162,8 @@ public class AppDelegateCore {
             accessibilityLabel: armTitle,
             hint: isArmed ? "Disarm the security system to stop protection" : "Arm the security system to enable protection",
             keyEquivalent: "a",
-            action: #selector(AppDelegate.toggleArmed)
+            action: #selector(AppDelegate.toggleArmed),
+            target: appDelegate
         )
         menu.addItem(armItem)
 
@@ -172,7 +174,8 @@ public class AppDelegateCore {
                 accessibilityLabel: "Cancel Security Action",
                 hint: "Cancel the pending security action during grace period",
                 keyEquivalent: "c",
-                action: #selector(AppDelegate.cancelGracePeriod)
+                action: #selector(AppDelegate.cancelGracePeriod),
+                target: appDelegate
             )
             menu.addItem(cancelItem)
         }
@@ -197,7 +200,8 @@ public class AppDelegateCore {
             accessibilityLabel: "Settings",
             hint: "Open application settings and preferences",
             keyEquivalent: ",",
-            action: #selector(AppDelegate.showSettings)
+            action: #selector(AppDelegate.showSettings),
+            target: appDelegate
         )
         menu.addItem(settingsItem)
 

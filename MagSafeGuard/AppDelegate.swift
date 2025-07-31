@@ -81,7 +81,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func setupMenu() {
-        let menu = core.createMenu()
+        let menu = core.createMenu(for: self)
         statusItem?.menu = menu
     }
 
@@ -188,12 +188,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func showSettings() {
+        Log.info("showSettings called", category: .ui)
+        
         // Safe window management pattern
         if let existingWindow = settingsWindow {
+            Log.info("Bringing existing settings window to front", category: .ui)
             existingWindow.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
         }
+        
+        Log.info("Creating new settings window", category: .ui)
         
         // Create new window safely
         let settingsView = SettingsView()
@@ -233,6 +238,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        
+        Log.info("Settings window created and shown successfully", category: .ui)
     }
 
 
