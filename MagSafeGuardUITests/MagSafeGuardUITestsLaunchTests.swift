@@ -1,13 +1,13 @@
 //
-//  MagSafe_GuardUITestsLaunchTests.swift
-//  MagSafe GuardUITests
+//  MagSafeGuardUITestsLaunchTests.swift
+//  MagSafeGuardUITests
 //
 //  Created by Tobias Lekman on 31/07/2025.
 //
 
 import XCTest
 
-final class MagSafe_GuardUITestsLaunchTests: XCTestCase {
+final class MagSafeGuardUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

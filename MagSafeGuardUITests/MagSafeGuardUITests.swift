@@ -1,13 +1,13 @@
 //
-//  MagSafe_GuardUITests.swift
-//  MagSafe GuardUITests
+//  MagSafeGuardUITests.swift
+//  MagSafeGuardUITests
 //
 //  Created by Tobias Lekman on 31/07/2025.
 //
 
 import XCTest
 
-final class MagSafe_GuardUITests: XCTestCase {
+final class MagSafeGuardUITests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
