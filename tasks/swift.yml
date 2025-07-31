@@ -181,6 +181,21 @@ tasks:
             echo "Files with low coverage:"
             grep -E "^\\S+\\.swift" coverage-report.txt | grep -v "100.00%" | sort -k10 -n | head -10
           fi
+          
+          # Generate LCOV format for Codecov
+          echo ""
+          echo "📄 Generating LCOV format for Codecov..."
+          xcrun llvm-cov export "$BINARY" \
+            -instr-profile="$PROF_DATA" \
+            -format=lcov \
+            -ignore-filename-regex=".*Tests/.*|.*Tests\\.swift|.*Mocks?\\.swift|.*/{{.PROJECT_NAME}}App\\.swift|.*/SettingsView\\.swift|.*/TrustedLocationsView\\.swift|.*/PowerMonitorService\\.swift|.*LAContext\\.swift|.*/MacSystemActions\\.swift|.*Protocol\\.swift" \
+            > coverage.lcov
+          
+          if [ -f "coverage.lcov" ] && [ -s "coverage.lcov" ]; then
+            echo "✅ Generated coverage.lcov ($(wc -c < coverage.lcov) bytes)"
+          else
+            echo "⚠️  Failed to generate LCOV file"
+          fi
         else
           echo "❌ Coverage data not found"
           exit 1

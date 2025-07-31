@@ -48,10 +48,25 @@ runs:
           ${{ runner.os }}-spm-${{ hashFiles('Package.swift', '**/Package.resolved') }}
           ${{ runner.os }}-spm-
 
-    - name: Create Package.resolved
+    - name: Install Taskfile if needed
       shell: bash
       run: |
-        if [ ! -f "Package.resolved" ]; then
+        if ! command -v task &> /dev/null; then
+          echo "Installing Taskfile..."
+          if [ "$RUNNER_OS" == "macOS" ]; then
+            brew install go-task/tap/go-task
+          else
+            # For Linux runners
+            curl -sL https://taskfile.dev/install.sh | sh -s -- -d -b /usr/local/bin
+          fi
+        fi
+        echo "Taskfile version: $(task --version)"
+    
+    - name: Create Package.resolved (if using SPM)
+      shell: bash
+      run: |
+        # Only resolve if Package.swift exists
+        if [ -f "Package.swift" ] && [ ! -f "Package.resolved" ]; then
           echo "Creating Package.resolved..."
           swift package resolve
         fi

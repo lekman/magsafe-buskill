@@ -694,14 +694,20 @@ tasks:
         fi
 
         # First, run tests with coverage if needed
-        if [ ! -d ".build" ] || [ -z "$(find .build -name 'default.profdata' -type f 2>/dev/null)" ]; then
+        if [ ! -d "DerivedData" ] || [ -z "$(find DerivedData -name 'Coverage.profdata' -type f 2>/dev/null)" ]; then
           echo "🧪 Running tests with coverage..."
-          swift test --enable-code-coverage
+          task test:coverage
         fi
 
-        # Find the coverage data
-        PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
-        EXECUTABLE=$(find .build -name 'MagSafeGuardPackageTests.xctest' -type d | head -1)/Contents/MacOS/MagSafeGuardPackageTests
+        # Find the coverage data - handle both Xcode and SPM locations
+        PROF_DATA=$(find DerivedData -name 'Coverage.profdata' -type f | head -1)
+        EXECUTABLE=$(find DerivedData -name 'MagSafeGuardTests.xctest' -type d | head -1)/Contents/MacOS/MagSafeGuardTests
+        
+        # Fallback to SPM locations if not found
+        if [ -z "$PROF_DATA" ]; then
+          PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
+          EXECUTABLE=$(find .build -name 'MagSafeGuardPackageTests.xctest' -type d | head -1)/Contents/MacOS/MagSafeGuardPackageTests
+        fi
 
         if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
           echo "📊 Generating SonarQube generic coverage XML..."
