@@ -31,7 +31,10 @@
     ".scannerwork": true,
     ".sonarcloud": true,
     ".task": true,
-    "coverage*.txt": true
+    "coverage*.txt": true,
+    "build": true,
+    "DerivedData": true,
+    "LICENSE": true
   },
   "search.exclude": {
     "**/node_modules": true,

@@ -531,8 +531,12 @@ sbom-deps.json
 # GitHub reports
 .github/pr-comments/
 
-# Swift Bundler binary
+# Swift Bundler binary, build files, and cache
+.swift-bundler/
+.swift-bundler-cache/   
 swift-bundler
+build/
+DerivedData/
 
 # GitHub Actions run logs
 logs/
