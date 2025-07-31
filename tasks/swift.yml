@@ -141,6 +141,9 @@ tasks:
         # Run unit tests with coverage (exclude UI tests)
         echo "Running xcodebuild test..."
         echo "Current directory: $(pwd)"
+        echo "Looking for project: {{.PROJECT_NAME}}.xcodeproj"
+        echo "Directory contents:"
+        ls -la | grep -E "xcodeproj|Taskfile" | head -10 || echo "No matching files"
         echo "Project exists: $(ls {{.PROJECT_NAME}}.xcodeproj 2>/dev/null || echo 'NO')"
         
         set +e  # Don't exit on error
@@ -301,6 +304,9 @@ tasks:
 
         echo "Building debug configuration..."
         echo "Current directory: $(pwd)"
+        echo "Looking for project: {{.PROJECT_NAME}}.xcodeproj"
+        echo "Directory contents:"
+        ls -la | grep -E "xcodeproj|Taskfile" | head -10 || echo "No matching files"
         echo "Project exists: $(ls {{.PROJECT_NAME}}.xcodeproj 2>/dev/null || echo 'NO')"
         
         set +e
@@ -351,6 +357,9 @@ tasks:
 
         echo "Building release configuration..."
         echo "Current directory: $(pwd)"
+        echo "Looking for project: {{.PROJECT_NAME}}.xcodeproj"
+        echo "Directory contents:"
+        ls -la | grep -E "xcodeproj|Taskfile" | head -10 || echo "No matching files"
         echo "Project exists: $(ls {{.PROJECT_NAME}}.xcodeproj 2>/dev/null || echo 'NO')"
         
         set +e
@@ -829,6 +838,9 @@ tasks:
         # Build with ad-hoc signing for CI
         echo "🔨 Building with ad-hoc signing..."
         echo "Current directory: $(pwd)"
+        echo "Looking for project: {{.PROJECT_NAME}}.xcodeproj"
+        echo "Directory contents:"
+        ls -la | grep -E "xcodeproj|Taskfile" | head -10 || echo "No matching files"
         echo "Project exists: $(ls {{.PROJECT_NAME}}.xcodeproj 2>/dev/null || echo 'NO')"
         
         # Run build and capture exit code
