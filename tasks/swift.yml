@@ -139,9 +139,9 @@ tasks:
           -only-testing:{{.PROJECT_NAME}}Tests \
           -derivedDataPath {{.DERIVED_DATA}} \
           -enableCodeCoverage YES \
-          2>&1 | xcpretty --simple --color || true
+          2>&1 | xcpretty --simple --color
 
-        TEST_EXIT_CODE="${PIPESTATUS[0]}"
+        TEST_EXIT_CODE=$?
 
         # Check if tests passed based on exit code (more reliable than parsing output)
         if [ "$TEST_EXIT_CODE" = "0" ]; then
@@ -666,6 +666,7 @@ tasks:
       - |
         # Build with development signing
         echo "🔨 Building with development signing..."
+        set +e
         xcodebuild build \
           -project {{.PROJECT_NAME}}.xcodeproj \
           -scheme {{.SCHEME_NAME}} \
@@ -674,9 +675,12 @@ tasks:
           CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Debug \
           CODE_SIGN_STYLE=Automatic \
           DEVELOPMENT_TEAM=PW6K4BERFV \
-          2>&1 | xcpretty --simple --color || true
-
-        if [ ${PIPESTATUS[0]} -eq 0 ]; then
+          2>&1 | xcpretty --simple --color
+        
+        EXIT_CODE=$?
+        set -e
+        
+        if [ $EXIT_CODE -eq 0 ]; then
           echo "✅ App built and signed for development"
           echo "   App: {{.DEBUG_APP_PATH}}"
         else
@@ -691,6 +695,7 @@ tasks:
       - |
         # Build with Developer ID signing
         echo "🔨 Building with Developer ID signing..."
+        set +e
         xcodebuild build \
           -project {{.PROJECT_NAME}}.xcodeproj \
           -scheme {{.SCHEME_NAME}} \
@@ -700,9 +705,12 @@ tasks:
           CODE_SIGN_STYLE=Manual \
           CODE_SIGN_IDENTITY="Developer ID Application" \
           DEVELOPMENT_TEAM=PW6K4BERFV \
-          2>&1 | xcpretty --simple --color || true
-
-        if [ ${PIPESTATUS[0]} -eq 0 ]; then
+          2>&1 | xcpretty --simple --color
+        
+        EXIT_CODE=$?
+        set -e
+        
+        if [ $EXIT_CODE -eq 0 ]; then
           echo "✅ App built and signed for release"
           echo "   App: {{.RELEASE_APP_PATH}}"
           echo ""
@@ -721,6 +729,7 @@ tasks:
       - |
         # Build with App Store signing
         echo "🔨 Building for App Store..."
+        set +e
         xcodebuild build \
           -project {{.PROJECT_NAME}}.xcodeproj \
           -scheme {{.SCHEME_NAME}} \
@@ -730,9 +739,12 @@ tasks:
           CODE_SIGN_STYLE=Manual \
           CODE_SIGN_IDENTITY="Apple Distribution" \
           DEVELOPMENT_TEAM=PW6K4BERFV \
-          2>&1 | xcpretty --simple --color || true
-
-        if [ ${PIPESTATUS[0]} -eq 0 ]; then
+          2>&1 | xcpretty --simple --color
+        
+        EXIT_CODE=$?
+        set -e
+        
+        if [ $EXIT_CODE -eq 0 ]; then
           echo "✅ App built and signed for App Store"
           echo "   App: {{.RELEASE_APP_PATH}}"
           echo ""
@@ -749,6 +761,9 @@ tasks:
       - |
         # Build with ad-hoc signing for CI
         echo "🔨 Building with ad-hoc signing..."
+        
+        # Run build and capture exit code
+        set +e  # Don't exit on error
         xcodebuild build \
           -project {{.PROJECT_NAME}}.xcodeproj \
           -scheme {{.SCHEME_NAME}} \
@@ -757,9 +772,12 @@ tasks:
           CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Release \
           CODE_SIGN_IDENTITY="-" \
           CODE_SIGNING_ALLOWED=YES \
-          2>&1 | xcpretty --simple --color || true
-
-        if [ ${PIPESTATUS[0]} -eq 0 ]; then
+          2>&1 | xcpretty --simple --color
+        
+        EXIT_CODE=$?
+        set -e  # Re-enable exit on error
+        
+        if [ $EXIT_CODE -eq 0 ]; then
           echo "✅ App built with ad-hoc signing"
           echo "   App: {{.RELEASE_APP_PATH}}"
         else
