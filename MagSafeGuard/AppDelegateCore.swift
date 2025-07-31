@@ -133,7 +133,7 @@ public class AppDelegateCore {
     ///
     /// - Parameter appDelegate: The AppDelegate instance to use as the target for menu actions
     /// - Returns: Configured NSMenu ready for display with accessibility support
-    public func createMenu(for appDelegate: AppDelegate) -> NSMenu {
+    func createMenu(for appDelegate: AppDelegate) -> NSMenu {
         let menu = NSMenu()
 
         // Configure menu accessibility

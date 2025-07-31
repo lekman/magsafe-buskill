@@ -202,6 +202,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // Create new window safely
         let settingsView = SettingsView()
+            .environmentObject(UserDefaultsManager.shared)
         
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 800, height: 500),
@@ -218,7 +219,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.contentViewController = hostingController
         
         window.center()
-        window.setFrameAutosaveName("SettingsWindow")
+        // Temporarily disable frame autosave to ensure window appears
+        // window.setFrameAutosaveName("SettingsWindow")
         window.animationBehavior = .none
         window.isReleasedWhenClosed = false  // Prevent window from being released
         
@@ -229,6 +231,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 window.contentViewController = nil
                 self?.settingsWindow = nil
                 self?.settingsHostingController = nil
+                
+                // Return to accessory mode if no windows are open
+                if self?.settingsWindow == nil {
+                    NSApp.setActivationPolicy(.accessory)
+                }
             }
         }
         
@@ -236,10 +243,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         windowDelegates[window] = delegate
         settingsWindow = window
         
+        // Temporarily make the app regular so it appears in Dock and Cmd+Tab
+        NSApp.setActivationPolicy(.regular)
+        
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         
+        // Force window to be visible
+        window.orderFrontRegardless()
+        window.setIsVisible(true)
+        
         Log.info("Settings window created and shown successfully", category: .ui)
+        Log.info("Window visible: \(window.isVisible), frame: \(window.frame)", category: .ui)
     }
 
 

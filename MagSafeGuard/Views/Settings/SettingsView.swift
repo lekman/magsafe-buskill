@@ -13,6 +13,11 @@ import SwiftUI
 public struct SettingsView: View {
     @ObservedObject private var settingsManager = UserDefaultsManager.shared
     @State private var selectedTab: SettingsTab? = .general
+    
+    public init() {
+        // Ensure we have an initial selection
+        _selectedTab = State(initialValue: .general)
+    }
 
     private enum SettingsTab: String, CaseIterable, Identifiable {
         case general = "General"
@@ -59,6 +64,7 @@ public struct SettingsView: View {
                 switch selectedTab {
                 case .general:
                     GeneralSettingsView()
+                        .environmentObject(settingsManager)
                         .navigationTitle(SettingsTab.general.rawValue)
                 case .security:
                     SecuritySettingsView()
@@ -90,7 +96,6 @@ public struct SettingsView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 800, minHeight: 500)
-        .environmentObject(settingsManager)
     }
 }
 
@@ -149,7 +154,7 @@ struct GeneralSettingsView: View {
                     get: { settingsManager.settings.gracePeriodDuration },
                     set: { settingsManager.updateSetting(\.gracePeriodDuration, value: $0) }
                 ),
-                in: 5...30,
+                in: 0...30,
                 step: 1
             )
 
