@@ -740,17 +740,7 @@ tasks:
     silent: true
     cmds:
       - |
-        # Build with development signing
-        echo "🔨 Building with development signing..."
-        set +e
-        xcodebuild build \
-          -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme {{.SCHEME_NAME}} \
-          -configuration Debug \
-          -derivedDataPath {{.DERIVED_DATA}} \
-          CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Debug \
-          CODE_SIGN_STYLE=Automatic \
-          DEVELOPMENT_TEAM=PW6K4BERFV \
+        ./scripts/sign-app.sh development
           2>&1 | $FORMATTER
         
         EXIT_CODE=$?
@@ -769,17 +759,7 @@ tasks:
     silent: true
     cmds:
       - |
-        # Build with Developer ID signing
-        echo "🔨 Building with Developer ID signing..."
-        set +e
-        xcodebuild build \
-          -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme {{.SCHEME_NAME}} \
-          -configuration Release \
-          -derivedDataPath {{.DERIVED_DATA}} \
-          CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Release \
-          CODE_SIGN_STYLE=Manual \
-          CODE_SIGN_IDENTITY="Developer ID Application" \
+        ./scripts/sign-app.sh release
           DEVELOPMENT_TEAM=PW6K4BERFV \
           2>&1 | $FORMATTER
         
@@ -835,17 +815,7 @@ tasks:
     silent: true
     cmds:
       - |
-        # Build with ad-hoc signing for CI
-        echo "🔨 Building with ad-hoc signing..."
-        echo "Current directory: $(pwd)"
-        echo "Looking for project: {{.PROJECT_NAME}}.xcodeproj"
-        echo "Directory contents:"
-        ls -la | grep -E "xcodeproj|Taskfile" | head -10 || echo "No matching files"
-        echo "Project exists: $(ls {{.PROJECT_NAME}}.xcodeproj 2>/dev/null || echo 'NO')"
-        
-        # Run build and capture exit code
-        set +e  # Don't exit on error
-        xcodebuild build \
+        ./scripts/sign-app.sh ci
           -project {{.PROJECT_NAME}}.xcodeproj \
           -scheme {{.SCHEME_NAME}} \
           -configuration Release \
@@ -886,14 +856,10 @@ tasks:
     silent: true
     cmds:
       - |
-        # Check both debug and release builds
-        APP_PATH=""
-        if [ -d "{{.RELEASE_APP_PATH}}" ]; then
-          APP_PATH="{{.RELEASE_APP_PATH}}"
-        elif [ -d "{{.DEBUG_APP_PATH}}" ]; then
-          APP_PATH="{{.DEBUG_APP_PATH}}"
-        else
-          echo "❌ No app found. Build the app first."
+        # Use the bundler app path
+        APP_PATH=".build/bundler/MagSafeGuard.app"
+        if [ ! -d "$APP_PATH" ]; then
+          echo "❌ No app found at $APP_PATH. Build the app first with 'task build'."
           exit 1
         fi
 

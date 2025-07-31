@@ -71,7 +71,7 @@ jobs:
 
       - name: Build Application
         run: |
-          task swift:build:release
+          task build
 
       - name: Sign Application
         run: |
