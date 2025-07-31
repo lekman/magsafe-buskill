@@ -33,8 +33,10 @@ tasks:
         if command -v xcpretty &> /dev/null || [ -f "$HOME/.gem/ruby/2.6.0/bin/xcpretty" ]; then
           export PATH="$HOME/.gem/ruby/2.6.0/bin:$PATH"
           FORMATTER="xcpretty --simple --color"
+          echo "Using xcpretty for output formatting"
         else
           FORMATTER="cat"
+          echo "xcpretty not found, using plain output"
         fi
 
         # Run only unit tests (exclude UI tests)
@@ -63,8 +65,10 @@ tasks:
         if command -v xcpretty &> /dev/null || [ -f "$HOME/.gem/ruby/2.6.0/bin/xcpretty" ]; then
           export PATH="$HOME/.gem/ruby/2.6.0/bin:$PATH"
           FORMATTER="xcpretty --simple --color"
+          echo "Using xcpretty for output formatting"
         else
           FORMATTER="cat"
+          echo "xcpretty not found, using plain output"
         fi
 
         # Run only UI tests
@@ -95,8 +99,10 @@ tasks:
         if command -v xcpretty &> /dev/null || [ -f "$HOME/.gem/ruby/2.6.0/bin/xcpretty" ]; then
           export PATH="$HOME/.gem/ruby/2.6.0/bin:$PATH"
           FORMATTER="xcpretty --simple --color"
+          echo "Using xcpretty for output formatting"
         else
           FORMATTER="cat"
+          echo "xcpretty not found, using plain output"
         fi
 
         # Run all tests
@@ -126,12 +132,20 @@ tasks:
         if command -v xcpretty &> /dev/null || [ -f "$HOME/.gem/ruby/2.6.0/bin/xcpretty" ]; then
           export PATH="$HOME/.gem/ruby/2.6.0/bin:$PATH"
           FORMATTER="xcpretty --simple --color"
+          echo "Using xcpretty for output formatting"
         else
           FORMATTER="cat"
+          echo "xcpretty not found, using plain output"
         fi
 
         # Run unit tests with coverage (exclude UI tests)
+        echo "Running xcodebuild test..."
+        echo "Current directory: $(pwd)"
+        echo "Project exists: $(ls {{.PROJECT_NAME}}.xcodeproj 2>/dev/null || echo 'NO')"
+        
         set +e  # Don't exit on error
+        
+        # Run xcodebuild without formatter to capture exit code properly
         xcodebuild test \
           -project {{.PROJECT_NAME}}.xcodeproj \
           -scheme {{.SCHEME_NAME}} \
@@ -139,9 +153,18 @@ tasks:
           -only-testing:{{.PROJECT_NAME}}Tests \
           -derivedDataPath {{.DERIVED_DATA}} \
           -enableCodeCoverage YES \
-          2>&1 | xcpretty --simple --color
-
+          > test_output.log 2>&1
+        
         TEST_EXIT_CODE=$?
+        
+        # Display output with formatter if available
+        if [ "$FORMATTER" = "cat" ]; then
+          cat test_output.log
+        else
+          cat test_output.log | $FORMATTER || cat test_output.log
+        fi
+        
+        rm -f test_output.log
 
         # Check if tests passed based on exit code (more reliable than parsing output)
         if [ "$TEST_EXIT_CODE" = "0" ]; then
@@ -222,8 +245,10 @@ tasks:
         if command -v xcpretty &> /dev/null || [ -f "$HOME/.gem/ruby/2.6.0/bin/xcpretty" ]; then
           export PATH="$HOME/.gem/ruby/2.6.0/bin:$PATH"
           FORMATTER="xcpretty --simple --color"
+          echo "Using xcpretty for output formatting"
         else
           FORMATTER="cat"
+          echo "xcpretty not found, using plain output"
         fi
 
         xcodebuild test \
@@ -268,17 +293,38 @@ tasks:
         if command -v xcpretty &> /dev/null || [ -f "$HOME/.gem/ruby/2.6.0/bin/xcpretty" ]; then
           export PATH="$HOME/.gem/ruby/2.6.0/bin:$PATH"
           FORMATTER="xcpretty --simple --color"
+          echo "Using xcpretty for output formatting"
         else
           FORMATTER="cat"
+          echo "xcpretty not found, using plain output"
         fi
 
-        if xcodebuild build \
+        echo "Building debug configuration..."
+        echo "Current directory: $(pwd)"
+        echo "Project exists: $(ls {{.PROJECT_NAME}}.xcodeproj 2>/dev/null || echo 'NO')"
+        
+        set +e
+        xcodebuild build \
           -project {{.PROJECT_NAME}}.xcodeproj \
           -scheme {{.SCHEME_NAME}} \
           -configuration Debug \
           -derivedDataPath {{.DERIVED_DATA}} \
           CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Debug \
-          2>&1 | $FORMATTER; then
+          > build_output.log 2>&1
+        
+        BUILD_EXIT_CODE=$?
+        
+        # Display output with formatter if available
+        if [ "$FORMATTER" = "cat" ]; then
+          cat build_output.log
+        else
+          cat build_output.log | $FORMATTER || cat build_output.log
+        fi
+        
+        rm -f build_output.log
+        set -e
+        
+        if [ $BUILD_EXIT_CODE -eq 0 ]; then
           echo "✅ Build succeeded"
           echo "   App: {{.DEBUG_APP_PATH}}"
         else
@@ -297,17 +343,38 @@ tasks:
         if command -v xcpretty &> /dev/null || [ -f "$HOME/.gem/ruby/2.6.0/bin/xcpretty" ]; then
           export PATH="$HOME/.gem/ruby/2.6.0/bin:$PATH"
           FORMATTER="xcpretty --simple --color"
+          echo "Using xcpretty for output formatting"
         else
           FORMATTER="cat"
+          echo "xcpretty not found, using plain output"
         fi
 
-        if xcodebuild build \
+        echo "Building release configuration..."
+        echo "Current directory: $(pwd)"
+        echo "Project exists: $(ls {{.PROJECT_NAME}}.xcodeproj 2>/dev/null || echo 'NO')"
+        
+        set +e
+        xcodebuild build \
           -project {{.PROJECT_NAME}}.xcodeproj \
           -scheme {{.SCHEME_NAME}} \
           -configuration Release \
           -derivedDataPath {{.DERIVED_DATA}} \
           CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Release \
-          2>&1 | $FORMATTER; then
+          > build_output.log 2>&1
+        
+        BUILD_EXIT_CODE=$?
+        
+        # Display output with formatter if available
+        if [ "$FORMATTER" = "cat" ]; then
+          cat build_output.log
+        else
+          cat build_output.log | $FORMATTER || cat build_output.log
+        fi
+        
+        rm -f build_output.log
+        set -e
+        
+        if [ $BUILD_EXIT_CODE -eq 0 ]; then
           echo "✅ Build succeeded"
           echo "   App: {{.RELEASE_APP_PATH}}"
           if [ -d "{{.RELEASE_APP_PATH}}" ]; then
@@ -675,7 +742,7 @@ tasks:
           CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Debug \
           CODE_SIGN_STYLE=Automatic \
           DEVELOPMENT_TEAM=PW6K4BERFV \
-          2>&1 | xcpretty --simple --color
+          2>&1 | $FORMATTER
         
         EXIT_CODE=$?
         set -e
@@ -705,7 +772,7 @@ tasks:
           CODE_SIGN_STYLE=Manual \
           CODE_SIGN_IDENTITY="Developer ID Application" \
           DEVELOPMENT_TEAM=PW6K4BERFV \
-          2>&1 | xcpretty --simple --color
+          2>&1 | $FORMATTER
         
         EXIT_CODE=$?
         set -e
@@ -739,7 +806,7 @@ tasks:
           CODE_SIGN_STYLE=Manual \
           CODE_SIGN_IDENTITY="Apple Distribution" \
           DEVELOPMENT_TEAM=PW6K4BERFV \
-          2>&1 | xcpretty --simple --color
+          2>&1 | $FORMATTER
         
         EXIT_CODE=$?
         set -e
@@ -761,6 +828,8 @@ tasks:
       - |
         # Build with ad-hoc signing for CI
         echo "🔨 Building with ad-hoc signing..."
+        echo "Current directory: $(pwd)"
+        echo "Project exists: $(ls {{.PROJECT_NAME}}.xcodeproj 2>/dev/null || echo 'NO')"
         
         # Run build and capture exit code
         set +e  # Don't exit on error
@@ -772,14 +841,29 @@ tasks:
           CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Release \
           CODE_SIGN_IDENTITY="-" \
           CODE_SIGNING_ALLOWED=YES \
-          2>&1 | xcpretty --simple --color
+          > build_output.log 2>&1
         
         EXIT_CODE=$?
+        
+        # Display output with formatter if available
+        if [ "$FORMATTER" = "cat" ]; then
+          cat build_output.log
+        else
+          cat build_output.log | $FORMATTER || cat build_output.log
+        fi
+        
+        rm -f build_output.log
         set -e  # Re-enable exit on error
         
         if [ $EXIT_CODE -eq 0 ]; then
           echo "✅ App built with ad-hoc signing"
           echo "   App: {{.RELEASE_APP_PATH}}"
+          # Also check if app actually exists
+          if [ -d "{{.RELEASE_APP_PATH}}" ]; then
+            echo "   App bundle verified at: $(realpath {{.RELEASE_APP_PATH}})"
+          else
+            echo "   ⚠️  Warning: App bundle not found at expected location"
+          fi
         else
           echo "❌ Build/signing failed"
           exit 1
