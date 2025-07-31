@@ -355,6 +355,9 @@ tasks:
         # Validate each file based on available validator
         FAILED=0
         TOTAL=0
+        NEEDS_FORMAT=0
+
+        # Collect results first to minimize output
         for file in $FILES; do
           TOTAL=$((TOTAL + 1))
           ERROR_OUTPUT=""
@@ -363,7 +366,8 @@ tasks:
             "js-yaml")
               # js-yaml provides detailed error messages
               if ERROR_OUTPUT=$(js-yaml "$file" 2>&1 > /dev/null); then
-                echo "✓ Valid: $file"
+                # Success - don't print unless there's an error
+                :
               else
                 echo "❌ Invalid: $file"
                 echo "   Error details:"
@@ -375,7 +379,8 @@ tasks:
             "prettier")
               # prettier --check returns non-zero if file has issues
               if ERROR_OUTPUT=$(prettier --check --parser yaml "$file" 2>&1); then
-                echo "✓ Valid: $file"
+                # Success - don't print unless there's an error
+                :
               else
                 # Try to parse it to get error details
                 if ! prettier --parser yaml "$file" > /dev/null 2>&1; then
@@ -388,13 +393,15 @@ tasks:
                 else
                   # File is valid YAML but needs formatting
                   echo "✓ Valid: $file (needs formatting)"
+                  NEEDS_FORMAT=$((NEEDS_FORMAT + 1))
                 fi
               fi
               ;;
             "yamllint")
               # yamllint provides detailed error messages
               if ERROR_OUTPUT=$(yamllint -d relaxed "$file" 2>&1); then
-                echo "✓ Valid: $file"
+                # Success - don't print unless there's an error
+                :
               else
                 echo "❌ Invalid: $file"
                 echo "   Error details:"
@@ -406,15 +413,23 @@ tasks:
           esac
         done
 
-        echo ""
-        echo "📊 Summary: Checked $TOTAL files"
-        if [ $FAILED -eq 0 ]; then
-          echo "✅ All YAML files have valid syntax!"
+        # Show summary without listing all files
+        if [ $FAILED -eq 0 ] && [ $NEEDS_FORMAT -eq 0 ]; then
+          echo "✅ All $TOTAL YAML files are valid"
         else
-          echo "❌ $FAILED file(s) have syntax errors"
+          echo ""
+          echo "📊 Summary: Checked $TOTAL files"
+          if [ $FAILED -gt 0 ]; then
+            echo "❌ $FAILED file(s) have syntax errors"
+          fi
+          if [ $NEEDS_FORMAT -gt 0 ]; then
+            echo "⚠️  $NEEDS_FORMAT file(s) need formatting"
+          fi
           echo ""
           echo "To fix formatting issues, run: task yaml:lint:fix"
-          exit 1
+          if [ $FAILED -gt 0 ]; then
+            exit 1
+          fi
         fi
   setup:
     desc: Install YAML tools (js-yaml for validation, prettier for fixing)
