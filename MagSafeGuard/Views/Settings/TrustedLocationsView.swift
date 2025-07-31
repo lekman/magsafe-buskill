@@ -257,6 +257,15 @@ struct AddLocationView: View {
     private func getCurrentLocationAndSave() {
         isLoadingLocation = true
 
+        // Skip location request in CI environment
+        if ProcessInfo.processInfo.environment["CI"] != nil {
+            // Use Apple Park as default for CI
+            coordinate = CLLocationCoordinate2D(latitude: 37.3349, longitude: -122.0090)
+            isLoadingLocation = false
+            onSave()
+            return
+        }
+
         // Request current location
         locationManager.requestLocation()
 

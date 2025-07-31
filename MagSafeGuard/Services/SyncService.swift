@@ -58,6 +58,7 @@ public class SyncService: NSObject, ObservableObject, SyncServiceMonitorDelegate
     private var container: CKContainer?
     private var privateDatabase: CKDatabase?
     private var syncTimer: Timer?
+    private var retryTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
     private var isCloudKitInitialized = false
 
@@ -728,7 +729,7 @@ public enum SyncError: LocalizedError {
 
 // MARK: - SyncServiceMonitorDelegate Implementation
 
-extension SyncService: SyncServiceMonitorDelegate {
+extension SyncService {
     func syncServiceMonitor(_ monitor: SyncServiceMonitor, didUpdateAvailability isAvailable: Bool, status: SyncStatus) {
         self.isAvailable = isAvailable
         self.syncStatus = status

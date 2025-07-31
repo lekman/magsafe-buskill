@@ -9,6 +9,19 @@ import CloudKit
 import Foundation
 import Network
 
+// Debug logging extension
+private extension Data {
+    func append(to url: URL) throws {
+        if let fileHandle = FileHandle(forWritingAtPath: url.path) {
+            defer { fileHandle.closeFile() }
+            fileHandle.seekToEndOfFile()
+            fileHandle.write(self)
+        } else {
+            try write(to: url)
+        }
+    }
+}
+
 /// Handles iCloud availability monitoring and network status
 final class SyncServiceMonitor {
     private let logFile = URL(fileURLWithPath: "/tmp/magsafe-sync.log")

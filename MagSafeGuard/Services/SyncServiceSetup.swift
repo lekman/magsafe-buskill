@@ -8,6 +8,19 @@
 import CloudKit
 import Foundation
 
+// Debug logging extension
+private extension Data {
+    func append(to url: URL) throws {
+        if let fileHandle = FileHandle(forWritingAtPath: url.path) {
+            defer { fileHandle.closeFile() }
+            fileHandle.seekToEndOfFile()
+            fileHandle.write(self)
+        } else {
+            try write(to: url)
+        }
+    }
+}
+
 /// Handles CloudKit initialization and setup for sync service
 final class SyncServiceSetup {
     private let logFile = URL(fileURLWithPath: "/tmp/magsafe-sync.log")
@@ -51,10 +64,9 @@ final class SyncServiceSetup {
 
         // Verify we can access the database
         let query = CKQuery(recordType: "Settings", predicate: NSPredicate(value: true))
-        query.resultsLimit = 1
 
         do {
-            _ = try await database.records(matching: query)
+            _ = try await database.records(matching: query, resultsLimit: 1)
             Log.info("CloudKit database access verified", category: .general)
         } catch {
             Log.error("Failed to access CloudKit database", error: error, category: .general)

@@ -22,57 +22,66 @@ final class SyncServiceSettings {
 
     /// Sync settings to iCloud
     func syncSettings() async throws {
-        Log.info("Syncing settings to iCloud", category: .sync)
+        Log.info("Syncing settings to iCloud", category: .general)
 
         let settings = UserDefaultsManager.shared.settings
         let record = try await fetchOrCreateSettingsRecord()
 
         // Update record with current settings
         record["gracePeriodDuration"] = settings.gracePeriodDuration
-        record["cancelGracePeriodOnReconnect"] = settings.cancelGracePeriodOnReconnect ? 1 : 0
-        record["lockScreen"] = settings.lockScreen ? 1 : 0
-        record["shutDown"] = settings.shutDown ? 1 : 0
-        record["unmountDisks"] = settings.unmountDisks ? 1 : 0
-        record["quitApps"] = settings.quitApps ? 1 : 0
-        record["takeScreenshot"] = settings.takeScreenshot ? 1 : 0
-        record["showNotification"] = settings.showNotification ? 1 : 0
-        record["customCommand"] = settings.customCommand
-        record["customCommandEnabled"] = settings.customCommandEnabled ? 1 : 0
-        record["actionDelay"] = settings.actionDelay
-        record["soundEnabled"] = settings.soundEnabled ? 1 : 0
-        record["soundVolume"] = settings.soundVolume
-        record["soundDuration"] = settings.soundDuration
-        record["soundFrequency"] = settings.soundFrequency
+        record["allowGracePeriodCancellation"] = settings.allowGracePeriodCancellation ? 1 : 0
+
+        // Encode security actions as a comma-separated string
+        let actionsString = settings.securityActions.map { $0.rawValue }.joined(separator: ",")
+        record["securityActions"] = actionsString
+
+        // Auto-arm settings
         record["autoArmEnabled"] = settings.autoArmEnabled ? 1 : 0
         record["autoArmByLocation"] = settings.autoArmByLocation ? 1 : 0
-        record["autoArmByNetwork"] = settings.autoArmByNetwork ? 1 : 0
-        record["autoArmByBluetooth"] = settings.autoArmByBluetooth ? 1 : 0
-        record["autoArmByCalendar"] = settings.autoArmByCalendar ? 1 : 0
-        record["autoArmDelay"] = settings.autoArmDelay
-        record["logSecurityEvents"] = settings.logSecurityEvents ? 1 : 0
-        record["collectScreenshotEvidence"] = settings.collectScreenshotEvidence ? 1 : 0
-        record["collectWebcamEvidence"] = settings.collectWebcamEvidence ? 1 : 0
-        record["collectLocationEvidence"] = settings.collectLocationEvidence ? 1 : 0
-        record["collectSystemInfoEvidence"] = settings.collectSystemInfoEvidence ? 1 : 0
-        record["cloudSyncEnabled"] = settings.cloudSyncEnabled ? 1 : 0
+        record["autoArmOnUntrustedNetwork"] = settings.autoArmOnUntrustedNetwork ? 1 : 0
+
+        // Encode trusted networks as JSON
+        if let trustedNetworksData = try? JSONEncoder().encode(settings.trustedNetworks) {
+            record["trustedNetworks"] = String(data: trustedNetworksData, encoding: .utf8)
+        }
+
+        // Notification settings
+        record["showStatusNotifications"] = settings.showStatusNotifications ? 1 : 0
+        record["playCriticalAlertSound"] = settings.playCriticalAlertSound ? 1 : 0
+
+        // General settings
+        record["launchAtLogin"] = settings.launchAtLogin ? 1 : 0
+        record["showInDock"] = settings.showInDock ? 1 : 0
+
+        // Advanced settings
+        if let customScriptsData = try? JSONEncoder().encode(settings.customScripts) {
+            record["customScripts"] = String(data: customScriptsData, encoding: .utf8)
+        }
+        record["debugLoggingEnabled"] = settings.debugLoggingEnabled ? 1 : 0
+
+        // Cloud sync settings
+        record["iCloudSyncEnabled"] = settings.iCloudSyncEnabled ? 1 : 0
+        record["iCloudDataLimitMB"] = settings.iCloudDataLimitMB
+        record["iCloudDataAgeLimitDays"] = settings.iCloudDataAgeLimitDays
+
         record["lastModified"] = Date()
 
         // Save to CloudKit
         try await database.save(record)
-        Log.info("Settings synced successfully", category: .sync)
+        Log.info("Settings synced successfully", category: .general)
     }
 
     /// Download settings from iCloud
     func downloadSettings() async throws {
-        Log.info("Downloading settings from iCloud", category: .sync)
+        Log.info("Downloading settings from iCloud", category: .general)
 
         do {
             let record = try await database.record(for: settingsRecordID)
             applySettingsFromRecord(record)
-            Log.info("Settings downloaded successfully", category: .sync)
+            Log.info("Settings downloaded successfully", category: .general)
         } catch let error as CKError where error.code == .unknownItem {
             // No settings in cloud yet, use local settings
-            Log.info("No cloud settings found, using local settings", category: .sync)
+            Log.info("No cloud settings found, using local settings", category: .general)
         }
     }
 
@@ -96,23 +105,28 @@ final class SyncServiceSettings {
         // Apply boolean settings
         applyBooleanSettings(from: record, to: manager)
 
-        // Apply string settings
-        if let value = record["customCommand"] as? String {
-            manager.updateSetting(\.customCommand, value: value)
-        }
+        // Apply complex settings
+        applyComplexSettings(from: record, to: manager)
     }
 
     private func applyNumericSettings(from record: CKRecord, to manager: UserDefaultsManager) {
-        let numericMappings: [(key: String, keyPath: WritableKeyPath<Settings, Double>)] = [
-            ("gracePeriodDuration", \.gracePeriodDuration),
-            ("actionDelay", \.actionDelay),
-            ("soundVolume", \.soundVolume),
-            ("soundDuration", \.soundDuration),
-            ("soundFrequency", \.soundFrequency),
-            ("autoArmDelay", \.autoArmDelay)
+        let numericMappings: [(key: String, keyPath: WritableKeyPath<Settings, TimeInterval>)] = [
+            ("gracePeriodDuration", \.gracePeriodDuration)
         ]
 
         for mapping in numericMappings {
+            if let value = record[mapping.key] as? TimeInterval {
+                manager.updateSetting(mapping.keyPath, value: value)
+            }
+        }
+
+        // Apply Double settings
+        let doubleMappings: [(key: String, keyPath: WritableKeyPath<Settings, Double>)] = [
+            ("iCloudDataLimitMB", \.iCloudDataLimitMB),
+            ("iCloudDataAgeLimitDays", \.iCloudDataAgeLimitDays)
+        ]
+
+        for mapping in doubleMappings {
             if let value = record[mapping.key] as? Double {
                 manager.updateSetting(mapping.keyPath, value: value)
             }
@@ -121,32 +135,47 @@ final class SyncServiceSettings {
 
     private func applyBooleanSettings(from record: CKRecord, to manager: UserDefaultsManager) {
         let booleanMappings: [(key: String, keyPath: WritableKeyPath<Settings, Bool>)] = [
-            ("cancelGracePeriodOnReconnect", \.cancelGracePeriodOnReconnect),
-            ("lockScreen", \.lockScreen),
-            ("shutDown", \.shutDown),
-            ("unmountDisks", \.unmountDisks),
-            ("quitApps", \.quitApps),
-            ("takeScreenshot", \.takeScreenshot),
-            ("showNotification", \.showNotification),
-            ("customCommandEnabled", \.customCommandEnabled),
-            ("soundEnabled", \.soundEnabled),
+            ("allowGracePeriodCancellation", \.allowGracePeriodCancellation),
             ("autoArmEnabled", \.autoArmEnabled),
             ("autoArmByLocation", \.autoArmByLocation),
-            ("autoArmByNetwork", \.autoArmByNetwork),
-            ("autoArmByBluetooth", \.autoArmByBluetooth),
-            ("autoArmByCalendar", \.autoArmByCalendar),
-            ("logSecurityEvents", \.logSecurityEvents),
-            ("collectScreenshotEvidence", \.collectScreenshotEvidence),
-            ("collectWebcamEvidence", \.collectWebcamEvidence),
-            ("collectLocationEvidence", \.collectLocationEvidence),
-            ("collectSystemInfoEvidence", \.collectSystemInfoEvidence),
-            ("cloudSyncEnabled", \.cloudSyncEnabled)
+            ("autoArmOnUntrustedNetwork", \.autoArmOnUntrustedNetwork),
+            ("showStatusNotifications", \.showStatusNotifications),
+            ("playCriticalAlertSound", \.playCriticalAlertSound),
+            ("launchAtLogin", \.launchAtLogin),
+            ("showInDock", \.showInDock),
+            ("debugLoggingEnabled", \.debugLoggingEnabled),
+            ("iCloudSyncEnabled", \.iCloudSyncEnabled)
         ]
 
         for mapping in booleanMappings {
             if let value = record[mapping.key] as? Int {
                 manager.updateSetting(mapping.keyPath, value: value == 1)
             }
+        }
+    }
+
+    private func applyComplexSettings(from record: CKRecord, to manager: UserDefaultsManager) {
+        // Decode security actions
+        if let actionsString = record["securityActions"] as? String {
+            let actionStrings = actionsString.split(separator: ",").map { String($0) }
+            let actions = actionStrings.compactMap { SecurityActionType(rawValue: $0) }
+            if !actions.isEmpty {
+                manager.updateSetting(\.securityActions, value: actions)
+            }
+        }
+
+        // Decode trusted networks
+        if let trustedNetworksString = record["trustedNetworks"] as? String,
+           let data = trustedNetworksString.data(using: .utf8),
+           let networks = try? JSONDecoder().decode([String].self, from: data) {
+            manager.updateSetting(\.trustedNetworks, value: networks)
+        }
+
+        // Decode custom scripts
+        if let customScriptsString = record["customScripts"] as? String,
+           let data = customScriptsString.data(using: .utf8),
+           let scripts = try? JSONDecoder().decode([String].self, from: data) {
+            manager.updateSetting(\.customScripts, value: scripts)
         }
     }
 }
