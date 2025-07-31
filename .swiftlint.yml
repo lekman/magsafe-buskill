@@ -3,7 +3,9 @@
 
 # Files to include/exclude
 included:
-  - Sources
+  - MagSafeGuard
+  - MagSafeGuardTests
+  - MagSafeGuardUITests
 only_rules: []
 
 # Analyzer rules (requires 'swiftlint analyze')
@@ -122,9 +124,7 @@ reporter: "xcode"
 
 # Exclude auto-generated code
 excluded:
-  - Tests
-  - Package.swift
   - .build
-  - .swiftpm
+  - DerivedData
   - "*.generated.swift"
   - "**/Generated/"

@@ -126,6 +126,9 @@ struct TrustedLocationsView: View {
     }
 
     private func checkLocationPermission() {
+        // Skip in test environment to avoid permission dialogs
+        guard ProcessInfo.processInfo.environment["CI"] == nil else { return }
+
         let status = CLLocationManager().authorizationStatus
         if status == .denied || status == .restricted {
             showingPermissionAlert = true

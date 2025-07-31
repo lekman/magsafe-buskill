@@ -13,7 +13,8 @@ import SwiftUI
 public struct SettingsView: View {
     @ObservedObject private var settingsManager = UserDefaultsManager.shared
     @State private var selectedTab: SettingsTab? = .general
-    
+
+    /// Initializes the settings view with the general tab selected
     public init() {
         // Ensure we have an initial selection
         _selectedTab = State(initialValue: .general)
@@ -225,20 +226,20 @@ struct SecuritySettingsView: View {
             Section(header: securityActionsHeaderText) {
                 enabledActionsSection
             }
-            
+
             Section(header: Text("Available Actions")) {
                 ForEach(availableActions, id: \.self) { action in
                     availableActionRow(for: action)
                 }
             }
-            
+
             Section {
                 securityActionsFooter
             }
         }
         .formStyle(.grouped)
     }
-    
+
     private var securityActionsHeaderText: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Active Security Actions")

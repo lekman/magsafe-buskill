@@ -1,8 +1,8 @@
 //
 //  MagSafeGuardUITests.swift
-//  MagSafeGuardUITests
+//  MagSafe Guard
 //
-//  Created by Tobias Lekman on 31/07/2025.
+//  Created on 2025-07-31.
 //
 
 import XCTest

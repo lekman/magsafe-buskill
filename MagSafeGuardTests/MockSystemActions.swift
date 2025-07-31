@@ -1,6 +1,6 @@
 //
 //  MockSystemActions.swift
-//  MagSafeGuardTests
+//  MagSafe Guard
 //
 //  Created on 2025-07-25.
 //
@@ -12,7 +12,7 @@ import Foundation
 
 /// Mock implementation of system actions for testing
 class MockSystemActions: SystemActionsProtocol {
-    
+
     // Track which actions were called
     var lockScreenCalled = false
     var playAlarmCalled = false
@@ -23,7 +23,7 @@ class MockSystemActions: SystemActionsProtocol {
     var shutdownDelaySeconds: TimeInterval?
     var executeScriptCalled = false
     var executedScriptPath: String?
-    
+
     // Control whether actions should fail
     var shouldFailScreenLock = false
     var shouldFailAlarm = false
@@ -31,7 +31,7 @@ class MockSystemActions: SystemActionsProtocol {
     var shouldFailShutdown = false
     var shouldFailScript = false
     var scriptExitCode: Int32 = 0
-    
+
     // Reset method for test setup
     func reset() {
         lockScreenCalled = false
@@ -43,7 +43,7 @@ class MockSystemActions: SystemActionsProtocol {
         shutdownDelaySeconds = nil
         executeScriptCalled = false
         executedScriptPath = nil
-        
+
         shouldFailScreenLock = false
         shouldFailAlarm = false
         shouldFailLogout = false
@@ -51,14 +51,14 @@ class MockSystemActions: SystemActionsProtocol {
         shouldFailScript = false
         scriptExitCode = 0
     }
-    
+
     func lockScreen() throws {
         lockScreenCalled = true
         if shouldFailScreenLock {
             throw SystemActionError.screenLockFailed
         }
     }
-    
+
     func playAlarm(volume: Float) throws {
         playAlarmCalled = true
         playAlarmVolume = volume
@@ -66,18 +66,18 @@ class MockSystemActions: SystemActionsProtocol {
             throw SystemActionError.alarmPlaybackFailed
         }
     }
-    
+
     func stopAlarm() {
         stopAlarmCalled = true
     }
-    
+
     func forceLogout() throws {
         forceLogoutCalled = true
         if shouldFailLogout {
             throw SystemActionError.logoutFailed
         }
     }
-    
+
     func scheduleShutdown(afterSeconds: TimeInterval) throws {
         scheduleShutdownCalled = true
         shutdownDelaySeconds = afterSeconds
@@ -85,16 +85,16 @@ class MockSystemActions: SystemActionsProtocol {
             throw SystemActionError.shutdownFailed
         }
     }
-    
+
     func executeScript(at path: String) throws {
         executeScriptCalled = true
         executedScriptPath = path
-        
+
         // Check if file exists for realistic behavior
         if !FileManager.default.fileExists(atPath: path) {
             throw SystemActionError.scriptNotFound
         }
-        
+
         if shouldFailScript {
             if scriptExitCode != 0 {
                 throw SystemActionError.scriptExecutionFailed(exitCode: scriptExitCode)

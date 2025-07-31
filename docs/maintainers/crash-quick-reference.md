@@ -7,6 +7,7 @@
 **Issue**: Force unwrapping `settingsWindow` after it's been set to nil
 
 **Fix Applied**:
+
 ```swift
 // AppController.swift
 func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -23,6 +24,7 @@ private var settingsHostingController: NSHostingController<SettingsView>?
 **Issue**: CloudKit initializing during app startup causing EXC_BREAKPOINT
 
 **Fix Applied**:
+
 ```swift
 // SyncService.swift
 public override init() {
@@ -43,6 +45,7 @@ public func enableSync() {
 **Issue**: UserDefaultsManager and SyncService creating each other recursively
 
 **Fix Applied**:
+
 ```swift
 // UserDefaultsManager.swift
 init() {
@@ -66,6 +69,7 @@ init() {
 **Issue**: Bundle resources not found causing app crash
 
 **Fix Applied**:
+
 ```swift
 // Package.swift
 resources: [
@@ -84,6 +88,7 @@ linkerSettings: [
 **Issue**: Modifying @Published properties during view updates
 
 **Fix Applied**:
+
 ```swift
 // CloudSyncSettingsView.swift
 .onChange(of: settingsManager.settings.iCloudSyncEnabled) { newValue in
@@ -100,6 +105,7 @@ linkerSettings: [
 ## Prevention Patterns
 
 ### Always Use Guard/If-Let
+
 ```swift
 // ❌ DON'T
 let window = settingsWindow!
@@ -109,6 +115,7 @@ guard let window = settingsWindow else { return }
 ```
 
 ### Weak References for UI Elements
+
 ```swift
 // ❌ DON'T
 private var settingsWindow: NSWindow?
@@ -118,6 +125,7 @@ private weak var settingsWindow: NSWindow?
 ```
 
 ### Defer Initialization
+
 ```swift
 // ❌ DON'T
 init() {
@@ -135,6 +143,7 @@ func enableFeature() {
 ```
 
 ### Main Thread UI Updates
+
 ```swift
 // ❌ DON'T
 Task {
@@ -148,6 +157,7 @@ Task { @MainActor in
 ```
 
 ### Safe CloudKit Container
+
 ```swift
 // ❌ DON'T
 container = CKContainer(identifier: "specific-id")
@@ -183,6 +193,7 @@ When app crashes with error like `EXC_BREAKPOINT` or `EXC_BAD_ACCESS`:
 ## Emergency Fixes
 
 ### App Won't Launch
+
 ```bash
 # Reset preferences
 defaults delete com.lekman.magsafeguard
@@ -195,12 +206,14 @@ task run:unsigned
 ```
 
 ### CloudKit Crashes
+
 ```bash
 # Disable CloudKit temporarily
 defaults write com.lekman.magsafeguard iCloudSyncEnabled -bool NO
 ```
 
 ### Window Crashes
+
 ```bash
 # Reset window positions
 defaults delete com.lekman.magsafeguard NSWindow

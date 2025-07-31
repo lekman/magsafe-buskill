@@ -308,6 +308,26 @@ tasks:
       - |
         echo "✓ Validating YAML syntax..."
 
+        # Check if we have a YAML validator available
+        VALIDATOR=""
+        if command -v js-yaml &> /dev/null; then
+          VALIDATOR="js-yaml"
+        elif command -v prettier &> /dev/null; then
+          VALIDATOR="prettier"
+        elif command -v yamllint &> /dev/null; then
+          VALIDATOR="yamllint"
+        else
+          echo "❌ No YAML validator found!"
+          echo ""
+          echo "Please install one of the following:"
+          echo "  • npm install -g js-yaml (recommended)"
+          echo "  • npm install -g prettier"
+          echo "  • brew install yamllint"
+          exit 1
+        fi
+
+        echo "📦 Using $VALIDATOR for validation..."
+
         # Convert patterns
         PATTERNS=$(echo "{{.FILE_PATTERNS}}" | tr ',' ' ')
 
@@ -332,50 +352,103 @@ tasks:
           exit 0
         fi
 
-        # Validate each file using Python
+        # Validate each file based on available validator
         FAILED=0
+        TOTAL=0
         for file in $FILES; do
-          if ! python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>/dev/null; then
-            echo "❌ Invalid YAML syntax: $file"
-            FAILED=$((FAILED + 1))
-          else
-            echo "✓ Valid: $file"
-          fi
+          TOTAL=$((TOTAL + 1))
+          ERROR_OUTPUT=""
+          
+          case "$VALIDATOR" in
+            "js-yaml")
+              # js-yaml provides detailed error messages
+              if ERROR_OUTPUT=$(js-yaml "$file" 2>&1 > /dev/null); then
+                echo "✓ Valid: $file"
+              else
+                echo "❌ Invalid: $file"
+                echo "   Error details:"
+                echo "$ERROR_OUTPUT" | sed 's/^/     /'
+                echo ""
+                FAILED=$((FAILED + 1))
+              fi
+              ;;
+            "prettier")
+              # prettier --check returns non-zero if file has issues
+              if ERROR_OUTPUT=$(prettier --check --parser yaml "$file" 2>&1); then
+                echo "✓ Valid: $file"
+              else
+                # Try to parse it to get error details
+                if ! prettier --parser yaml "$file" > /dev/null 2>&1; then
+                  echo "❌ Invalid: $file"
+                  ERROR_OUTPUT=$(prettier --parser yaml "$file" 2>&1 || true)
+                  echo "   Error details:"
+                  echo "$ERROR_OUTPUT" | grep -E "(Error:|SyntaxError:|YAMLException:)" | sed 's/^/     /'
+                  echo ""
+                  FAILED=$((FAILED + 1))
+                else
+                  # File is valid YAML but needs formatting
+                  echo "✓ Valid: $file (needs formatting)"
+                fi
+              fi
+              ;;
+            "yamllint")
+              # yamllint provides detailed error messages
+              if ERROR_OUTPUT=$(yamllint -d relaxed "$file" 2>&1); then
+                echo "✓ Valid: $file"
+              else
+                echo "❌ Invalid: $file"
+                echo "   Error details:"
+                echo "$ERROR_OUTPUT" | sed 's/^/     /'
+                echo ""
+                FAILED=$((FAILED + 1))
+              fi
+              ;;
+          esac
         done
 
         echo ""
+        echo "📊 Summary: Checked $TOTAL files"
         if [ $FAILED -eq 0 ]; then
           echo "✅ All YAML files have valid syntax!"
         else
-          echo "❌ $FAILED files have syntax errors"
+          echo "❌ $FAILED file(s) have syntax errors"
+          echo ""
+          echo "To fix formatting issues, run: task yaml:lint:fix"
           exit 1
         fi
   setup:
-    desc: Install YAML tools (yamllint for checking, prettier for fixing)
+    desc: Install YAML tools (js-yaml for validation, prettier for fixing)
     silent: true
     cmds:
       - |
         echo "🔧 Setting up YAML tools..."
 
+        # Check if npm is available first
+        if ! command -v npm &> /dev/null; then
+          echo "❌ npm not found. Please install Node.js first."
+          echo ""
+          echo "To install Node.js:"
+          echo "  macOS: brew install node"
+          echo "  Linux: curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs"
+          exit 1
+        fi
+
+        # Check if js-yaml is installed (recommended for validation)
+        if command -v js-yaml &> /dev/null; then
+          echo "✅ js-yaml already installed"
+        else
+          echo "📦 Installing js-yaml for YAML validation..."
+          npm install -g js-yaml
+          echo "✅ js-yaml installed successfully"
+        fi
+
         # Check if prettier is installed (required for auto-fixing)
         if command -v prettier &> /dev/null; then
           echo "✅ prettier already installed ($(prettier --version))"
         else
-          echo ""
           echo "📦 Installing prettier for YAML auto-formatting..."
-
-          # Check if npm is available
-          if command -v npm &> /dev/null; then
-            npm install -g prettier
-            echo "✅ prettier installed successfully"
-          else
-            echo "❌ npm not found. Please install Node.js first."
-            echo ""
-            echo "To install Node.js:"
-            echo "  macOS: brew install node"
-            echo "  Linux: curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs"
-            exit 1
-          fi
+          npm install -g prettier
+          echo "✅ prettier installed successfully"
         fi
 
         # Check if yamllint is installed (for linting)

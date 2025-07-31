@@ -1,22 +1,22 @@
 //
 //  AuthenticationServiceMockTests.swift
-//  MagSafeGuardTests
+//  MagSafe Guard
 //
 //  Created on 2025-07-25.
 //
 //  Tests for AuthenticationService using mock context to achieve 100% coverage
 //
 
-import XCTest
 import LocalAuthentication
 @testable import MagSafeGuard
+import XCTest
 
 final class AuthenticationServiceMockTests: XCTestCase {
-    
+
     var service: AuthenticationService!
     var mockContext: MockAuthenticationContext!
     var mockFactory: MockAuthenticationContextFactory!
-    
+
     override func setUp() {
         super.setUp()
         mockContext = MockAuthenticationContext()
@@ -24,7 +24,7 @@ final class AuthenticationServiceMockTests: XCTestCase {
         service = AuthenticationService(contextFactory: mockFactory)
         service.clearAuthenticationCache()
     }
-    
+
     override func tearDown() {
         service.invalidateAuthentication()
         service = nil
@@ -32,37 +32,37 @@ final class AuthenticationServiceMockTests: XCTestCase {
         mockFactory = nil
         super.tearDown()
     }
-    
+
     // MARK: - Biometric Availability Tests
-    
+
     func testBiometricAuthenticationAvailable() {
         mockContext.canEvaluatePolicyResult = true
         XCTAssertTrue(service.isBiometricAuthenticationAvailable())
         XCTAssertTrue(mockContext.canEvaluatePolicyCalled)
     }
-    
+
     func testBiometricAuthenticationNotAvailable() {
         mockContext.canEvaluatePolicyResult = false
         mockContext.canEvaluatePolicyError = LAError(.biometryNotAvailable)
         XCTAssertFalse(service.isBiometricAuthenticationAvailable())
         XCTAssertTrue(mockContext.canEvaluatePolicyCalled)
     }
-    
+
     func testBiometryType() {
         mockContext.mockBiometryType = .faceID
         XCTAssertEqual(service.biometryType, .faceID)
-        
+
         mockContext.mockBiometryType = .touchID
         XCTAssertEqual(service.biometryType, .touchID)
     }
-    
+
     // MARK: - Authentication Flow Tests
-    
+
     func testSuccessfulAuthentication() {
         let expectation = self.expectation(description: "Authentication completes")
         mockContext.canEvaluatePolicyResult = true
         mockContext.evaluatePolicyShouldSucceed = true
-        
+
         service.authenticate(reason: "Test authentication", policy: .allowPasswordFallback) { result in
             switch result {
             case .success:
@@ -73,16 +73,16 @@ final class AuthenticationServiceMockTests: XCTestCase {
             }
             expectation.fulfill()
         }
-        
+
         waitForExpectations(timeout: 2)
     }
-    
+
     func testFailedAuthentication() {
         let expectation = self.expectation(description: "Authentication fails")
         mockContext.canEvaluatePolicyResult = true
         mockContext.evaluatePolicyShouldSucceed = false
         mockContext.evaluatePolicyError = LAError(.authenticationFailed)
-        
+
         service.authenticate(reason: "Test authentication", policy: .biometricOnly) { result in
             switch result {
             case .success:
@@ -98,16 +98,16 @@ final class AuthenticationServiceMockTests: XCTestCase {
             }
             expectation.fulfill()
         }
-        
+
         waitForExpectations(timeout: 2)
     }
-    
+
     func testCancelledAuthentication() {
         let expectation = self.expectation(description: "Authentication cancelled")
         mockContext.canEvaluatePolicyResult = true
         mockContext.evaluatePolicyShouldSucceed = false
         mockContext.evaluatePolicyError = LAError(.userCancel)
-        
+
         service.authenticate(reason: "Test authentication") { result in
             switch result {
             case .success:
@@ -119,17 +119,17 @@ final class AuthenticationServiceMockTests: XCTestCase {
             }
             expectation.fulfill()
         }
-        
+
         waitForExpectations(timeout: 2)
     }
-    
+
     // MARK: - Policy Evaluation Tests
-    
+
     func testCannotEvaluatePolicy() {
         let expectation = self.expectation(description: "Policy evaluation fails")
         mockContext.canEvaluatePolicyResult = false
         mockContext.canEvaluatePolicyError = LAError(.biometryNotEnrolled)
-        
+
         service.authenticate(reason: "Test") { result in
             switch result {
             case .success:
@@ -143,34 +143,34 @@ final class AuthenticationServiceMockTests: XCTestCase {
             }
             expectation.fulfill()
         }
-        
+
         waitForExpectations(timeout: 2)
     }
-    
+
     // MARK: - Rate Limiting Tests
-    
+
     func testRateLimiting() {
         // Reset attempts first
         service.resetAuthenticationAttempts()
-        
+
         // Simulate multiple failed attempts
         mockContext.canEvaluatePolicyResult = true
         mockContext.evaluatePolicyShouldSucceed = false
         mockContext.evaluatePolicyError = LAError(.authenticationFailed)
-        
-        let expectations = (0..<4).map { i in
-            self.expectation(description: "Attempt \(i + 1)")
+
+        let expectations = (0..<4).map { index in
+            self.expectation(description: "Attempt \(index + 1)")
         }
-        
+
         // First 3 attempts should proceed
-        for i in 0..<3 {
-            service.authenticate(reason: "Test \(i + 1)") { result in
+        for index in 0..<3 {
+            service.authenticate(reason: "Test \(index + 1)") { result in
                 if case .failure = result {
-                    expectations[i].fulfill()
+                    expectations[index].fulfill()
                 }
             }
         }
-        
+
         // 4th attempt should be rate limited
         service.authenticate(reason: "Test 4") { result in
             if case .failure(let error) = result,
@@ -180,81 +180,81 @@ final class AuthenticationServiceMockTests: XCTestCase {
                 expectations[3].fulfill()
             }
         }
-        
+
         waitForExpectations(timeout: 5, handler: nil)
     }
-    
+
     // MARK: - Caching Tests
-    
+
     func testAuthenticationCaching() {
         // First successful authentication
         let expectation1 = self.expectation(description: "First authentication")
         mockContext.canEvaluatePolicyResult = true
         mockContext.evaluatePolicyShouldSucceed = true
-        
-        service.authenticate(reason: "Test 1") { result in
+
+        service.authenticate(reason: "Test 1") { _ in
             XCTAssertTrue(self.mockContext.evaluatePolicyCalled)
             expectation1.fulfill()
         }
-        
+
         waitForExpectations(timeout: 2)
-        
+
         // Reset mock
         mockContext.reset()
-        
+
         // Second authentication within cache period should skip evaluation
         let expectation2 = self.expectation(description: "Cached authentication")
-        service.authenticate(reason: "Test 2", policy: [.allowPasswordFallback, .requireRecentAuthentication]) { result in
+        service.authenticate(reason: "Test 2", policy: [.allowPasswordFallback, .requireRecentAuthentication]) { _ in
             // Should not call evaluate since it's cached
             XCTAssertFalse(self.mockContext.evaluatePolicyCalled)
             expectation2.fulfill()
         }
-        
+
         waitForExpectations(timeout: 2)
     }
-    
+
     func testClearAuthenticationCache() {
         // Set up cached authentication
         service.lastAuthenticationTime = Date()
-        
+
         // Clear cache
         service.clearAuthenticationCache()
-        
+
         // Wait for async operation
         let expectation = self.expectation(description: "Cache cleared")
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             XCTAssertNil(self.service.lastAuthenticationTime)
             expectation.fulfill()
         }
-        
+
         waitForExpectations(timeout: 1)
     }
-    
+
     // MARK: - Invalidation Tests
-    
+
     func testInvalidateAuthentication() {
         // Trigger authentication to create context
         mockContext.canEvaluatePolicyResult = true
-        let _ = service.isBiometricAuthenticationAvailable()
-        
+        _ = service.isBiometricAuthenticationAvailable()
+
         // Invalidate
         service.invalidateAuthentication()
-        
+
         // Wait for async operation
         let expectation = self.expectation(description: "Context invalidated")
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             // Next call should create new context
             self.mockContext.reset()
-            let _ = self.service.isBiometricAuthenticationAvailable()
+            _ = self.service.isBiometricAuthenticationAvailable()
             XCTAssertTrue(self.mockContext.canEvaluatePolicyCalled)
             expectation.fulfill()
         }
-        
+
         waitForExpectations(timeout: 1)
     }
-    
+
     // MARK: - Error Mapping Tests
-    
+
     func testErrorMapping() {
         let testCases: [(LAError.Code, AuthenticationService.AuthenticationError)] = [
             (.biometryNotAvailable, .biometryNotAvailable),
@@ -266,12 +266,12 @@ final class AuthenticationServiceMockTests: XCTestCase {
             (.passcodeNotSet, .passcodeNotSet),
             (.authenticationFailed, .authenticationFailed)
         ]
-        
+
         for (laErrorCode, expectedError) in testCases {
             let error = service.mapLAError(NSError(domain: LAErrorDomain, code: laErrorCode.rawValue))
             XCTAssertEqual(error, expectedError)
         }
-        
+
         // Test unknown error
         let unknownError = NSError(domain: "Unknown", code: 999)
         let mappedError = service.mapLAError(unknownError)
@@ -280,7 +280,7 @@ final class AuthenticationServiceMockTests: XCTestCase {
         } else {
             XCTFail("Should map to unknown error")
         }
-        
+
         // Test nil error
         let nilError = service.mapLAError(nil)
         if case .unknown = nilError {
@@ -289,23 +289,23 @@ final class AuthenticationServiceMockTests: XCTestCase {
             XCTFail("Nil should map to unknown error")
         }
     }
-    
+
     // MARK: - Authentication Policy Tests
-    
+
     func testAuthenticationPolicyOptions() {
         XCTAssertTrue(AuthenticationService.AuthenticationPolicy.biometricOnly.contains(.biometricOnly))
         XCTAssertFalse(AuthenticationService.AuthenticationPolicy.biometricOnly.contains(.allowPasswordFallback))
-        
+
         let combined: AuthenticationService.AuthenticationPolicy = [.biometricOnly, .allowPasswordFallback]
         XCTAssertTrue(combined.contains(.biometricOnly))
         XCTAssertTrue(combined.contains(.allowPasswordFallback))
     }
-    
+
     // MARK: - Input Validation Tests
-    
+
     func testEmptyReasonValidation() {
         let expectation = self.expectation(description: "Empty reason rejected")
-        
+
         service.authenticate(reason: "") { result in
             if case .failure(let error) = result,
                let authError = error as? AuthenticationService.AuthenticationError,
@@ -315,14 +315,14 @@ final class AuthenticationServiceMockTests: XCTestCase {
                 XCTFail("Empty reason should be rejected")
             }
         }
-        
+
         waitForExpectations(timeout: 2)
     }
-    
+
     func testLongReasonValidation() {
         let longReason = String(repeating: "a", count: 300)
         let expectation = self.expectation(description: "Long reason rejected")
-        
+
         service.authenticate(reason: longReason) { result in
             if case .failure(let error) = result,
                let authError = error as? AuthenticationService.AuthenticationError,
@@ -332,7 +332,7 @@ final class AuthenticationServiceMockTests: XCTestCase {
                 XCTFail("Long reason should be rejected")
             }
         }
-        
+
         waitForExpectations(timeout: 2)
     }
 }

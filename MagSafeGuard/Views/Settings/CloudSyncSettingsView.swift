@@ -86,10 +86,10 @@ struct CloudSyncSettingsView: View {
                         .scaleEffect(0.8)
                         .padding(.leading, 8)
                 }
-                
+
                 Spacer()
             }
-            
+
             Text("Manually sync all settings and evidence to iCloud")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -156,11 +156,11 @@ struct CloudSyncSettingsView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            .onChange(of: settingsManager.settings.iCloudSyncEnabled) { oldValue, newValue in
+            .onChange(of: settingsManager.settings.iCloudSyncEnabled) { _, newValue in
                 if newValue {
                     // Enable CloudKit sync
                     syncService.enableSync()
-                    
+
                     // Trigger initial sync after a short delay
                     Task {
                         try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds

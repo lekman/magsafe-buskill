@@ -2,7 +2,7 @@
 //  AppDelegate.swift
 //  MagSafe Guard
 //
-//  Created by Tobias Lekman on 31/07/2025.
+//  Created on 2025-07-31.
 //
 
 import AppKit
@@ -25,7 +25,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Check for previous crashes
         checkForPreviousCrashes()
-        
+
         // Hide dock icon as this is a menu bar app
         NSApp.setActivationPolicy(.accessory)
 
@@ -189,7 +189,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func showSettings() {
         Log.info("showSettings called", category: .ui)
-        
+
         // Safe window management pattern
         if let existingWindow = settingsWindow {
             Log.info("Bringing existing settings window to front", category: .ui)
@@ -197,33 +197,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.activate(ignoringOtherApps: true)
             return
         }
-        
+
         Log.info("Creating new settings window", category: .ui)
-        
+
         // Create new window safely
         let settingsView = SettingsView()
             .environmentObject(UserDefaultsManager.shared)
-        
+
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 800, height: 500),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
-        
+
         window.title = "MagSafe Guard Settings"
-        
+
         // Create and retain the hosting controller
         let hostingController = NSHostingController(rootView: settingsView)
         settingsHostingController = hostingController
         window.contentViewController = hostingController
-        
+
         window.center()
         // Temporarily disable frame autosave to ensure window appears
         // window.setFrameAutosaveName("SettingsWindow")
         window.animationBehavior = .none
         window.isReleasedWhenClosed = false  // Prevent window from being released
-        
+
         // Clean up when window closes
         let delegate = WindowDelegate { [weak self] in
             Task { @MainActor in
@@ -231,32 +231,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 window.contentViewController = nil
                 self?.settingsWindow = nil
                 self?.settingsHostingController = nil
-                
+
                 // Return to accessory mode if no windows are open
                 if self?.settingsWindow == nil {
                     NSApp.setActivationPolicy(.accessory)
                 }
             }
         }
-        
+
         window.delegate = delegate
         windowDelegates[window] = delegate
         settingsWindow = window
-        
+
         // Temporarily make the app regular so it appears in Dock and Cmd+Tab
         NSApp.setActivationPolicy(.regular)
-        
+
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        
+
         // Force window to be visible
         window.orderFrontRegardless()
         window.setIsVisible(true)
-        
+
         Log.info("Settings window created and shown successfully", category: .ui)
         Log.info("Window visible: \(window.isVisible), frame: \(window.frame)", category: .ui)
     }
-
 
     private func requestNotificationPermissions() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
@@ -329,9 +328,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Menu bar apps should not quit when the last window is closed
         return false
     }
-    
+
     // MARK: - Crash Reporting
-    
+
     private func checkForPreviousCrashes() {
         #if DEBUG
         if let crashInfo = UserDefaults.standard.dictionary(forKey: "lastCrashInfo") {
@@ -339,10 +338,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             Log.warning("  Exception: \(crashInfo["exception"] ?? "Unknown")", category: .ui)
             Log.warning("  Reason: \(crashInfo["reason"] ?? "Unknown")", category: .ui)
             Log.warning("  Time: \(crashInfo["timestamp"] ?? "Unknown")", category: .ui)
-            
+
             // Clear the crash info
             UserDefaults.standard.removeObject(forKey: "lastCrashInfo")
-            
+
             // Show alert if running in development
             if Bundle.main.bundleIdentifier == nil {
                 DispatchQueue.main.async {
@@ -357,7 +356,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         #endif
     }
-    
+
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         // Check if we're in a critical state
         if core.appController.currentState == .gracePeriod {

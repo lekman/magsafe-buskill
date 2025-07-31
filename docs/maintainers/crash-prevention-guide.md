@@ -19,6 +19,7 @@ This guide provides comprehensive strategies for preventing, debugging, and fixi
 ### 1. Force Unwrapping Optionals
 
 **Problem:**
+
 ```swift
 // ❌ Dangerous
 let window = settingsWindow!
@@ -26,6 +27,7 @@ window.makeKeyAndOrderFront(nil)
 ```
 
 **Solution:**
+
 ```swift
 // ✅ Safe
 guard let window = settingsWindow else {
@@ -38,6 +40,7 @@ window.makeKeyAndOrderFront(nil)
 ### 2. Retain Cycles
 
 **Problem:**
+
 ```swift
 // ❌ Creates retain cycle
 class ViewController {
@@ -52,6 +55,7 @@ class ViewController {
 ```
 
 **Solution:**
+
 ```swift
 // ✅ Prevents retain cycle
 class ViewController {
@@ -68,12 +72,14 @@ class ViewController {
 ### 3. Array Index Out of Bounds
 
 **Problem:**
+
 ```swift
 // ❌ Can crash
 let item = array[index]
 ```
 
 **Solution:**
+
 ```swift
 // ✅ Safe
 guard index < array.count else { return }
@@ -92,6 +98,7 @@ extension Array {
 ### Main Thread Violations
 
 **Problem:**
+
 ```swift
 // ❌ Updates UI from background thread
 Task {
@@ -101,6 +108,7 @@ Task {
 ```
 
 **Solution:**
+
 ```swift
 // ✅ Ensures UI updates on main thread
 Task {
@@ -120,6 +128,7 @@ func updateUI(with data: String) {
 ### SwiftUI State Updates
 
 **Problem:**
+
 ```swift
 // ❌ Modifying state during view update
 struct ContentView: View {
@@ -135,6 +144,7 @@ struct ContentView: View {
 ```
 
 **Solution:**
+
 ```swift
 // ✅ Defer state updates
 struct ContentView: View {
@@ -154,6 +164,7 @@ struct ContentView: View {
 ### Window Management in macOS
 
 **Problem:**
+
 ```swift
 // ❌ Force unwrapping window references
 func showSettings() {
@@ -162,6 +173,7 @@ func showSettings() {
 ```
 
 **Solution:**
+
 ```swift
 // ✅ Safe window management
 private weak var settingsWindow: NSWindow?
@@ -195,6 +207,7 @@ func createAndShowSettingsWindow() {
 ### Avoiding Memory Leaks
 
 1. **Use Weak References for Delegates**
+
 ```swift
 // ✅ Correct
 weak var delegate: MyDelegate?
@@ -203,7 +216,8 @@ weak var delegate: MyDelegate?
 var delegate: MyDelegate?
 ```
 
-2. **Break Retain Cycles in Closures**
+1. **Break Retain Cycles in Closures**
+
 ```swift
 // ✅ Using capture list
 someAsyncOperation { [weak self] result in
@@ -212,7 +226,8 @@ someAsyncOperation { [weak self] result in
 }
 ```
 
-3. **Clean Up Resources**
+1. **Clean Up Resources**
+
 ```swift
 deinit {
     timer?.invalidate()
@@ -417,6 +432,7 @@ private func handleCloudKitError(_ error: CKError) {
 ### 1. Enable Zombie Objects
 
 In Xcode:
+
 - Edit Scheme → Run → Diagnostics
 - Check "Zombie Objects"
 
@@ -437,6 +453,7 @@ In Xcode:
 ### 4. Symbolic Breakpoints
 
 Set breakpoints for:
+
 - `swift_willThrow`
 - `NSException`
 - `malloc_error_break`

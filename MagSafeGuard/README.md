@@ -4,7 +4,7 @@ This is the Xcode project structure for MagSafe Guard, migrated from Swift Packa
 
 ## Project Structure
 
-```
+```text
 MagSafe Guard/
 ├── Controllers/
 │   └── AppController.swift         # Main app controller

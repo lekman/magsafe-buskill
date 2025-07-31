@@ -95,7 +95,7 @@ public class UserDefaultsManager: ObservableObject {
     /// - Parameter syncService: Cloud sync service (defaults to CloudKit implementation)
     public init(userDefaults: UserDefaults = .standard, syncService: SyncService? = nil) {
         self.userDefaults = userDefaults
-        
+
         // Load settings first (before any service initialization)
         if let loadedSettings = Self.loadSettings(from: userDefaults) {
             self.settings = loadedSettings
@@ -103,7 +103,7 @@ public class UserDefaultsManager: ObservableObject {
             self.settings = Settings()
             // Don't save yet - wait until after initialization
         }
-        
+
         // Now initialize sync service if enabled
         if syncService != nil {
             self.syncService = syncService
@@ -132,7 +132,7 @@ public class UserDefaultsManager: ObservableObject {
             userDefaults.set(true, forKey: Keys.hasLaunchedBefore)
             onFirstLaunch()
         }
-        
+
         // Enable sync after initialization if needed
         if settings.iCloudSyncEnabled, let syncService = self.syncService {
             // Defer sync enablement to avoid circular dependency

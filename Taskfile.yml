@@ -307,6 +307,8 @@ tasks:
   test:
     desc: Run all tests
     silent: true
+    env:
+      CI: "true"
     cmds:
       - task: security:secrets
       - task: swift:test
@@ -352,6 +354,8 @@ tasks:
   qa:
     desc: Run standard quality assurance checks
     silent: true
+    env:
+      CI: "true"
     cmds:
       - echo "🔬 Running standard QA suite..."
       - task: qa:fix
@@ -366,6 +370,8 @@ tasks:
   qa:quick:
     desc: Quick QA checks for git hooks
     silent: true
+    env:
+      CI: "true"
     cmds:
       - echo "⚡ Running quick QA checks..."
       - task: swift:lint
@@ -386,6 +392,8 @@ tasks:
   qa:full:
     desc: Full QA suite including SonarCloud analysis
     silent: true
+    env:
+      CI: "true"
     cmds:
       - echo "🚀 Running full QA suite with SonarCloud..."
       - task: qa
