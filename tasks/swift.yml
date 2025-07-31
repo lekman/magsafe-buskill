@@ -158,17 +158,51 @@ tasks:
         
         echo "Running: xcodebuild test -project {{.PROJECT_NAME}}.xcodeproj -scheme {{.SCHEME_NAME}} -destination 'platform=macOS' -only-testing:{{.PROJECT_NAME}}Tests -derivedDataPath {{.DERIVED_DATA}} -enableCodeCoverage YES $SIGNING_FLAGS"
         
-        xcodebuild test \
-          -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme {{.SCHEME_NAME}} \
-          -destination 'platform=macOS' \
-          -only-testing:{{.PROJECT_NAME}}Tests \
-          -derivedDataPath {{.DERIVED_DATA}} \
-          -enableCodeCoverage YES \
-          $SIGNING_FLAGS \
-          > test_output.log 2>&1
-        
-        TEST_EXIT_CODE=$?
+        # Run tests - add -quiet flag in CI to reduce output that might cause hanging
+        if [ "$CI" = "true" ]; then
+          xcodebuild test \
+            -project {{.PROJECT_NAME}}.xcodeproj \
+            -scheme {{.SCHEME_NAME}} \
+            -destination 'platform=macOS' \
+            -only-testing:{{.PROJECT_NAME}}Tests \
+            -derivedDataPath {{.DERIVED_DATA}} \
+            -enableCodeCoverage YES \
+            -quiet \
+            $SIGNING_FLAGS \
+            > test_output.log 2>&1 &
+          
+          # Get the PID and implement a timeout
+          XCODEBUILD_PID=$!
+          SECONDS=0
+          
+          while kill -0 $XCODEBUILD_PID 2>/dev/null; do
+            if [ $SECONDS -gt 180 ]; then
+              echo "Timeout: xcodebuild has been running for more than 3 minutes, killing process..."
+              kill -9 $XCODEBUILD_PID 2>/dev/null || true
+              echo "Process killed due to timeout"
+              TEST_EXIT_CODE=124  # timeout exit code
+              break
+            fi
+            sleep 1
+          done
+          
+          # If process finished normally, get its exit code
+          if [ -z "$TEST_EXIT_CODE" ]; then
+            wait $XCODEBUILD_PID
+            TEST_EXIT_CODE=$?
+          fi
+        else
+          xcodebuild test \
+            -project {{.PROJECT_NAME}}.xcodeproj \
+            -scheme {{.SCHEME_NAME}} \
+            -destination 'platform=macOS' \
+            -only-testing:{{.PROJECT_NAME}}Tests \
+            -derivedDataPath {{.DERIVED_DATA}} \
+            -enableCodeCoverage YES \
+            $SIGNING_FLAGS \
+            > test_output.log 2>&1
+          TEST_EXIT_CODE=$?
+        fi
         
         echo "xcodebuild exit code: $TEST_EXIT_CODE"
         
