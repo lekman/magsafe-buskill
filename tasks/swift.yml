@@ -167,7 +167,13 @@ tasks:
           cat test_output.log | $FORMATTER || cat test_output.log
         fi
         
-        rm -f test_output.log
+        # In CI, keep the log file for debugging
+        if [ "$CI" = "true" ]; then
+          echo ""
+          echo "Test output saved to test_output.log for debugging"
+        else
+          rm -f test_output.log
+        fi
 
         # Check if tests passed based on exit code (more reliable than parsing output)
         if [ "$TEST_EXIT_CODE" = "0" ]; then
@@ -179,8 +185,18 @@ tasks:
         fi
 
         # Find the coverage data
-        PROF_DATA=$(find {{.DERIVED_DATA}} -name 'Coverage.profdata' -type f | head -1)
-        BINARY=$(find {{.DERIVED_DATA}} -name '{{.PROJECT_NAME}}Tests.xctest' -type d | head -1)/Contents/MacOS/{{.PROJECT_NAME}}Tests
+        echo ""
+        echo "Looking for coverage data in {{.DERIVED_DATA}}..."
+        
+        if [ -d "{{.DERIVED_DATA}}" ]; then
+          echo "DerivedData exists, searching for coverage files..."
+          find {{.DERIVED_DATA}} -name "*.profdata" -o -name "*.xctest" | head -20 || echo "No coverage files found"
+        else
+          echo "DerivedData directory does not exist!"
+        fi
+        
+        PROF_DATA=$(find {{.DERIVED_DATA}} -name 'Coverage.profdata' -type f 2>/dev/null | head -1)
+        BINARY=$(find {{.DERIVED_DATA}} -name '{{.PROJECT_NAME}}Tests.xctest' -type d 2>/dev/null | head -1)/Contents/MacOS/{{.PROJECT_NAME}}Tests
 
         if [[ -f "$PROF_DATA" ]] && [[ -f "$BINARY" ]]; then
           echo ""
