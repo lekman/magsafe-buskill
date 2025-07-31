@@ -321,7 +321,7 @@ tasks:
   build:
     desc: Build MagSafe Guard app bundle using Swift Bundler
     silent: true
-    deps: [swift:setup-bundler]
+    # deps: [swift:setup-bundler] # Removed - task doesn't exist
     cmds:
       - |
         echo "🔨 Building MagSafe Guard app bundle..."
@@ -330,7 +330,10 @@ tasks:
         BUNDLER="./swift-bundler"
         if [ ! -f "$BUNDLER" ]; then
           echo "Setting up Swift Bundler..."
-          task swift:setup-bundler
+          curl -L https://github.com/stackotter/swift-bundler/releases/latest/download/swift-bundler-universal-apple-darwin.zip -o swift-bundler.zip
+          unzip -q swift-bundler.zip
+          rm swift-bundler.zip
+          chmod +x swift-bundler
         fi
 
         # Clean previous build
