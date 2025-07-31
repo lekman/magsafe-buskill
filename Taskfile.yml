@@ -330,9 +330,7 @@ tasks:
         BUNDLER="./swift-bundler"
         if [ ! -f "$BUNDLER" ]; then
           echo "Setting up Swift Bundler..."
-          curl -L https://github.com/stackotter/swift-bundler/releases/latest/download/swift-bundler-universal-apple-darwin.zip -o swift-bundler.zip
-          unzip -q swift-bundler.zip
-          rm swift-bundler.zip
+          curl -L https://github.com/stackotter/swift-bundler/releases/download/v2.0.4/swift-bundler -o swift-bundler
           chmod +x swift-bundler
         fi
 
