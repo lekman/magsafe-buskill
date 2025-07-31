@@ -149,6 +149,8 @@ tasks:
         set +e  # Don't exit on error
         
         # Run xcodebuild without formatter to capture exit code properly
+        echo "Running: xcodebuild test -project {{.PROJECT_NAME}}.xcodeproj -scheme {{.SCHEME_NAME}} -destination 'platform=macOS' -only-testing:{{.PROJECT_NAME}}Tests -derivedDataPath {{.DERIVED_DATA}} -enableCodeCoverage YES"
+        
         xcodebuild test \
           -project {{.PROJECT_NAME}}.xcodeproj \
           -scheme {{.SCHEME_NAME}} \
@@ -160,6 +162,8 @@ tasks:
         
         TEST_EXIT_CODE=$?
         
+        echo "xcodebuild exit code: $TEST_EXIT_CODE"
+        
         # Display output with formatter if available
         if [ "$FORMATTER" = "cat" ]; then
           cat test_output.log
@@ -167,10 +171,18 @@ tasks:
           cat test_output.log | $FORMATTER || cat test_output.log
         fi
         
-        # In CI, keep the log file for debugging
+        # In CI, keep the log file for debugging and show errors
         if [ "$CI" = "true" ]; then
           echo ""
           echo "Test output saved to test_output.log for debugging"
+          if [ "$TEST_EXIT_CODE" != "0" ]; then
+            echo ""
+            echo "First 20 lines of error output:"
+            head -20 test_output.log
+            echo ""
+            echo "Last 20 lines of error output:"
+            tail -20 test_output.log
+          fi
         else
           rm -f test_output.log
         fi
