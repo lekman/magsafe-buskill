@@ -52,21 +52,20 @@ jobs:
         with:
           cache-key-suffix: "-codeql"
 
+      # Install Taskfile if needed (included in setup-swift-build action)
+      - name: Install Taskfile
+        if: matrix.language == 'swift'
+        run: |
+          echo "Verifying Taskfile installation..."
+          task --version || echo "Taskfile not found"
+
       # Manual build for Swift since it's not auto-detected
       - name: Build Swift Project
         if: matrix.build-mode == 'manual'
         run: |
           echo "Building Swift project for CodeQL analysis..."
-          # This is an Xcode project, not a Swift Package Manager project
-          xcodebuild build \
-            -project MagSafeGuard.xcodeproj \
-            -scheme MagSafeGuard \
-            -configuration Debug \
-            -derivedDataPath DerivedData \
-            CONFIGURATION_BUILD_DIR=build/Debug \
-            CODE_SIGN_IDENTITY="-" \
-            CODE_SIGNING_ALLOWED=YES \
-            -quiet || true
+          # Use Taskfile commands for consistency
+          task swift:build
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
