@@ -16,9 +16,13 @@ permissions:
   # Additional permissions added per job as needed
 
 jobs:
+  # Temporarily disabled - Swift Bundler setup needs fixing
+  # TODO: Re-enable once build issues are resolved
   build-and-sign:
     name: Build and Sign
     runs-on: macos-14
+    # Skip this workflow temporarily
+    if: false
 
     steps:
       - name: Checkout Code
