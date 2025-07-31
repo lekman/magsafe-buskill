@@ -107,11 +107,11 @@ jobs:
         run: |
           # Convert LCOV to SonarQube format using task
           task sonar:convert
-          
+
           echo "Coverage files created:"
           ls -la coverage.xml || echo "No coverage files found"
           echo "Coverage report size: $(wc -c < coverage.xml 2>/dev/null || echo 0) bytes"
-          
+
           echo "LCOV file:"
           ls -la coverage.lcov || echo "No LCOV file found"
           echo "LCOV report size: $(wc -c < coverage.lcov 2>/dev/null || echo 0) bytes"

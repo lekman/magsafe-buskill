@@ -142,7 +142,7 @@ public class LocationManager: NSObject {
     /// Starts monitoring location for auto-arm functionality
     public func startMonitoring() {
         guard !isMonitoring else { return }
-        
+
         // Skip location monitoring in CI environment
         if ProcessInfo.processInfo.environment["CI"] != nil {
             Log.info("Skipping location monitoring in CI environment", category: .location)
