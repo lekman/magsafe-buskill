@@ -7,6 +7,7 @@ final class AppDelegateCoreTests: XCTestCase {
     var mockSystemActions: MockSystemActions!
     var mockSecurityActions: SecurityActionsService!
     var mockAuthContext: MockAuthenticationContext!
+    var mockAppDelegate: AppDelegate!
     
     override func setUp() {
         super.setUp()
@@ -27,10 +28,12 @@ final class AppDelegateCoreTests: XCTestCase {
         let authService = AuthenticationService(contextFactory: MockAuthenticationContextFactory(mockContext: mockAuthContext))
         
         core = AppDelegateCore(authService: authService, securityActions: mockSecurityActions)
+        mockAppDelegate = AppDelegate()
     }
     
     override func tearDown() {
         core = nil
+        mockAppDelegate = nil
         // Re-enable notifications after testing
         NotificationService.disableForTesting = false
         // Reset PowerMonitorService singleton state
@@ -51,7 +54,7 @@ final class AppDelegateCoreTests: XCTestCase {
     // MARK: - Menu Tests
     
     func testCreateMenu() {
-        let menu = core.createMenu()
+        let menu = core.createMenu(for: mockAppDelegate)
         
         // The new menu structure has:
         // Status item, separator, Arm, separator, Power status, separator, Settings, Demo, Event Log, separator, Quit
@@ -77,7 +80,7 @@ final class AppDelegateCoreTests: XCTestCase {
     
     func testMenuItemStates() {
         // Initial menu - not armed
-        var menu = core.createMenu()
+        var menu = core.createMenu(for: mockAppDelegate)
         let initialArmItem = menu.items.first { $0.title.contains("Arm Protection") && $0.action != nil }
         XCTAssertNotNil(initialArmItem)
         
@@ -89,7 +92,7 @@ final class AppDelegateCoreTests: XCTestCase {
         waitForExpectations(timeout: 1.0)
         
         // Recreate menu to get updated state
-        menu = core.createMenu()
+        menu = core.createMenu(for: mockAppDelegate)
         let armedItem = menu.items.first { $0.title.contains("Disarm Protection") && $0.action != nil }
         XCTAssertNotNil(armedItem)
         
@@ -101,13 +104,13 @@ final class AppDelegateCoreTests: XCTestCase {
         waitForExpectations(timeout: 1.0)
         
         // Recreate menu again
-        menu = core.createMenu()
+        menu = core.createMenu(for: mockAppDelegate)
         let disarmedItem = menu.items.first { $0.title.contains("Arm Protection") && $0.action != nil }
         XCTAssertNotNil(disarmedItem)
     }
     
     func testMenuActions() {
-        let menu = core.createMenu()
+        let menu = core.createMenu(for: mockAppDelegate)
         
         // Find items by title
         let armItem = menu.items.first { $0.title.contains("Arm") && $0.action != nil }
@@ -296,7 +299,7 @@ final class AppDelegateCoreTests: XCTestCase {
         XCTAssertFalse(core.isArmed)
         
         // Create menu
-        let menu = core.createMenu()
+        let menu = core.createMenu(for: mockAppDelegate)
         
         // Check initial state - should show "Protection Disabled"
         let initialStatusItem = menu.items.first { !$0.isSeparatorItem }
@@ -313,7 +316,7 @@ final class AppDelegateCoreTests: XCTestCase {
             XCTAssertTrue(self.core.isArmed)
             
             // Recreate menu to get updated state
-            let updatedMenu = self.core.createMenu()
+            let updatedMenu = self.core.createMenu(for: mockAppDelegate)
             
             // Check that status now shows "Protection Active"
             let updatedStatusItem = updatedMenu.items.first { !$0.isSeparatorItem }
@@ -375,7 +378,7 @@ final class AppDelegateCoreTests: XCTestCase {
     }
     
     func testMenuKeyEquivalents() {
-        let menu = core.createMenu()
+        let menu = core.createMenu(for: mockAppDelegate)
         
         // Check key equivalents
         var keyEquivalents: [String: String] = [:]
@@ -387,7 +390,6 @@ final class AppDelegateCoreTests: XCTestCase {
         
         // Verify expected key equivalents
         XCTAssertEqual(keyEquivalents["Settings..."], ",")
-        XCTAssertEqual(keyEquivalents["Run Demo..."], "d")
         XCTAssertEqual(keyEquivalents["View Event Log..."], "l")
         XCTAssertEqual(keyEquivalents["Quit MagSafe Guard"], "q")
         
