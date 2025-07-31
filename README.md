@@ -100,30 +100,11 @@ Need help or found an issue? We're here to assist:
 3. **Build and Run**:
 
    ```bash
-   # Run the menu bar app
-   task run
+   # Open in Xcode
+   open MagSafeGuard.xcodeproj
    ```
 
-   Look for the lock shield icon in your menu bar.
-
-   **For Debugging:**
-
-   Since MagSafe Guard is a menu bar app, it requires special handling in Xcode:
-
-   1. **Run the app in debug mode first:**
-
-      ```bash
-      task run:debug
-      ```
-
-   2. **Attach debugger from Xcode:**
-
-      - Open the project in Xcode: `open Package.swift`
-      - Once the app is running, go to **Debug → Attach to Process**
-      - Select **MagSafeGuard** from the list
-      - Now you can set breakpoints and debug normally
-
-      This shows detailed logs in the terminal for troubleshooting.
+   Then press ⌘R (Command+R) to build and run. Look for the lock shield icon in your menu bar.
 
 ### Testing
 

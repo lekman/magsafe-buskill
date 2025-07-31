@@ -201,16 +201,6 @@ public class AppDelegateCore {
         )
         menu.addItem(settingsItem)
 
-        // Demo item with accessibility
-        let demoItem = NSMenuItem.accessibleMenuItem(
-            title: "Run Demo...",
-            accessibilityLabel: "Run Demo",
-            hint: "Open power monitoring demonstration window",
-            keyEquivalent: "d",
-            action: #selector(AppDelegate.showDemo)
-        )
-        menu.addItem(demoItem)
-
         // Event log item with accessibility
         let logItem = NSMenuItem.accessibleMenuItem(
             title: "View Event Log...",

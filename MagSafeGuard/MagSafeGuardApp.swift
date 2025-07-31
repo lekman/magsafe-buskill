@@ -1,6 +1,6 @@
 //
-//  MagSafe_GuardApp.swift
-//  MagSafe Guard
+//  MagSafeGuardApp.swift
+//  MagSafeGuard
 //
 //  Created by Tobias Lekman on 31/07/2025.
 //
@@ -10,7 +10,7 @@ import SwiftUI
 import UserNotifications
 
 @main
-struct MagSafe_GuardApp: App {
+struct MagSafeGuardApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     init() {
@@ -44,9 +44,19 @@ struct MagSafe_GuardApp: App {
     }
 
     var body: some Scene {
-        // Menu bar apps don't use WindowGroup
-        Settings {
+        // For menu bar apps, we need at least one scene but we handle everything through AppDelegate
+        WindowGroup {
             EmptyView()
+        }
+        .windowStyle(.hiddenTitleBar)
+        .defaultSize(width: 0, height: 0)
+        .commands {
+            // Remove all default menu items
+            CommandGroup(replacing: .newItem) { }
+            CommandGroup(replacing: .appInfo) { }
+            CommandGroup(replacing: .systemServices) { }
+            CommandGroup(replacing: .help) { }
+            CommandGroup(replacing: .appSettings) { }
         }
     }
 }

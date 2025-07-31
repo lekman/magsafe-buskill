@@ -156,7 +156,7 @@ struct CloudSyncSettingsView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            .onChange(of: settingsManager.settings.iCloudSyncEnabled) { newValue in
+            .onChange(of: settingsManager.settings.iCloudSyncEnabled) { oldValue, newValue in
                 if newValue {
                     // Enable CloudKit sync
                     syncService.enableSync()

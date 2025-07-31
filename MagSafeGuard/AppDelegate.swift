@@ -11,10 +11,8 @@ import UserNotifications
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
-    private var demoWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var settingsHostingController: NSViewController?
-    private var demoHostingController: NSViewController?
     private var windowDelegates: [NSWindow: WindowDelegate] = [:]
     let core = AppDelegateCore()
 
@@ -237,48 +235,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    @objc func showDemo() {
-        if demoWindow == nil {
-            let demoView = PowerMonitorDemoView()
-
-            demoWindow = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 480, height: 600),
-                styleMask: [.titled, .closable, .miniaturizable, .resizable],
-                backing: .buffered,
-                defer: false
-            )
-
-            demoWindow?.title = "Power Monitor Demo"
-            
-            // Create and retain the hosting controller
-            let hostingController = NSHostingController(rootView: demoView)
-            demoHostingController = hostingController
-            demoWindow?.contentViewController = hostingController
-            
-            demoWindow?.center()
-            demoWindow?.isReleasedWhenClosed = false  // Prevent window from being released
-            
-            // Clean up when window closes
-            let delegate = WindowDelegate { [weak self] in
-                DispatchQueue.main.async {
-                    if let window = self?.demoWindow {
-                        self?.windowDelegates.removeValue(forKey: window)
-                        window.contentViewController = nil
-                    }
-                    self?.demoWindow = nil
-                    self?.demoHostingController = nil
-                }
-            }
-            
-            if let window = demoWindow {
-                window.delegate = delegate
-                windowDelegates[window] = delegate
-            }
-        }
-
-        demoWindow?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-    }
 
     private func requestNotificationPermissions() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in

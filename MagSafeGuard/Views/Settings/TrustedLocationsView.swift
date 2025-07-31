@@ -319,8 +319,12 @@ struct AddLocationView: View {
 
 // MARK: - Preview
 
+#if DEBUG
 struct TrustedLocationsView_Previews: PreviewProvider {
     static var previews: some View {
         TrustedLocationsView(autoArmManager: nil)
+            .environmentObject(UserDefaultsManager())
+            .frame(width: 600, height: 400)
     }
 }
+#endif
