@@ -57,7 +57,16 @@ jobs:
         if: matrix.build-mode == 'manual'
         run: |
           echo "Building Swift project for CodeQL analysis..."
-          swift build --configuration debug
+          # This is an Xcode project, not a Swift Package Manager project
+          xcodebuild build \
+            -project MagSafeGuard.xcodeproj \
+            -scheme MagSafeGuard \
+            -configuration Debug \
+            -derivedDataPath DerivedData \
+            CONFIGURATION_BUILD_DIR=build/Debug \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_ALLOWED=YES \
+            -quiet || true
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
