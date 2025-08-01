@@ -49,6 +49,8 @@ runs:
 
     - name: Cache and Install Taskfile
       uses: ./.github/actions/cache-taskfile
+      with:
+        cache-key-suffix: inputs.cache-key-suffix
 
     - name: Validate Swift environment
       shell: bash
