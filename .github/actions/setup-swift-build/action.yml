@@ -35,7 +35,7 @@ runs:
       with:
         xcode-version: ${{ inputs.xcode-version }}
 
-    - name: Cache SPM dependencies
+    - name: Cache dependencies
       id: cache
       uses: actions/cache@v4
       with:

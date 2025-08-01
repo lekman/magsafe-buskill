@@ -193,7 +193,7 @@ final class AutoArmManagerTests: XCTestCase {
     autoArmManager.startMonitoring()
 
     // Ensure system is disarmed
-    appController.disarm()
+    appController.disarm { _ in }
 
     // Simulate leaving trusted location
     mockLocationManager.simulateLeaveTrustedLocation()
@@ -213,7 +213,7 @@ final class AutoArmManagerTests: XCTestCase {
     settingsManager.updateSetting(\.autoArmEnabled, value: false)
 
     // Ensure system is disarmed
-    appController.disarm()
+    appController.disarm { _ in }
 
     // Simulate leaving trusted location
     mockLocationManager.simulateLeaveTrustedLocation()
