@@ -307,8 +307,7 @@ public class AuthenticationService: NSObject {
     // Check cached authentication
     if policy.contains(.requireRecentAuthentication),
       let lastAuth = lastAuthenticationTime,
-      Date().timeIntervalSince(lastAuth) < authenticationCacheDuration
-    {
+      Date().timeIntervalSince(lastAuth) < authenticationCacheDuration {
       return .success
     }
 
@@ -412,7 +411,7 @@ public class AuthenticationService: NSObject {
       .userFallback: .userFallback,
       .systemCancel: .systemCancel,
       .passcodeNotSet: .passcodeNotSet,
-      .authenticationFailed: .authenticationFailed,
+      .authenticationFailed: .authenticationFailed
     ]
 
     return errorMap[code]

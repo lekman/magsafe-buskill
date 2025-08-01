@@ -44,7 +44,7 @@ final class PowerMonitorCoreTests: XCTestCase {
         "Current Capacity": 85,
         "Max Capacity": 100,
         "Is Charging": true,
-        "AdapterInfo": 96,
+        "AdapterInfo": 96
       ]
     ]
 
@@ -64,7 +64,7 @@ final class PowerMonitorCoreTests: XCTestCase {
         "Power Source State": "Battery Power",
         "Current Capacity": 50,
         "Max Capacity": 100,
-        "Is Charging": false,
+        "Is Charging": false
       ]
     ]
 
@@ -84,7 +84,7 @@ final class PowerMonitorCoreTests: XCTestCase {
         "Current Capacity": 100,
         "Max Capacity": 100,
         "Is Charging": false,
-        "AdapterDetails": ["Watts": 140],
+        "AdapterDetails": ["Watts": 140]
       ]
     ]
 
@@ -112,7 +112,7 @@ final class PowerMonitorCoreTests: XCTestCase {
         "Power Source State": "AC Power",
         "Current Capacity": 50,
         "Max Capacity": 0,  // Invalid max capacity
-        "Is Charging": true,
+        "Is Charging": true
       ]
     ]
 
@@ -322,15 +322,15 @@ final class PowerMonitorCoreTests: XCTestCase {
         "Power Source State": "Battery Power",
         "Current Capacity": 50,
         "Max Capacity": 100,
-        "Is Charging": false,
+        "Is Charging": false
       ],
       [
         "Power Source State": "AC Power",
         "Current Capacity": 85,
         "Max Capacity": 100,
         "Is Charging": true,
-        "AdapterInfo": 96,
-      ],
+        "AdapterInfo": 96
+      ]
     ]
 
     let info = core.processPowerSourceInfo(sources)

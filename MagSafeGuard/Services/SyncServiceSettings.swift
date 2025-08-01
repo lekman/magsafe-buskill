@@ -123,7 +123,7 @@ final class SyncServiceSettings {
     // Apply Double settings
     let doubleMappings: [(key: String, keyPath: WritableKeyPath<Settings, Double>)] = [
       ("iCloudDataLimitMB", \.iCloudDataLimitMB),
-      ("iCloudDataAgeLimitDays", \.iCloudDataAgeLimitDays),
+      ("iCloudDataAgeLimitDays", \.iCloudDataAgeLimitDays)
     ]
 
     for mapping in doubleMappings {
@@ -144,7 +144,7 @@ final class SyncServiceSettings {
       ("launchAtLogin", \.launchAtLogin),
       ("showInDock", \.showInDock),
       ("debugLoggingEnabled", \.debugLoggingEnabled),
-      ("iCloudSyncEnabled", \.iCloudSyncEnabled),
+      ("iCloudSyncEnabled", \.iCloudSyncEnabled)
     ]
 
     for mapping in booleanMappings {
@@ -167,16 +167,14 @@ final class SyncServiceSettings {
     // Decode trusted networks
     if let trustedNetworksString = record["trustedNetworks"] as? String,
       let data = trustedNetworksString.data(using: .utf8),
-      let networks = try? JSONDecoder().decode([String].self, from: data)
-    {
+      let networks = try? JSONDecoder().decode([String].self, from: data) {
       manager.updateSetting(\.trustedNetworks, value: networks)
     }
 
     // Decode custom scripts
     if let customScriptsString = record["customScripts"] as? String,
       let data = customScriptsString.data(using: .utf8),
-      let scripts = try? JSONDecoder().decode([String].self, from: data)
-    {
+      let scripts = try? JSONDecoder().decode([String].self, from: data) {
       manager.updateSetting(\.customScripts, value: scripts)
     }
   }

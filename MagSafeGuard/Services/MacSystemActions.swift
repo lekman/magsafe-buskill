@@ -7,8 +7,8 @@
 //  Real implementation of system actions for macOS.
 //
 
-import AVFoundation
 import AppKit
+import AVFoundation
 import Foundation
 
 /// Real implementation of system actions for macOS
@@ -42,7 +42,7 @@ public class MacSystemActions: SystemActionsProtocol {
         "osascript": (osascriptPathEnvVar, "\(basePath)/osascript"),
         "killall": (killallPathEnvVar, "\(basePath)/killall"),
         "sudo": (sudoPathEnvVar, "\(basePath)/sudo"),
-        "bash": (bashPathEnvVar, "\(bashBasePath)/bash"),
+        "bash": (bashPathEnvVar, "\(bashBasePath)/bash")
       ]
     }
 
