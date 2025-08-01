@@ -23,6 +23,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Application Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Skip normal initialization during tests
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            Log.info("Running in test environment, skipping normal initialization", category: .app)
+            return
+        }
+        
         // Check for previous crashes
         checkForPreviousCrashes()
 
