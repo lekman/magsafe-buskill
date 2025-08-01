@@ -45,15 +45,10 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
           queries: security-extended,security-and-quality
 
-      # Set up Swift build environment
+      # Set up Swift build environment (includes Taskfile caching)
       - name: Setup Swift Build Environment
         if: matrix.language == 'swift'
         uses: ./.github/actions/setup-swift-build
-
-      # Cache and install Taskfile
-      - name: Cache and Install Taskfile
-        if: matrix.language == 'swift'
-        uses: ./.github/actions/cache-taskfile
 
       # Manual build for Swift since it's not auto-detected
       - name: Build Swift Project

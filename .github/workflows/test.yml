@@ -85,9 +85,6 @@ jobs:
         with:
           swift-version: "5.9"
 
-      - name: Cache and Install Taskfile
-        uses: ./.github/actions/cache-taskfile
-
       - name: Clean build artifacts
         run: |
           echo "Cleaning build artifacts..."

@@ -1,27 +1,27 @@
-name: 'Setup Swift Build Environment'
-description: 'Sets up Swift toolchain, Xcode, and caching for efficient builds'
+name: "Setup Swift Build Environment"
+description: "Sets up Swift toolchain, Xcode, and caching for efficient builds"
 
 inputs:
   swift-version:
-    description: 'Swift version to use'
+    description: "Swift version to use"
     required: false
-    default: '5.9'
+    default: "5.9"
   xcode-version:
-    description: 'Xcode version to use'
+    description: "Xcode version to use"
     required: false
-    default: 'latest-stable'
+    default: "latest-stable"
   cache-key-suffix:
-    description: 'Additional suffix for cache key'
+    description: "Additional suffix for cache key"
     required: false
-    default: ''
+    default: ""
 
 outputs:
   cache-hit:
-    description: 'Whether cache was hit'
+    description: "Whether cache was hit"
     value: ${{ steps.cache.outputs.cache-hit }}
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Setup Swift
       if: runner.os == 'Linux'
@@ -48,30 +48,9 @@ runs:
           ${{ runner.os }}-spm-${{ hashFiles('Package.swift', '**/Package.resolved') }}
           ${{ runner.os }}-spm-
 
-    - name: Install Taskfile if needed
-      shell: bash
-      run: |
-        if ! command -v task &> /dev/null; then
-          echo "Installing Taskfile..."
-          if [ "$RUNNER_OS" == "macOS" ]; then
-            # Handle both ARM and Intel Macs, avoid Rosetta issues
-            if [[ "$(uname -m)" == "arm64" ]]; then
-              echo "Running on ARM Mac, using arch -arm64"
-              arch -arm64 brew install go-task/tap/go-task || {
-                echo "Brew install failed, trying direct download..."
-                curl -sL https://github.com/go-task/task/releases/latest/download/task_darwin_arm64.tar.gz | tar -xz -C /usr/local/bin task
-                chmod +x /usr/local/bin/task
-              }
-            else
-              brew install go-task/tap/go-task
-            fi
-          else
-            # For Linux runners
-            curl -sL https://taskfile.dev/install.sh | sh -s -- -d -b /usr/local/bin
-          fi
-        fi
-        echo "Taskfile version: $(task --version)"
-    
+    - name: Cache and Install Taskfile
+      uses: lekman/magsafe-buskill/.github/actions/cache-taskfile@main
+
     - name: Create Package.resolved (if using SPM)
       shell: bash
       run: |
