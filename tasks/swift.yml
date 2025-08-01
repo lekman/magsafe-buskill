@@ -156,8 +156,6 @@ tasks:
           SIGNING_FLAGS="$SIGNING_FLAGS ENABLE_APP_SANDBOX=NO ENABLE_HARDENED_RUNTIME=NO"
           # Skip UI tests completely
           TEST_FILTER="-skip-testing:{{.PROJECT_NAME}}UITests"
-          # Disable test host to prevent app from launching
-          SIGNING_FLAGS="$SIGNING_FLAGS TEST_HOST= BUNDLE_LOADER="
         else
           SIGNING_FLAGS=""
           TEST_FILTER=""
@@ -167,6 +165,7 @@ tasks:
         
         # Run tests - add -quiet flag in CI to reduce output that might cause hanging
         if [ "$CI" = "true" ]; then
+          # Set environment variable for the test process
           xcodebuild test \
             -project {{.PROJECT_NAME}}.xcodeproj \
             -scheme {{.SCHEME_NAME}} \
@@ -177,6 +176,7 @@ tasks:
             -enableCodeCoverage YES \
             -quiet \
             $SIGNING_FLAGS \
+            MAGSAFE_GUARD_TEST_MODE=1 \
             > test_output.log 2>&1 &
           
           # Get the PID and implement a timeout

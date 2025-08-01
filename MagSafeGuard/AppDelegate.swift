@@ -24,7 +24,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Skip normal initialization during tests
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil ||
+           ProcessInfo.processInfo.environment["MAGSAFE_GUARD_TEST_MODE"] != nil {
             Log.info("Running in test environment, skipping normal initialization", category: .general)
             return
         }
