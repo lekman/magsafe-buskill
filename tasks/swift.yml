@@ -149,14 +149,19 @@ tasks:
         set +e  # Don't exit on error
         
         # Run xcodebuild without formatter to capture exit code properly
-        # In CI, disable code signing for tests
+        # In CI, disable code signing for tests and skip UI
         if [ "$CI" = "true" ]; then
           SIGNING_FLAGS="CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY= CODE_SIGNING_REQUIRED=NO"
+          # Also disable app sandbox and hardened runtime which might cause issues
+          SIGNING_FLAGS="$SIGNING_FLAGS ENABLE_APP_SANDBOX=NO ENABLE_HARDENED_RUNTIME=NO"
+          # Skip UI tests completely
+          TEST_FILTER="-skip-testing:{{.PROJECT_NAME}}UITests"
         else
           SIGNING_FLAGS=""
+          TEST_FILTER=""
         fi
         
-        echo "Running: xcodebuild test -project {{.PROJECT_NAME}}.xcodeproj -scheme {{.SCHEME_NAME}} -destination 'platform=macOS' -only-testing:{{.PROJECT_NAME}}Tests -derivedDataPath {{.DERIVED_DATA}} -enableCodeCoverage YES $SIGNING_FLAGS"
+        echo "Running: xcodebuild test -project {{.PROJECT_NAME}}.xcodeproj -scheme {{.SCHEME_NAME}} -destination 'platform=macOS' -only-testing:{{.PROJECT_NAME}}Tests $TEST_FILTER -derivedDataPath {{.DERIVED_DATA}} -enableCodeCoverage YES $SIGNING_FLAGS"
         
         # Run tests - add -quiet flag in CI to reduce output that might cause hanging
         if [ "$CI" = "true" ]; then
@@ -165,6 +170,7 @@ tasks:
             -scheme {{.SCHEME_NAME}} \
             -destination 'platform=macOS' \
             -only-testing:{{.PROJECT_NAME}}Tests \
+            $TEST_FILTER \
             -derivedDataPath {{.DERIVED_DATA}} \
             -enableCodeCoverage YES \
             -quiet \
@@ -197,6 +203,7 @@ tasks:
             -scheme {{.SCHEME_NAME}} \
             -destination 'platform=macOS' \
             -only-testing:{{.PROJECT_NAME}}Tests \
+            $TEST_FILTER \
             -derivedDataPath {{.DERIVED_DATA}} \
             -enableCodeCoverage YES \
             $SIGNING_FLAGS \
