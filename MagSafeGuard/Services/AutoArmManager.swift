@@ -41,7 +41,7 @@ public class AutoArmManager: NSObject {
     private let appController: AppController
 
     /// Location manager for geofencing
-    private let locationManager = LocationManager()
+    private let locationManager: LocationManagerProtocol
 
     /// Network monitor for Wi-Fi detection
     private let networkMonitor = NetworkMonitor()
@@ -73,9 +73,12 @@ public class AutoArmManager: NSObject {
     // MARK: - Initialization
 
     /// Initializes the auto-arm manager
-    /// - Parameter appController: The app controller for security operations
-    public init(appController: AppController) {
+    /// - Parameters:
+    ///   - appController: The app controller for security operations
+    ///   - locationManager: The location manager to use (defaults to real implementation)
+    public init(appController: AppController, locationManager: LocationManagerProtocol? = nil) {
         self.appController = appController
+        self.locationManager = locationManager ?? LocationManager()
         super.init()
 
         setupDelegates()

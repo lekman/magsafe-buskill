@@ -95,7 +95,7 @@ extension CLLocationCoordinate2D: @retroactive Codable, @retroactive Equatable {
 /// ))
 /// manager.startMonitoring()
 /// ```
-public class LocationManager: NSObject {
+public class LocationManager: NSObject, LocationManagerProtocol {
 
     // MARK: - Properties
 
@@ -115,14 +115,16 @@ public class LocationManager: NSObject {
     public private(set) var isInTrustedLocation = false
 
     // Private properties
-    private let locationManager = CLLocationManager()
+    private let locationManager: CLLocationManagerProtocol
     private let userDefaults = UserDefaults.standard
     private let trustedLocationsKey = "MagSafeGuard.TrustedLocations"
 
     // MARK: - Initialization
 
     /// Initializes the location manager
-    public override init() {
+    /// - Parameter clLocationManager: The Core Location manager to use (defaults to real implementation)
+    public init(clLocationManager: CLLocationManagerProtocol = RealCLLocationManager()) {
+        self.locationManager = clLocationManager
         super.init()
         setupLocationManager()
         loadTrustedLocations()
@@ -256,7 +258,7 @@ public class LocationManager: NSObject {
 
     private func startMonitoringRegion(for location: TrustedLocation) {
         // Check if region monitoring is available
-        guard CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self) else {
+        guard RealCLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self) else {
             Log.warning("Region monitoring not available", category: .location)
             return
         }

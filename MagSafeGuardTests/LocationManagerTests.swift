@@ -14,24 +14,31 @@ import XCTest
 final class LocationManagerTests: XCTestCase {
 
     var locationManager: LocationManager!
+    var mockCLLocationManager: MockCLLocationManager!
+    var mockDelegate: MockLocationManagerDelegate!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
 
-        // Skip all location tests in CI
-        if TestEnvironment.isCI {
-            throw XCTSkip("Skipping LocationManager tests in CI environment")
-        }
-
         // Clear any stored locations
         UserDefaults.standard.removeObject(forKey: "MagSafeGuard.TrustedLocations")
 
-        locationManager = LocationManager()
+        // Create mock Core Location manager
+        mockCLLocationManager = MockCLLocationManager()
+        
+        // Create location manager with mock
+        locationManager = LocationManager(clLocationManager: mockCLLocationManager)
+        
+        // Create and set mock delegate
+        mockDelegate = MockLocationManagerDelegate()
+        locationManager.delegate = mockDelegate
     }
 
     override func tearDown() {
         locationManager?.stopMonitoring()
         locationManager = nil
+        mockCLLocationManager = nil
+        mockDelegate = nil
         super.tearDown()
     }
 
@@ -111,12 +118,120 @@ final class LocationManagerTests: XCTestCase {
         locationManager.addTrustedLocation(location1)
         locationManager.addTrustedLocation(location2)
 
-        // Create new manager to test loading
-        let newManager = LocationManager()
+        // Create new manager with fresh mock to test loading
+        let newMockCLLocationManager = MockCLLocationManager()
+        let newManager = LocationManager(clLocationManager: newMockCLLocationManager)
 
         XCTAssertEqual(newManager.trustedLocations.count, 2)
         XCTAssertTrue(newManager.trustedLocations.contains { $0.name == "Home" })
         XCTAssertTrue(newManager.trustedLocations.contains { $0.name == "Office" })
+    }
+
+    // MARK: - Location Monitoring Tests
+    
+    func testStartMonitoringRequestsAuthorizationWhenNotDetermined() {
+        // Setup
+        mockCLLocationManager.mockAuthorizationStatus = .notDetermined
+        
+        // Act
+        locationManager.startMonitoring()
+        
+        // Assert
+        XCTAssertTrue(mockCLLocationManager.requestAlwaysAuthorizationCalled)
+    }
+    
+    func testStartMonitoringBeginsLocationUpdatesWhenAuthorized() {
+        // Setup
+        mockCLLocationManager.mockAuthorizationStatus = .authorizedAlways
+        
+        // Act
+        locationManager.startMonitoring()
+        
+        // Assert
+        XCTAssertTrue(mockCLLocationManager.startUpdatingLocationCalled)
+        XCTAssertTrue(locationManager.isMonitoring)
+    }
+    
+    func testStopMonitoringStopsLocationUpdates() {
+        // Setup
+        mockCLLocationManager.mockAuthorizationStatus = .authorizedAlways
+        locationManager.startMonitoring()
+        
+        // Act
+        locationManager.stopMonitoring()
+        
+        // Assert
+        XCTAssertTrue(mockCLLocationManager.stopUpdatingLocationCalled)
+        XCTAssertFalse(locationManager.isMonitoring)
+    }
+    
+    // MARK: - Region Monitoring Tests
+    
+    func testAddTrustedLocationStartsMonitoringRegion() {
+        // Setup
+        mockCLLocationManager.mockAuthorizationStatus = .authorizedAlways
+        locationManager.startMonitoring()
+        
+        let location = TrustedLocation(
+            name: "Test Location",
+            coordinate: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+            radius: 100
+        )
+        
+        // Act
+        locationManager.addTrustedLocation(location)
+        
+        // Assert
+        XCTAssertTrue(mockCLLocationManager.startMonitoringCalled)
+        XCTAssertNotNil(mockCLLocationManager.lastStartedMonitoringRegion)
+        XCTAssertEqual(mockCLLocationManager.lastStartedMonitoringRegion?.identifier, location.id.uuidString)
+    }
+    
+    // MARK: - Delegate Tests
+    
+    func testLocationUpdateTriggersEnterTrustedLocationDelegate() {
+        // Setup
+        let location = TrustedLocation(
+            name: "Test Location",
+            coordinate: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+            radius: 100
+        )
+        locationManager.addTrustedLocation(location)
+        
+        // Create a location inside the trusted location
+        let currentLocation = CLLocation(latitude: 37.7749, longitude: -122.4194)
+        
+        // Act - Simulate location update
+        mockCLLocationManager.simulateLocationUpdate(currentLocation)
+        
+        // Assert
+        XCTAssertTrue(locationManager.isInTrustedLocation)
+        XCTAssertTrue(mockDelegate.didEnterTrustedLocation)
+    }
+    
+    func testLocationUpdateTriggersLeaveTrustedLocationDelegate() {
+        // Setup
+        let location = TrustedLocation(
+            name: "Test Location",
+            coordinate: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+            radius: 100
+        )
+        locationManager.addTrustedLocation(location)
+        
+        // First, simulate being in trusted location
+        let insideLocation = CLLocation(latitude: 37.7749, longitude: -122.4194)
+        mockCLLocationManager.simulateLocationUpdate(insideLocation)
+        
+        // Reset delegate
+        mockDelegate.didLeaveTrustedLocation = false
+        
+        // Act - Simulate moving outside trusted location
+        let outsideLocation = CLLocation(latitude: 38.0, longitude: -122.5)
+        mockCLLocationManager.simulateLocationUpdate(outsideLocation)
+        
+        // Assert
+        XCTAssertFalse(locationManager.isInTrustedLocation)
+        XCTAssertTrue(mockDelegate.didLeaveTrustedLocation)
     }
 
     // MARK: - TrustedLocation Tests

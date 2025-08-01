@@ -16,14 +16,10 @@ final class AutoArmManagerTests: XCTestCase {
     var appController: AppController!
     var autoArmManager: AutoArmManager!
     var settingsManager: UserDefaultsManager!
+    var mockLocationManager: MockLocationManager!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-
-        // Skip all AutoArmManager tests in CI since they use LocationManager
-        if TestEnvironment.isCI {
-            throw XCTSkip("Skipping AutoArmManager tests in CI environment")
-        }
 
         // Reset settings
         UserDefaults.standard.removePersistentDomain(forName: Bundle.main.bundleIdentifier ?? "")
@@ -34,13 +30,17 @@ final class AutoArmManagerTests: XCTestCase {
         settingsManager = UserDefaultsManager.shared
         appController = AppController()
 
-        // Create AutoArmManager directly since AppController won't create it in test mode
-        autoArmManager = AutoArmManager(appController: appController)
+        // Create mock location manager
+        mockLocationManager = MockLocationManager()
+        
+        // Create AutoArmManager with mock location manager
+        autoArmManager = AutoArmManager(appController: appController, locationManager: mockLocationManager)
     }
 
     override func tearDown() {
         autoArmManager?.stopMonitoring()
         autoArmManager = nil
+        mockLocationManager = nil
         AppController.isTestEnvironment = false
         super.tearDown()
     }
@@ -63,6 +63,7 @@ final class AutoArmManagerTests: XCTestCase {
         autoArmManager.startMonitoring()
 
         XCTAssertTrue(autoArmManager.isMonitoring)
+        XCTAssertTrue(mockLocationManager.startMonitoringCalled)
     }
 
     func testStartMonitoringWhenDisabled() {
@@ -83,6 +84,7 @@ final class AutoArmManagerTests: XCTestCase {
         autoArmManager.stopMonitoring()
 
         XCTAssertFalse(autoArmManager.isMonitoring)
+        XCTAssertTrue(mockLocationManager.stopMonitoringCalled)
     }
 
     // MARK: - Temporary Disable Tests
@@ -178,5 +180,49 @@ final class AutoArmManagerTests: XCTestCase {
 
         // Without being in a trusted location, condition should be met
         // (This is a simplified test - in real usage, LocationManager would determine this)
+    }
+    
+    // MARK: - Location Delegate Tests
+    
+    func testLocationManagerDidLeaveTrustedLocationTriggersArm() {
+        // Enable auto-arm
+        settingsManager.updateSetting(\.autoArmEnabled, value: true)
+        settingsManager.updateSetting(\.autoArmByLocation, value: true)
+        autoArmManager.startMonitoring()
+        
+        // Ensure system is disarmed
+        appController.disarm()
+        
+        // Simulate leaving trusted location
+        mockLocationManager.simulateLeaveTrustedLocation()
+        
+        // Verify auto-arm was triggered (it happens after 2 second delay)
+        let expectation = self.expectation(description: "Auto-arm triggered")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            XCTAssertEqual(self.appController.currentState, .armed)
+            expectation.fulfill()
+        }
+        
+        waitForExpectations(timeout: 3.0)
+    }
+    
+    func testLocationManagerDidLeaveTrustedLocationDoesNotTriggerWhenDisabled() {
+        // Disable auto-arm
+        settingsManager.updateSetting(\.autoArmEnabled, value: false)
+        
+        // Ensure system is disarmed
+        appController.disarm()
+        
+        // Simulate leaving trusted location
+        mockLocationManager.simulateLeaveTrustedLocation()
+        
+        // Verify auto-arm was NOT triggered
+        let expectation = self.expectation(description: "Wait for potential auto-arm")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            XCTAssertEqual(self.appController.currentState, .disarmed)
+            expectation.fulfill()
+        }
+        
+        waitForExpectations(timeout: 3.0)
     }
 }

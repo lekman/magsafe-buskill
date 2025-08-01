@@ -41,7 +41,6 @@ runs:
       with:
         path: |
           .build
-          ~/.swiftpm
           ~/Library/Developer/Xcode/DerivedData
         key: ${{ runner.os }}-spm-${{ hashFiles('Package.swift', '**/Package.resolved') }}${{ inputs.cache-key-suffix }}
         restore-keys: |

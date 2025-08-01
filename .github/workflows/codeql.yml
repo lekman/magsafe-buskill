@@ -37,7 +37,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      # Initializes the CodeQL tools for scanning
       - name: Initialize CodeQL
         uses: github/codeql-action/init@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
         with:
@@ -45,17 +44,13 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
           queries: security-extended,security-and-quality
 
-      # Set up Swift build environment (includes Taskfile caching)
       - name: Setup Swift Build Environment
         if: matrix.language == 'swift'
         uses: ./.github/actions/setup-swift-build
 
-      # Manual build for Swift since it's not auto-detected
       - name: Build Swift Project
-        if: matrix.build-mode == 'manual'
         run: |
           echo "Building Swift project for CodeQL analysis..."
-          # Use Taskfile commands for consistency
           task swift:build
 
       - name: Perform CodeQL Analysis
