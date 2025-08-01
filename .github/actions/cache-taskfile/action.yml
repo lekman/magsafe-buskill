@@ -10,7 +10,7 @@ inputs:
 outputs:
   cache-hit:
     description: "Whether the cache was hit"
-    value: ${{ steps.cache-taskfile.outputs.cache-hit }}
+    value: ${{ steps.cache-restore.outputs.cache-hit }}
 
 runs:
   using: "composite"
@@ -29,9 +29,9 @@ runs:
           echo "taskfile-path=/usr/local/bin" >> $GITHUB_OUTPUT
         fi
     
-    - name: Cache Taskfile binary
-      id: cache-taskfile
-      uses: actions/cache@v4
+    - name: Restore Taskfile cache
+      id: cache-restore
+      uses: actions/cache/restore@v4
       with:
         path: |
           /usr/local/bin/task
@@ -39,11 +39,9 @@ runs:
         key: taskfile-${{ steps.os-info.outputs.os-key }}-${{ inputs.cache-key-suffix }}
         restore-keys: |
           taskfile-${{ steps.os-info.outputs.os-key }}-
-        # Always save cache, even on failure
-        save-always: true
     
     - name: Install Taskfile if not cached
-      if: steps.cache-taskfile.outputs.cache-hit != 'true'
+      if: steps.cache-restore.outputs.cache-hit != 'true'
       shell: bash
       run: |
         echo "Installing Taskfile..."
@@ -77,3 +75,13 @@ runs:
         task --version
         echo "Taskfile location:"
         which task
+    
+    - name: Save Taskfile cache
+      uses: actions/cache/save@v4
+      # Always save the cache, even on failure
+      if: always()
+      with:
+        path: |
+          /usr/local/bin/task
+          ~/.task
+        key: taskfile-${{ steps.os-info.outputs.os-key }}-${{ inputs.cache-key-suffix }}
