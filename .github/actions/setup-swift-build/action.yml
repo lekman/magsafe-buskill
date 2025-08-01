@@ -49,7 +49,7 @@ runs:
           ${{ runner.os }}-spm-
 
     - name: Cache and Install Taskfile
-      uses: lekman/magsafe-buskill/.github/actions/cache-taskfile@main
+      uses: ./.github/actions/cache-taskfile
 
     - name: Create Package.resolved (if using SPM)
       shell: bash
