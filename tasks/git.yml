@@ -957,6 +957,7 @@ tasks:
         task git:runs:log WORKFLOW="build-sign"      # Partial filename match
         
       The logs will be downloaded to logs/<workflow-name>/<run-id>/ directory.
+    silent: true
     vars:
       RUN_ID: "{{.RUN_ID}}"
       WORKFLOW: "{{.WORKFLOW}}"
@@ -1042,7 +1043,7 @@ tasks:
         # Extract logs
         echo -e "{{.YELLOW}}Extracting logs...{{.NC}}"
         cd "$LOG_DIR"
-        unzip -q logs.zip
+        unzip -o -q logs.zip
         rm logs.zip
         cd - > /dev/null
 
