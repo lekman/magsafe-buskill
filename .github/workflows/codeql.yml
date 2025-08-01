@@ -18,12 +18,9 @@ jobs:
     timeout-minutes: ${{ (matrix.language == 'swift' && 30) || 360 }}
 
     permissions:
-      # Required for all workflows
-      security-events: write
-      # Required to fetch internal or private CodeQL packs
-      packages: read
-      # Required to upload the results to code-scanning dashboard
-      actions: read
+      security-events: write # Required for all workflows
+      packages: read # Required to fetch internal or private CodeQL packs
+      actions: read # Required to upload the results to code-scanning dashboard
       contents: read
 
     strategy:
