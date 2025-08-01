@@ -388,6 +388,15 @@ tasks:
         ls -la | grep -E "xcodeproj|Taskfile" | head -10 || echo "No matching files"
         echo "Project exists: $(ls {{.PROJECT_NAME}}.xcodeproj 2>/dev/null || echo 'NO')"
         
+        # CI-specific settings
+        if [ "$CI" = "true" ]; then
+          EXTRA_FLAGS="CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY= CODE_SIGNING_REQUIRED=NO"
+          EXTRA_FLAGS="$EXTRA_FLAGS ENABLE_APP_SANDBOX=NO ENABLE_HARDENED_RUNTIME=NO"
+          EXTRA_FLAGS="$EXTRA_FLAGS MAGSAFE_GUARD_TEST_MODE=1"
+        else
+          EXTRA_FLAGS=""
+        fi
+        
         set +e
         xcodebuild build \
           -project {{.PROJECT_NAME}}.xcodeproj \
@@ -395,6 +404,7 @@ tasks:
           -configuration Debug \
           -derivedDataPath {{.DERIVED_DATA}} \
           CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Debug \
+          $EXTRA_FLAGS \
           > build_output.log 2>&1
         
         BUILD_EXIT_CODE=$?
@@ -441,6 +451,15 @@ tasks:
         ls -la | grep -E "xcodeproj|Taskfile" | head -10 || echo "No matching files"
         echo "Project exists: $(ls {{.PROJECT_NAME}}.xcodeproj 2>/dev/null || echo 'NO')"
         
+        # CI-specific settings
+        if [ "$CI" = "true" ]; then
+          EXTRA_FLAGS="CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY= CODE_SIGNING_REQUIRED=NO"
+          EXTRA_FLAGS="$EXTRA_FLAGS ENABLE_APP_SANDBOX=NO ENABLE_HARDENED_RUNTIME=NO"
+          EXTRA_FLAGS="$EXTRA_FLAGS MAGSAFE_GUARD_TEST_MODE=1"
+        else
+          EXTRA_FLAGS=""
+        fi
+        
         set +e
         xcodebuild build \
           -project {{.PROJECT_NAME}}.xcodeproj \
@@ -448,6 +467,7 @@ tasks:
           -configuration Release \
           -derivedDataPath {{.DERIVED_DATA}} \
           CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Release \
+          $EXTRA_FLAGS \
           > build_output.log 2>&1
         
         BUILD_EXIT_CODE=$?
