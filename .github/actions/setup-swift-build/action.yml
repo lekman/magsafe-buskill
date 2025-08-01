@@ -54,7 +54,17 @@ runs:
         if ! command -v task &> /dev/null; then
           echo "Installing Taskfile..."
           if [ "$RUNNER_OS" == "macOS" ]; then
-            brew install go-task/tap/go-task
+            # Handle both ARM and Intel Macs, avoid Rosetta issues
+            if [[ "$(uname -m)" == "arm64" ]]; then
+              echo "Running on ARM Mac, using arch -arm64"
+              arch -arm64 brew install go-task/tap/go-task || {
+                echo "Brew install failed, trying direct download..."
+                curl -sL https://github.com/go-task/task/releases/latest/download/task_darwin_arm64.tar.gz | tar -xz -C /usr/local/bin task
+                chmod +x /usr/local/bin/task
+              }
+            else
+              brew install go-task/tap/go-task
+            fi
           else
             # For Linux runners
             curl -sL https://taskfile.dev/install.sh | sh -s -- -d -b /usr/local/bin
