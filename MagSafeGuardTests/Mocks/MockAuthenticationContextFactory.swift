@@ -8,17 +8,18 @@
 //
 
 import Foundation
+
 @testable import MagSafeGuard
 
 /// Mock factory for creating mock authentication contexts
 class MockAuthenticationContextFactory: AuthenticationContextFactoryProtocol {
-    private let context: MockAuthenticationContext
+  private let context: MockAuthenticationContext
 
-    init(mockContext: MockAuthenticationContext) {
-        self.context = mockContext
-    }
+  init(mockContext: MockAuthenticationContext) {
+    self.context = mockContext
+  }
 
-    func createContext() -> AuthenticationContextProtocol {
-        return context
-    }
+  func createContext() -> AuthenticationContextProtocol {
+    return context
+  }
 }

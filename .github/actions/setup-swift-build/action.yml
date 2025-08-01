@@ -50,15 +50,6 @@ runs:
     - name: Cache and Install Taskfile
       uses: ./.github/actions/cache-taskfile
 
-    - name: Create Package.resolved (if using SPM)
-      shell: bash
-      run: |
-        # Only resolve if Package.swift exists
-        if [ -f "Package.swift" ] && [ ! -f "Package.resolved" ]; then
-          echo "Creating Package.resolved..."
-          swift package resolve
-        fi
-
     - name: Validate Swift environment
       shell: bash
       run: |

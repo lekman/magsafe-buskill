@@ -44,6 +44,8 @@ jobs:
       - name: Setup Swift Build Environment
         if: matrix.language == 'swift'
         uses: ./.github/actions/setup-swift-build
+        with:
+          cache-key-suffix: codeql
 
       - name: Build Swift Project
         run: |
