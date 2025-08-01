@@ -32,12 +32,9 @@ jobs:
         uses: ./.github/actions/setup-swift-build
         with:
           swift-version: "5.9"
-          cache-key-suffix: "-test-v2" # Increment this to bust cache
 
       - name: Cache and Install Taskfile
         uses: ./.github/actions/cache-taskfile
-        with:
-          cache-key-suffix: "build-v1"
 
       - name: Import Signing Certificate
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')

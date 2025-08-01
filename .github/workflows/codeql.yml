@@ -49,15 +49,11 @@ jobs:
       - name: Setup Swift Build Environment
         if: matrix.language == 'swift'
         uses: ./.github/actions/setup-swift-build
-        with:
-          cache-key-suffix: "-codeql"
 
       # Cache and install Taskfile
       - name: Cache and Install Taskfile
         if: matrix.language == 'swift'
         uses: ./.github/actions/cache-taskfile
-        with:
-          cache-key-suffix: "codeql-v1"
 
       # Manual build for Swift since it's not auto-detected
       - name: Build Swift Project
