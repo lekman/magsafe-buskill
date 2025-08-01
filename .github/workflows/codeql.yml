@@ -52,12 +52,12 @@ jobs:
         with:
           cache-key-suffix: "-codeql"
 
-      # Install Taskfile if needed (included in setup-swift-build action)
-      - name: Install Taskfile
+      # Cache and install Taskfile
+      - name: Cache and Install Taskfile
         if: matrix.language == 'swift'
-        run: |
-          echo "Verifying Taskfile installation..."
-          task --version || echo "Taskfile not found"
+        uses: ./.github/actions/cache-taskfile
+        with:
+          cache-key-suffix: "codeql-v1"
 
       # Manual build for Swift since it's not auto-detected
       - name: Build Swift Project

@@ -1,0 +1,79 @@
+name: Cache Taskfile and Binaries
+description: Cache Taskfile installation and binaries across workflows
+
+inputs:
+  cache-key-suffix:
+    description: "Additional cache key suffix for busting cache"
+    required: false
+    default: "v1"
+
+outputs:
+  cache-hit:
+    description: "Whether the cache was hit"
+    value: ${{ steps.cache-taskfile.outputs.cache-hit }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Determine OS for cache key
+      id: os-info
+      shell: bash
+      run: |
+        OS_KEY="${{ runner.os }}-${{ runner.arch }}"
+        echo "os-key=$OS_KEY" >> $GITHUB_OUTPUT
+        
+        # Determine Taskfile installation path
+        if [[ "${{ runner.os }}" == "Linux" ]]; then
+          echo "taskfile-path=/usr/local/bin" >> $GITHUB_OUTPUT
+        else
+          echo "taskfile-path=/usr/local/bin" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Cache Taskfile binary
+      id: cache-taskfile
+      uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4
+      with:
+        path: |
+          /usr/local/bin/task
+          ~/.task
+        key: taskfile-${{ steps.os-info.outputs.os-key }}-${{ inputs.cache-key-suffix }}
+        restore-keys: |
+          taskfile-${{ steps.os-info.outputs.os-key }}-
+        # Always save cache, even on failure
+        save-always: true
+    
+    - name: Install Taskfile if not cached
+      if: steps.cache-taskfile.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        echo "Installing Taskfile..."
+        if [[ "${{ runner.os }}" == "macOS" ]]; then
+          # GitHub Actions macOS runners are always ARM64 now
+          echo "Installing Taskfile for macOS ARM64..."
+          
+          # Try direct download first to avoid Rosetta issues
+          curl -sL https://github.com/go-task/task/releases/latest/download/task_darwin_arm64.tar.gz | sudo tar -xz -C /usr/local/bin task
+          sudo chmod +x /usr/local/bin/task
+          
+          # If that fails, fall back to brew with arch prefix
+          if ! command -v task &> /dev/null; then
+            echo "Direct download failed, trying brew..."
+            arch -arm64 brew install go-task/tap/go-task
+          fi
+        elif [[ "${{ runner.os }}" == "Linux" ]]; then
+          sudo sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+        else
+          echo "Unsupported OS: ${{ runner.os }}"
+          exit 1
+        fi
+        
+        # Verify installation
+        task --version
+    
+    - name: Verify Taskfile is available
+      shell: bash
+      run: |
+        echo "Taskfile version:"
+        task --version
+        echo "Taskfile location:"
+        which task
