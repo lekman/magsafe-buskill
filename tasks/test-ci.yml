@@ -91,11 +91,12 @@ tasks:
         rm -rf {{.DERIVED_DATA}}
         
         # Build test bundle without running app
-        echo "Building test bundle without app host..."
+        echo "Building test bundle with app for linking..."
+        # Use the regular scheme which includes both app and test targets
         xcodebuild build-for-testing \
           -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme {{.TEST_SCHEME}} \
-          -destination 'platform=macOS,arch=x86_64' \
+          -scheme {{.PROJECT_NAME}} \
+          -destination 'platform=macOS' \
           -derivedDataPath {{.DERIVED_DATA}} \
           -only-testing:{{.PROJECT_NAME}}Tests \
           -skip-testing:{{.PROJECT_NAME}}UITests \
@@ -107,8 +108,6 @@ tasks:
           MAGSAFE_GUARD_TEST_MODE=1 \
           SKIP_INSTALL=YES \
           GCC_PREPROCESSOR_DEFINITIONS='CI_BUILD=1' \
-          TEST_HOST= \
-          BUNDLE_LOADER= \
           -quiet || {
             echo "❌ Test build failed"
             exit 1
@@ -120,8 +119,8 @@ tasks:
         echo "Running tests without launching app..."
         xcodebuild test-without-building \
           -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme {{.TEST_SCHEME}} \
-          -destination 'platform=macOS,arch=x86_64' \
+          -scheme {{.PROJECT_NAME}} \
+          -destination 'platform=macOS' \
           -derivedDataPath {{.DERIVED_DATA}} \
           -only-testing:{{.PROJECT_NAME}}Tests \
           -skip-testing:{{.PROJECT_NAME}}UITests \
