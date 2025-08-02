@@ -7,7 +7,7 @@ vars:
   PROJECT_NAME: MagSafeGuard
   DERIVED_DATA: DerivedData
   BUILD_DIR: build
-  TEST_SCHEME: MagSafeGuardUnitTests
+  TEST_SCHEME: MagSafeGuard
   
 tasks:
   default:
@@ -39,7 +39,7 @@ tasks:
         xcodebuild build-for-testing \
           -project {{.PROJECT_NAME}}.xcodeproj \
           -scheme {{.TEST_SCHEME}} \
-          -destination 'platform=macOS' \
+          -destination 'platform=macOS,arch=arm64' \
           -derivedDataPath {{.DERIVED_DATA}} \
           -only-testing:{{.PROJECT_NAME}}Tests \
           -skip-testing:{{.PROJECT_NAME}}UITests \
@@ -92,11 +92,11 @@ tasks:
         
         # Build test bundle without running app
         echo "Building test bundle with app for linking..."
-        # Use the regular scheme which includes both app and test targets
+        # Use the CI scheme which includes both app and test targets
         xcodebuild build-for-testing \
           -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme {{.PROJECT_NAME}} \
-          -destination 'platform=macOS' \
+          -scheme {{.TEST_SCHEME}} \
+          -destination 'platform=macOS,arch=arm64' \
           -derivedDataPath {{.DERIVED_DATA}} \
           -only-testing:{{.PROJECT_NAME}}Tests \
           -skip-testing:{{.PROJECT_NAME}}UITests \
@@ -119,8 +119,8 @@ tasks:
         echo "Running tests without launching app..."
         xcodebuild test-without-building \
           -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme {{.PROJECT_NAME}} \
-          -destination 'platform=macOS' \
+          -scheme {{.TEST_SCHEME}} \
+          -destination 'platform=macOS,arch=arm64' \
           -derivedDataPath {{.DERIVED_DATA}} \
           -only-testing:{{.PROJECT_NAME}}Tests \
           -skip-testing:{{.PROJECT_NAME}}UITests \
@@ -174,8 +174,8 @@ tasks:
         
         xcodebuild build-for-testing \
           -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme {{.PROJECT_NAME}} \
-          -destination 'platform=macOS' \
+          -scheme {{.TEST_SCHEME}} \
+          -destination 'platform=macOS,arch=arm64' \
           -derivedDataPath {{.DERIVED_DATA}} \
           CODE_SIGNING_ALLOWED=NO \
           -quiet
