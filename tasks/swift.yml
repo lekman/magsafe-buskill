@@ -145,9 +145,9 @@ tasks:
         echo "Directory contents:"
         ls -la | grep -E "xcodeproj|Taskfile" | head -10 || echo "No matching files"
         echo "Project exists: $(ls {{.PROJECT_NAME}}.xcodeproj 2>/dev/null || echo 'NO')"
-        
+
         set +e  # Don't exit on error
-        
+
         # Run xcodebuild without formatter to capture exit code properly
         # In CI, disable code signing for tests and skip UI
         if [ "$CI" = "true" ]; then
@@ -156,16 +156,17 @@ tasks:
           SIGNING_FLAGS="$SIGNING_FLAGS ENABLE_APP_SANDBOX=NO ENABLE_HARDENED_RUNTIME=NO"
           # Skip UI tests completely
           TEST_FILTER="-skip-testing:{{.PROJECT_NAME}}UITests"
-          # Use CI scheme that has UI tests disabled
-          SCHEME_TO_USE="MagSafeGuardCI"
+          # Use default scheme for tests (MagSafeGuardCI is only for builds)
+          SCHEME_TO_USE="{{.SCHEME_NAME}}"
+          echo "CI mode: Using $SCHEME_TO_USE scheme with UI tests disabled via filter"
         else
           SIGNING_FLAGS=""
           TEST_FILTER=""
           SCHEME_TO_USE="{{.SCHEME_NAME}}"
         fi
-        
+
         echo "Running: xcodebuild test -project {{.PROJECT_NAME}}.xcodeproj -scheme $SCHEME_TO_USE -destination 'platform=macOS' -only-testing:{{.PROJECT_NAME}}Tests $TEST_FILTER -derivedDataPath {{.DERIVED_DATA}} -enableCodeCoverage YES $SIGNING_FLAGS"
-        
+
         # Run tests - add -quiet flag in CI to reduce output that might cause hanging
         if [ "$CI" = "true" ]; then
           # Set environment variable for the test process
@@ -215,16 +216,16 @@ tasks:
             > test_output.log 2>&1
           TEST_EXIT_CODE=$?
         fi
-        
+
         echo "xcodebuild exit code: $TEST_EXIT_CODE"
-        
+
         # Display output with formatter if available
         if [ "$FORMATTER" = "cat" ]; then
           cat test_output.log
         else
           cat test_output.log | $FORMATTER || cat test_output.log
         fi
-        
+
         # In CI, keep the log file for debugging and show errors
         if [ "$CI" = "true" ]; then
           echo ""
@@ -253,14 +254,14 @@ tasks:
         # Find the coverage data
         echo ""
         echo "Looking for coverage data in {{.DERIVED_DATA}}..."
-        
+
         if [ -d "{{.DERIVED_DATA}}" ]; then
           echo "DerivedData exists, searching for coverage files..."
           find {{.DERIVED_DATA}} -name "*.profdata" -o -name "*.xctest" | head -20 || echo "No coverage files found"
         else
           echo "DerivedData directory does not exist!"
         fi
-        
+
         PROF_DATA=$(find {{.DERIVED_DATA}} -name 'Coverage.profdata' -type f 2>/dev/null | head -1)
         BINARY=$(find {{.DERIVED_DATA}} -name '{{.PROJECT_NAME}}Tests.xctest' -type d 2>/dev/null | head -1)/Contents/MacOS/{{.PROJECT_NAME}}Tests
 
@@ -374,7 +375,7 @@ tasks:
       - |
         echo "🔨 Building project for CI (MagSafeGuardCI scheme)..."
         echo "This build excludes UI tests and disables system services"
-        
+
         # Build with CI-specific settings
         xcodebuild build \
           -project {{.PROJECT_NAME}}.xcodeproj \
@@ -398,7 +399,7 @@ tasks:
           com.apple.developer.icloud-container-identifiers= \
           com.apple.developer.ubiquity-kvstore-identifier= \
           -quiet
-        
+
         if [ $? -eq 0 ]; then
           echo "✅ CI build succeeded"
         else
@@ -429,7 +430,7 @@ tasks:
         echo "Directory contents:"
         ls -la | grep -E "xcodeproj|Taskfile" | head -10 || echo "No matching files"
         echo "Project exists: $(ls {{.PROJECT_NAME}}.xcodeproj 2>/dev/null || echo 'NO')"
-        
+
         # CI-specific settings
         if [ "$CI" = "true" ]; then
           EXTRA_FLAGS="CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY= CODE_SIGNING_REQUIRED=NO"
@@ -438,7 +439,7 @@ tasks:
         else
           EXTRA_FLAGS=""
         fi
-        
+
         set +e
         xcodebuild build \
           -project {{.PROJECT_NAME}}.xcodeproj \
@@ -448,19 +449,19 @@ tasks:
           CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Debug \
           $EXTRA_FLAGS \
           > build_output.log 2>&1
-        
+
         BUILD_EXIT_CODE=$?
-        
+
         # Display output with formatter if available
         if [ "$FORMATTER" = "cat" ]; then
           cat build_output.log
         else
           cat build_output.log | $FORMATTER || cat build_output.log
         fi
-        
+
         rm -f build_output.log
         set -e
-        
+
         if [ $BUILD_EXIT_CODE -eq 0 ]; then
           echo "✅ Build succeeded"
           echo "   App: {{.DEBUG_APP_PATH}}"
@@ -492,7 +493,7 @@ tasks:
         echo "Directory contents:"
         ls -la | grep -E "xcodeproj|Taskfile" | head -10 || echo "No matching files"
         echo "Project exists: $(ls {{.PROJECT_NAME}}.xcodeproj 2>/dev/null || echo 'NO')"
-        
+
         # CI-specific settings
         if [ "$CI" = "true" ]; then
           EXTRA_FLAGS="CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY= CODE_SIGNING_REQUIRED=NO"
@@ -501,7 +502,7 @@ tasks:
         else
           EXTRA_FLAGS=""
         fi
-        
+
         set +e
         xcodebuild build \
           -project {{.PROJECT_NAME}}.xcodeproj \
@@ -511,19 +512,19 @@ tasks:
           CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Release \
           $EXTRA_FLAGS \
           > build_output.log 2>&1
-        
+
         BUILD_EXIT_CODE=$?
-        
+
         # Display output with formatter if available
         if [ "$FORMATTER" = "cat" ]; then
           cat build_output.log
         else
           cat build_output.log | $FORMATTER || cat build_output.log
         fi
-        
+
         rm -f build_output.log
         set -e
-        
+
         if [ $BUILD_EXIT_CODE -eq 0 ]; then
           echo "✅ Build succeeded"
           echo "   App: {{.RELEASE_APP_PATH}}"
@@ -883,10 +884,10 @@ tasks:
       - |
         ./scripts/sign-app.sh development
           2>&1 | $FORMATTER
-        
+
         EXIT_CODE=$?
         set -e
-        
+
         if [ $EXIT_CODE -eq 0 ]; then
           echo "✅ App built and signed for development"
           echo "   App: {{.DEBUG_APP_PATH}}"
@@ -903,10 +904,10 @@ tasks:
         ./scripts/sign-app.sh release
           DEVELOPMENT_TEAM=PW6K4BERFV \
           2>&1 | $FORMATTER
-        
+
         EXIT_CODE=$?
         set -e
-        
+
         if [ $EXIT_CODE -eq 0 ]; then
           echo "✅ App built and signed for release"
           echo "   App: {{.RELEASE_APP_PATH}}"
@@ -937,10 +938,10 @@ tasks:
           CODE_SIGN_IDENTITY="Apple Distribution" \
           DEVELOPMENT_TEAM=PW6K4BERFV \
           2>&1 | $FORMATTER
-        
+
         EXIT_CODE=$?
         set -e
-        
+
         if [ $EXIT_CODE -eq 0 ]; then
           echo "✅ App built and signed for App Store"
           echo "   App: {{.RELEASE_APP_PATH}}"
@@ -965,19 +966,19 @@ tasks:
           CODE_SIGN_IDENTITY="-" \
           CODE_SIGNING_ALLOWED=YES \
           > build_output.log 2>&1
-        
+
         EXIT_CODE=$?
-        
+
         # Display output with formatter if available
         if [ "$FORMATTER" = "cat" ]; then
           cat build_output.log
         else
           cat build_output.log | $FORMATTER || cat build_output.log
         fi
-        
+
         rm -f build_output.log
         set -e  # Re-enable exit on error
-        
+
         if [ $EXIT_CODE -eq 0 ]; then
           echo "✅ App built with ad-hoc signing"
           echo "   App: {{.RELEASE_APP_PATH}}"

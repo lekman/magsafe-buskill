@@ -60,7 +60,7 @@ final class SettingsModelTests: XCTestCase {
 
     // Test duplicate removal
     settings.securityActions = [
-      .lockScreen, .unmountVolumes, .lockScreen, .shutdown, .unmountVolumes
+      .lockScreen, .unmountVolumes, .lockScreen, .shutdown, .unmountVolumes,
     ]
     let validated2 = settings.validated()
     XCTAssertEqual(validated2.securityActions, [.lockScreen, .unmountVolumes, .shutdown])

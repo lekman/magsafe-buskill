@@ -14,7 +14,7 @@ analyzer_rules:
 
 # Opt-in rules (not enabled by default)
 opt_in_rules:
-  - missing_docs # Require documentation for public APIs
+  - missing_docs # Require documentation for public declarations
   - file_header # Consistent file headers
   - explicit_type_interface # Explicit types for public APIs
   - explicit_acl # Explicit access control
@@ -44,6 +44,8 @@ disabled_rules:
 missing_docs:
   excludes_extensions: false
   excludes_inherited_types: false
+  excludes_trivial_init: true
+  warning: public
 
 file_header:
   required_pattern: |
@@ -68,7 +70,7 @@ file_header:
 
 # Type body length
 type_body_length:
-  warning: 300
+  warning: 310 # Increased slightly to accommodate test files
   error: 400
 
 # File length - commented out since disabled

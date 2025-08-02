@@ -334,7 +334,8 @@ final class SecurityActionsServiceTests: XCTestCase {
       // Verify the configuration was saved to UserDefaults
       if let data = UserDefaults.standard.data(forKey: "SecurityActionsConfiguration"),
         let savedConfig = try? JSONDecoder().decode(
-          SecurityActionsService.Configuration.self, from: data) {
+          SecurityActionsService.Configuration.self, from: data)
+      {
         XCTAssertEqual(savedConfig.enabledActions, [.soundAlarm, .forceLogout])
         XCTAssertEqual(savedConfig.actionDelay, 10)
         XCTAssertEqual(savedConfig.alarmVolume, 0.75)

@@ -103,54 +103,66 @@ public class RealCLLocationManager: CLLocationManagerProtocol {
     self.locationManager = CLLocationManager()
   }
 
+  /// The delegate object for receiving location updates
   public weak var delegate: CLLocationManagerDelegate? {
     get { locationManager.delegate }
     set { locationManager.delegate = newValue }
   }
 
+  /// The desired accuracy of location data
   public var desiredAccuracy: CLLocationAccuracy {
     get { locationManager.desiredAccuracy }
     set { locationManager.desiredAccuracy = newValue }
   }
 
+  /// Whether location updates should pause automatically
   public var pausesLocationUpdatesAutomatically: Bool {
     get { locationManager.pausesLocationUpdatesAutomatically }
     set { locationManager.pausesLocationUpdatesAutomatically = newValue }
   }
 
+  /// The minimum distance in meters for location updates
   public var distanceFilter: CLLocationDistance {
     get { locationManager.distanceFilter }
     set { locationManager.distanceFilter = newValue }
   }
 
+  /// The current authorization status for location services
   public var authorizationStatus: CLAuthorizationStatus {
     locationManager.authorizationStatus
   }
 
+  /// The set of regions currently being monitored
   public var monitoredRegions: Set<CLRegion> {
     locationManager.monitoredRegions
   }
 
+  /// Requests always authorization for location services
   public func requestAlwaysAuthorization() {
     locationManager.requestAlwaysAuthorization()
   }
 
+  /// Starts updating the user's location
   public func startUpdatingLocation() {
     locationManager.startUpdatingLocation()
   }
 
+  /// Stops updating the user's location
   public func stopUpdatingLocation() {
     locationManager.stopUpdatingLocation()
   }
 
+  /// Starts monitoring the specified region
   public func startMonitoring(for region: CLRegion) {
     locationManager.startMonitoring(for: region)
   }
 
+  /// Stops monitoring the specified region
   public func stopMonitoring(for region: CLRegion) {
     locationManager.stopMonitoring(for: region)
   }
 
+  /// Checks if monitoring is available for the specified region class
   public static func isMonitoringAvailable(for regionClass: AnyClass) -> Bool {
     CLLocationManager.isMonitoringAvailable(for: regionClass)
   }

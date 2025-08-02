@@ -229,7 +229,8 @@ public class AutoArmManager: NSObject {
 
     // Check cooldown period
     if let lastTime = lastAutoArmTime,
-      Date().timeIntervalSince(lastTime) < autoArmCooldown {
+      Date().timeIntervalSince(lastTime) < autoArmCooldown
+    {
       Log.debug("Auto-arm skipped - cooldown period", category: .autoArm)
       return false
     }

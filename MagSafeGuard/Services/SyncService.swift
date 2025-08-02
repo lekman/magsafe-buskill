@@ -606,7 +606,7 @@ extension SyncService {
       userInfo: [
         "title": "iCloud Permission Required",
         "message":
-          "MagSafe Guard needs permission to sync your settings and logs to iCloud. Please check System Settings > Privacy & Security > iCloud."
+          "MagSafe Guard needs permission to sync your settings and logs to iCloud. Please check System Settings > Privacy & Security > iCloud.",
       ]
     )
   }
@@ -617,7 +617,7 @@ extension SyncService {
       object: nil,
       userInfo: [
         "title": "iCloud Account Required",
-        "message": "Please sign in to iCloud in System Settings to enable sync features."
+        "message": "Please sign in to iCloud in System Settings to enable sync features.",
       ]
     )
   }
@@ -628,7 +628,7 @@ extension SyncService {
       object: nil,
       userInfo: [
         "title": "iCloud Access Restricted",
-        "message": "iCloud access is restricted on this device. Contact your administrator."
+        "message": "iCloud access is restricted on this device. Contact your administrator.",
       ]
     )
   }

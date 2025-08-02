@@ -7,8 +7,8 @@
 //  Real implementation of system actions for macOS.
 //
 
-import AppKit
 import AVFoundation
+import AppKit
 import Foundation
 
 /// Real implementation of system actions for macOS
@@ -42,7 +42,7 @@ public class MacSystemActions: SystemActionsProtocol {
         "osascript": (osascriptPathEnvVar, "\(basePath)/osascript"),
         "killall": (killallPathEnvVar, "\(basePath)/killall"),
         "sudo": (sudoPathEnvVar, "\(basePath)/sudo"),
-        "bash": (bashPathEnvVar, "\(bashBasePath)/bash")
+        "bash": (bashPathEnvVar, "\(bashBasePath)/bash"),
       ]
     }
 
@@ -65,7 +65,10 @@ public class MacSystemActions: SystemActionsProtocol {
 
     /// Initialize with custom paths
     public init(
-      pmsetPath: String, osascriptPath: String, killallPath: String, sudoPath: String,
+      pmsetPath: String,
+      osascriptPath: String,
+      killallPath: String,
+      sudoPath: String,
       bashPath: String
     ) {
       self.pmsetPath = pmsetPath

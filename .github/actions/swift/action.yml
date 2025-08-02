@@ -35,17 +35,25 @@ runs:
       with:
         xcode-version: ${{ inputs.xcode-version }}
 
-    - name: Cache dependencies
+    - name: Create cache directories
+      shell: bash
+      run: |
+        # Create directories that will be cached to avoid warnings
+        mkdir -p DerivedData
+        mkdir -p build
+    
+    - name: Cache Xcode dependencies
       id: cache
       uses: actions/cache@v4
       with:
         path: |
-          .build
-          ~/Library/Developer/Xcode/DerivedData
-        key: ${{ runner.os }}-spm-${{ hashFiles('Package.swift', '**/Package.resolved') }}${{ inputs.cache-key-suffix }}
+          DerivedData
+          build
+          ~/Library/Developer/Xcode/DerivedData/MagSafeGuard-*
+        key: ${{ runner.os }}-xcode-${{ hashFiles('MagSafeGuard.xcodeproj/project.pbxproj', '**/*.swift') }}-${{ inputs.cache-key-suffix }}
         restore-keys: |
-          ${{ runner.os }}-spm-${{ hashFiles('Package.swift', '**/Package.resolved') }}
-          ${{ runner.os }}-spm-
+          ${{ runner.os }}-xcode-${{ hashFiles('MagSafeGuard.xcodeproj/project.pbxproj', '**/*.swift') }}-
+          ${{ runner.os }}-xcode-
 
     - name: Cache and Install Taskfile
       uses: ./.github/actions/taskfile
@@ -59,4 +67,78 @@ runs:
         echo "Platform: $(uname -a)"
         if [ "$RUNNER_OS" == "macOS" ]; then
           echo "Xcode version: $(xcode-select -p)"
+          echo "Xcode build settings:"
+          xcodebuild -showBuildSettings -project MagSafeGuard.xcodeproj 2>/dev/null | grep -E "DERIVED_DATA|BUILD_DIR" | head -10 || true
+        fi
+        
+        # Debug: Show what will be cached
+        echo ""
+        echo "Cache directories status:"
+        echo "- DerivedData: $(du -sh DerivedData 2>/dev/null || echo 'empty/not created yet')"
+        echo "- build: $(du -sh build 2>/dev/null || echo 'empty/not created yet')"
+    
+    - name: Generate build summary
+      if: always()
+      shell: bash
+      env:
+        RUNNER_OS: ${{ runner.os }}
+        RUNNER_ARCH: ${{ runner.arch }}
+        CACHE_KEY_SUFFIX: ${{ inputs.cache-key-suffix }}
+        CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+        HASH_FILES: ${{ hashFiles('MagSafeGuard.xcodeproj/project.pbxproj', '**/*.swift') }}
+      run: |
+        # Capture environment info
+        SWIFT_VERSION=$(swift --version | head -1)
+        PLATFORM="${RUNNER_OS}-${RUNNER_ARCH}"
+        CACHE_KEY="${RUNNER_OS}-xcode-${HASH_FILES}-${CACHE_KEY_SUFFIX}"
+        CACHE_HIT="${CACHE_HIT}"
+        
+        if [ "${RUNNER_OS}" == "macOS" ]; then
+          XCODE_VERSION=$(xcodebuild -version | head -1)
+          XCODE_PATH=$(xcode-select -p)
+        else
+          XCODE_VERSION="N/A (Linux)"
+          XCODE_PATH="N/A"
+        fi
+        
+        # Generate summary
+        cat >> $GITHUB_STEP_SUMMARY << EOF
+        ## 🛠️ Swift Build Environment
+        
+        | Property | Value |
+        |----------|-------|
+        | **Platform** | $PLATFORM |
+        | **Swift Version** | $SWIFT_VERSION |
+        | **Xcode Version** | $XCODE_VERSION |
+        | **Xcode Path** | \`$XCODE_PATH\` |
+        
+        ## 📦 Cache Information
+        
+        | Property | Value |
+        |----------|-------|
+        | **Cache Hit** | ${CACHE_HIT:-false} |
+        | **Cache Key** | \`$CACHE_KEY\` |
+        | **Cache Paths** | \`DerivedData\`, \`build\`, \`~/Library/Developer/Xcode/DerivedData/MagSafeGuard-*\` |
+        
+        ## 📊 Cache Statistics
+        
+        | Directory | Size |
+        |-----------|------|
+        | **DerivedData** | $(du -sh DerivedData 2>/dev/null | cut -f1 || echo "0") |
+        | **build** | $(du -sh build 2>/dev/null | cut -f1 || echo "0") |
+        
+        ### Cache Key Components
+        - **OS**: ${{ runner.os }}
+        - **Project Hash**: \`$(echo "${{ hashFiles('MagSafeGuard.xcodeproj/project.pbxproj') }}" | cut -c1-8)\`
+        - **Swift Files Hash**: \`$(echo "${{ hashFiles('**/*.swift') }}" | cut -c1-8)\`
+        - **Suffix**: ${{ inputs.cache-key-suffix }}
+        
+        EOF
+        
+        # Add performance tip if cache miss
+        if [ "$CACHE_HIT" != "true" ]; then
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+        
+        > **💡 Performance Tip**: This was a cache miss. The next build with the same configuration will be faster due to cached dependencies.
+        EOF
         fi

@@ -58,7 +58,6 @@ jobs:
             echo "should-skip=false" >> $GITHUB_OUTPUT
           fi
 
-
   # Basic security checks
   basic-checks:
     name: Basic Security Checks

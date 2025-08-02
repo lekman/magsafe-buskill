@@ -146,7 +146,8 @@ public class PowerMonitorCore {
       // Get battery level
       if let currentCapacity = sourceDict["Current Capacity"] as? Int,
         let maxCapacity = sourceDict["Max Capacity"] as? Int,
-        maxCapacity > 0 {
+        maxCapacity > 0
+      {
         batteryLevel = Int((Double(currentCapacity) / Double(maxCapacity)) * 100)
       }
 
@@ -159,7 +160,8 @@ public class PowerMonitorCore {
       if let adapterInfo = sourceDict["AdapterInfo"] as? Int {
         adapterWattage = adapterInfo
       } else if let adapterDetails = sourceDict["AdapterDetails"] as? [String: Any],
-        let watts = adapterDetails["Watts"] as? Int {
+        let watts = adapterDetails["Watts"] as? Int
+      {
         adapterWattage = watts
       }
     }

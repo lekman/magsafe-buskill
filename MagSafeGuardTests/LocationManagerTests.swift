@@ -90,7 +90,7 @@ final class LocationManagerTests: XCTestCase {
         radius: 100),
       TrustedLocation(
         name: "Office", coordinate: CLLocationCoordinate2D(latitude: 37.3352, longitude: -121.8811),
-        radius: 150)
+        radius: 150),
     ]
 
     locationManager.updateTrustedLocations(locations)

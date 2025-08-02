@@ -17,10 +17,19 @@ public class MockLocationManager: LocationManagerProtocol {
 
   // MARK: - Properties
 
+  /// Delegate for location manager events
   public weak var delegate: LocationManagerDelegate?
+
+  /// List of trusted locations for testing
   public private(set) var trustedLocations: [TrustedLocation] = []
+
+  /// Whether location monitoring is active
   public private(set) var isMonitoring = false
+
+  /// Current device location for testing
   public private(set) var currentLocation: CLLocation?
+
+  /// Whether device is in a trusted location
   public private(set) var isInTrustedLocation = false
 
   // MARK: - Test Control
@@ -37,51 +46,74 @@ public class MockLocationManager: LocationManagerProtocol {
 
   // MARK: - Call Tracking
 
+  /// Tracks if startMonitoring was called
   public var startMonitoringCalled = false
+
+  /// Tracks if stopMonitoring was called
   public var stopMonitoringCalled = false
+
+  /// Tracks if addTrustedLocation was called
   public var addTrustedLocationCalled = false
+
+  /// Tracks if removeTrustedLocation was called
   public var removeTrustedLocationCalled = false
+
+  /// Tracks if updateTrustedLocations was called
   public var updateTrustedLocationsCalled = false
+
+  /// Tracks if checkIfInTrustedLocation was called
   public var checkIfInTrustedLocationCalled = false
 
+  /// Last location passed to addTrustedLocation
   public var lastAddedLocation: TrustedLocation?
+
+  /// Last ID passed to removeTrustedLocation
   public var lastRemovedLocationId: UUID?
+
+  /// Last locations passed to updateTrustedLocations
   public var lastUpdatedLocations: [TrustedLocation]?
 
   // MARK: - Initialization
 
+  /// Creates a new mock location manager
   public init() {}
 
   // MARK: - LocationManagerProtocol
 
+  /// Starts location monitoring
   public func startMonitoring() {
     startMonitoringCalled = true
     isMonitoring = true
   }
 
+  /// Stops location monitoring
   public func stopMonitoring() {
     stopMonitoringCalled = true
     isMonitoring = false
   }
 
+  /// Adds a trusted location
   public func addTrustedLocation(_ location: TrustedLocation) {
     addTrustedLocationCalled = true
     lastAddedLocation = location
     trustedLocations.append(location)
   }
 
+  /// Removes a trusted location by ID
   public func removeTrustedLocation(id: UUID) {
     removeTrustedLocationCalled = true
     lastRemovedLocationId = id
     trustedLocations.removeAll { $0.id == id }
   }
 
+  /// Updates the list of trusted locations
   public func updateTrustedLocations(_ locations: [TrustedLocation]) {
     updateTrustedLocationsCalled = true
     lastUpdatedLocations = locations
     trustedLocations = locations
   }
 
+  /// Checks if current location is within any trusted location
   public func checkIfInTrustedLocation() -> Bool {
     checkIfInTrustedLocationCalled = true
     isInTrustedLocation = mockIsInTrustedLocation
@@ -135,10 +167,19 @@ public class MockCLLocationManager: CLLocationManagerProtocol {
 
   // MARK: - Properties
 
+  /// Delegate for Core Location events
   public weak var delegate: CLLocationManagerDelegate?
+
+  /// Desired accuracy for location updates
   public var desiredAccuracy: CLLocationAccuracy = kCLLocationAccuracyHundredMeters
+
+  /// Whether to pause location updates automatically
   public var pausesLocationUpdatesAutomatically = true
+
+  /// Minimum distance filter for location updates
   public var distanceFilter: CLLocationDistance = 50
+
+  /// Set of regions being monitored
   public var monitoredRegions = Set<CLRegion>()
 
   // MARK: - Test Control
@@ -149,27 +190,42 @@ public class MockCLLocationManager: CLLocationManagerProtocol {
   /// Control whether monitoring is available
   public static var mockIsMonitoringAvailable = true
 
+  /// Returns the mocked authorization status
   public var authorizationStatus: CLAuthorizationStatus {
     return mockAuthorizationStatus
   }
 
   // MARK: - Call Tracking
 
+  /// Tracks if requestAlwaysAuthorization was called
   public var requestAlwaysAuthorizationCalled = false
+
+  /// Tracks if startUpdatingLocation was called
   public var startUpdatingLocationCalled = false
+
+  /// Tracks if stopUpdatingLocation was called
   public var stopUpdatingLocationCalled = false
+
+  /// Tracks if startMonitoring was called
   public var startMonitoringCalled = false
+
+  /// Tracks if stopMonitoring was called
   public var stopMonitoringCalled = false
 
+  /// Last region passed to startMonitoring
   public var lastStartedMonitoringRegion: CLRegion?
+
+  /// Last region passed to stopMonitoring
   public var lastStoppedMonitoringRegion: CLRegion?
 
   // MARK: - Initialization
 
+  /// Creates a new mock Core Location manager
   public init() {}
 
   // MARK: - CLLocationManagerProtocol
 
+  /// Requests always authorization for location services
   public func requestAlwaysAuthorization() {
     requestAlwaysAuthorizationCalled = true
     // Simulate immediate authorization change
@@ -178,26 +234,31 @@ public class MockCLLocationManager: CLLocationManagerProtocol {
     // Tests should check the mockAuthorizationStatus directly or use simulateAuthorizationChange
   }
 
+  /// Starts updating location
   public func startUpdatingLocation() {
     startUpdatingLocationCalled = true
   }
 
+  /// Stops updating location
   public func stopUpdatingLocation() {
     stopUpdatingLocationCalled = true
   }
 
+  /// Starts monitoring the specified region
   public func startMonitoring(for region: CLRegion) {
     startMonitoringCalled = true
     lastStartedMonitoringRegion = region
     monitoredRegions.insert(region)
   }
 
+  /// Stops monitoring the specified region
   public func stopMonitoring(for region: CLRegion) {
     stopMonitoringCalled = true
     lastStoppedMonitoringRegion = region
     monitoredRegions.remove(region)
   }
 
+  /// Checks if monitoring is available for the specified region class
   public static func isMonitoringAvailable(for regionClass: AnyClass) -> Bool {
     return mockIsMonitoringAvailable
   }
@@ -256,8 +317,11 @@ public class MockLocationManagerFactory: LocationManagerFactoryProtocol {
 
   /// Track creation calls
   public var createLocationManagerCalled = false
+
+  /// Track Core Location manager creation calls
   public var createCLLocationManagerCalled = false
 
+  /// Creates a new mock factory with the specified managers
   public init(
     mockLocationManager: MockLocationManager = MockLocationManager(),
     mockCLLocationManager: MockCLLocationManager = MockCLLocationManager()
@@ -266,11 +330,13 @@ public class MockLocationManagerFactory: LocationManagerFactoryProtocol {
     self.mockCLLocationManager = mockCLLocationManager
   }
 
+  /// Creates and returns the mock location manager
   public func createLocationManager() -> LocationManagerProtocol {
     createLocationManagerCalled = true
     return mockLocationManager
   }
 
+  /// Creates and returns the mock Core Location manager
   public func createCLLocationManager() -> CLLocationManagerProtocol {
     createCLLocationManagerCalled = true
     return mockCLLocationManager

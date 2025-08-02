@@ -140,7 +140,8 @@ public class NotificationService {
     // Skip notifications if disabled for testing, unless using a mock delivery method
     // Check for any mock class (they will be defined in tests)
     if NotificationService.disableForTesting
-      && !String(describing: type(of: deliveryMethod)).contains("Mock") {
+      && !String(describing: type(of: deliveryMethod)).contains("Mock")
+    {
       Log.debug("Skipping notification - disabled for testing")
       return
     }
@@ -206,7 +207,8 @@ private class UserNotificationDelivery: NotificationDeliveryProtocol {
     // Check if we're in a test environment or Xcode Agents
     let bundleURL = Bundle.main.bundleURL.path
     if Bundle.main.bundleIdentifier == nil || bundleURL.contains("Xcode")
-      || bundleURL.contains("Developer") {
+      || bundleURL.contains("Developer")
+    {
       Log.debug("Skipping delivery - test/development environment")
       return
     }
@@ -236,7 +238,8 @@ private class UserNotificationDelivery: NotificationDeliveryProtocol {
     // Check if we're in a test environment or Xcode Agents
     let bundleURL = Bundle.main.bundleURL.path
     if Bundle.main.bundleIdentifier == nil || bundleURL.contains("Xcode")
-      || bundleURL.contains("Developer") {
+      || bundleURL.contains("Developer")
+    {
       Log.debug("Skipping permissions - test/development environment")
       completion(false)
       return

@@ -18,7 +18,8 @@ struct MagSafeGuardApp: App {
     if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
       || ProcessInfo.processInfo.environment["MAGSAFE_GUARD_TEST_MODE"] != nil
       || ProcessInfo.processInfo.arguments.contains("-SenTest")
-      || (Bundle.main.bundlePath.hasSuffix(".xctest")) {
+      || (Bundle.main.bundlePath.hasSuffix(".xctest"))
+    {
       // We're running tests, minimize initialization
       NSApplication.shared.setActivationPolicy(.prohibited)
       return

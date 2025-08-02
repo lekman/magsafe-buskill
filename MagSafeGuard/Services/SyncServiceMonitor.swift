@@ -63,7 +63,8 @@ final class SyncServiceMonitor {
 
   // MARK: - Private Methods
 
-  private func handleAccountStatus(_ status: CKAccountStatus, error: Error?, container: CKContainer) {
+  private func handleAccountStatus(_ status: CKAccountStatus, error: Error?, container: CKContainer)
+  {
     let statusTimestamp = Date().formatted(.iso8601)
 
     DispatchQueue.main.async { [weak self] in

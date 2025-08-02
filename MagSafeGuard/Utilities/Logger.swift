@@ -105,7 +105,8 @@ public struct Log {
   }
 
   /// Log errors (also saved to file)
-  public static func error(_ message: String, error: Error? = nil, category: LogCategory = .general) {
+  public static func error(_ message: String, error: Error? = nil, category: LogCategory = .general)
+  {
     let fullMessage: String
     if let error = error {
       fullMessage = "\(message): \(error.localizedDescription)"
@@ -289,7 +290,8 @@ private class FileLogger {
       for file in files where file.pathExtension == "log" {
         if let attributes = try? fileManager.attributesOfItem(atPath: file.path),
           let creationDate = attributes[.creationDate] as? Date,
-          creationDate < sevenDaysAgo {
+          creationDate < sevenDaysAgo
+        {
           try? fileManager.removeItem(at: file)
         }
       }

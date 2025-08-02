@@ -36,7 +36,8 @@ public struct TrustedLocation: Codable, Equatable {
   ///   - name: User-friendly name
   ///   - coordinate: GPS coordinates
   ///   - radius: Radius in meters (default: 100m)
-  public init(name: String, coordinate: CLLocationCoordinate2D, radius: CLLocationDistance = 100.0) {
+  public init(name: String, coordinate: CLLocationCoordinate2D, radius: CLLocationDistance = 100.0)
+  {
     self.name = name
     self.coordinate = coordinate
     self.radius = radius
@@ -278,7 +279,8 @@ public class LocationManager: NSObject, LocationManagerProtocol {
 
   private func loadTrustedLocations() {
     if let data = userDefaults.data(forKey: trustedLocationsKey),
-      let locations = try? JSONDecoder().decode([TrustedLocation].self, from: data) {
+      let locations = try? JSONDecoder().decode([TrustedLocation].self, from: data)
+    {
       trustedLocations = locations
     }
   }

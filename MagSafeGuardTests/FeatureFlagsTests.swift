@@ -42,7 +42,7 @@ final class FeatureFlagsTests: XCTestCase {
       .authenticationService, .autoArmManager, .locationManager,
       .networkMonitor, .securityEvidence, .cloudSync,
       .sentryEnabled, .sentryDebug, .performanceMetrics,
-      .verboseLogging
+      .verboseLogging,
     ]
 
     for flag in expectedEnabledFlags {
@@ -181,7 +181,7 @@ final class FeatureFlagsTests: XCTestCase {
     let testFlags: [String: Bool] = [
       FeatureFlags.Flag.verboseLogging.rawValue: false,
       FeatureFlags.Flag.sentryEnabled.rawValue: false,
-      FeatureFlags.Flag.powerMonitoring.rawValue: true
+      FeatureFlags.Flag.powerMonitoring.rawValue: true,
     ]
 
     let encoder = JSONEncoder()

@@ -264,7 +264,7 @@ public struct AccessibilityAnnouncement {
         notification: .announcementRequested,
         userInfo: [
           .announcement: message,
-          .priority: priority.rawValue
+          .priority: priority.rawValue,
         ]
       )
     }
