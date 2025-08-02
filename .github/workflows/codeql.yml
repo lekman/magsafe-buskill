@@ -96,7 +96,6 @@ jobs:
         with:
           category: "/language:${{matrix.language}}"
           upload: true
-          add-snippets: true
           # Only upload database on main branch to save time
           upload-database: ${{ github.ref == 'refs/heads/main' }}
 
