@@ -385,7 +385,6 @@ jobs:
     needs:
       [
         check-skip,
-        cancel-redundant,
         basic-checks,
         dependency-review,
         trufflehog,
