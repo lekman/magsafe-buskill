@@ -66,10 +66,8 @@ runs:
         echo "Swift version: $(swift --version 2>&1 || echo 'Swift unavailable')"
         echo "Platform: $(uname -a)"
         if [ "$RUNNER_OS" == "macOS" ]; then
-          echo "Xcode version: $(xcode-select -p 2>/dev/null || echo 'Xcode unavailable')"
-          echo "Xcode build settings:"
-          # Avoid broken pipe by limiting output before piping
-          xcodebuild -showBuildSettings -project MagSafeGuard.xcodeproj 2>&1 | head -100 | grep -E "DERIVED_DATA|BUILD_DIR" | head -10 || true
+          echo "Xcode version: $(xcodebuild -version 2>/dev/null | head -1 || echo 'Xcode unavailable')"
+          echo "Xcode path: $(xcode-select -p 2>/dev/null || echo 'Xcode path unavailable')"
         fi
         
         # Debug: Show what will be cached
@@ -78,7 +76,7 @@ runs:
         echo "- DerivedData: $(du -sh DerivedData 2>/dev/null || echo 'empty/not created yet')"
         echo "- build: $(du -sh build 2>/dev/null || echo 'empty/not created yet')"
     
-    - name: Generate build summary
+    - name: Generate environment summary
       if: always()
       shell: bash
       env:
@@ -105,7 +103,7 @@ runs:
         
         # Generate summary
         cat >> $GITHUB_STEP_SUMMARY << EOF
-        ## 🛠️ Swift Build Environment
+        ## 🛠️ Swift Environment Setup
         
         | Property | Value |
         |----------|-------|
