@@ -66,24 +66,18 @@ jobs:
         with:
           cache-key-suffix: codeql-${{ github.sha }}
 
-      # Check if we have a cached build
-      - name: Check for cached build
-        id: check-build
-        run: |
-          if [ -d "DerivedData/Build/Products/Debug/MagSafeGuard.app" ]; then
-            echo "cached=true" >> $GITHUB_OUTPUT
-            echo "✅ Found cached build artifacts"
-          else
-            echo "cached=false" >> $GITHUB_OUTPUT
-            echo "🔨 No cached build found, will build from scratch"
-          fi
-
-      - name: Build Swift Project
-        if: steps.check-build.outputs.cached != 'true'
+      - name: Build Swift Project for CodeQL
         run: |
           echo "Building Swift project for CodeQL analysis..."
           echo "Using MagSafeGuardCI scheme to exclude UI tests and disable system services"
-
+          
+          # Always build for CodeQL to ensure it can see the source code
+          # CodeQL needs to instrument the build process to analyze the code
+          echo "🔨 Building project (required for CodeQL to analyze Swift code)..."
+          
+          # Clean any existing build artifacts to ensure fresh build
+          rm -rf DerivedData/Build
+          
           # Use task swift:build:ci for consistent build configuration
           task swift:build:ci || {
             echo "Build failed - this is expected if the project has compilation issues"
@@ -99,15 +93,6 @@ jobs:
           # Only upload database on main branch to save time
           upload-database: ${{ github.ref == 'refs/heads/main' }}
 
-      # Save build artifacts for next run
-      - name: Save build artifacts
-        if: always()
-        run: |
-          echo "📦 Build artifacts size:"
-          du -sh DerivedData/Build/Products/Debug/ 2>/dev/null || echo "No build products found"
-          echo "📊 DerivedData size:"
-          du -sh DerivedData/ 2>/dev/null || echo "No DerivedData found"
-          
       # Generate workflow summary
       - name: Generate CodeQL Summary
         if: always()
@@ -119,7 +104,7 @@ jobs:
           |----------|-------|
           | **Language** | ${{ matrix.language }} |
           | **Build Mode** | ${{ matrix.build-mode }} |
-          | **Cached Build** | ${{ steps.check-build.outputs.cached || 'false' }} |
+          | **Build Executed** | Always (required for CodeQL) |
           | **Analysis Time** | ~$(( $(date +%s) - ${{ steps.checkout.outputs.timestamp || '0' }} ))s |
           
           ### 📊 Cache Performance
