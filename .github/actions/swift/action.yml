@@ -63,12 +63,13 @@ runs:
     - name: Validate Swift environment
       shell: bash
       run: |
-        echo "Swift version: $(swift --version)"
+        echo "Swift version: $(swift --version 2>&1 || echo 'Swift unavailable')"
         echo "Platform: $(uname -a)"
         if [ "$RUNNER_OS" == "macOS" ]; then
-          echo "Xcode version: $(xcode-select -p)"
+          echo "Xcode version: $(xcode-select -p 2>/dev/null || echo 'Xcode unavailable')"
           echo "Xcode build settings:"
-          xcodebuild -showBuildSettings -project MagSafeGuard.xcodeproj 2>/dev/null | grep -E "DERIVED_DATA|BUILD_DIR" | head -10 || true
+          # Avoid broken pipe by limiting output before piping
+          xcodebuild -showBuildSettings -project MagSafeGuard.xcodeproj 2>&1 | head -100 | grep -E "DERIVED_DATA|BUILD_DIR" | head -10 || true
         fi
         
         # Debug: Show what will be cached
@@ -88,14 +89,15 @@ runs:
         HASH_FILES: ${{ hashFiles('MagSafeGuard.xcodeproj/project.pbxproj', '**/*.swift') }}
       run: |
         # Capture environment info
-        SWIFT_VERSION=$(swift --version | head -1)
+        SWIFT_VERSION=$(swift --version 2>/dev/null | head -1 || echo "Swift version unavailable")
         PLATFORM="${RUNNER_OS}-${RUNNER_ARCH}"
         CACHE_KEY="${RUNNER_OS}-xcode-${HASH_FILES}-${CACHE_KEY_SUFFIX}"
         CACHE_HIT="${CACHE_HIT}"
         
         if [ "${RUNNER_OS}" == "macOS" ]; then
-          XCODE_VERSION=$(xcodebuild -version | head -1)
-          XCODE_PATH=$(xcode-select -p)
+          # Avoid broken pipe error by redirecting to file first
+          XCODE_VERSION=$(xcodebuild -version 2>&1 | head -1 || echo "Xcode version unavailable")
+          XCODE_PATH=$(xcode-select -p 2>/dev/null || echo "/Applications/Xcode.app/Contents/Developer")
         else
           XCODE_VERSION="N/A (Linux)"
           XCODE_PATH="N/A"
