@@ -104,13 +104,13 @@ tasks:
         # Commit with timestamp
         TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
         git commit -m "chore: update test coverage reports [skip ci]
-
-Generated on: $TIMESTAMP
-Coverage files:
-- coverage.lcov: LCOV format for Codecov
-- coverage.xml: SonarQube generic format for SonarCloud
-
-[skip ci]"
+        
+        Generated on: $TIMESTAMP
+        Coverage files:
+        - coverage.lcov: LCOV format for Codecov
+        - coverage.xml: SonarQube generic format for SonarCloud
+        
+        [skip ci]"
         
         echo "✅ Coverage files committed"
         echo ""
