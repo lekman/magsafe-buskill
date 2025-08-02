@@ -13,7 +13,7 @@ inputs:
   cache-key-suffix:
     description: "Additional suffix for cache key"
     required: false
-    default: ""
+    default: "v1"
 
 outputs:
   cache-hit:
@@ -48,7 +48,7 @@ runs:
           ${{ runner.os }}-spm-
 
     - name: Cache and Install Taskfile
-      uses: ./.github/actions/cache-taskfile
+      uses: ./.github/actions/taskfile
       with:
         cache-key-suffix: ${{ inputs.cache-key-suffix }}
 

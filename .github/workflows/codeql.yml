@@ -2,7 +2,7 @@ name: "CodeQL Analysis"
 
 on:
   push:
-    branches: ["main", "develop"]
+    branches: ["main"]
   pull_request:
     branches: ["main"]
   schedule:
@@ -10,6 +10,11 @@ on:
 
 permissions:
   contents: read
+
+# Ensure that we cancel older instances of running workflows for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   analyze:
@@ -43,7 +48,7 @@ jobs:
 
       - name: Setup Swift Build Environment
         if: matrix.language == 'swift'
-        uses: ./.github/actions/setup-swift-build
+        uses: ./.github/actions/swift
         with:
           cache-key-suffix: codeql
 
@@ -51,7 +56,7 @@ jobs:
         run: |
           echo "Building Swift project for CodeQL analysis..."
           echo "Using MagSafeGuardCI scheme to exclude UI tests and disable system services"
-          
+
           # Build with CI-specific settings to avoid system dialogs and services
           xcodebuild build \
             -project MagSafeGuard.xcodeproj \
