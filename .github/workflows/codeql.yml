@@ -69,21 +69,31 @@ jobs:
       - name: Build Swift Project for CodeQL
         run: |
           echo "Building Swift project for CodeQL analysis..."
-          echo "Using MagSafeGuardCI scheme to exclude UI tests and disable system services"
-          
-          # Always build for CodeQL to ensure it can see the source code
-          # CodeQL needs to instrument the build process to analyze the code
-          echo "🔨 Building project (required for CodeQL to analyze Swift code)..."
+          echo "CodeQL requires a fresh build to instrument the code"
           
           # Clean any existing build artifacts to ensure fresh build
-          rm -rf DerivedData/Build
+          rm -rf DerivedData
           
-          # Use task swift:build:ci for consistent build configuration
-          task swift:build:ci || {
-            echo "Build failed - this is expected if the project has compilation issues"
-            echo "CodeQL will still analyze the partial build"
-            exit 0
-          }
+          # Build the main app target for CodeQL to analyze
+          # Using the regular MagSafeGuard scheme which includes the app target
+          echo "🔨 Building main app target..."
+          
+          xcodebuild build \
+            -project MagSafeGuard.xcodeproj \
+            -scheme MagSafeGuard \
+            -configuration Debug \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY= \
+            CODE_SIGNING_REQUIRED=NO \
+            ENABLE_APP_SANDBOX=NO \
+            ENABLE_HARDENED_RUNTIME=NO \
+            -quiet || {
+              echo "Build failed - this is expected if the project has compilation issues"
+              echo "CodeQL will still analyze the partial build"
+              exit 0
+            }
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
