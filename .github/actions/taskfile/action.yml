@@ -78,8 +78,8 @@ runs:
     
     - name: Save Taskfile cache
       uses: actions/cache/save@v4
-      # Always save the cache, even on failure
-      if: always()
+      # Only save cache if we didn't restore from cache (i.e., we installed fresh)
+      if: steps.cache-restore.outputs.cache-hit != 'true'
       with:
         path: |
           /usr/local/bin/task
