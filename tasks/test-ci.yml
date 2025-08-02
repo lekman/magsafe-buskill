@@ -49,8 +49,6 @@ tasks:
           ENABLE_APP_SANDBOX=NO \
           ENABLE_HARDENED_RUNTIME=NO \
           MAGSAFE_GUARD_TEST_MODE=1 \
-          TEST_HOST= \
-          BUNDLE_LOADER= \
           -quiet || {
             echo "❌ Test build failed"
             exit 1
@@ -90,34 +88,9 @@ tasks:
         # Clean derived data
         rm -rf {{.DERIVED_DATA}}
         
-        # Build test bundle without running app
-        echo "Building test bundle with app for linking..."
-        # Use the CI scheme which includes both app and test targets
-        xcodebuild build-for-testing \
-          -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme {{.TEST_SCHEME}} \
-          -destination 'platform=macOS,arch=arm64' \
-          -derivedDataPath {{.DERIVED_DATA}} \
-          -only-testing:{{.PROJECT_NAME}}Tests \
-          -skip-testing:{{.PROJECT_NAME}}UITests \
-          CODE_SIGNING_ALLOWED=NO \
-          CODE_SIGN_IDENTITY= \
-          CODE_SIGNING_REQUIRED=NO \
-          ENABLE_APP_SANDBOX=NO \
-          ENABLE_HARDENED_RUNTIME=NO \
-          MAGSAFE_GUARD_TEST_MODE=1 \
-          SKIP_INSTALL=YES \
-          GCC_PREPROCESSOR_DEFINITIONS='CI_BUILD=1' \
-          -quiet || {
-            echo "❌ Test build failed"
-            exit 1
-          }
-        
-        echo "✅ Test bundle built successfully"
-        
-        # Run tests without app host using xcodebuild test-without-building
-        echo "Running tests without launching app..."
-        xcodebuild test-without-building \
+        # Run tests directly with xcodebuild test
+        echo "Running tests with coverage..."
+        xcodebuild test \
           -project {{.PROJECT_NAME}}.xcodeproj \
           -scheme {{.TEST_SCHEME}} \
           -destination 'platform=macOS,arch=arm64' \
@@ -131,8 +104,7 @@ tasks:
           ENABLE_APP_SANDBOX=NO \
           ENABLE_HARDENED_RUNTIME=NO \
           MAGSAFE_GUARD_TEST_MODE=1 \
-          TEST_HOST= \
-          BUNDLE_LOADER= \
+          CI_BUILD=1 \
           -disable-concurrent-destination-testing \
           -quiet || {
             echo "❌ Tests failed"
