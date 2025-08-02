@@ -150,8 +150,7 @@ public class AutoArmManager: NSObject {
     disableTimer?.invalidate()
 
     // Set new timer
-    disableTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) {
-      [weak self] _ in
+    disableTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
       self?.isTemporarilyDisabled = false
       Log.info("Temporary disable expired", category: .autoArm)
     }

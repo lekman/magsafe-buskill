@@ -313,8 +313,7 @@ public class AppController: ObservableObject {
       return
     }
 
-    authService.authenticate(reason: "Authenticate to cancel security action") {
-      [weak self] result in
+    authService.authenticate(reason: "Authenticate to cancel security action") { [weak self] result in
       guard let self = self else { return }
 
       switch result {

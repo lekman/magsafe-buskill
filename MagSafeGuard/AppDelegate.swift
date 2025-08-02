@@ -268,8 +268,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   private func requestNotificationPermissions() {
-    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) {
-      granted, error in
+    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
       if granted {
         Log.info("Notification permissions granted", category: .ui)
       } else if let error = error {

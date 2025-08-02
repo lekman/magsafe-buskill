@@ -589,8 +589,7 @@ extension SyncService {
     Log.info(
       "Scheduling iCloud sync retry #\(retryCount) in \(retryDelay) seconds", category: .general)
 
-    retryTimer = Timer.scheduledTimer(withTimeInterval: retryDelay, repeats: false) {
-      [weak self] _ in
+    retryTimer = Timer.scheduledTimer(withTimeInterval: retryDelay, repeats: false) { [weak self] _ in
       guard let self = self, let container = self.container else { return }
       // Use monitor to check availability again
       self.monitor.checkiCloudAvailability(container: container)
