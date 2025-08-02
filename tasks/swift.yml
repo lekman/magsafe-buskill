@@ -156,19 +156,22 @@ tasks:
           SIGNING_FLAGS="$SIGNING_FLAGS ENABLE_APP_SANDBOX=NO ENABLE_HARDENED_RUNTIME=NO"
           # Skip UI tests completely
           TEST_FILTER="-skip-testing:{{.PROJECT_NAME}}UITests"
+          # Use CI scheme that has UI tests disabled
+          SCHEME_TO_USE="MagSafeGuardCI"
         else
           SIGNING_FLAGS=""
           TEST_FILTER=""
+          SCHEME_TO_USE="{{.SCHEME_NAME}}"
         fi
         
-        echo "Running: xcodebuild test -project {{.PROJECT_NAME}}.xcodeproj -scheme {{.SCHEME_NAME}} -destination 'platform=macOS' -only-testing:{{.PROJECT_NAME}}Tests $TEST_FILTER -derivedDataPath {{.DERIVED_DATA}} -enableCodeCoverage YES $SIGNING_FLAGS"
+        echo "Running: xcodebuild test -project {{.PROJECT_NAME}}.xcodeproj -scheme $SCHEME_TO_USE -destination 'platform=macOS' -only-testing:{{.PROJECT_NAME}}Tests $TEST_FILTER -derivedDataPath {{.DERIVED_DATA}} -enableCodeCoverage YES $SIGNING_FLAGS"
         
         # Run tests - add -quiet flag in CI to reduce output that might cause hanging
         if [ "$CI" = "true" ]; then
           # Set environment variable for the test process
           xcodebuild test \
             -project {{.PROJECT_NAME}}.xcodeproj \
-            -scheme {{.SCHEME_NAME}} \
+            -scheme $SCHEME_TO_USE \
             -destination 'platform=macOS' \
             -only-testing:{{.PROJECT_NAME}}Tests \
             $TEST_FILTER \
@@ -202,7 +205,7 @@ tasks:
         else
           xcodebuild test \
             -project {{.PROJECT_NAME}}.xcodeproj \
-            -scheme {{.SCHEME_NAME}} \
+            -scheme $SCHEME_TO_USE \
             -destination 'platform=macOS' \
             -only-testing:{{.PROJECT_NAME}}Tests \
             $TEST_FILTER \
@@ -361,6 +364,45 @@ tasks:
           fi
         else
           echo "❌ Coverage data not found"
+          exit 1
+        fi
+
+  build:ci:
+    desc: Build project for CI using MagSafeGuardCI scheme
+    silent: true
+    cmds:
+      - |
+        echo "🔨 Building project for CI (MagSafeGuardCI scheme)..."
+        echo "This build excludes UI tests and disables system services"
+        
+        # Build with CI-specific settings
+        xcodebuild build \
+          -project {{.PROJECT_NAME}}.xcodeproj \
+          -scheme MagSafeGuardCI \
+          -configuration Debug \
+          -derivedDataPath {{.DERIVED_DATA}} \
+          CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Debug \
+          CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGN_IDENTITY= \
+          CODE_SIGNING_REQUIRED=NO \
+          ENABLE_APP_SANDBOX=NO \
+          ENABLE_HARDENED_RUNTIME=NO \
+          SKIP_INSTALL=YES \
+          GCC_PREPROCESSOR_DEFINITIONS='DEBUG=1 CI_BUILD=1' \
+          OTHER_SWIFT_FLAGS='-D CI_BUILD' \
+          MAGSAFE_GUARD_TEST_MODE=1 \
+          NSLocationWhenInUseUsageDescription="CI Build - Location Services Disabled" \
+          NSLocationAlwaysUsageDescription="CI Build - Location Services Disabled" \
+          com.apple.security.device.location=NO \
+          com.apple.developer.icloud-services= \
+          com.apple.developer.icloud-container-identifiers= \
+          com.apple.developer.ubiquity-kvstore-identifier= \
+          -quiet
+        
+        if [ $? -eq 0 ]; then
+          echo "✅ CI build succeeded"
+        else
+          echo "❌ CI build failed"
           exit 1
         fi
 
