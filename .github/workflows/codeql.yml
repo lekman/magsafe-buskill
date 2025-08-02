@@ -20,7 +20,7 @@ jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
-    timeout-minutes: ${{ (matrix.language == 'swift' && 30) || 360 }}
+    timeout-minutes: ${{ (matrix.language == 'swift' && 20) || 360 }}
 
     permissions:
       security-events: write # Required for all workflows
@@ -39,6 +39,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
+      # Cache CodeQL database to speed up subsequent runs
+      - name: Cache CodeQL database
+        id: cache-codeql
+        uses: actions/cache@v4
+        with:
+          path: |
+            .codeql
+            ~/codeql-home/codeql-dbs
+          key: ${{ runner.os }}-codeql-db-${{ hashFiles('**/*.swift', 'MagSafeGuard.xcodeproj/project.pbxproj') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-codeql-db-${{ hashFiles('**/*.swift', 'MagSafeGuard.xcodeproj/project.pbxproj') }}-
+            ${{ runner.os }}-codeql-db-
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
         with:
@@ -47,45 +60,82 @@ jobs:
           queries: security-extended,security-and-quality
 
       - name: Setup Swift Build Environment
+        id: setup-swift
         if: matrix.language == 'swift'
         uses: ./.github/actions/swift
         with:
-          cache-key-suffix: codeql
+          cache-key-suffix: codeql-${{ github.sha }}
+
+      # Check if we have a cached build
+      - name: Check for cached build
+        id: check-build
+        run: |
+          if [ -d "DerivedData/Build/Products/Debug/MagSafeGuard.app" ]; then
+            echo "cached=true" >> $GITHUB_OUTPUT
+            echo "✅ Found cached build artifacts"
+          else
+            echo "cached=false" >> $GITHUB_OUTPUT
+            echo "🔨 No cached build found, will build from scratch"
+          fi
 
       - name: Build Swift Project
+        if: steps.check-build.outputs.cached != 'true'
         run: |
           echo "Building Swift project for CodeQL analysis..."
           echo "Using MagSafeGuardCI scheme to exclude UI tests and disable system services"
 
-          # Build with CI-specific settings to avoid system dialogs and services
-          xcodebuild build \
-            -project MagSafeGuard.xcodeproj \
-            -scheme MagSafeGuardCI \
-            -configuration Debug \
-            -derivedDataPath DerivedData \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGN_IDENTITY= \
-            CODE_SIGNING_REQUIRED=NO \
-            ENABLE_APP_SANDBOX=NO \
-            ENABLE_HARDENED_RUNTIME=NO \
-            SKIP_INSTALL=YES \
-            GCC_PREPROCESSOR_DEFINITIONS='DEBUG=1 CI_BUILD=1' \
-            OTHER_SWIFT_FLAGS='-D CI_BUILD' \
-            MAGSAFE_GUARD_TEST_MODE=1 \
-            NSLocationWhenInUseUsageDescription="CI Build - Location Services Disabled" \
-            NSLocationAlwaysUsageDescription="CI Build - Location Services Disabled" \
-            com.apple.security.device.location=NO \
-            com.apple.developer.icloud-services= \
-            com.apple.developer.icloud-container-identifiers= \
-            com.apple.developer.ubiquity-kvstore-identifier= \
-            -quiet || {
-              echo "Build failed - this is expected if the project has compilation issues"
-              echo "CodeQL will still analyze the partial build"
-              exit 0
-            }
+          # Use task swift:build:ci for consistent build configuration
+          task swift:build:ci || {
+            echo "Build failed - this is expected if the project has compilation issues"
+            echo "CodeQL will still analyze the partial build"
+            exit 0
+          }
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
         with:
           category: "/language:${{matrix.language}}"
           upload: true
+          add-snippets: true
+          # Only upload database on main branch to save time
+          upload-database: ${{ github.ref == 'refs/heads/main' }}
+
+      # Save build artifacts for next run
+      - name: Save build artifacts
+        if: always()
+        run: |
+          echo "📦 Build artifacts size:"
+          du -sh DerivedData/Build/Products/Debug/ 2>/dev/null || echo "No build products found"
+          echo "📊 DerivedData size:"
+          du -sh DerivedData/ 2>/dev/null || echo "No DerivedData found"
+          
+      # Generate workflow summary
+      - name: Generate CodeQL Summary
+        if: always()
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## 🔍 CodeQL Analysis Summary
+          
+          | Property | Value |
+          |----------|-------|
+          | **Language** | ${{ matrix.language }} |
+          | **Build Mode** | ${{ matrix.build-mode }} |
+          | **Cached Build** | ${{ steps.check-build.outputs.cached || 'false' }} |
+          | **Analysis Time** | ~$(( $(date +%s) - ${{ steps.checkout.outputs.timestamp || '0' }} ))s |
+          
+          ### 📊 Cache Performance
+          
+          | Cache Type | Status |
+          |------------|--------|
+          | **Xcode Build Cache** | \${{ steps.setup-swift.outputs.cache-hit || 'miss' }} |
+          | **CodeQL Database** | \${{ steps.cache-codeql.outputs.cache-hit || 'miss' }} |
+          
+          ### 📁 Build Artifacts
+          
+          \`\`\`
+          $(du -sh DerivedData/Build/Products/Debug/ 2>/dev/null || echo "No build products")
+          $(du -sh DerivedData/ 2>/dev/null || echo "No DerivedData")
+          $(du -sh .codeql/ 2>/dev/null || echo "No CodeQL database")
+          \`\`\`
+          
+          EOF

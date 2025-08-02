@@ -375,7 +375,10 @@ tasks:
       - |
         echo "🔨 Building project for CI (MagSafeGuardCI scheme)..."
         echo "This build excludes UI tests and disables system services"
-
+        
+        # Enable incremental builds and build time optimizations
+        export XCODEBUILD_BUILD_SETTINGS_OPTIMIZATION=YES
+        
         # Build with CI-specific settings
         xcodebuild build \
           -project {{.PROJECT_NAME}}.xcodeproj \
@@ -398,6 +401,11 @@ tasks:
           com.apple.developer.icloud-services= \
           com.apple.developer.icloud-container-identifiers= \
           com.apple.developer.ubiquity-kvstore-identifier= \
+          SWIFT_COMPILATION_MODE=incremental \
+          SWIFT_OPTIMIZATION_LEVEL=-Onone \
+          SWIFT_WHOLE_MODULE_OPTIMIZATION=NO \
+          BUILD_LIBRARY_FOR_DISTRIBUTION=NO \
+          -parallelizeTargets \
           -quiet
 
         if [ $? -eq 0 ]; then
