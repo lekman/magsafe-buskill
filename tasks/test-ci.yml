@@ -1,0 +1,186 @@
+version: "3"
+
+# CI-specific test configuration that runs unit tests without launching the app
+# This avoids permission dialogs and system service interactions
+
+vars:
+  PROJECT_NAME: MagSafeGuard
+  DERIVED_DATA: DerivedData
+  BUILD_DIR: build
+  TEST_SCHEME: MagSafeGuardUnitTests
+  
+tasks:
+  default:
+    desc: Show available CI test tasks
+    silent: true
+    cmds:
+      - |
+        echo "🧪 CI Test Tasks"
+        echo "==============="
+        echo ""
+        echo "Available tasks:"
+        echo "  task test-ci:unit        - Run unit tests without app host"
+        echo "  task test-ci:coverage    - Run tests and generate coverage"
+        echo "  task test-ci:build-only  - Build test bundle only"
+        echo ""
+
+  unit:
+    desc: Run unit tests without app host (prevents permission dialogs)
+    silent: true
+    cmds:
+      - |
+        echo "🧪 Running unit tests in CI mode (no app host)..."
+        
+        # Clean derived data
+        rm -rf {{.DERIVED_DATA}}
+        
+        # Build the test bundle first without running
+        echo "Building test bundle..."
+        xcodebuild build-for-testing \
+          -project {{.PROJECT_NAME}}.xcodeproj \
+          -scheme {{.TEST_SCHEME}} \
+          -destination 'platform=macOS' \
+          -derivedDataPath {{.DERIVED_DATA}} \
+          -only-testing:{{.PROJECT_NAME}}Tests \
+          -skip-testing:{{.PROJECT_NAME}}UITests \
+          CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGN_IDENTITY= \
+          CODE_SIGNING_REQUIRED=NO \
+          ENABLE_APP_SANDBOX=NO \
+          ENABLE_HARDENED_RUNTIME=NO \
+          MAGSAFE_GUARD_TEST_MODE=1 \
+          TEST_HOST= \
+          BUNDLE_LOADER= \
+          -quiet || {
+            echo "❌ Test build failed"
+            exit 1
+          }
+        
+        echo "✅ Test bundle built successfully"
+        
+        # Find the test bundle
+        TEST_BUNDLE=$(find {{.DERIVED_DATA}} -name "{{.PROJECT_NAME}}Tests.xctest" -type d | head -1)
+        
+        if [ -z "$TEST_BUNDLE" ]; then
+          echo "❌ Could not find test bundle"
+          exit 1
+        fi
+        
+        echo "Found test bundle: $TEST_BUNDLE"
+        
+        # Run tests using xcrun without launching the app
+        echo "Running tests without app host..."
+        xcrun xctest \
+          -XCTestConfigurationFilePath {{.DERIVED_DATA}}/Build/Products/Debug/{{.PROJECT_NAME}}Tests.xctest \
+          -enableCodeCoverage YES \
+          || {
+            echo "❌ Tests failed"
+            exit 1
+          }
+        
+        echo "✅ All tests passed!"
+
+  coverage:
+    desc: Run unit tests and generate coverage report (CI mode)
+    silent: true
+    cmds:
+      - |
+        echo "🧪 Running unit tests with coverage (CI mode)..."
+        
+        # Clean derived data
+        rm -rf {{.DERIVED_DATA}}
+        
+        # Build test bundle without running app
+        echo "Building test bundle without app host..."
+        xcodebuild build-for-testing \
+          -project {{.PROJECT_NAME}}.xcodeproj \
+          -scheme {{.TEST_SCHEME}} \
+          -destination 'platform=macOS,arch=x86_64' \
+          -derivedDataPath {{.DERIVED_DATA}} \
+          -only-testing:{{.PROJECT_NAME}}Tests \
+          -skip-testing:{{.PROJECT_NAME}}UITests \
+          CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGN_IDENTITY= \
+          CODE_SIGNING_REQUIRED=NO \
+          ENABLE_APP_SANDBOX=NO \
+          ENABLE_HARDENED_RUNTIME=NO \
+          MAGSAFE_GUARD_TEST_MODE=1 \
+          SKIP_INSTALL=YES \
+          GCC_PREPROCESSOR_DEFINITIONS='CI_BUILD=1' \
+          TEST_HOST= \
+          BUNDLE_LOADER= \
+          -quiet || {
+            echo "❌ Test build failed"
+            exit 1
+          }
+        
+        echo "✅ Test bundle built successfully"
+        
+        # Run tests without app host using xcodebuild test-without-building
+        echo "Running tests without launching app..."
+        xcodebuild test-without-building \
+          -project {{.PROJECT_NAME}}.xcodeproj \
+          -scheme {{.TEST_SCHEME}} \
+          -destination 'platform=macOS,arch=x86_64' \
+          -derivedDataPath {{.DERIVED_DATA}} \
+          -only-testing:{{.PROJECT_NAME}}Tests \
+          -skip-testing:{{.PROJECT_NAME}}UITests \
+          -enableCodeCoverage YES \
+          CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGN_IDENTITY= \
+          CODE_SIGNING_REQUIRED=NO \
+          ENABLE_APP_SANDBOX=NO \
+          ENABLE_HARDENED_RUNTIME=NO \
+          MAGSAFE_GUARD_TEST_MODE=1 \
+          TEST_HOST= \
+          BUNDLE_LOADER= \
+          -disable-concurrent-destination-testing \
+          -quiet || {
+            echo "❌ Tests failed"
+            exit 1
+          }
+        
+        echo "✅ Tests completed"
+        
+        # Convert coverage
+        echo "Converting coverage data..."
+        
+        # Find the coverage profdata
+        PROFDATA=$(find {{.DERIVED_DATA}} -name "Coverage.profdata" | head -1)
+        BINARY=$(find {{.DERIVED_DATA}} -name "{{.PROJECT_NAME}}Tests" -type f -perm +111 | head -1)
+        
+        if [ -n "$PROFDATA" ] && [ -n "$BINARY" ]; then
+          echo "Found coverage data: $PROFDATA"
+          echo "Found test binary: $BINARY"
+          
+          # Generate LCOV format
+          xcrun llvm-cov export \
+            -format=lcov \
+            -instr-profile="$PROFDATA" \
+            "$BINARY" \
+            > coverage.lcov
+          
+          echo "✅ Coverage report generated: coverage.lcov"
+          echo "Coverage file size: $(wc -c < coverage.lcov) bytes"
+        else
+          echo "⚠️  Could not find coverage data"
+        fi
+
+  build-only:
+    desc: Build test bundle only (for debugging)
+    silent: true
+    cmds:
+      - |
+        echo "🔨 Building test bundle only..."
+        
+        xcodebuild build-for-testing \
+          -project {{.PROJECT_NAME}}.xcodeproj \
+          -scheme {{.PROJECT_NAME}} \
+          -destination 'platform=macOS' \
+          -derivedDataPath {{.DERIVED_DATA}} \
+          CODE_SIGNING_ALLOWED=NO \
+          -quiet
+        
+        echo "✅ Test bundle built"
+        echo "Location: {{.DERIVED_DATA}}/Build/Products/Debug/"
+        ls -la {{.DERIVED_DATA}}/Build/Products/Debug/ | grep -E "xctest|app"

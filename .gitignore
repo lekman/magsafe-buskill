@@ -78,13 +78,18 @@ fastlane/test_output
 iOSInjectionProject/
 
 # Coverage reports
-coverage.lcov
+# Note: coverage.lcov and coverage.xml are checked in for CI
+# coverage.lcov
 sonar-coverage.lcov
-*.lcov
+# *.lcov
 .coverage/
 coverage/
 coverage-report.txt
 coverage-html/
+# Exclude all lcov except the main ones
+**/*.lcov
+!coverage.lcov
+!coverage.xml
 
 # Local scratch files
 .taskmaster

@@ -1,0 +1,67 @@
+name: Tests (Cached Coverage)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'coverage.lcov'
+      - 'coverage.xml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coverage-upload:
+    name: Upload Cached Coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Check coverage files
+        id: check-coverage
+        run: |
+          echo "Checking for coverage files..."
+          
+          if [ -f coverage.lcov ] && [ -f coverage.xml ]; then
+            echo "found=true" >> $GITHUB_OUTPUT
+            echo "✅ Found coverage files:"
+            echo "  - coverage.lcov: $(wc -l < coverage.lcov) lines"
+            echo "  - coverage.xml: $(wc -l < coverage.xml) lines"
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+            echo "❌ Coverage files not found"
+            exit 1
+          fi
+
+      - name: Upload coverage to Codecov
+        if: steps.check-coverage.outputs.found == 'true'
+        uses: codecov/codecov-action@5c47607acb93fed5485fdbf7232e8a31425f672a # v5
+        with:
+          use_oidc: true
+          codecov_yml_path: .codecov.yml
+          disable_search: true
+          files: coverage.lcov
+
+      - name: Install and run SonarCloud Scan
+        if: steps.check-coverage.outputs.found == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          # Install sonar-scanner
+          wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610-linux-x64.zip
+          unzip -q sonar-scanner-cli-*.zip
+          export PATH="$PWD/sonar-scanner-6.2.1.4610-linux-x64/bin:$PATH"
+          
+          # Run sonar-scanner with pre-generated coverage
+          sonar-scanner

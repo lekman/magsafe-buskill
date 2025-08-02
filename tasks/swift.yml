@@ -181,6 +181,8 @@ tasks:
             -quiet \
             $SIGNING_FLAGS \
             MAGSAFE_GUARD_TEST_MODE=1 \
+            TEST_HOST= \
+            BUNDLE_LOADER= \
             > test_output.log 2>&1 &
           
           # Get the PID and implement a timeout
