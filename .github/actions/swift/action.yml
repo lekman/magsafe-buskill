@@ -41,7 +41,7 @@ runs:
         # Create directories that will be cached to avoid warnings
         mkdir -p DerivedData
         mkdir -p build
-    
+
     - name: Cache Xcode dependencies
       id: cache
       uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
@@ -59,86 +59,3 @@ runs:
       uses: ./.github/actions/taskfile
       with:
         cache-key-suffix: ${{ inputs.cache-key-suffix }}
-
-    - name: Validate Swift environment
-      shell: bash
-      run: |
-        echo "Swift version: $(swift --version 2>&1 || echo 'Swift unavailable')"
-        echo "Platform: $(uname -a)"
-        if [ "$RUNNER_OS" == "macOS" ]; then
-          echo "Xcode version: $(xcodebuild -version 2>/dev/null | head -1 || echo 'Xcode unavailable')"
-          echo "Xcode path: $(xcode-select -p 2>/dev/null || echo 'Xcode path unavailable')"
-        fi
-        
-        # Debug: Show what will be cached
-        echo ""
-        echo "Cache directories status:"
-        echo "- DerivedData: $(du -sh DerivedData 2>/dev/null || echo 'empty/not created yet')"
-        echo "- build: $(du -sh build 2>/dev/null || echo 'empty/not created yet')"
-    
-    - name: Generate environment summary
-      if: always()
-      shell: bash
-      env:
-        RUNNER_OS: ${{ runner.os }}
-        RUNNER_ARCH: ${{ runner.arch }}
-        CACHE_KEY_SUFFIX: ${{ inputs.cache-key-suffix }}
-        CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
-        HASH_FILES: ${{ hashFiles('MagSafeGuard.xcodeproj/project.pbxproj', '**/*.swift') }}
-      run: |
-        # Capture environment info
-        SWIFT_VERSION=$(swift --version 2>/dev/null | head -1 || echo "Swift version unavailable")
-        PLATFORM="${RUNNER_OS}-${RUNNER_ARCH}"
-        CACHE_KEY="${RUNNER_OS}-xcode-${HASH_FILES}-${CACHE_KEY_SUFFIX}"
-        CACHE_HIT="${CACHE_HIT}"
-        
-        if [ "${RUNNER_OS}" == "macOS" ]; then
-          # Avoid broken pipe error by redirecting to file first
-          XCODE_VERSION=$(xcodebuild -version 2>&1 | head -1 || echo "Xcode version unavailable")
-          XCODE_PATH=$(xcode-select -p 2>/dev/null || echo "/Applications/Xcode.app/Contents/Developer")
-        else
-          XCODE_VERSION="N/A (Linux)"
-          XCODE_PATH="N/A"
-        fi
-        
-        # Generate summary
-        cat >> $GITHUB_STEP_SUMMARY << EOF
-        ## 🛠️ Swift Environment Setup
-        
-        | Property | Value |
-        |----------|-------|
-        | **Platform** | $PLATFORM |
-        | **Swift Version** | $SWIFT_VERSION |
-        | **Xcode Version** | $XCODE_VERSION |
-        | **Xcode Path** | \`$XCODE_PATH\` |
-        
-        ## 📦 Cache Information
-        
-        | Property | Value |
-        |----------|-------|
-        | **Cache Hit** | ${CACHE_HIT:-false} |
-        | **Cache Key** | \`$CACHE_KEY\` |
-        | **Cache Paths** | \`DerivedData\`, \`build\`, \`~/Library/Developer/Xcode/DerivedData/MagSafeGuard-*\` |
-        
-        ## 📊 Cache Statistics
-        
-        | Directory | Size |
-        |-----------|------|
-        | **DerivedData** | $(du -sh DerivedData 2>/dev/null | cut -f1 || echo "0") |
-        | **build** | $(du -sh build 2>/dev/null | cut -f1 || echo "0") |
-        
-        ### Cache Key Components
-        - **OS**: ${RUNNER_OS}
-        - **Project Hash**: \`$(echo "${HASH_FILES}" | cut -d- -f2 | cut -c1-8)\`
-        - **Swift Files Hash**: \`$(echo "${HASH_FILES}" | cut -d- -f3 | cut -c1-8)\`
-        - **Suffix**: ${CACHE_KEY_SUFFIX}
-        
-        EOF
-        
-        # Add performance tip if cache miss
-        if [ "$CACHE_HIT" != "true" ]; then
-          cat >> $GITHUB_STEP_SUMMARY << EOF
-        
-        > **💡 Performance Tip**: This was a cache miss. The next build with the same configuration will be faster due to cached dependencies.
-        EOF
-        fi
