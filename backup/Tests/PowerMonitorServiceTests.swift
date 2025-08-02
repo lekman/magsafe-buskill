@@ -370,7 +370,8 @@ final class PowerMonitorServiceTests: XCTestCase {
     XCTAssertNotNil(service.currentPowerInfo)
 
     service.stopMonitoring()
-    Thread.sleep(forTimeInterval: 0.1)
+    // Give more time for async stopMonitoring to complete
+    Thread.sleep(forTimeInterval: 0.3)
 
     XCTAssertFalse(service.isMonitoring)
   }

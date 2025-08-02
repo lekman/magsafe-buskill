@@ -79,17 +79,15 @@ iOSInjectionProject/
 
 # Coverage reports
 # Note: coverage.lcov and coverage.xml are checked in for CI
-# coverage.lcov
 sonar-coverage.lcov
-# *.lcov
 .coverage/
 coverage/
-coverage-report.txt
 coverage-html/
 # Exclude all lcov except the main ones
 **/*.lcov
 !coverage.lcov
 !coverage.xml
+!coverage-report.txt
 
 # Local scratch files
 .taskmaster
@@ -141,5 +139,11 @@ profiles/
 
 # Test coverage reports and logs
 coverage/
-coverage.*
 *.log
+# Exclude coverage files except the ones needed for CI
+coverage-raw.lcov
+coverage-report-raw.txt
+# Keep these coverage files for CI
+!coverage.lcov
+!coverage.xml
+!coverage-report.txt

@@ -64,7 +64,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0 # Full history for SonarCloud blame data
 
@@ -73,37 +73,56 @@ jobs:
         with:
           swift-version: "5.9"
 
-      - name: Clean build artifacts
+      - name: Run Tests
         run: |
-          echo "Cleaning build artifacts..."
-          task clean
+          echo "🧪 Running unit tests..."
+          task test
+        env:
+          CI: true
 
-      # Tests are temporarily disabled in CI due to hanging issues
-      # See TEST_REFACTORING_PLAN.md for details
-      - name: Skip tests in CI
-        run: |
-          echo "⚠️  Tests are temporarily disabled in CI"
-          echo "Tests must be run locally in Xcode until hanging issues are resolved"
-          echo "See TEST_REFACTORING_PLAN.md for refactoring plan"
+      - name: Upload coverage to CodeCov
+        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.lcov
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
 
-      # Note: Coverage reporting is temporarily disabled due to limited test subset
-      # See TEST_REFACTORING_PLAN.md for details
-      
+      - name: SonarCloud Scan
+        # nosemgrep: generic.secrets.security.detected-sonarqube-docs-api-key
+        uses: SonarSource/sonarcloud-github-action@e44258b109568baa0df60ed515909fc6c72cba92 # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
       - name: Test Summary
         if: always()
         run: |
           echo "## 📊 Test Results"
           echo ""
-          echo "**Status**: Tests completed with limited subset"
+          echo "**Status**: Tests completed"
           echo ""
           echo "### Currently Running Tests:"
-          echo "- FeatureFlagsTests"
           echo "- SettingsModelTests"
-          echo "- UserDefaultsManagerTests"
-          echo "- PowerMonitorCoreTests"
-          echo "- AuthenticationServiceMockTests"
+          echo "- AppControllerTests"
           echo ""
-          echo "### Temporarily Excluded Tests:"
-          echo "See TEST_REFACTORING_PLAN.md for full list and remediation plan"
+          echo "### Coverage Reports:"
+          echo "- LCOV format: coverage.lcov"
+          echo "- Cobertura format: coverage.xml"
+          echo "- Text report: coverage-report.txt"
           echo ""
-          echo "**Note**: Full test coverage will be restored after refactoring is complete"
+          echo "Coverage has been uploaded to:"
+          echo "- CodeCov"
+          echo "- SonarCloud"
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: tests
+          path: |
+            coverage.lcov
+            coverage.xml
+            coverage-report.txt
+          retention-days: 7

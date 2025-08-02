@@ -18,6 +18,7 @@ final class AutoArmManagerTests: XCTestCase {
   var autoArmManager: AutoArmManager!
   var settingsManager: UserDefaultsManager!
   var mockLocationManager: MockLocationManager!
+  var mockAuthContext: MockAuthenticationContext!
 
   override func setUpWithError() throws {
     try super.setUpWithError()
@@ -29,7 +30,17 @@ final class AutoArmManagerTests: XCTestCase {
     AppController.isTestEnvironment = true
 
     settingsManager = UserDefaultsManager.shared
-    appController = AppController()
+    
+    // Create mock authentication context that always succeeds
+    mockAuthContext = MockAuthenticationContext()
+    mockAuthContext.canEvaluatePolicyResult = true
+    mockAuthContext.evaluatePolicyShouldSucceed = true
+    
+    // Create AppController with mocked authentication
+    let mockAuthFactory = MockAuthenticationContextFactory(mockContext: mockAuthContext)
+    let authService = AuthenticationService(contextFactory: mockAuthFactory)
+    
+    appController = AppController(authService: authService)
 
     // Create mock location manager
     mockLocationManager = MockLocationManager()
@@ -192,8 +203,8 @@ final class AutoArmManagerTests: XCTestCase {
     settingsManager.updateSetting(\.autoArmByLocation, value: true)
     autoArmManager.startMonitoring()
 
-    // Ensure system is disarmed
-    appController.disarm { _ in }
+    // Ensure system starts in disarmed state (which it should by default)
+    XCTAssertEqual(appController.currentState, .disarmed, "System should start disarmed")
 
     // Simulate leaving trusted location
     mockLocationManager.simulateLeaveTrustedLocation()

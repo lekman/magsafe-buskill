@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'coverage.lcov'
-      - 'coverage.xml'
+      - "coverage.lcov"
+      - "coverage.xml"
   workflow_dispatch:
 
 permissions:
@@ -25,13 +25,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Check coverage files
         id: check-coverage
         run: |
           echo "Checking for coverage files..."
-          
+
           if [ -f coverage.lcov ] && [ -f coverage.xml ]; then
             echo "found=true" >> $GITHUB_OUTPUT
             echo "✅ Found coverage files:"
@@ -45,7 +45,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: steps.check-coverage.outputs.found == 'true'
-        uses: codecov/codecov-action@5c47607acb93fed5485fdbf7232e8a31425f672a # v5
+        uses: codecov/codecov-action@2db07e317924c76f654a414629d71c65876882e2 # 5c47607acb93fed5485fdbf7232e8a31425f672a
         with:
           use_oidc: true
           codecov_yml_path: .codecov.yml
@@ -62,6 +62,6 @@ jobs:
           wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610-linux-x64.zip
           unzip -q sonar-scanner-cli-*.zip
           export PATH="$PWD/sonar-scanner-6.2.1.4610-linux-x64/bin:$PATH"
-          
+
           # Run sonar-scanner with pre-generated coverage
           sonar-scanner

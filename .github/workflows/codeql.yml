@@ -37,12 +37,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
 
       # Cache CodeQL database to speed up subsequent runs
       - name: Cache CodeQL database
         id: cache-codeql
-        uses: actions/cache@v4
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
         with:
           path: |
             .codeql
@@ -68,29 +68,14 @@ jobs:
 
       - name: Build Swift Project for CodeQL
         run: |
-          echo "Building Swift project for CodeQL analysis..."
-          
-          # Simplest possible build just to satisfy CodeQL
-          # This is a minimal build that should complete quickly
-          xcodebuild build \
-            -project MagSafeGuard.xcodeproj \
-            -scheme MagSafeGuard \
-            -configuration Debug \
-            -destination 'generic/platform=macOS' \
-            CODE_SIGNING_ALLOWED=NO \
-            ONLY_ACTIVE_ARCH=YES \
-            -quiet || true
-          
-          echo "Build step completed (errors ignored for PR merge)"
-          echo "See TEST_REFACTORING_PLAN.md for proper CodeQL setup"
+          task build
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
         with:
           category: "/language:${{matrix.language}}"
           upload: true
-          # Only upload database on main branch to save time
-          upload-database: ${{ github.ref == 'refs/heads/main' }}
+          upload-database: true
 
       # Save CodeQL database location for debugging
       - name: Save CodeQL database info
@@ -108,27 +93,27 @@ jobs:
         run: |
           cat >> $GITHUB_STEP_SUMMARY << EOF
           ## 🔍 CodeQL Analysis Summary
-          
+
           | Property | Value |
           |----------|-------|
           | **Language** | ${{ matrix.language }} |
           | **Build Mode** | ${{ matrix.build-mode }} |
           | **Build Executed** | Always (required for CodeQL) |
           | **Analysis Time** | ~$(( $(date +%s) - ${{ steps.checkout.outputs.timestamp || '0' }} ))s |
-          
+
           ### 📊 Cache Performance
-          
+
           | Cache Type | Status |
           |------------|--------|
           | **Xcode Build Cache** | \${{ steps.setup-swift.outputs.cache-hit || 'miss' }} |
           | **CodeQL Database** | \${{ steps.cache-codeql.outputs.cache-hit || 'miss' }} |
-          
+
           ### 📁 Build Artifacts
-          
+
           \`\`\`
           $(du -sh DerivedData/Build/Products/Debug/ 2>/dev/null || echo "No build products")
           $(du -sh DerivedData/ 2>/dev/null || echo "No DerivedData")
           $(du -sh .codeql/ 2>/dev/null || echo "No CodeQL database")
           \`\`\`
-          
+
           EOF

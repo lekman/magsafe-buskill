@@ -5,7 +5,7 @@ version: "3"
 vars:
   PROJECT_NAME: MagSafeGuard
   DERIVED_DATA: DerivedData
-  
+
 tasks:
   default:
     desc: Show available local test tasks
@@ -26,11 +26,11 @@ tasks:
     cmds:
       - |
         echo "🧪 Generating test coverage locally..."
-        
+
         # Clean derived data
         rm -rf {{.DERIVED_DATA}}
         rm -f coverage.lcov
-        
+
         # Run tests with coverage
         xcodebuild test \
           -project {{.PROJECT_NAME}}.xcodeproj \
@@ -44,16 +44,16 @@ tasks:
             echo "❌ Tests failed"
             exit 1
           }
-        
+
         echo "✅ Tests completed"
-        
+
         # Convert coverage
         echo "Converting coverage data..."
-        
+
         # Find the coverage profdata
         PROFDATA=$(find {{.DERIVED_DATA}} -name "Coverage.profdata" | head -1)
         BINARY=$(find {{.DERIVED_DATA}} -name "{{.PROJECT_NAME}}Tests" -type f -perm +111 | head -1)
-        
+
         if [ -n "$PROFDATA" ] && [ -n "$BINARY" ]; then
           # Generate LCOV format
           xcrun llvm-cov export \
@@ -85,33 +85,33 @@ tasks:
       - |
         echo ""
         echo "📝 Preparing to commit coverage files..."
-        
+
         # Check if files exist
         if [ ! -f coverage.lcov ] || [ ! -f coverage.xml ]; then
           echo "❌ Coverage files not found"
           exit 1
         fi
-        
+
         # Stage coverage files
         git add coverage.lcov coverage.xml
-        
+
         # Check if there are changes
         if git diff --cached --quiet; then
           echo "ℹ️  No changes to coverage files"
           exit 0
         fi
-        
+
         # Commit with timestamp
         TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
         git commit -m "chore: update test coverage reports [skip ci]
-        
+
         Generated on: $TIMESTAMP
         Coverage files:
         - coverage.lcov: LCOV format for Codecov
         - coverage.xml: SonarQube generic format for SonarCloud
-        
+
         [skip ci]"
-        
+
         echo "✅ Coverage files committed"
         echo ""
         echo "Next steps:"

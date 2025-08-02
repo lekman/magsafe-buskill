@@ -56,12 +56,12 @@ file_header:
     \/\/  Created on \d{4}-\d{2}-\d{2}\.
     \/\/
 
-# Line length - disabled
-# line_length:
-#   warning: 120
-#   error: 150
-#   ignores_comments: true
-#   ignores_urls: true
+# Line lengths
+line_length:
+  warning: 120
+  error: 200
+  ignores_comments: true
+  ignores_urls: true
 
 # Function length (generous for SwiftUI views) - commented out since disabled
 # function_body_length:

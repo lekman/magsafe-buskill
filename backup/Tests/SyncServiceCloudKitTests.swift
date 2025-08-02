@@ -38,21 +38,13 @@ class SyncServiceCloudKitTests: XCTestCase {
 
   func testSyncServiceFactoryInTestEnvironment() {
     // Given: We're in a test environment (XCTest is running)
-    // The factory currently creates a sync service even in test environment
-    // but the service itself will disable CloudKit when XCTest is detected
+    // The factory returns nil in test environment to prevent CloudKit operations
 
     // When: Creating sync service via factory
     let syncService = SyncServiceFactory.create()
 
-    // Then: It creates a service (factory doesn't block in tests anymore)
-    // but the service will have CloudKit disabled
-    XCTAssertNotNil(syncService)
-
-    // And: The service should not be available
-    if let service = syncService {
-      XCTAssertEqual(service.syncStatus, .unknown)
-      XCTAssertFalse(service.isAvailable)
-    }
+    // Then: It should return nil in test environment
+    XCTAssertNil(syncService, "SyncServiceFactory should return nil in test environment")
   }
 
   func testSyncServiceHandlesNilBundleIdentifier() {

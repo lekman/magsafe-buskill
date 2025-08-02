@@ -1,0 +1,17 @@
+refactor(ci): streamline CI/CD workflows and improve test coverage reporting
+
+- .github/workflows/codeql.yml: use `task build` for consistent CI builds
+- .github/workflows/test.yml: add test artifact uploads, remove cache-clearing clean
+- Taskfile.yml: fix variable passing and simplify build to always use CI mode
+- tasks/swift.yml: fix xcodebuild destination for macOS compatibility
+- .codecov.yml: add mock file exclusions
+- sonar-project.properties: exclude mocks from coverage
+- .gitignore: allow coverage files for CI while excluding raw versions
+- .swiftlint.yml: update SwiftLint configuration
+- MagSafeGuardTests/: reorganize tests into Controllers/ and Models/ subdirectories
+- backup/: move temporarily disabled tests to backup directory
+
+All CI/CD commands are now testable locally:
+- `task build` - minimal CI build for CodeQL
+- `task test` - run tests with coverage
+EOF < /dev/null

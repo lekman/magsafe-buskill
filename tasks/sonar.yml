@@ -8,6 +8,11 @@ version: "3"
 # - Set PROJECT_KEY and ORGANIZATION vars for your project
 # - Add SONAR_TOKEN to your .env file
 # - Adjust exclusion patterns as needed
+vars:
+  # Project configuration (inherited from parent Taskfile)
+  PROJECT_NAME: '{{.PROJECT_NAME | default "MyProject"}}'
+  # Coverage exclusion pattern
+  COVERAGE_EXCLUDE: '{{.COVERAGE_EXCLUDE | default ".*Tests\\\\.swift|.*Mocks?\\\\.swift|.*Protocol\\\\.swift"}}'
 tasks:
   default:
     desc: List available SonarCloud tasks
@@ -701,12 +706,12 @@ tasks:
 
         # Find the coverage data - handle both Xcode and SPM locations
         PROF_DATA=$(find DerivedData -name 'Coverage.profdata' -type f | head -1)
-        EXECUTABLE=$(find DerivedData -name 'MagSafeGuardTests.xctest' -type d | head -1)/Contents/MacOS/MagSafeGuardTests
+        EXECUTABLE=$(find DerivedData -name '{{.PROJECT_NAME}}Tests.xctest' -type d | head -1)/Contents/MacOS/{{.PROJECT_NAME}}Tests
 
         # Fallback to SPM locations if not found
         if [ -z "$PROF_DATA" ]; then
           PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
-          EXECUTABLE=$(find .build -name 'MagSafeGuardPackageTests.xctest' -type d | head -1)/Contents/MacOS/MagSafeGuardPackageTests
+          EXECUTABLE=$(find .build -name '{{.PROJECT_NAME}}PackageTests.xctest' -type d | head -1)/Contents/MacOS/{{.PROJECT_NAME}}PackageTests
         fi
 
         if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
@@ -719,7 +724,7 @@ tasks:
             xcrun llvm-cov show "$EXECUTABLE" \
               -instr-profile="$PROF_DATA" \
               -use-color=false \
-              -ignore-filename-regex=".*Tests\\.swift|.*Mocks?\\.swift|.*/MagSafeGuardApp\\.swift|.*/PowerMonitorService\\.swift|.*/PowerMonitorCore\\.swift|.*LAContext\\.swift|.*/MacSystemActions\\.swift|.*Protocol\\.swift" | \
+              -ignore-filename-regex="{{.COVERAGE_EXCLUDE | default (printf ".*Tests\\\\.swift|.*Mocks?\\\\.swift|.*/%sApp\\\\.swift|.*Protocol\\\\.swift" .PROJECT_NAME)}}" | \
             awk -v root="$PROJECT_ROOT" '
               /^[[:space:]]*[^[:space:]]+:$/ {
                 if (in_file) print "  </file>"

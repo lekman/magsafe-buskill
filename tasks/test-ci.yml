@@ -24,7 +24,7 @@ vars:
   DERIVED_DATA: DerivedData
   BUILD_DIR: build
   TEST_SCHEME: MagSafeGuard
-  
+
 tasks:
   default:
     desc: Show available CI test tasks
@@ -46,10 +46,10 @@ tasks:
     cmds:
       - |
         echo "🧪 Running unit tests in CI mode (no app host)..."
-        
+
         # Clean derived data
         rm -rf {{.DERIVED_DATA}}
-        
+
         # Build the test bundle first without running
         echo "Building test bundle..."
         xcodebuild build-for-testing \
@@ -69,19 +69,19 @@ tasks:
             echo "❌ Test build failed"
             exit 1
           }
-        
+
         echo "✅ Test bundle built successfully"
-        
+
         # Find the test bundle
         TEST_BUNDLE=$(find {{.DERIVED_DATA}} -name "{{.PROJECT_NAME}}Tests.xctest" -type d | head -1)
-        
+
         if [ -z "$TEST_BUNDLE" ]; then
           echo "❌ Could not find test bundle"
           exit 1
         fi
-        
+
         echo "Found test bundle: $TEST_BUNDLE"
-        
+
         # Run tests using xcrun without launching the app
         echo "Running tests without app host..."
         xcrun xctest \
@@ -91,7 +91,7 @@ tasks:
             echo "❌ Tests failed"
             exit 1
           }
-        
+
         echo "✅ All tests passed!"
 
   debug:
@@ -100,10 +100,10 @@ tasks:
     cmds:
       - |
         echo "🔍 Debugging tests - running individually to find hanging test..."
-        
+
         # Clean derived data
         rm -rf {{.DERIVED_DATA}}
-        
+
         # Test classes to run individually
         TEST_CLASSES=(
           "AppControllerTests"
@@ -122,7 +122,7 @@ tasks:
           "SyncServiceTests"
           "UserDefaultsManagerTests"
         )
-        
+
         # Run each test class individually
         for TEST_CLASS in "${TEST_CLASSES[@]}"; do
           echo ""
@@ -151,7 +151,7 @@ tasks:
           
           echo "✅ $TEST_CLASS passed"
         done
-        
+
         # Skip IntegrationTests as they likely require app interaction
         echo ""
         echo "⚠️  Skipping IntegrationTests (likely requires app interaction)"
@@ -162,14 +162,14 @@ tasks:
     cmds:
       - |
         echo "🧪 Running unit tests with coverage (CI mode)..."
-        
+
         # Clean derived data
         rm -rf {{.DERIVED_DATA}}
-        
+
         # Run only safe tests that don't require system interaction
         echo "Running limited tests with coverage..."
         echo "Excluding tests that might trigger system dialogs..."
-        
+
         # List of safe test classes to run
         SAFE_TESTS=(
           "FeatureFlagsTests"
@@ -178,13 +178,13 @@ tasks:
           "PowerMonitorCoreTests"
           "AuthenticationServiceMockTests"
         )
-        
+
         # Build the -only-testing arguments
         TEST_ARGS=""
         for TEST in "${SAFE_TESTS[@]}"; do
           TEST_ARGS="$TEST_ARGS -only-testing:{{.PROJECT_NAME}}Tests/$TEST"
         done
-        
+
         xcodebuild test \
           -project {{.PROJECT_NAME}}.xcodeproj \
           -scheme {{.TEST_SCHEME}} \
@@ -206,16 +206,16 @@ tasks:
             echo "❌ Tests failed"
             exit 1
           }
-        
+
         echo "✅ Tests completed"
-        
+
         # Convert coverage
         echo "Converting coverage data..."
-        
+
         # Find the coverage profdata
         PROFDATA=$(find {{.DERIVED_DATA}} -name "Coverage.profdata" | head -1)
         BINARY=$(find {{.DERIVED_DATA}} -name "{{.PROJECT_NAME}}Tests" -type f -perm +111 | head -1)
-        
+
         if [ -n "$PROFDATA" ] && [ -n "$BINARY" ]; then
           echo "Found coverage data: $PROFDATA"
           echo "Found test binary: $BINARY"
@@ -239,7 +239,7 @@ tasks:
     cmds:
       - |
         echo "🔨 Building test bundle only..."
-        
+
         xcodebuild build-for-testing \
           -project {{.PROJECT_NAME}}.xcodeproj \
           -scheme {{.TEST_SCHEME}} \
@@ -247,7 +247,7 @@ tasks:
           -derivedDataPath {{.DERIVED_DATA}} \
           CODE_SIGNING_ALLOWED=NO \
           -quiet
-        
+
         echo "✅ Test bundle built"
         echo "Location: {{.DERIVED_DATA}}/Build/Products/Debug/"
         ls -la {{.DERIVED_DATA}}/Build/Products/Debug/ | grep -E "xctest|app"
