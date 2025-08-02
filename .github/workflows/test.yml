@@ -78,7 +78,17 @@ jobs:
           echo "Cleaning build artifacts..."
           task clean
 
+      - name: Debug hanging tests
+        env:
+          CI: true
+          MAGSAFE_GUARD_TEST_MODE: 1
+        run: |
+          echo "Debugging tests to find hanging test..."
+          echo "Running tests individually with timeout"
+          task test-ci:debug
+          
       - name: Run tests with coverage
+        if: success()
         env:
           CI: true
           MAGSAFE_GUARD_TEST_MODE: 1

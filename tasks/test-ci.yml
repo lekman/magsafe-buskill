@@ -78,6 +78,68 @@ tasks:
         
         echo "✅ All tests passed!"
 
+  debug:
+    desc: Debug tests by running them individually
+    silent: true
+    cmds:
+      - |
+        echo "🔍 Debugging tests - running individually to find hanging test..."
+        
+        # Clean derived data
+        rm -rf {{.DERIVED_DATA}}
+        
+        # Test classes to run individually
+        TEST_CLASSES=(
+          "AppControllerTests"
+          "AppDelegateCoreTests"
+          "AuthenticationServiceMockTests"
+          "AutoArmManagerTests"
+          "FeatureFlagsTests"
+          "LocationManagerTests"
+          "NetworkMonitorTests"
+          "NotificationServiceTests"
+          "PowerMonitorCoreTests"
+          "PowerMonitorServiceTests"
+          "SecurityActionsServiceTests"
+          "SettingsModelTests"
+          "SyncServiceCloudKitTests"
+          "SyncServiceTests"
+          "UserDefaultsManagerTests"
+        )
+        
+        # Run each test class individually
+        for TEST_CLASS in "${TEST_CLASSES[@]}"; do
+          echo ""
+          echo "🧪 Running $TEST_CLASS..."
+          
+          xcodebuild test \
+            -project {{.PROJECT_NAME}}.xcodeproj \
+            -scheme {{.TEST_SCHEME}} \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath {{.DERIVED_DATA}} \
+            -only-testing:{{.PROJECT_NAME}}Tests/$TEST_CLASS \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY= \
+            CODE_SIGNING_REQUIRED=NO \
+            ENABLE_APP_SANDBOX=NO \
+            ENABLE_HARDENED_RUNTIME=NO \
+            MAGSAFE_GUARD_TEST_MODE=1 \
+            CI_BUILD=1 \
+            -disable-concurrent-destination-testing \
+            -quiet \
+            -test-timeouts-enabled YES \
+            -maximum-test-execution-time-allowance 30 || {
+              echo "❌ $TEST_CLASS failed or timed out"
+              continue
+            }
+          
+          echo "✅ $TEST_CLASS passed"
+        done
+        
+        # Skip IntegrationTests as they likely require app interaction
+        echo ""
+        echo "⚠️  Skipping IntegrationTests (likely requires app interaction)"
+
   coverage:
     desc: Run unit tests and generate coverage report (CI mode)
     silent: true
