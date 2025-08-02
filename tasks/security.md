@@ -74,7 +74,7 @@ task security:pin-actions
 task security:pin-actions TARGET_PATH=.github/workflows/build-sign.yml
 
 # Pin a specific composite action file
-task security:pin-actions TARGET_PATH=.github/actions/cancel-redundant-workflows/action.yml
+task security:pin-actions TARGET_PATH=.github/actions/cswift/action.yml
 
 # Pin only workflows (override default)
 task security:pin-actions TARGET_PATH=.github/workflows

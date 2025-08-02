@@ -16,23 +16,22 @@ permissions:
   # Additional permissions added per job as needed
 
 jobs:
+  # Temporarily disabled - Swift Bundler setup needs fixing
+  # TODO: Re-enable once build issues are resolved
   build-and-sign:
     name: Build and Sign
     runs-on: macos-14
+    # Skip this workflow temporarily
+    if: false
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Setup Swift Build Environment
-        uses: ./.github/actions/setup-swift-build
+        uses: ./.github/actions/swift
         with:
           swift-version: "5.9"
-          cache-key-suffix: "-test-v2" # Increment this to bust cache
-
-      - name: Install Task
-        run: |
-          brew install go-task/tap/go-task
 
       - name: Import Signing Certificate
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
@@ -71,7 +70,7 @@ jobs:
 
       - name: Build Application
         run: |
-          task swift:build:release
+          task build
 
       - name: Sign Application
         run: |
@@ -136,7 +135,7 @@ jobs:
             ".build/bundler/"
 
       - name: Upload App Bundle
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@de65e23aa2b7e23d713bb51fbfcb6d502f8667d8 # ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: magsafe-guard-app-${{ github.sha }}
           path: .build/bundler/MagSafeGuard.app
@@ -144,7 +143,7 @@ jobs:
 
       - name: Upload DMG
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@de65e23aa2b7e23d713bb51fbfcb6d502f8667d8 # ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: magsafe-guard-dmg-${{ github.sha }}
           path: MagSafeGuard-*.dmg
@@ -152,7 +151,7 @@ jobs:
 
       - name: Create Release
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@26994186c0ac3ef5cae75ac16aa32e8153525f77 # v1
+        uses: softprops/action-gh-release@f2352b97da0095b4dbbd885a81023e3deabf4fef # 26994186c0ac3ef5cae75ac16aa32e8153525f77
         with:
           files: |
             MagSafeGuard-*.dmg

@@ -16,35 +16,27 @@ on:
 permissions:
   contents: read
 
-jobs:
-  cancel-redundant:
-    name: Cancel Redundant Workflows
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - name: Cancel redundant workflow runs
-        uses: ./.github/actions/cancel-redundant-workflows
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+jobs:
   release-please:
     name: "Release Please"
     runs-on: ubuntu-latest
-    needs: cancel-redundant
     outputs:
       pr: ${{ steps.release.outputs.pr }}
     steps:
       - name: Generate GitHub App Token
         id: app-token
-        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v1
+        uses: actions/create-github-app-token@d7ee28121512479a18a428398f948ac5ce15fb4c # df432ceedc7162793a195dd1713ff69aefc7379e
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
       - name: Release Please
         id: release
-        uses: googleapis/release-please-action@a02a34c4d625f9be7cb89156071d8567266a2445 # v4
+        uses: googleapis/release-please-action@1155c2c8dcbd6b15e85bae6bc6d1fed9552663cb # a02a34c4d625f9be7cb89156071d8567266a2445
         with:
           token: ${{ steps.app-token.outputs.token }}
           config-file: .github/.release-please-config.json
@@ -58,13 +50,13 @@ jobs:
     steps:
       - name: Generate GitHub App Token
         id: app-token
-        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v1
+        uses: actions/create-github-app-token@d7ee28121512479a18a428398f948ac5ce15fb4c # df432ceedc7162793a195dd1713ff69aefc7379e
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
       - name: Auto-approve Release PR
-        uses: lekman/auto-approve-action@25d5b39fc1a1e8a04ad7473a47f1a9ecd9748fa3 # v1
+        uses: lekman/auto-approve-action@2b40a27e3d7b9c34e6a7aac0a3268bfbee787da9 # 25d5b39fc1a1e8a04ad7473a47f1a9ecd9748fa3
         with:
           allowed-authors: "app/lekman-release-please-bot"
           github-token: ${{ secrets.APPROVE_TOKEN }}
@@ -81,7 +73,7 @@ jobs:
     steps:
       - name: Generate GitHub App Token
         id: app-token
-        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v1
+        uses: actions/create-github-app-token@d7ee28121512479a18a428398f948ac5ce15fb4c # df432ceedc7162793a195dd1713ff69aefc7379e
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}

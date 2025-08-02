@@ -9,7 +9,6 @@ This document describes all GitHub Actions workflows used in the MagSafe Guard p
 - [Core Workflows](#core-workflows)
 - [Security Workflows](#security-workflows)
 - [Release Workflows](#release-workflows)
-- [Composite Actions](#composite-actions)
 - [Branch Protection Integration](#branch-protection-integration)
 - [Troubleshooting](#troubleshooting)
 
@@ -29,21 +28,30 @@ Our CI/CD pipeline uses GitHub Actions to automate testing, security scanning, a
 
 ### Cancel Redundant Workflows
 
-All workflows include automatic cancellation of redundant runs to optimize CI/CD resources:
+All workflows include automatic cancellation of redundant runs to optimize CI/CD resources using GitHub's native `concurrency` feature.
 
-- **Location**: `.github/actions/cancel-redundant-workflows/`
+- **Configuration**: Built-in GitHub Actions `concurrency` setting
 - **Purpose**: Cancels older in-progress runs when new commits are pushed
 - **Benefits**:
   - Reduces CI/CD costs
   - Faster feedback for latest changes
   - Prevents queue congestion
+  - No custom actions or separate jobs required
 
 #### How It Works
 
-1. When a workflow starts, it first runs the `cancel-redundant` job
-2. This job identifies older runs for the same branch/PR
-3. Older runs are cancelled before proceeding
-4. All subsequent jobs wait for this to complete
+1. Each workflow defines a `concurrency` group based on workflow name and Git ref
+2. When a new workflow run starts, GitHub automatically cancels any in-progress runs in the same concurrency group
+3. This happens instantly without requiring a separate job or action
+4. Only the latest push/commit runs, saving resources and providing faster feedback
+
+#### Configuration Example
+
+```yaml
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+```
 
 ## Core Workflows
 
@@ -55,7 +63,6 @@ All workflows include automatic cancellation of redundant runs to optimize CI/CD
 
 **Jobs**:
 
-- `cancel-redundant`: Cancels outdated runs
 - `test`:
   - Builds the Swift package
   - Runs all unit tests
@@ -72,7 +79,6 @@ All workflows include automatic cancellation of redundant runs to optimize CI/CD
 
 **Jobs**:
 
-- `cancel-redundant`: Cancels outdated runs
 - `check-commit-messages`:
   - Validates commit format (conventional commits)
   - Checks for blocked words (case-insensitive)
@@ -88,7 +94,6 @@ All workflows include automatic cancellation of redundant runs to optimize CI/CD
 
 **Jobs**:
 
-- `cancel-redundant`: Cancels outdated runs
 - `enforce-clean-commits`:
   - Scans full commit history
   - Provides detailed remediation instructions
@@ -106,7 +111,6 @@ All workflows include automatic cancellation of redundant runs to optimize CI/CD
 
 **Jobs**:
 
-- `cancel-redundant`: Cancels outdated runs
 - `basic-checks`: Quick security validations
 - `codeql`: Static analysis for vulnerabilities
 - `dependency-review`: Checks for vulnerable dependencies
@@ -127,7 +131,6 @@ All workflows include automatic cancellation of redundant runs to optimize CI/CD
 
 **Jobs**:
 
-- `cancel-redundant`: Cancels outdated runs
 - `audit-report`:
   - Generates comprehensive security report
   - Uploads artifacts for review
@@ -145,7 +148,6 @@ All workflows include automatic cancellation of redundant runs to optimize CI/CD
 
 **Jobs**:
 
-- `cancel-redundant`: Cancels outdated runs
 - `release-please`:
   - Creates release PRs automatically
   - Updates CHANGELOG.md
@@ -153,32 +155,6 @@ All workflows include automatic cancellation of redundant runs to optimize CI/CD
   - Creates GitHub releases
 
 **Required for merge**: No ❌
-
-## Composite Actions
-
-### Cancel Redundant Workflows Action
-
-**Location**: `.github/actions/cancel-redundant-workflows/action.yml`
-
-**Usage**:
-
-```yaml
-- uses: ./.github/actions/cancel-redundant-workflows
-  with:
-    token: ${{ secrets.GITHUB_TOKEN }}
-    only-same-workflow: true
-```
-
-**Parameters**:
-
-- `token`: GitHub token with workflow permissions
-- `only-same-workflow`: Only cancel runs of the same workflow file (default: true)
-
-**Logic**:
-
-- For PRs: Cancels runs for the same PR number
-- For pushes: Cancels older runs for the same branch
-- Provides detailed logging of cancelled runs
 
 ## Branch Protection Integration
 
@@ -201,7 +177,7 @@ These checks must pass before merging to protected branches.
 If your workflow was cancelled:
 
 1. Check if a newer commit was pushed to the same branch/PR
-2. Look at the workflow logs for "Cancel Redundant Workflows" job
+2. Look at the workflow logs for " Workflows" job
 3. This is normal behavior to save resources
 
 ### Commit Message Check Failed

@@ -14,6 +14,10 @@ permissions:
   contents: read
   actions: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # Check if this is a release-please branch
   check-skip:
@@ -54,34 +58,18 @@ jobs:
             echo "should-skip=false" >> $GITHUB_OUTPUT
           fi
 
-  cancel-redundant:
-    name: Cancel Redundant Workflows
+  # Basic security checks
+  basic-checks:
+    name: Basic Security Checks
     runs-on: ubuntu-latest
     needs: check-skip
     if: needs.check-skip.outputs.should-skip != 'true'
     permissions:
       contents: read
-      actions: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - name: Cancel redundant workflow runs
-        uses: ./.github/actions/cancel-redundant-workflows
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-  # Basic security checks
-  basic-checks:
-    name: Basic Security Checks
-    runs-on: ubuntu-latest
-    needs: [check-skip, cancel-redundant]
-    if: needs.check-skip.outputs.should-skip != 'true'
-    permissions:
-      contents: read
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0
 
@@ -188,7 +176,7 @@ jobs:
   dependency-review:
     name: Dependency Review
     runs-on: ubuntu-latest
-    needs: [check-skip, cancel-redundant]
+    needs: check-skip
     if: github.event_name == 'pull_request' && needs.check-skip.outputs.should-skip != 'true'
     permissions:
       contents: read
@@ -196,10 +184,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Dependency Review
-        uses: actions/dependency-review-action@da24556b548a50705dd671f47852072ea4c105d9 # v4
+        uses: actions/dependency-review-action@89c73830747a68fcfdecb3b682ff934fc8c3abf1 # da24556b548a50705dd671f47852072ea4c105d9
         with:
           # Fail on high severity vulnerabilities
           fail-on-severity: high
@@ -212,20 +200,20 @@ jobs:
   trufflehog:
     name: Secret Scanning
     runs-on: ubuntu-latest
-    needs: [check-skip, cancel-redundant]
+    needs: check-skip
     if: needs.check-skip.outputs.should-skip != 'true'
     permissions:
       contents: read
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0 # Fetch all history for scanning
 
       - name: TruffleHog OSS
         id: trufflehog
-        uses: trufflesecurity/trufflehog@a05cf0859455b5b16317ee22d809887a4043cdf0 # v3
+        uses: trufflesecurity/trufflehog@2f1baea40da850cf64656bb98e0e91935ccc7b0d # a05cf0859455b5b16317ee22d809887a4043cdf0
         with:
           path: ./
           base: ${{ github.event.repository.default_branch }}
@@ -260,14 +248,14 @@ jobs:
   security-policy:
     name: Security Policy Check
     runs-on: ubuntu-latest
-    needs: [check-skip, cancel-redundant]
+    needs: check-skip
     if: needs.check-skip.outputs.should-skip != 'true'
     permissions:
       contents: read
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Check for security policy
         run: |
@@ -281,7 +269,7 @@ jobs:
   semgrep:
     name: Semgrep SAST
     runs-on: ubuntu-latest
-    needs: [check-skip, cancel-redundant]
+    needs: check-skip
     if: needs.check-skip.outputs.should-skip != 'true'
 
     permissions:
@@ -291,7 +279,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
 
       # Run Semgrep - automatically uses cloud rules if SEMGREP_APP_TOKEN is set
       - name: Run Semgrep
@@ -318,7 +306,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Setup Snyk
         uses: snyk/actions/setup@b98d498629f1c368650224d6d212bf7dfa89e4bf # v0.4.0
@@ -344,17 +332,17 @@ jobs:
   license-scan:
     name: License Compliance
     runs-on: ubuntu-latest
-    needs: [check-skip, cancel-redundant]
+    needs: check-skip
     if: needs.check-skip.outputs.should-skip != 'true'
     permissions:
       contents: read
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Run License Scan
-        uses: fossas/fossa-action@af5662f6f8877dad2ea85109ee5444f4ca3b0fe2 # v1
+        uses: fossas/fossa-action@1a4ab2c09a021b27eab71629bd33ded21866fc3b # af5662f6f8877dad2ea85109ee5444f4ca3b0fe2
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
         continue-on-error: true # Don't fail if FOSSA is not configured
@@ -363,7 +351,7 @@ jobs:
   scorecard:
     name: Security Scorecard
     runs-on: ubuntu-latest
-    needs: [check-skip, cancel-redundant]
+    needs: check-skip
     if: github.event_name != 'pull_request' && needs.check-skip.outputs.should-skip != 'true'
 
     permissions:
@@ -374,12 +362,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
 
       - name: Run Scorecard
-        uses: ossf/scorecard-action@62b2cac7ed8198b15735ed49ab1e5cf35480ba46 # v2
+        uses: ossf/scorecard-action@f35c64557cf912815708bb1126d9948f3e459487 # 62b2cac7ed8198b15735ed49ab1e5cf35480ba46
         with:
           results_file: results.sarif
           results_format: sarif
@@ -397,7 +385,6 @@ jobs:
     needs:
       [
         check-skip,
-        cancel-redundant,
         basic-checks,
         dependency-review,
         trufflehog,

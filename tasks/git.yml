@@ -919,7 +919,8 @@ tasks:
           (.workflowName | .[0:25]) + (if (.workflowName | length) > 25 then "..." else "" end) + " | " +
           (.displayTitle | .[0:40]) + (if (.displayTitle | length) > 40 then "..." else "" end) + " | " +
           .event + " | " +
-          (.createdAt | fromdateiso8601 | strftime("%Y-%m-%d %H:%M"))' | column -t -s '|'
+          (.createdAt | fromdateiso8601 | strftime("%Y-%m-%d %H:%M")) + " | " +
+          "ID: " + (.databaseId|tostring)' | column -t -s '|'
 
         echo ""
         echo -e "{{.YELLOW}}Showing {{.LIMIT}} most recent runs (use LIMIT=n to change){{.NC}}"
@@ -932,8 +933,12 @@ tasks:
           echo "  gh run view <run-id>              # View run details"
           echo "  gh run view <run-id> --log        # View full logs"
           echo "  gh run view <run-id> --log-failed # View only failed steps"
+          echo "  task git:runs:log RUN_ID=<run-id> # Download logs locally"
           echo "  gh run rerun <run-id>             # Re-run workflow"
           echo "  gh run rerun <run-id> --failed    # Re-run only failed jobs"
+          echo ""
+          echo -e "{{.YELLOW}}💡 Example (using run ID from table above):{{.NC}}"
+          echo "  task git:runs:log RUN_ID=16671961833"
           echo ""
           echo -e "{{.YELLOW}}💡 To clean up failed runs:{{.NC}}"
           echo "  task git:delete-runs BRANCH=$branch STATUS=failure  # Delete all failed runs"
@@ -952,6 +957,7 @@ tasks:
         task git:runs:log WORKFLOW="build-sign"      # Partial filename match
         
       The logs will be downloaded to logs/<workflow-name>/<run-id>/ directory.
+    silent: true
     vars:
       RUN_ID: "{{.RUN_ID}}"
       WORKFLOW: "{{.WORKFLOW}}"
@@ -1037,7 +1043,7 @@ tasks:
         # Extract logs
         echo -e "{{.YELLOW}}Extracting logs...{{.NC}}"
         cd "$LOG_DIR"
-        unzip -q logs.zip
+        unzip -o -q logs.zip
         rm logs.zip
         cd - > /dev/null
 

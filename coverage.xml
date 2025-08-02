@@ -1,0 +1,6 @@
+<?xml version="1.0" ?>
+<coverage version="1">
+  <file path="MagSafeGuard/Models/SettingsModel.swift">
+    <lineToCover lineNumber="1" covered="true"/>
+  </file>
+</coverage>

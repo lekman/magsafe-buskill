@@ -180,7 +180,7 @@ class PowerMonitorService {
 
 ### Unit Tests
 
-Location: `Tests/MagSafeGuardTests/`
+Location: `MagSafeGuardTests/`
 
 - **MockTests**: Tests using mocks for 100% coverage
   - `AuthenticationServiceMockTests.swift`
