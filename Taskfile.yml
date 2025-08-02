@@ -319,39 +319,10 @@ tasks:
     cmds:
       - task: swift:clean
   build:
-    desc: Build MagSafe Guard app bundle using Swift Bundler
+    desc: Build MagSafe Guard app (alias for swift:build)
     silent: true
-    # deps: [swift:setup-bundler] # Removed - task doesn't exist
     cmds:
-      - |
-        echo "🔨 Building MagSafe Guard app bundle..."
-
-        # Ensure Swift Bundler is available
-        BUNDLER="./swift-bundler"
-        if [ ! -f "$BUNDLER" ]; then
-          echo "Setting up Swift Bundler..."
-          curl -L https://github.com/stackotter/swift-bundler/releases/download/v2.0.4/swift-bundler -o swift-bundler
-          chmod +x swift-bundler
-        fi
-
-        # Clean previous build
-        rm -rf ./.build/bundler/MagSafeGuard.app
-
-        # Build with Swift Bundler
-        echo "Building universal binary..."
-        if $BUNDLER bundle --configuration release --universal; then
-          echo "✅ Build complete!"
-          echo ""
-          echo "App bundle: ./.build/bundler/MagSafeGuard.app"
-          echo ""
-          echo "Next steps:"
-          echo "  • Open in Xcode: open MagSafeGuard.xcodeproj"
-          echo "  • Sign the app: task swift:sign"
-          echo "  • Create installer: task swift:package"
-        else
-          echo "❌ Build failed"
-          exit 1
-        fi
+      - task: swift:build
   qa:
     desc: Run standard quality assurance checks
     silent: true
