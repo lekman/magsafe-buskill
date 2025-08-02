@@ -2,6 +2,22 @@ version: "3"
 
 # CI-specific test configuration that runs unit tests without launching the app
 # This avoids permission dialogs and system service interactions
+#
+# IMPORTANT: Currently running a limited subset of tests due to CI hanging issues
+# See TEST_REFACTORING_PLAN.md for full details and remediation plan
+#
+# Safe tests that run in CI:
+# - FeatureFlagsTests
+# - SettingsModelTests
+# - UserDefaultsManagerTests
+# - PowerMonitorCoreTests
+# - AuthenticationServiceMockTests
+#
+# Tests excluded (may trigger system dialogs or require app interaction):
+# - AppControllerTests, AppDelegateCoreTests, AutoArmManagerTests
+# - IntegrationTests, LocationManagerTests, NetworkMonitorTests
+# - NotificationServiceTests, PowerMonitorServiceTests
+# - SecurityActionsServiceTests, SyncServiceCloudKitTests, SyncServiceTests
 
 vars:
   PROJECT_NAME: MagSafeGuard
