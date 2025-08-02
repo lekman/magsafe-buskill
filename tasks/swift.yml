@@ -386,6 +386,7 @@ tasks:
           -project {{.PROJECT_NAME}}.xcodeproj \
           -scheme MagSafeGuardCI \
           -configuration Debug \
+          -destination 'platform=macOS,name=Any Mac' \
           -derivedDataPath {{.DERIVED_DATA}} \
           CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Debug \
           CODE_SIGNING_ALLOWED=NO \
@@ -455,6 +456,7 @@ tasks:
           -project {{.PROJECT_NAME}}.xcodeproj \
           -scheme {{.SCHEME_NAME}} \
           -configuration Debug \
+          -destination 'platform=macOS,name=Any Mac' \
           -derivedDataPath {{.DERIVED_DATA}} \
           CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Debug \
           $EXTRA_FLAGS \
@@ -518,6 +520,7 @@ tasks:
           -project {{.PROJECT_NAME}}.xcodeproj \
           -scheme {{.SCHEME_NAME}} \
           -configuration Release \
+          -destination 'platform=macOS,name=Any Mac' \
           -derivedDataPath {{.DERIVED_DATA}} \
           CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Release \
           $EXTRA_FLAGS \
