@@ -286,21 +286,21 @@ public class MockCLLocationManager: CLLocationManagerProtocol {
 
   /// Simulate location update
   public func simulateLocationUpdate(_ location: CLLocation) {
-    if let delegate = delegate as? CLLocationManagerDelegate {
+    if let delegate = delegate {
       delegate.locationManager?(CLLocationManager(), didUpdateLocations: [location])
     }
   }
 
   /// Simulate entering region
   public func simulateEnterRegion(_ region: CLRegion) {
-    if let delegate = delegate as? CLLocationManagerDelegate {
+    if let delegate = delegate {
       delegate.locationManager?(CLLocationManager(), didEnterRegion: region)
     }
   }
 
   /// Simulate exiting region
   public func simulateExitRegion(_ region: CLRegion) {
-    if let delegate = delegate as? CLLocationManagerDelegate {
+    if let delegate = delegate {
       delegate.locationManager?(CLLocationManager(), didExitRegion: region)
     }
   }

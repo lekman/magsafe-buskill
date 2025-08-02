@@ -15,6 +15,20 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "193DA6A72E3B164A00DE6E06"
+               BuildableName = "MagSafeGuard.app"
+               BlueprintName = "MagSafeGuard"
+               ReferencedContainer = "container:MagSafeGuard.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "193DA6B72E3B164D00DE6E06"
                BuildableName = "MagSafeGuardTests.xctest"
                BlueprintName = "MagSafeGuardTests"
