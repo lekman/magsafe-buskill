@@ -225,8 +225,7 @@ public class PowerMonitorService: NSObject {
     var sourceDicts: [[String: Any]] = []
     for source in sources {
       if let sourceDict = IOPSGetPowerSourceDescription(snapshot, source).takeUnretainedValue()
-        as? [String: Any]
-      {
+        as? [String: Any] {
         sourceDicts.append(sourceDict)
       }
     }
@@ -298,8 +297,7 @@ public class PowerMonitorService: NSObject {
       guard let self = self else { return }
 
       if let newPowerInfo = self.getCurrentPowerInfo(),
-        self.core.hasPowerStateChanged(newInfo: newPowerInfo)
-      {
+        self.core.hasPowerStateChanged(newInfo: newPowerInfo) {
         // Notify on main thread
         if let callback = self.stateChangeCallback {
           DispatchQueue.main.async {
@@ -354,8 +352,7 @@ public class PowerMonitorService: NSObject {
       guard let self = self else { return }
 
       if let newPowerInfo = self.getCurrentPowerInfo(),
-        self.core.hasPowerStateChanged(newInfo: newPowerInfo)
-      {
+        self.core.hasPowerStateChanged(newInfo: newPowerInfo) {
         // Notify on main thread
         if let callback = self.stateChangeCallback {
           DispatchQueue.main.async {

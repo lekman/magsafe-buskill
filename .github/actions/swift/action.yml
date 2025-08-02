@@ -128,10 +128,10 @@ runs:
         | **build** | $(du -sh build 2>/dev/null | cut -f1 || echo "0") |
         
         ### Cache Key Components
-        - **OS**: ${{ runner.os }}
-        - **Project Hash**: \`$(echo "${{ hashFiles('MagSafeGuard.xcodeproj/project.pbxproj') }}" | cut -c1-8)\`
-        - **Swift Files Hash**: \`$(echo "${{ hashFiles('**/*.swift') }}" | cut -c1-8)\`
-        - **Suffix**: ${{ inputs.cache-key-suffix }}
+        - **OS**: ${RUNNER_OS}
+        - **Project Hash**: \`$(echo "${HASH_FILES}" | cut -d- -f2 | cut -c1-8)\`
+        - **Swift Files Hash**: \`$(echo "${HASH_FILES}" | cut -d- -f3 | cut -c1-8)\`
+        - **Suffix**: ${CACHE_KEY_SUFFIX}
         
         EOF
         

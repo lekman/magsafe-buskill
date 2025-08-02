@@ -223,8 +223,7 @@ final class PowerMonitorServiceTests: XCTestCase {
     let info2 = service.getCurrentPowerInfo()
 
     if let timestamp1 = info1?.timestamp,
-      let timestamp2 = info2?.timestamp
-    {
+      let timestamp2 = info2?.timestamp {
       XCTAssertTrue(timestamp2 > timestamp1, "Later timestamp should be greater")
     }
   }

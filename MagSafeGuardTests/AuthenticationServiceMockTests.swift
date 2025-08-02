@@ -176,8 +176,7 @@ final class AuthenticationServiceMockTests: XCTestCase {
     service.authenticate(reason: "Test 4") { result in
       if case .failure(let error) = result,
         let authError = error as? AuthenticationService.AuthenticationError,
-        case .authenticationFailed = authError
-      {
+        case .authenticationFailed = authError {
         // Rate limiting returns authentication failed
         expectations[3].fulfill()
       }
@@ -268,7 +267,7 @@ final class AuthenticationServiceMockTests: XCTestCase {
       (.userFallback, .userFallback),
       (.systemCancel, .systemCancel),
       (.passcodeNotSet, .passcodeNotSet),
-      (.authenticationFailed, .authenticationFailed),
+      (.authenticationFailed, .authenticationFailed)
     ]
 
     for (laErrorCode, expectedError) in testCases {
@@ -302,7 +301,7 @@ final class AuthenticationServiceMockTests: XCTestCase {
       AuthenticationService.AuthenticationPolicy.biometricOnly.contains(.allowPasswordFallback))
 
     let combined: AuthenticationService.AuthenticationPolicy = [
-      .biometricOnly, .allowPasswordFallback,
+      .biometricOnly, .allowPasswordFallback
     ]
     XCTAssertTrue(combined.contains(.biometricOnly))
     XCTAssertTrue(combined.contains(.allowPasswordFallback))
@@ -316,8 +315,7 @@ final class AuthenticationServiceMockTests: XCTestCase {
     service.authenticate(reason: "") { result in
       if case .failure(let error) = result,
         let authError = error as? AuthenticationService.AuthenticationError,
-        case .authenticationFailed = authError
-      {
+        case .authenticationFailed = authError {
         expectation.fulfill()
       } else {
         XCTFail("Empty reason should be rejected")
@@ -334,8 +332,7 @@ final class AuthenticationServiceMockTests: XCTestCase {
     service.authenticate(reason: longReason) { result in
       if case .failure(let error) = result,
         let authError = error as? AuthenticationService.AuthenticationError,
-        case .authenticationFailed = authError
-      {
+        case .authenticationFailed = authError {
         expectation.fulfill()
       } else {
         XCTFail("Long reason should be rejected")

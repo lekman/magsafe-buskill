@@ -138,7 +138,7 @@ public final class FeatureFlags {
       // User's home directory
       NSHomeDirectory(),
       // Application Support directory
-      fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?.path ?? "",
+      fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?.path ?? ""
     ].compactMap { $0 }
 
     for basePath in searchPaths {
@@ -224,7 +224,7 @@ public final class FeatureFlags {
       result["_metadata"] = [
         "version": "1.0",
         "generated": ISO8601DateFormatter().string(from: Date()),
-        "description": "MagSafe Guard Feature Flags Configuration",
+        "description": "MagSafe Guard Feature Flags Configuration"
       ]
 
       // Core features
