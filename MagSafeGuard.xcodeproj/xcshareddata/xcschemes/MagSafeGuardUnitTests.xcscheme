@@ -44,6 +44,18 @@
       shouldUseLaunchSchemeArgsEnv = "YES"
       codeCoverageEnabled = "YES"
       shouldAutocreateTestPlan = "YES">
+      <EnvironmentVariables>
+         <EnvironmentVariable
+            key = "CI"
+            value = "true"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "MAGSAFE_GUARD_TEST_MODE"
+            value = "1"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+      </EnvironmentVariables>
       <Testables>
          <TestableReference
             skipped = "NO"
@@ -57,18 +69,6 @@
             </BuildableReference>
          </TestableReference>
       </Testables>
-      <EnvironmentVariables>
-         <EnvironmentVariable
-            key = "CI"
-            value = "true"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-         <EnvironmentVariable
-            key = "MAGSAFE_GUARD_TEST_MODE"
-            value = "1"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-      </EnvironmentVariables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"

@@ -36,9 +36,9 @@ runs:
         path: |
           /usr/local/bin/task
           ~/.task
-        key: taskfile-${{ steps.os-info.outputs.os-key }}-${{ inputs.cache-key-suffix }}
+        key: taskfile-${{ steps.os-info.outputs.os-key }}-v1
         restore-keys: |
-          taskfile-${{ steps.os-info.outputs.os-key }}-
+          taskfile-${{ steps.os-info.outputs.os-key }}-v1
     
     - name: Install Taskfile if not cached
       if: steps.cache-restore.outputs.cache-hit != 'true'
@@ -84,7 +84,7 @@ runs:
         path: |
           /usr/local/bin/task
           ~/.task
-        key: taskfile-${{ steps.os-info.outputs.os-key }}-${{ inputs.cache-key-suffix }}
+        key: taskfile-${{ steps.os-info.outputs.os-key }}-v1
     
     - name: Generate Taskfile summary
       if: always()

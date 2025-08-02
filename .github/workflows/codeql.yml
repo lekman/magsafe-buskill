@@ -47,9 +47,9 @@ jobs:
           path: |
             .codeql
             ~/codeql-home/codeql-dbs
-          key: ${{ runner.os }}-codeql-db-${{ hashFiles('**/*.swift', 'MagSafeGuard.xcodeproj/project.pbxproj') }}-${{ github.sha }}
+            DerivedData/Build/Intermediates.noindex/CodeQL
+          key: ${{ runner.os }}-codeql-db-${{ hashFiles('**/*.swift', 'MagSafeGuard.xcodeproj/project.pbxproj') }}
           restore-keys: |
-            ${{ runner.os }}-codeql-db-${{ hashFiles('**/*.swift', 'MagSafeGuard.xcodeproj/project.pbxproj') }}-
             ${{ runner.os }}-codeql-db-
 
       - name: Initialize CodeQL
@@ -64,7 +64,7 @@ jobs:
         if: matrix.language == 'swift'
         uses: ./.github/actions/swift
         with:
-          cache-key-suffix: codeql-${{ github.sha }}
+          cache-key-suffix: codeql
 
       - name: Build Swift Project for CodeQL
         run: |
@@ -92,6 +92,16 @@ jobs:
           upload: true
           # Only upload database on main branch to save time
           upload-database: ${{ github.ref == 'refs/heads/main' }}
+
+      # Save CodeQL database location for debugging
+      - name: Save CodeQL database info
+        if: always()
+        run: |
+          echo "CodeQL database locations:"
+          find . -name "*.sarif" -type f 2>/dev/null | head -10 || echo "No SARIF files found"
+          find . -name "codeql-database.yml" -type f 2>/dev/null | head -10 || echo "No database config found"
+          find ~/codeql-home -name "*.trap" -type f 2>/dev/null | wc -l || echo "0"
+          echo "CodeQL trap files in home"
 
       # Generate workflow summary
       - name: Generate CodeQL Summary
