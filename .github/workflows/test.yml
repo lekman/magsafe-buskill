@@ -89,8 +89,8 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.lcov
           flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
+          fail_ci_if_error: true
+          verbose: true
 
       - name: SonarCloud Scan
         if: always()

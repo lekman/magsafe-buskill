@@ -40,10 +40,11 @@ jobs:
           path: |
             .codeql
             ~/codeql-home/codeql-dbs
-            DerivedData/Build/Intermediates.noindex/CodeQL
-          key: ${{ runner.os }}-codeql-db-${{ hashFiles('**/*.swift', 'MagSafeGuard.xcodeproj/project.pbxproj') }}
+            .build
+          key: ${{ runner.os }}-codeql-db-${{ hashFiles('**/*.swift', 'Package.swift') }}-v2
           restore-keys: |
             ${{ runner.os }}-codeql-db-
+            ${{ runner.os }}-codeql-
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
@@ -63,7 +64,7 @@ jobs:
         run: |
           echo "🔨 Building project for CodeQL analysis..."
           # Use Swift Package Manager for fast, minimal builds
-          task swift:spm:build || true
+          task swift:build || true
           echo "✅ Build completed for CodeQL"
 
       - name: Perform CodeQL Analysis
