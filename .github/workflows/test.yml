@@ -92,13 +92,29 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: false
 
-      - name: SonarCloud Scan
+      - name: Install and run SonarCloud Scan
         if: always()
-        # nosemgrep: generic.secrets.security.detected-sonarqube-docs-api-key.detected-sonarqube-docs-api-key
-        uses: SonarSource/sonarcloud-github-action@e44258b109568baa0df60ed515909fc6c72cba92 # v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          # Install sonar-scanner using homebrew (available on macOS runners)
+          brew install sonar-scanner
+
+          # Run sonar-scanner directly to avoid deprecated action issues
+          # The sonar-project.properties file contains all necessary configuration
+          if [ -f "coverage.xml" ]; then
+            echo "Coverage file found: coverage.xml ($(wc -c < coverage.xml) bytes)"
+            echo "Running SonarCloud analysis with coverage..."
+            echo "Current directory: $(pwd)"
+            echo "Coverage file path: $(realpath coverage.xml)"
+          else
+            echo "WARNING: No coverage.xml file found"
+            echo "Running SonarCloud analysis without coverage..."
+          fi
+
+          # Run the scanner
+          sonar-scanner
 
       - name: Test Summary
         if: always()
