@@ -74,9 +74,11 @@ jobs:
           swift-version: "5.9"
 
       - name: Run Tests
+        timeout-minutes: 5
         run: |
-          echo "🧪 Running unit tests..."
-          task test
+          echo "🧪 Running tests with Swift Package Manager for CI..."
+          # Use Swift PM for reliable CI testing without UI hangs
+          ./scripts/ci-test.sh
         env:
           CI: true
 
