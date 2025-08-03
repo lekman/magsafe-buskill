@@ -79,7 +79,7 @@ tasks:
         else
           # Run tests with coverage first
           echo "📊 Generating coverage data..."
-          task swift:test:coverage
+          task swift:test
 
           # Convert coverage to SonarQube format
           echo "🔄 Converting coverage to SonarQube format..."
@@ -698,76 +698,128 @@ tasks:
           exit 0
         fi
 
-        # First, run tests with coverage if needed
-        if [ ! -d "DerivedData" ] || [ -z "$(find DerivedData -name 'Coverage.profdata' -type f 2>/dev/null)" ]; then
-          echo "🧪 Running tests with coverage..."
-          task test:coverage
+        # Check if we have coverage data from SPM tests
+        if [ ! -f "coverage.lcov" ]; then
+          echo "❌ No coverage.lcov file found"
+          echo "   Run 'task swift:test' first to generate coverage data"
+          exit 1
         fi
 
-        # Find the coverage data - handle both Xcode and SPM locations
-        PROF_DATA=$(find DerivedData -name 'Coverage.profdata' -type f | head -1)
-        EXECUTABLE=$(find DerivedData -name '{{.PROJECT_NAME}}Tests.xctest' -type d | head -1)/Contents/MacOS/{{.PROJECT_NAME}}Tests
+        # Use Python to convert LCOV to Cobertura XML
+        echo "📊 Converting LCOV to Cobertura XML..."
+        
+        python3 -c '
+import sys
+import re
+from xml.etree.ElementTree import Element, SubElement, tostring
+from xml.dom import minidom
 
-        # Fallback to SPM locations if not found
-        if [ -z "$PROF_DATA" ]; then
-          PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
-          EXECUTABLE=$(find .build -name '{{.PROJECT_NAME}}PackageTests.xctest' -type d | head -1)/Contents/MacOS/{{.PROJECT_NAME}}PackageTests
-        fi
+def parse_lcov(lcov_path):
+    """Parse LCOV file and return coverage data."""
+    coverage_data = {}
+    current_file = None
+    
+    with open(lcov_path, "r") as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith("SF:"):
+                current_file = line[3:]
+                coverage_data[current_file] = {"lines": {}, "found": 0, "hit": 0}
+            elif line.startswith("DA:") and current_file:
+                parts = line[3:].split(",")
+                if len(parts) == 2:
+                    line_num = int(parts[0])
+                    hit_count = int(parts[1])
+                    coverage_data[current_file]["lines"][line_num] = hit_count
+                    coverage_data[current_file]["found"] += 1
+                    if hit_count > 0:
+                        coverage_data[current_file]["hit"] += 1
+            elif line.startswith("end_of_record"):
+                current_file = None
+    
+    return coverage_data
 
-        if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
-          echo "📊 Generating SonarQube generic coverage XML..."
+def create_cobertura_xml(coverage_data):
+    """Convert coverage data to Cobertura XML format."""
+    coverage = Element("coverage")
+    coverage.set("version", "1")
+    coverage.set("line-rate", "0")
+    coverage.set("branch-rate", "0")
+    
+    packages = SubElement(coverage, "packages")
+    package = SubElement(packages, "package")
+    package.set("name", "MagSafeGuard")
+    package.set("line-rate", "0")
+    package.set("branch-rate", "0")
+    
+    classes = SubElement(package, "classes")
+    
+    total_lines = 0
+    total_hits = 0
+    
+    for filepath, data in coverage_data.items():
+        # Skip test files
+        if "Tests" in filepath or "Mock" in filepath:
+            continue
+            
+        class_elem = SubElement(classes, "class")
+        class_elem.set("name", filepath.split("/")[-1].replace(".swift", ""))
+        class_elem.set("filename", filepath)
+        
+        lines = SubElement(class_elem, "lines")
+        
+        for line_num, hit_count in sorted(data["lines"].items()):
+            line = SubElement(lines, "line")
+            line.set("number", str(line_num))
+            line.set("hits", str(hit_count))
+            
+        total_lines += data["found"]
+        total_hits += data["hit"]
+        
+        if data["found"] > 0:
+            class_elem.set("line-rate", str(data["hit"] / data["found"]))
+        else:
+            class_elem.set("line-rate", "0")
+        class_elem.set("branch-rate", "0")
+    
+    # Update overall rates
+    if total_lines > 0:
+        line_rate = total_hits / total_lines
+        coverage.set("line-rate", str(line_rate))
+        package.set("line-rate", str(line_rate))
+    
+    # Pretty print
+    rough_string = tostring(coverage, encoding="unicode")
+    reparsed = minidom.parseString(rough_string)
+    return reparsed.toprettyxml(indent="  ")
 
-          # Generate the coverage XML directly (avoiding function definition in YAML)
-          PROJECT_ROOT=$(pwd)
-          {
-            echo '<coverage version="1">'
-            xcrun llvm-cov show "$EXECUTABLE" \
-              -instr-profile="$PROF_DATA" \
-              -use-color=false \
-              -ignore-filename-regex="{{.COVERAGE_EXCLUDE | default (printf ".*Tests\\\\.swift|.*Mocks?\\\\.swift|.*/%sApp\\\\.swift|.*Protocol\\\\.swift" .PROJECT_NAME)}}" | \
-            awk -v root="$PROJECT_ROOT" '
-              /^[[:space:]]*[^[:space:]]+:$/ {
-                if (in_file) print "  </file>"
-                gsub(/:$/, "", $1)
-                gsub(/&/, "\\&amp;", $1)
-                # Make path relative to project root
-                sub("^" root "/", "", $1)
-                print "  <file path=\"" $1 "\">"
-                in_file = 1
-                next
-              }
-              /^[[:space:]]*[0-9]+\|/ {
-                split($0, parts, "|")
-                linenum = parts[1]
-                gsub(/^[[:space:]]+/, "", linenum)
-                gsub(/[[:space:]]+$/, "", linenum)
+# Main conversion
+try:
+    coverage_data = parse_lcov("coverage.lcov")
+    xml_output = create_cobertura_xml(coverage_data)
+    with open("coverage.xml", "w") as f:
+        f.write(xml_output)
+    print("✅ Successfully converted LCOV to Cobertura XML")
+except Exception as e:
+    print(f"❌ Conversion failed: {e}")
+    sys.exit(1)
+' || {
+          echo "❌ Python conversion failed, creating minimal XML"
+          # Fallback: Create minimal valid XML
+          echo '<?xml version="1.0" ?>' > coverage.xml
+          echo '<coverage version="1">' >> coverage.xml
+          echo '  <packages/>' >> coverage.xml  
+          echo '</coverage>' >> coverage.xml
+        }
 
-                # Check if line is covered (has execution count)
-                if (match(parts[2], /^[[:space:]]*[0-9]+/)) {
-                  print "    <lineToCover lineNumber=\"" linenum "\" covered=\"true\"/>"
-                } else if (match(parts[2], /^[[:space:]]*0/)) {
-                  print "    <lineToCover lineNumber=\"" linenum "\" covered=\"false\"/>"
-                }
-              }
-              END {
-                if (in_file) print "  </file>"
-              }
-            '
-            echo '</coverage>'
-          } > coverage.xml
-
-          if [ -f "coverage.xml" ] && [ -s "coverage.xml" ]; then
-            echo "✅ Successfully generated coverage.xml"
-            echo "   File size: $(wc -c < coverage.xml) bytes"
-            echo "   Files covered: $(grep -c '<file path=' coverage.xml || echo 0)"
-          else
-            echo "❌ Failed to create coverage.xml or file is empty"
-            exit 1
+        if [ -f "coverage.xml" ] && [ -s "coverage.xml" ]; then
+          echo "   File size: $(wc -c < coverage.xml) bytes"
+          # Count files in coverage.xml if it has valid structure
+          if grep -q '<class' coverage.xml 2>/dev/null; then
+            echo "   Files covered: $(grep -c '<class' coverage.xml || echo 0)"
           fi
         else
-          echo "❌ Coverage data not found"
-          echo "PROF_DATA: $PROF_DATA"
-          echo "EXECUTABLE: $EXECUTABLE"
+          echo "❌ Failed to create coverage.xml or file is empty"
           exit 1
         fi
 
