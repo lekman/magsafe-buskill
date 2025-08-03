@@ -71,7 +71,7 @@ jobs:
       - name: Setup Swift Build Environment
         uses: ./.github/actions/swift
         with:
-          swift-version: "5.9"
+          swift-version: "5.10"
 
       - name: Run Tests
         timeout-minutes: 5
@@ -94,7 +94,7 @@ jobs:
 
       - name: SonarCloud Scan
         if: always()
-        # nosemgrep: generic.secrets.security.detected-sonarqube-docs-api-key
+        # nosemgrep: generic.secrets.security.detected-sonarqube-docs-api-key.detected-sonarqube-docs-api-key
         uses: SonarSource/sonarcloud-github-action@e44258b109568baa0df60ed515909fc6c72cba92 # v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

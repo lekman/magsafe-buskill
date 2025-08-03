@@ -53,5 +53,5 @@
     "connectionId": "lekman",
     "projectKey": "lekman_magsafe-buskill"
   },
-  "postman.settings.dotenv-detection-notification-visibility": true
+  "postman.settings.dotenv-detection-notification-visibility": false
 }
