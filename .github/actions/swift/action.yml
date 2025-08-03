@@ -17,8 +17,11 @@ inputs:
 
 outputs:
   cache-hit:
-    description: "Whether cache was hit"
+    description: "Whether Xcode cache was hit"
     value: ${{ steps.cache.outputs.cache-hit }}
+  spm-cache-hit:
+    description: "Whether SPM cache was hit"
+    value: ${{ steps.spm-cache.outputs.cache-hit }}
 
 runs:
   using: "composite"
