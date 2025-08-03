@@ -19,6 +19,10 @@ public final class IOKitPowerStateRepository: PowerStateRepository {
 
     // MARK: - Initialization
 
+    /// Initializes the IOKit-based power state repository
+    /// - Parameters:
+    ///   - pollingInterval: Interval for polling if notifications are disabled
+    ///   - useNotifications: Whether to use system notifications instead of polling
     public init(
         pollingInterval: TimeInterval = 0.1,
         useNotifications: Bool = true
@@ -29,6 +33,7 @@ public final class IOKitPowerStateRepository: PowerStateRepository {
 
     // MARK: - PowerStateRepository Implementation
 
+    /// Gets the current power state from IOKit
     public func getCurrentPowerState() async throws -> PowerStateInfo {
         return try await withCheckedThrowingContinuation { continuation in
             queue.async { [weak self] in
@@ -47,6 +52,7 @@ public final class IOKitPowerStateRepository: PowerStateRepository {
         }
     }
 
+    /// Returns a stream of power state changes
     public func observePowerStateChanges() -> AsyncThrowingStream<PowerStateInfo, Error> {
         AsyncThrowingStream { continuation in
             if useNotifications {

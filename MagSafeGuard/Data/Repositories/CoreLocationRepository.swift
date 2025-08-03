@@ -19,6 +19,10 @@ public final class CoreLocationRepository: LocationRepository {
 
     // MARK: - Initialization
 
+    /// Initializes the Core Location-based repository
+    /// - Parameters:
+    ///   - locationManager: The location manager instance
+    ///   - trustedLocationsStore: Storage for trusted locations
     public init(
         locationManager: LocationManagerProtocol,
         trustedLocationsStore: TrustedLocationsStore = UserDefaultsTrustedLocationsStore()
@@ -32,6 +36,7 @@ public final class CoreLocationRepository: LocationRepository {
 
     // MARK: - LocationRepository Implementation
 
+    /// Starts monitoring location changes
     public func startMonitoring() async throws {
         // Load trusted locations from store
         let storedLocations = await trustedLocationsStore.loadTrustedLocations()
@@ -50,15 +55,18 @@ public final class CoreLocationRepository: LocationRepository {
         locationManager.startMonitoring()
     }
 
+    /// Stops monitoring location changes
     public func stopMonitoring() async {
         locationManager.stopMonitoring()
         changeStream.continuation.finish()
     }
 
+    /// Checks if currently in a trusted location
     public func isInTrustedLocation() async -> Bool {
         return locationManager.isInTrustedLocation
     }
 
+    /// Adds a location to the trusted list
     public func addTrustedLocation(_ location: TrustedLocationDomain) async throws {
         let clLocation = TrustedLocation(
             name: location.name,
@@ -77,6 +85,7 @@ public final class CoreLocationRepository: LocationRepository {
         try await trustedLocationsStore.saveTrustedLocations(locations)
     }
 
+    /// Removes a location from the trusted list
     public func removeTrustedLocation(id: UUID) async throws {
         locationManager.removeTrustedLocation(id: id)
 
@@ -86,10 +95,12 @@ public final class CoreLocationRepository: LocationRepository {
         try await trustedLocationsStore.saveTrustedLocations(locations)
     }
 
+    /// Gets all trusted locations
     public func getTrustedLocations() async -> [TrustedLocationDomain] {
         return await trustedLocationsStore.loadTrustedLocations()
     }
 
+    /// Returns a stream of location trust change events
     public func observeLocationTrustChanges() -> AsyncStream<Bool> {
         return changeStream.stream
     }
@@ -99,14 +110,17 @@ public final class CoreLocationRepository: LocationRepository {
 
 extension CoreLocationRepository: LocationManagerDelegate {
 
+    /// Called when leaving a trusted location
     public func locationManagerDidLeaveTrustedLocation() {
         changeStream.continuation.yield(false)
     }
 
+    /// Called when entering a trusted location
     public func locationManagerDidEnterTrustedLocation() {
         changeStream.continuation.yield(true)
     }
 
+    /// Called when location authorization changes
     public func locationManager(didChangeAuthorization status: CLAuthorizationStatus) {
         // Could emit events for authorization changes if needed
     }
@@ -116,7 +130,9 @@ extension CoreLocationRepository: LocationManagerDelegate {
 
 /// Protocol for persisting trusted locations
 public protocol TrustedLocationsStore {
+    /// Saves trusted locations to persistent storage
     func saveTrustedLocations(_ locations: [TrustedLocationDomain]) async throws
+    /// Loads trusted locations from persistent storage
     func loadTrustedLocations() async -> [TrustedLocationDomain]
 }
 
@@ -125,16 +141,19 @@ public actor UserDefaultsTrustedLocationsStore: TrustedLocationsStore {
     private let userDefaults: UserDefaults
     private let key = "MagSafeGuard.TrustedLocations"
 
+    /// Initializes with UserDefaults storage
     public init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
     }
 
+    /// Saves trusted locations to UserDefaults
     public func saveTrustedLocations(_ locations: [TrustedLocationDomain]) async throws {
         let encoder = JSONEncoder()
         let data = try encoder.encode(locations.map(LocationDTO.init))
         userDefaults.set(data, forKey: key)
     }
 
+    /// Loads trusted locations from UserDefaults
     public func loadTrustedLocations() async -> [TrustedLocationDomain] {
         guard let data = userDefaults.data(forKey: key) else { return [] }
 

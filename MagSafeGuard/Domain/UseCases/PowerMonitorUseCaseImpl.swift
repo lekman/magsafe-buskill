@@ -21,12 +21,18 @@ public final class PowerMonitorUseCaseImpl: PowerMonitorUseCase {
 
     // Stream for power state changes
     private let changeStream = AsyncStream<PowerStateChange>.makeStream()
+    /// Stream of power state changes
     public var powerStateChanges: AsyncStream<PowerStateChange> {
         changeStream.stream
     }
 
     // MARK: - Initialization
 
+    /// Initializes the power monitor use case
+    /// - Parameters:
+    ///   - repository: The power state repository
+    ///   - analyzer: The power state analyzer
+    ///   - configuration: Power monitor configuration
     public init(
         repository: PowerStateRepository,
         analyzer: PowerStateAnalyzer,
@@ -39,6 +45,7 @@ public final class PowerMonitorUseCaseImpl: PowerMonitorUseCase {
 
     // MARK: - PowerMonitorUseCase Implementation
 
+    /// Starts monitoring power state changes
     public func startMonitoring() async throws {
         // Cancel any existing monitoring
         monitoringTask?.cancel()
@@ -56,18 +63,20 @@ public final class PowerMonitorUseCaseImpl: PowerMonitorUseCase {
                     await self.handleStateUpdate(newState)
                 }
             } catch {
-                // Log error but don't crash
-                print("Power monitoring error: \(error)")
+                // Handle error but don't crash
+                // In production, this would be logged properly
             }
         }
     }
 
+    /// Stops monitoring power state changes
     public func stopMonitoring() {
         monitoringTask?.cancel()
         monitoringTask = nil
         previousState = nil
     }
 
+    /// Gets the current power state
     public func getCurrentPowerState() async throws -> PowerStateInfo {
         return try await repository.getCurrentPowerState()
     }
@@ -121,11 +130,16 @@ public final class DefaultPowerStateAnalyzer: PowerStateAnalyzer {
 
     private let settings: SecuritySettings
 
+    /// Security settings for power state analysis
     public struct SecuritySettings {
+        /// Whether security monitoring is armed
         public let isArmed: Bool
+        /// Grace period before triggering security actions
         public let gracePeriodSeconds: TimeInterval
+        /// Whether to consider current location as trusted
         public let considerLocationTrusted: Bool
 
+        /// Initializes security settings
         public init(
             isArmed: Bool = true,
             gracePeriodSeconds: TimeInterval = 5.0,
@@ -137,10 +151,12 @@ public final class DefaultPowerStateAnalyzer: PowerStateAnalyzer {
         }
     }
 
+    /// Initializes the power state analyzer
     public init(settings: SecuritySettings = SecuritySettings()) {
         self.settings = settings
     }
 
+    /// Analyzes a power state change for security threats
     public func analyzeStateChange(_ change: PowerStateChange) -> SecurityAnalysis {
         // If not armed, no threat
         guard settings.isArmed else {

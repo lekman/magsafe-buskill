@@ -19,6 +19,10 @@ public actor AutoArmDecisionUseCaseImpl: AutoArmDecisionUseCase {
 
     // MARK: - Initialization
 
+    /// Initializes the auto-arm decision use case
+    /// - Parameters:
+    ///   - armingService: Service for system arming operations
+    ///   - configurationStore: Storage for auto-arm configuration
     public init(
         armingService: SystemArmingService,
         configurationStore: AutoArmConfigurationStore = InMemoryAutoArmConfigurationStore()
@@ -29,6 +33,7 @@ public actor AutoArmDecisionUseCaseImpl: AutoArmDecisionUseCase {
 
     // MARK: - AutoArmDecisionUseCase Implementation
 
+    /// Evaluates whether to auto-arm based on the event
     public func evaluateAutoArmEvent(_ event: AutoArmEvent) async -> AutoArmDecision {
         // Check if auto-arm is enabled
         guard event.configuration.isEnabled else {
@@ -64,6 +69,7 @@ public actor AutoArmDecisionUseCaseImpl: AutoArmDecisionUseCase {
         }
     }
 
+    /// Checks if auto-arm is currently possible
     public func canAutoArm() async -> Bool {
         let configuration = await configurationStore.loadConfiguration() ?? .default
 
@@ -81,6 +87,7 @@ public actor AutoArmDecisionUseCaseImpl: AutoArmDecisionUseCase {
         return true
     }
 
+    /// Gets the current auto-arm status
     public func getAutoArmStatus() async -> AutoArmStatus {
         let configuration = await configurationStore.loadConfiguration() ?? .default
         let isArmed = await armingService.isArmed()
@@ -131,6 +138,10 @@ public actor AutoArmConfigurationUseCaseImpl: AutoArmConfigurationUseCase {
 
     // MARK: - Initialization
 
+    /// Initializes the auto-arm configuration use case
+    /// - Parameters:
+    ///   - configurationStore: Storage for configuration
+    ///   - decisionUseCase: Use case for auto-arm decisions
     public init(
         configurationStore: AutoArmConfigurationStore = InMemoryAutoArmConfigurationStore(),
         decisionUseCase: AutoArmDecisionUseCaseImpl
@@ -141,23 +152,28 @@ public actor AutoArmConfigurationUseCaseImpl: AutoArmConfigurationUseCase {
 
     // MARK: - AutoArmConfigurationUseCase Implementation
 
+    /// Gets the current auto-arm configuration
     public func getConfiguration() async -> AutoArmConfiguration {
         return await configurationStore.loadConfiguration() ?? .default
     }
 
+    /// Updates the auto-arm configuration
     public func updateConfiguration(_ configuration: AutoArmConfiguration) async throws {
         try await configurationStore.saveConfiguration(configuration)
     }
 
+    /// Temporarily disables auto-arm for the specified duration
     public func temporarilyDisable(for duration: TimeInterval) async {
         let until = Date().addingTimeInterval(duration)
         await decisionUseCase.setTemporaryDisable(until: until)
     }
 
+    /// Cancels the temporary disable
     public func cancelTemporaryDisable() async {
         await decisionUseCase.setTemporaryDisable(until: nil)
     }
 
+    /// Checks if auto-arm is temporarily disabled
     public func isTemporarilyDisabled() async -> (disabled: Bool, until: Date?) {
         let status = await decisionUseCase.getAutoArmStatus()
         return (status.isTemporarilyDisabled, status.temporaryDisableUntil)
@@ -177,6 +193,11 @@ public actor AutoArmMonitoringUseCaseImpl: AutoArmMonitoringUseCase {
 
     // MARK: - Initialization
 
+    /// Initializes the auto-arm monitoring use case
+    /// - Parameters:
+    ///   - locationRepository: Repository for location monitoring
+    ///   - networkRepository: Repository for network monitoring
+    ///   - configurationStore: Storage for configuration
     public init(
         locationRepository: LocationRepository,
         networkRepository: NetworkRepository,
@@ -189,6 +210,7 @@ public actor AutoArmMonitoringUseCaseImpl: AutoArmMonitoringUseCase {
 
     // MARK: - AutoArmMonitoringUseCase Implementation
 
+    /// Starts monitoring for auto-arm conditions
     public func startMonitoring() async throws {
         // Stop any existing monitoring
         monitoringTask?.cancel()
@@ -225,6 +247,7 @@ public actor AutoArmMonitoringUseCaseImpl: AutoArmMonitoringUseCase {
         }
     }
 
+    /// Stops monitoring
     public func stopMonitoring() async {
         monitoringTask?.cancel()
         monitoringTask = nil
@@ -235,6 +258,7 @@ public actor AutoArmMonitoringUseCaseImpl: AutoArmMonitoringUseCase {
         eventStream.continuation.finish()
     }
 
+    /// Returns a stream of auto-arm events
     public func observeAutoArmEvents() -> AsyncStream<AutoArmEvent> {
         return eventStream.stream
     }
@@ -298,7 +322,9 @@ public actor AutoArmMonitoringUseCaseImpl: AutoArmMonitoringUseCase {
 
 /// Protocol for persisting auto-arm configuration
 public protocol AutoArmConfigurationStore {
+    /// Saves auto-arm configuration to persistent storage
     func saveConfiguration(_ configuration: AutoArmConfiguration) async throws
+    /// Loads auto-arm configuration from persistent storage
     func loadConfiguration() async -> AutoArmConfiguration?
 }
 
@@ -306,12 +332,15 @@ public protocol AutoArmConfigurationStore {
 public actor InMemoryAutoArmConfigurationStore: AutoArmConfigurationStore {
     private var storedConfiguration: AutoArmConfiguration?
 
+    /// Initializes the in-memory configuration store
     public init() {}
 
+    /// Saves configuration to memory
     public func saveConfiguration(_ configuration: AutoArmConfiguration) async throws {
         storedConfiguration = configuration
     }
 
+    /// Loads configuration from memory
     public func loadConfiguration() async -> AutoArmConfiguration? {
         return storedConfiguration
     }

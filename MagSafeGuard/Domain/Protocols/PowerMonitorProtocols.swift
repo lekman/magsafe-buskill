@@ -151,6 +151,7 @@ public struct SecurityAnalysis: Equatable {
         /// High threat - immediate action recommended
         case high = 3
 
+        /// Compares threat levels by their severity
         public static func < (lhs: Self, rhs: Self) -> Bool {
             lhs.rawValue < rhs.rawValue
         }
@@ -199,6 +200,11 @@ public struct PowerMonitorConfiguration {
     /// Minimum time between reported state changes to prevent flooding
     public let debounceInterval: TimeInterval
 
+    /// Initializes power monitor configuration
+    /// - Parameters:
+    ///   - pollingInterval: How often to check power state
+    ///   - useSystemNotifications: Whether to use system notifications
+    ///   - debounceInterval: Minimum time between state changes
     public init(
         pollingInterval: TimeInterval = 0.1,
         useSystemNotifications: Bool = true,

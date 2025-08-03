@@ -17,12 +17,15 @@ public final class MacSystemActionsRepository: SecurityActionRepository {
 
     // MARK: - Initialization
 
+    /// Initializes the macOS system actions repository
+    /// - Parameter systemActions: The system actions implementation
     public init(systemActions: SystemActionsProtocol = MacSystemActions()) {
         self.systemActions = systemActions
     }
 
     // MARK: - SecurityActionRepository Implementation
 
+    /// Locks the screen immediately
     public func lockScreen() async throws {
         try await withCheckedThrowingContinuation { continuation in
             queue.async { [weak self] in
@@ -41,6 +44,8 @@ public final class MacSystemActionsRepository: SecurityActionRepository {
         }
     }
 
+    /// Plays an alarm sound at the specified volume
+    /// - Parameter volume: The volume level (0.0-1.0)
     public func playAlarm(volume: Float) async throws {
         try await withCheckedThrowingContinuation { continuation in
             queue.async { [weak self] in
@@ -59,6 +64,7 @@ public final class MacSystemActionsRepository: SecurityActionRepository {
         }
     }
 
+    /// Stops any currently playing alarm
     public func stopAlarm() async {
         await withCheckedContinuation { continuation in
             queue.async { [weak self] in
@@ -68,6 +74,7 @@ public final class MacSystemActionsRepository: SecurityActionRepository {
         }
     }
 
+    /// Forces logout of all users
     public func forceLogout() async throws {
         try await withCheckedThrowingContinuation { continuation in
             queue.async { [weak self] in
@@ -86,6 +93,8 @@ public final class MacSystemActionsRepository: SecurityActionRepository {
         }
     }
 
+    /// Schedules a system shutdown after the specified delay
+    /// - Parameter afterSeconds: The delay before shutdown
     public func scheduleShutdown(afterSeconds: TimeInterval) async throws {
         try await withCheckedThrowingContinuation { continuation in
             queue.async { [weak self] in
@@ -104,6 +113,8 @@ public final class MacSystemActionsRepository: SecurityActionRepository {
         }
     }
 
+    /// Executes a custom script at the specified path
+    /// - Parameter path: The path to the script file
     public func executeScript(at path: String) async throws {
         try await withCheckedThrowingContinuation { continuation in
             queue.async { [weak self] in

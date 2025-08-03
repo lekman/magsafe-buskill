@@ -18,6 +18,11 @@ public final class AuthenticationUseCaseImpl: AuthenticationUseCase {
 
     // MARK: - Initialization
 
+    /// Initializes the authentication use case
+    /// - Parameters:
+    ///   - repository: The authentication repository
+    ///   - securityConfig: Security configuration
+    ///   - stateManager: State manager for authentication history
     public init(
         repository: AuthenticationRepository,
         securityConfig: AuthenticationSecurityConfig = .default,
@@ -30,6 +35,7 @@ public final class AuthenticationUseCaseImpl: AuthenticationUseCase {
 
     // MARK: - AuthenticationUseCase Implementation
 
+    /// Authenticates the user with the specified reason and policy
     public func authenticate(reason: String, policy: AuthenticationPolicy) async -> AuthenticationResult {
         // Validate request
         let validationResult = validateAuthenticationRequest(reason: reason)
@@ -90,14 +96,17 @@ public final class AuthenticationUseCaseImpl: AuthenticationUseCase {
         return result
     }
 
+    /// Checks if biometric authentication is available
     public func checkBiometricAvailability() async -> BiometricAvailability {
         return await repository.isBiometricAvailable()
     }
 
+    /// Clears the authentication cache
     public func clearAuthenticationCache() async {
         await stateManager.clearCache()
     }
 
+    /// Gets the last successful authentication
     public func getLastAuthentication() async -> AuthenticationSuccess? {
         return await stateManager.getLastAuthentication()
     }
@@ -155,6 +164,10 @@ public final class AuthenticationStateUseCaseImpl: AuthenticationStateUseCase {
     private let stateManager: AuthenticationStateManager
     private let repository: AuthenticationRepository
 
+    /// Initializes the authentication state use case
+    /// - Parameters:
+    ///   - stateManager: State manager for authentication
+    ///   - repository: The authentication repository
     public init(
         stateManager: AuthenticationStateManager,
         repository: AuthenticationRepository
@@ -163,6 +176,7 @@ public final class AuthenticationStateUseCaseImpl: AuthenticationStateUseCase {
         self.repository = repository
     }
 
+    /// Checks if the user is authenticated according to policy
     public func isAuthenticated(policy: AuthenticationPolicy) async -> Bool {
         guard let lastAuth = await stateManager.getLastAuthentication() else {
             return false
@@ -172,11 +186,13 @@ public final class AuthenticationStateUseCaseImpl: AuthenticationStateUseCase {
         return timeSinceAuth < policy.cacheDuration
     }
 
+    /// Invalidates current authentication
     public func invalidateAuthentication() async {
         await repository.invalidateAuthentication()
         await stateManager.clearCache()
     }
 
+    /// Gets the authentication attempt history
     public func getAuthenticationHistory() async -> [AuthenticationAttempt] {
         return await stateManager.getAllAttempts()
     }
@@ -186,11 +202,17 @@ public final class AuthenticationStateUseCaseImpl: AuthenticationStateUseCase {
 
 /// Protocol for managing authentication state
 public protocol AuthenticationStateManager {
+    /// Records an authentication attempt
     func recordAttempt(_ attempt: AuthenticationAttempt) async
+    /// Gets recent attempts since the specified date
     func getRecentAttempts(since date: Date) async -> [AuthenticationAttempt]
+    /// Gets all authentication attempts
     func getAllAttempts() async -> [AuthenticationAttempt]
+    /// Updates the last successful authentication
     func updateLastAuthentication(_ success: AuthenticationSuccess) async
+    /// Gets the last successful authentication
     func getLastAuthentication() async -> AuthenticationSuccess?
+    /// Clears the authentication cache
     func clearCache() async
 }
 
@@ -201,8 +223,10 @@ public actor InMemoryAuthenticationStateManager: AuthenticationStateManager {
     private var lastAuthentication: AuthenticationSuccess?
     private let maxHistorySize = 100
 
+    /// Initializes the in-memory state manager
     public init() {}
 
+    /// Records an authentication attempt
     public func recordAttempt(_ attempt: AuthenticationAttempt) {
         attempts.append(attempt)
 
@@ -212,22 +236,27 @@ public actor InMemoryAuthenticationStateManager: AuthenticationStateManager {
         }
     }
 
+    /// Gets recent attempts since the specified date
     public func getRecentAttempts(since date: Date) -> [AuthenticationAttempt] {
         return attempts.filter { $0.timestamp >= date }
     }
 
+    /// Gets all authentication attempts
     public func getAllAttempts() -> [AuthenticationAttempt] {
         return attempts
     }
 
+    /// Updates the last successful authentication
     public func updateLastAuthentication(_ success: AuthenticationSuccess) {
         lastAuthentication = success
     }
 
+    /// Gets the last successful authentication
     public func getLastAuthentication() -> AuthenticationSuccess? {
         return lastAuthentication
     }
 
+    /// Clears the authentication cache
     public func clearCache() {
         lastAuthentication = nil
     }

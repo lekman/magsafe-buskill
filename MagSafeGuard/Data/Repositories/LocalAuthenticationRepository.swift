@@ -18,12 +18,15 @@ public final class LocalAuthenticationRepository: AuthenticationRepository {
 
     // MARK: - Initialization
 
+    /// Initializes the LocalAuthentication-based repository
+    /// - Parameter contextFactory: Factory for creating authentication contexts
     public init(contextFactory: AuthenticationContextFactoryProtocol = RealAuthenticationContextFactory()) {
         self.contextFactory = contextFactory
     }
 
     // MARK: - AuthenticationRepository Implementation
 
+    /// Checks if biometric authentication is available
     public func isBiometricAvailable() async -> BiometricAvailability {
         return await withCheckedContinuation { continuation in
             queue.async { [weak self] in
@@ -60,6 +63,7 @@ public final class LocalAuthenticationRepository: AuthenticationRepository {
         }
     }
 
+    /// Performs authentication with the specified request
     public func authenticate(request: AuthenticationRequest) async -> AuthenticationResult {
         // In test environment, return mock success
         if isTestEnvironment {
@@ -103,6 +107,7 @@ public final class LocalAuthenticationRepository: AuthenticationRepository {
         }
     }
 
+    /// Invalidates any cached authentication
     public func invalidateAuthentication() async {
         // LocalAuthentication contexts are invalidated automatically
         // This method exists for protocol compliance

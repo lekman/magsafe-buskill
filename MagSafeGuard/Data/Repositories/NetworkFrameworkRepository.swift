@@ -19,6 +19,10 @@ public final class NetworkFrameworkRepository: NetworkRepository {
 
     // MARK: - Initialization
 
+    /// Initializes the Network Framework-based repository
+    /// - Parameters:
+    ///   - networkMonitor: The network monitor instance
+    ///   - trustedNetworksStore: Storage for trusted networks
     public init(
         networkMonitor: NetworkMonitor = NetworkMonitor(),
         trustedNetworksStore: TrustedNetworksStore = UserDefaultsTrustedNetworksStore()
@@ -32,6 +36,7 @@ public final class NetworkFrameworkRepository: NetworkRepository {
 
     // MARK: - NetworkRepository Implementation
 
+    /// Starts monitoring network changes
     public func startMonitoring() async throws {
         // Load trusted networks from store
         let storedNetworks = await trustedNetworksStore.loadTrustedNetworks()
@@ -41,11 +46,13 @@ public final class NetworkFrameworkRepository: NetworkRepository {
         networkMonitor.startMonitoring()
     }
 
+    /// Stops monitoring network changes
     public func stopMonitoring() async {
         networkMonitor.stopMonitoring()
         changeStream.continuation.finish()
     }
 
+    /// Gets the current network information
     public func getCurrentNetworkInfo() async -> NetworkInfo {
         return NetworkInfo(
             isConnected: networkMonitor.isConnected,
@@ -54,6 +61,7 @@ public final class NetworkFrameworkRepository: NetworkRepository {
         )
     }
 
+    /// Adds a network to the trusted list
     public func addTrustedNetwork(_ network: TrustedNetwork) async throws {
         networkMonitor.addTrustedNetwork(network.ssid)
 
@@ -63,6 +71,7 @@ public final class NetworkFrameworkRepository: NetworkRepository {
         try await trustedNetworksStore.saveTrustedNetworks(networks)
     }
 
+    /// Removes a network from the trusted list
     public func removeTrustedNetwork(ssid: String) async throws {
         networkMonitor.removeTrustedNetwork(ssid)
 
@@ -72,10 +81,12 @@ public final class NetworkFrameworkRepository: NetworkRepository {
         try await trustedNetworksStore.saveTrustedNetworks(networks)
     }
 
+    /// Gets all trusted networks
     public func getTrustedNetworks() async -> [TrustedNetwork] {
         return await trustedNetworksStore.loadTrustedNetworks()
     }
 
+    /// Returns a stream of network change events
     public func observeNetworkChanges() -> AsyncStream<NetworkChangeEvent> {
         return changeStream.stream
     }
@@ -85,19 +96,23 @@ public final class NetworkFrameworkRepository: NetworkRepository {
 
 extension NetworkFrameworkRepository: NetworkMonitorDelegate {
 
+    /// Called when connecting to an untrusted network
     public func networkMonitorDidConnectToUntrustedNetwork(_ ssid: String) {
         changeStream.continuation.yield(.connectedToNetwork(ssid: ssid, trusted: false))
     }
 
+    /// Called when disconnecting from a trusted network
     public func networkMonitorDidDisconnectFromTrustedNetwork() {
         // We don't have the SSID in this callback, but we know it was trusted
         changeStream.continuation.yield(.disconnectedFromNetwork(ssid: nil, trusted: true))
     }
 
+    /// Called when connecting to a trusted network
     public func networkMonitorDidConnectToTrustedNetwork(_ ssid: String) {
         changeStream.continuation.yield(.connectedToNetwork(ssid: ssid, trusted: true))
     }
 
+    /// Called when network connectivity changes
     public func networkMonitor(didChangeConnectivity isConnected: Bool) {
         changeStream.continuation.yield(.connectivityChanged(isConnected: isConnected))
     }
@@ -107,7 +122,9 @@ extension NetworkFrameworkRepository: NetworkMonitorDelegate {
 
 /// Protocol for persisting trusted networks
 public protocol TrustedNetworksStore {
+    /// Saves trusted networks to persistent storage
     func saveTrustedNetworks(_ networks: [TrustedNetwork]) async throws
+    /// Loads trusted networks from persistent storage
     func loadTrustedNetworks() async -> [TrustedNetwork]
 }
 
@@ -116,16 +133,19 @@ public actor UserDefaultsTrustedNetworksStore: TrustedNetworksStore {
     private let userDefaults: UserDefaults
     private let key = "MagSafeGuard.TrustedNetworks"
 
+    /// Initializes with UserDefaults storage
     public init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
     }
 
+    /// Saves trusted networks to UserDefaults
     public func saveTrustedNetworks(_ networks: [TrustedNetwork]) async throws {
         let encoder = JSONEncoder()
         let data = try encoder.encode(networks.map(NetworkDTO.init))
         userDefaults.set(data, forKey: key)
     }
 
+    /// Loads trusted networks from UserDefaults
     public func loadTrustedNetworks() async -> [TrustedNetwork] {
         guard let data = userDefaults.data(forKey: key) else { return [] }
 

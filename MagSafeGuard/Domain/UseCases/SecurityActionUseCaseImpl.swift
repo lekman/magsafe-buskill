@@ -18,6 +18,10 @@ public actor SecurityActionExecutionUseCaseImpl: SecurityActionExecutionUseCase 
 
     // MARK: - Initialization
 
+    /// Initializes the security action execution use case
+    /// - Parameters:
+    ///   - repository: The security action repository
+    ///   - configurationStore: Storage for configuration
     public init(
         repository: SecurityActionRepository,
         configurationStore: SecurityActionConfigurationStore = InMemoryConfigurationStore()
@@ -28,6 +32,7 @@ public actor SecurityActionExecutionUseCaseImpl: SecurityActionExecutionUseCase 
 
     // MARK: - SecurityActionExecutionUseCase Implementation
 
+    /// Executes security actions based on the request
     public func executeActions(request: SecurityActionRequest) async -> SecurityActionExecutionResult {
         // Check if already executing
         guard !isCurrentlyExecuting else {
@@ -80,10 +85,12 @@ public actor SecurityActionExecutionUseCaseImpl: SecurityActionExecutionUseCase 
         )
     }
 
+    /// Checks if actions are currently executing
     public func isExecuting() async -> Bool {
         return isCurrentlyExecuting
     }
 
+    /// Stops any ongoing actions like alarms
     public func stopOngoingActions() async {
         await repository.stopAlarm()
     }
@@ -110,6 +117,8 @@ public actor SecurityActionConfigurationUseCaseImpl: SecurityActionConfiguration
 
     // MARK: - Initialization
 
+    /// Initializes the security action configuration use case
+    /// - Parameter configurationStore: Storage for configuration
     public init(
         configurationStore: SecurityActionConfigurationStore = InMemoryConfigurationStore()
     ) {
@@ -126,10 +135,12 @@ public actor SecurityActionConfigurationUseCaseImpl: SecurityActionConfiguration
 
     // MARK: - SecurityActionConfigurationUseCase Implementation
 
+    /// Gets the current security action configuration
     public func getCurrentConfiguration() async -> SecurityActionConfiguration {
         return currentConfiguration
     }
 
+    /// Updates the security action configuration
     public func updateConfiguration(_ configuration: SecurityActionConfiguration) async throws {
         // Validate configuration
         let validationResult = validateConfiguration(configuration)
@@ -142,6 +153,7 @@ public actor SecurityActionConfigurationUseCaseImpl: SecurityActionConfiguration
         try await configurationStore.saveConfiguration(configuration)
     }
 
+    /// Validates a security action configuration
     public func validateConfiguration(_ configuration: SecurityActionConfiguration) -> Result<Void, SecurityActionError> {
         // Validate alarm volume
         if configuration.alarmVolume < 0 || configuration.alarmVolume > 1 {
@@ -174,6 +186,7 @@ public actor SecurityActionConfigurationUseCaseImpl: SecurityActionConfiguration
         return .success(())
     }
 
+    /// Resets configuration to default values
     public func resetToDefault() async {
         currentConfiguration = .default
         try? await configurationStore.saveConfiguration(currentConfiguration)
@@ -184,7 +197,9 @@ public actor SecurityActionConfigurationUseCaseImpl: SecurityActionConfiguration
 
 /// Protocol for persisting security action configuration
 public protocol SecurityActionConfigurationStore {
+    /// Saves configuration to persistent storage
     func saveConfiguration(_ configuration: SecurityActionConfiguration) async throws
+    /// Loads configuration from persistent storage
     func loadConfiguration() async -> SecurityActionConfiguration?
 }
 
@@ -192,12 +207,15 @@ public protocol SecurityActionConfigurationStore {
 public actor InMemoryConfigurationStore: SecurityActionConfigurationStore {
     private var storedConfiguration: SecurityActionConfiguration?
 
+    /// Initializes the in-memory configuration store
     public init() {}
 
+    /// Saves configuration to memory
     public func saveConfiguration(_ configuration: SecurityActionConfiguration) async throws {
         storedConfiguration = configuration
     }
 
+    /// Loads configuration from memory
     public func loadConfiguration() async -> SecurityActionConfiguration? {
         return storedConfiguration
     }
@@ -208,16 +226,19 @@ public actor UserDefaultsConfigurationStore: SecurityActionConfigurationStore {
     private let userDefaults: UserDefaults
     private let key = "SecurityActionConfiguration"
 
+    /// Initializes with UserDefaults storage
     public init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
     }
 
+    /// Saves configuration to UserDefaults
     public func saveConfiguration(_ configuration: SecurityActionConfiguration) async throws {
         let encoder = JSONEncoder()
         let data = try encoder.encode(ConfigurationDTO(from: configuration))
         userDefaults.set(data, forKey: key)
     }
 
+    /// Loads configuration from UserDefaults
     public func loadConfiguration() async -> SecurityActionConfiguration? {
         guard let data = userDefaults.data(forKey: key) else { return nil }
 
