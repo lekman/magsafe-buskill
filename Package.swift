@@ -26,9 +26,7 @@ let package = Package(
             sources: [
                 "Models/",
                 "Controllers/AppController.swift",
-                "Services/FeatureFlags.swift",
-                "Extensions/",
-                "Protocols/"
+                "Utilities/FeatureFlags.swift"
             ],
             swiftSettings: [
                 .define("CI_BUILD", .when(platforms: [.macOS], configuration: .debug))
@@ -40,10 +38,8 @@ let package = Package(
             dependencies: ["MagSafeGuardCore"],
             path: "MagSafeGuardTests",
             sources: [
-                "SettingsModelTests.swift",
-                "AppControllerTests.swift",
-                "TestHelpers.swift",
-                "TestSetup.swift",
+                "Models/SettingsModelTests.swift",
+                "Controllers/AppControllerTests.swift",
                 "Mocks/"
             ]
         ),

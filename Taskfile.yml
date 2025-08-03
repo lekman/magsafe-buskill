@@ -338,11 +338,6 @@ tasks:
       - task: swift:build:ci
 
   # Testing and quality assurance
-  test:ci:
-    desc: Run tests using Swift Package Manager (for CI)
-    silent: true
-    cmds:
-      - ./scripts/ci-test.sh
   test:
     desc: Run safe unit tests (excluding tests that cause hangs)
     silent: true

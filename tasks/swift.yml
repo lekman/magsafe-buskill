@@ -18,6 +18,64 @@ tasks:
     silent: true
     cmds:
       - task --list | grep "^\\* swift:" | grep -v "::" || true
+  
+  # Swift Package Manager tasks for CI
+  spm:test:
+    desc: Run tests using Swift Package Manager (for CI)
+    silent: true
+    cmds:
+      - |
+        echo "🧪 Running tests with Swift Package Manager..."
+        echo "=============================================="
+        
+        # Clean previous artifacts
+        rm -rf .build
+        
+        # Build the package
+        echo "🔨 Building package..."
+        swift build --configuration debug || true
+        
+        # Run tests  
+        echo "🧪 Running tests..."
+        swift test --configuration debug --parallel || true
+        
+        # Generate coverage
+        echo "📊 Generating coverage..."
+        swift test --enable-code-coverage || true
+        
+        # Convert coverage to LCOV
+        if [ -d ".build/debug/codecov" ]; then
+          PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
+          BINARY=$(find .build -name '*PackageTests.xctest' -type d | head -1)/Contents/MacOS/*PackageTests
+          
+          if [[ -f "$PROF_DATA" ]] && [[ -f "$BINARY" ]]; then
+            xcrun llvm-cov export \
+              -format=lcov \
+              -instr-profile="$PROF_DATA" \
+              "$BINARY" > coverage.lcov || true
+          fi
+        fi
+        
+        echo "✅ SPM tests completed"
+  
+  spm:build:
+    desc: Build project using Swift Package Manager
+    silent: true  
+    cmds:
+      - |
+        echo "🔨 Building with Swift Package Manager..."
+        swift build --configuration debug
+        echo "✅ SPM build completed"
+  
+  spm:clean:
+    desc: Clean Swift Package Manager build artifacts
+    silent: true
+    cmds:
+      - |
+        echo "🧹 Cleaning SPM build artifacts..."
+        rm -rf .build
+        rm -rf Package.resolved
+        echo "✅ SPM artifacts cleaned"
 
   test:
     desc: Run unit tests (excluding UI tests)

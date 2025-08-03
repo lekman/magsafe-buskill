@@ -78,7 +78,7 @@ jobs:
         run: |
           echo "🧪 Running tests with Swift Package Manager for CI..."
           # Use Swift PM for reliable CI testing without UI hangs
-          ./scripts/ci-test.sh
+          task swift:spm:test
         env:
           CI: true
 

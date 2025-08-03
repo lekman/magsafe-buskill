@@ -41,6 +41,8 @@ runs:
         # Create directories that will be cached to avoid warnings
         mkdir -p DerivedData
         mkdir -p build
+        mkdir -p .build
+        mkdir -p ~/.swiftpm
 
     - name: Cache Xcode dependencies
       id: cache
@@ -54,6 +56,19 @@ runs:
         restore-keys: |
           ${{ runner.os }}-xcode-${{ hashFiles('MagSafeGuard.xcodeproj/project.pbxproj', '**/*.swift') }}-
           ${{ runner.os }}-xcode-
+    
+    - name: Cache Swift Package Manager dependencies
+      id: spm-cache
+      uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+      with:
+        path: |
+          .build
+          ~/.swiftpm
+          ~/Library/Caches/org.swift.swiftpm
+        key: ${{ runner.os }}-spm-${{ hashFiles('Package.swift', 'Package.resolved') }}-${{ inputs.cache-key-suffix }}
+        restore-keys: |
+          ${{ runner.os }}-spm-${{ hashFiles('Package.swift') }}-
+          ${{ runner.os }}-spm-
 
     - name: Cache and Install Taskfile
       uses: ./.github/actions/taskfile
