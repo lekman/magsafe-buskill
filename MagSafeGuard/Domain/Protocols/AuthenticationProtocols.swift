@@ -142,12 +142,19 @@ public enum AuthenticationMethod: String, Equatable {
 /// Authentication failure reasons.
 /// Comprehensive list of why authentication might fail.
 public enum AuthenticationFailure: Equatable {
+    /// Biometric hardware not available on device
     case biometryNotAvailable
+    /// User has not enrolled any biometric data
     case biometryNotEnrolled
+    /// Biometry locked due to too many failed attempts
     case biometryLockout
+    /// Device passcode not configured
     case passcodeNotSet
+    /// Authentication rate limited until specified date
     case rateLimited(untilDate: Date)
+    /// Invalid authentication request
     case invalidRequest(reason: String)
+    /// System-level authentication error
     case systemError(description: String)
 
     /// User-friendly error message.

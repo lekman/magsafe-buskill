@@ -2,8 +2,7 @@
 //  PowerMonitorUseCaseImpl.swift
 //  MagSafe Guard
 //
-//  Implementation of power monitoring use case with pure business logic.
-//  This class contains no system dependencies and is fully testable.
+//  Created on 2025-08-03.
 //
 
 import Foundation

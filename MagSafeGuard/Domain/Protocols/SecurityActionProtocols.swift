@@ -16,10 +16,15 @@ import Foundation
 /// Domain model representing a security action type.
 /// All possible security responses to potential theft.
 public enum SecurityActionType: String, CaseIterable, Equatable {
+    /// Lock the screen immediately
     case lockScreen = "lock_screen"
+    /// Sound an alarm
     case soundAlarm = "sound_alarm"
+    /// Force logout all users
     case forceLogout = "force_logout"
+    /// Shutdown the system
     case shutdown = "shutdown"
+    /// Execute custom script
     case customScript = "custom_script"
 
     /// User-friendly display name for the action.
@@ -69,6 +74,14 @@ public struct SecurityActionConfiguration: Equatable {
     /// Whether to execute actions in parallel
     public let executeInParallel: Bool
 
+    /// Initializes security action configuration
+    /// - Parameters:
+    ///   - enabledActions: Which actions to execute
+    ///   - actionDelay: Delay before executing actions
+    ///   - alarmVolume: Volume for alarm (0.0-1.0)
+    ///   - shutdownDelay: Delay before shutdown
+    ///   - customScriptPath: Path to custom script
+    ///   - executeInParallel: Execute actions in parallel
     public init(
         enabledActions: Set<SecurityActionType> = [.lockScreen],
         actionDelay: TimeInterval = 0,

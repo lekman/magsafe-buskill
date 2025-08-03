@@ -2,8 +2,7 @@
 //  SecurityActionUseCaseImpl.swift
 //  MagSafe Guard
 //
-//  Implementation of security action use cases with pure business logic.
-//  This class contains no system dependencies and is fully testable.
+//  Created on 2025-08-03.
 //
 
 import Foundation

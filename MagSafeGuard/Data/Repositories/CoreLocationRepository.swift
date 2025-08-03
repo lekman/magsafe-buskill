@@ -2,12 +2,11 @@
 //  CoreLocationRepository.swift
 //  MagSafe Guard
 //
-//  Repository implementation that bridges domain layer to CoreLocation.
-//  This is the only class that should contain CoreLocation dependencies.
+//  Created on 2025-08-03.
 //
 
-import Foundation
 import CoreLocation
+import Foundation
 
 /// CoreLocation-based implementation of LocationRepository
 public final class CoreLocationRepository: LocationRepository {

@@ -9,12 +9,12 @@
 //
 
 import Foundation
-import Testing
 @testable import MagSafeGuard
+import Testing
 
 /// Custom assertions for power state testing
 public struct PowerStateAssertions {
-    
+
     /// Assert that power is connected
     /// - Parameters:
     ///   - state: Power state to check
@@ -29,7 +29,7 @@ public struct PowerStateAssertions {
             sourceLocation: sourceLocation
         )
     }
-    
+
     /// Assert that power is disconnected
     /// - Parameters:
     ///   - state: Power state to check
@@ -44,7 +44,7 @@ public struct PowerStateAssertions {
             sourceLocation: sourceLocation
         )
     }
-    
+
     /// Assert battery level is within range
     /// - Parameters:
     ///   - state: Power state to check
@@ -62,14 +62,14 @@ public struct PowerStateAssertions {
             )
             return
         }
-        
+
         #expect(
             range.contains(batteryLevel),
             "Expected battery level to be in range \(range) but was \(batteryLevel)",
             sourceLocation: sourceLocation
         )
     }
-    
+
     /// Assert charging state
     /// - Parameters:
     ///   - state: Power state to check
@@ -86,7 +86,7 @@ public struct PowerStateAssertions {
             sourceLocation: sourceLocation
         )
     }
-    
+
     /// Assert power state change type
     /// - Parameters:
     ///   - change: Power state change to check
@@ -103,7 +103,7 @@ public struct PowerStateAssertions {
             sourceLocation: sourceLocation
         )
     }
-    
+
     /// Assert AC disconnection occurred
     /// - Parameters:
     ///   - change: Power state change to check
@@ -116,7 +116,7 @@ public struct PowerStateAssertions {
         assertConnected(change.previousState, sourceLocation: sourceLocation)
         assertDisconnected(change.currentState, sourceLocation: sourceLocation)
     }
-    
+
     /// Assert AC connection occurred
     /// - Parameters:
     ///   - change: Power state change to check
@@ -134,7 +134,7 @@ public struct PowerStateAssertions {
 // MARK: - Async Stream Assertions
 
 extension PowerStateAssertions {
-    
+
     /// Assert that a power state change occurs within timeout
     /// - Parameters:
     ///   - stream: Stream to observe
@@ -150,12 +150,12 @@ extension PowerStateAssertions {
         sourceLocation: SourceLocation = SourceLocation()
     ) async -> PowerStateChange? {
         let deadline = Date().addingTimeInterval(timeout)
-        
+
         for await change in stream {
             if condition(change) {
                 return change
             }
-            
+
             if Date() > deadline {
                 Issue.record(
                     "Timeout waiting for power state change matching condition",
@@ -164,14 +164,14 @@ extension PowerStateAssertions {
                 return nil
             }
         }
-        
+
         Issue.record(
             "Stream ended without matching power state change",
             sourceLocation: sourceLocation
         )
         return nil
     }
-    
+
     /// Assert that AC disconnection occurs in stream
     /// - Parameters:
     ///   - stream: Stream to observe
@@ -197,7 +197,7 @@ extension PowerStateAssertions {
 
 /// Extension for more natural assertion syntax
 extension PowerStateInfo {
-    
+
     /// Assert this state is connected
     /// - Parameter sourceLocation: Source location for test failure
     public func assertConnected(
@@ -205,7 +205,7 @@ extension PowerStateInfo {
     ) {
         PowerStateAssertions.assertConnected(self, sourceLocation: sourceLocation)
     }
-    
+
     /// Assert this state is disconnected
     /// - Parameter sourceLocation: Source location for test failure
     public func assertDisconnected(
@@ -213,7 +213,7 @@ extension PowerStateInfo {
     ) {
         PowerStateAssertions.assertDisconnected(self, sourceLocation: sourceLocation)
     }
-    
+
     /// Assert battery level is in range
     /// - Parameters:
     ///   - range: Expected range
@@ -228,7 +228,7 @@ extension PowerStateInfo {
 
 /// Extension for power state change assertions
 extension PowerStateChange {
-    
+
     /// Assert this is an AC disconnection
     /// - Parameter sourceLocation: Source location for test failure
     public func assertIsDisconnection(
@@ -236,7 +236,7 @@ extension PowerStateChange {
     ) {
         PowerStateAssertions.assertACDisconnection(self, sourceLocation: sourceLocation)
     }
-    
+
     /// Assert this is an AC connection
     /// - Parameter sourceLocation: Source location for test failure
     public func assertIsConnection(

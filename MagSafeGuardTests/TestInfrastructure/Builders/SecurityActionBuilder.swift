@@ -17,12 +17,12 @@ public final class SecurityActionConfigurationBuilder {
     private var actionDelay: TimeInterval = 0
     private var alarmVolume: Float = 1.0
     private var shutdownDelay: TimeInterval = 30
-    private var customScriptPath: String? = nil
+    private var customScriptPath: String?
     private var executeInParallel: Bool = false
-    
+
     /// Initialize a new security action configuration builder.
     public init() {}
-    
+
     /// Enable specific actions.
     /// - Parameter actions: Actions to enable
     /// - Returns: Self for chaining
@@ -31,7 +31,7 @@ public final class SecurityActionConfigurationBuilder {
         self.enabledActions = Set(actions)
         return self
     }
-    
+
     /// Add an action to enabled set.
     /// - Parameter action: Action to add
     /// - Returns: Self for chaining
@@ -40,7 +40,7 @@ public final class SecurityActionConfigurationBuilder {
         self.enabledActions.insert(action)
         return self
     }
-    
+
     /// Set action delay.
     /// - Parameter delay: Delay in seconds
     /// - Returns: Self for chaining
@@ -49,7 +49,7 @@ public final class SecurityActionConfigurationBuilder {
         self.actionDelay = delay
         return self
     }
-    
+
     /// Set alarm volume.
     /// - Parameter volume: Volume level (0.0-1.0)
     /// - Returns: Self for chaining
@@ -58,7 +58,7 @@ public final class SecurityActionConfigurationBuilder {
         self.alarmVolume = min(max(volume, 0), 1)
         return self
     }
-    
+
     /// Set shutdown delay.
     /// - Parameter delay: Shutdown countdown in seconds
     /// - Returns: Self for chaining
@@ -67,7 +67,7 @@ public final class SecurityActionConfigurationBuilder {
         self.shutdownDelay = delay
         return self
     }
-    
+
     /// Set custom script path.
     /// - Parameter path: Path to script
     /// - Returns: Self for chaining
@@ -76,7 +76,7 @@ public final class SecurityActionConfigurationBuilder {
         self.customScriptPath = path
         return self
     }
-    
+
     /// Enable parallel execution.
     /// - Parameter parallel: Whether to execute in parallel
     /// - Returns: Self for chaining
@@ -85,7 +85,7 @@ public final class SecurityActionConfigurationBuilder {
         self.executeInParallel = parallel
         return self
     }
-    
+
     /// Build the SecurityActionConfiguration instance.
     /// - Returns: Configured SecurityActionConfiguration
     public func build() -> SecurityActionConfiguration {
@@ -98,16 +98,16 @@ public final class SecurityActionConfigurationBuilder {
             executeInParallel: executeInParallel
         )
     }
-    
+
     // MARK: - Preset Configurations
-    
+
     /// Create minimal security preset (only lock screen).
     /// - Returns: Configured builder
     public static func minimal() -> SecurityActionConfigurationBuilder {
         return SecurityActionConfigurationBuilder()
             .enableActions(.lockScreen)
     }
-    
+
     /// Create maximum security preset (all actions).
     /// - Returns: Configured builder
     public static func maximum() -> SecurityActionConfigurationBuilder {
@@ -115,7 +115,7 @@ public final class SecurityActionConfigurationBuilder {
             .enableActions(.lockScreen, .soundAlarm, .forceLogout, .shutdown)
             .executeInParallel(true)
     }
-    
+
     /// Create testing preset (fast execution).
     /// - Returns: Configured builder
     public static func testing() -> SecurityActionConfigurationBuilder {
@@ -131,11 +131,11 @@ public final class SecurityActionConfigurationBuilder {
 public final class SecurityActionRequestBuilder {
     private var configuration: SecurityActionConfiguration = .default
     private var trigger: SecurityTrigger = .testTrigger
-    private var timestamp: Date = Date()
-    
+    private var timestamp = Date()
+
     /// Initialize a new security action request builder.
     public init() {}
-    
+
     /// Set the configuration.
     /// - Parameter configuration: Action configuration
     /// - Returns: Self for chaining
@@ -144,7 +144,7 @@ public final class SecurityActionRequestBuilder {
         self.configuration = configuration
         return self
     }
-    
+
     /// Configure using a builder.
     /// - Parameter configure: Configuration closure
     /// - Returns: Self for chaining
@@ -154,7 +154,7 @@ public final class SecurityActionRequestBuilder {
         self.configuration = configure(builder).build()
         return self
     }
-    
+
     /// Set the trigger.
     /// - Parameter trigger: What triggered the request
     /// - Returns: Self for chaining
@@ -163,7 +163,7 @@ public final class SecurityActionRequestBuilder {
         self.trigger = trigger
         return self
     }
-    
+
     /// Set the timestamp.
     /// - Parameter timestamp: Request timestamp
     /// - Returns: Self for chaining
@@ -172,7 +172,7 @@ public final class SecurityActionRequestBuilder {
         self.timestamp = timestamp
         return self
     }
-    
+
     /// Build the SecurityActionRequest instance.
     /// - Returns: Configured SecurityActionRequest
     public func build() -> SecurityActionRequest {
@@ -188,12 +188,12 @@ public final class SecurityActionRequestBuilder {
 public final class SecurityActionResultBuilder {
     private var actionType: SecurityActionType = .lockScreen
     private var success: Bool = true
-    private var error: SecurityActionError? = nil
-    private var executedAt: Date = Date()
-    
+    private var error: SecurityActionError?
+    private var executedAt = Date()
+
     /// Initialize a new security action result builder.
     public init() {}
-    
+
     /// Set the action type.
     /// - Parameter type: Type of action
     /// - Returns: Self for chaining
@@ -202,7 +202,7 @@ public final class SecurityActionResultBuilder {
         self.actionType = type
         return self
     }
-    
+
     /// Set success status.
     /// - Parameter success: Whether action succeeded
     /// - Returns: Self for chaining
@@ -211,7 +211,7 @@ public final class SecurityActionResultBuilder {
         self.success = success
         return self
     }
-    
+
     /// Set as failed with error.
     /// - Parameter error: The error that occurred
     /// - Returns: Self for chaining
@@ -221,7 +221,7 @@ public final class SecurityActionResultBuilder {
         self.error = error
         return self
     }
-    
+
     /// Set execution time.
     /// - Parameter date: When executed
     /// - Returns: Self for chaining
@@ -230,7 +230,7 @@ public final class SecurityActionResultBuilder {
         self.executedAt = date
         return self
     }
-    
+
     /// Build the SecurityActionResult instance.
     /// - Returns: Configured SecurityActionResult
     public func build() -> SecurityActionResult {
@@ -241,9 +241,9 @@ public final class SecurityActionResultBuilder {
             executedAt: executedAt
         )
     }
-    
+
     // MARK: - Convenience Methods
-    
+
     /// Create a successful result.
     /// - Parameter action: Action type
     /// - Returns: Success result
@@ -253,7 +253,7 @@ public final class SecurityActionResultBuilder {
             .success(true)
             .build()
     }
-    
+
     /// Create a failed result.
     /// - Parameters:
     ///   - action: Action type
@@ -271,15 +271,15 @@ public final class SecurityActionResultBuilder {
 public final class SecurityActionExecutionResultBuilder {
     private var request: SecurityActionRequest
     private var executedActions: [SecurityActionResult] = []
-    private var startTime: Date = Date()
-    private var endTime: Date = Date()
-    
+    private var startTime = Date()
+    private var endTime = Date()
+
     /// Initialize with a request.
     /// - Parameter request: The original request
     public init(request: SecurityActionRequest) {
         self.request = request
     }
-    
+
     /// Add an executed action result.
     /// - Parameter result: Action result to add
     /// - Returns: Self for chaining
@@ -288,7 +288,7 @@ public final class SecurityActionExecutionResultBuilder {
         self.executedActions.append(result)
         return self
     }
-    
+
     /// Add multiple executed action results.
     /// - Parameter results: Action results to add
     /// - Returns: Self for chaining
@@ -297,7 +297,7 @@ public final class SecurityActionExecutionResultBuilder {
         self.executedActions.append(contentsOf: results)
         return self
     }
-    
+
     /// Set execution times.
     /// - Parameters:
     ///   - start: Start time
@@ -309,7 +309,7 @@ public final class SecurityActionExecutionResultBuilder {
         self.endTime = end
         return self
     }
-    
+
     /// Set execution duration.
     /// - Parameter duration: Duration in seconds
     /// - Returns: Self for chaining
@@ -318,7 +318,7 @@ public final class SecurityActionExecutionResultBuilder {
         self.endTime = startTime.addingTimeInterval(duration)
         return self
     }
-    
+
     /// Build the SecurityActionExecutionResult instance.
     /// - Returns: Configured SecurityActionExecutionResult
     public func build() -> SecurityActionExecutionResult {
@@ -329,17 +329,17 @@ public final class SecurityActionExecutionResultBuilder {
             endTime: endTime
         )
     }
-    
+
     /// Create a successful execution result.
     /// - Parameter request: The request
     /// - Returns: Successful execution result
     public static func allSuccessful(for request: SecurityActionRequest) -> SecurityActionExecutionResult {
         let builder = SecurityActionExecutionResultBuilder(request: request)
-        
+
         for action in request.configuration.enabledActions {
             builder.addResult(.success(for: action))
         }
-        
+
         return builder.duration(0.5).build()
     }
 }

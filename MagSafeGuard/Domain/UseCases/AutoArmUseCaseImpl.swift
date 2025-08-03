@@ -2,8 +2,7 @@
 //  AutoArmUseCaseImpl.swift
 //  MagSafe Guard
 //
-//  Implementation of auto-arm use cases with pure business logic.
-//  This class contains no system dependencies and is fully testable.
+//  Created on 2025-08-03.
 //
 
 import Foundation

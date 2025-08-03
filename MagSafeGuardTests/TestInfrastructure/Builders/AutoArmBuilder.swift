@@ -19,10 +19,10 @@ public final class AutoArmConfigurationBuilder {
     private var armCooldownPeriod: TimeInterval = 30
     private var notifyBeforeArming: Bool = true
     private var notificationDelay: TimeInterval = 2.0
-    
+
     /// Initialize a new auto-arm configuration builder.
     public init() {}
-    
+
     /// Enable or disable auto-arm.
     /// - Parameter enabled: Whether auto-arm is enabled
     /// - Returns: Self for chaining
@@ -31,7 +31,7 @@ public final class AutoArmConfigurationBuilder {
         self.isEnabled = enabled
         return self
     }
-    
+
     /// Enable location-based arming.
     /// - Parameter enabled: Whether to arm by location
     /// - Returns: Self for chaining
@@ -40,7 +40,7 @@ public final class AutoArmConfigurationBuilder {
         self.armByLocation = enabled
         return self
     }
-    
+
     /// Enable network-based arming.
     /// - Parameter enabled: Whether to arm on untrusted networks
     /// - Returns: Self for chaining
@@ -49,7 +49,7 @@ public final class AutoArmConfigurationBuilder {
         self.armOnUntrustedNetwork = enabled
         return self
     }
-    
+
     /// Set cooldown period.
     /// - Parameter period: Cooldown in seconds
     /// - Returns: Self for chaining
@@ -58,7 +58,7 @@ public final class AutoArmConfigurationBuilder {
         self.armCooldownPeriod = period
         return self
     }
-    
+
     /// Enable notification before arming.
     /// - Parameter notify: Whether to notify
     /// - Returns: Self for chaining
@@ -67,7 +67,7 @@ public final class AutoArmConfigurationBuilder {
         self.notifyBeforeArming = notify
         return self
     }
-    
+
     /// Set notification delay.
     /// - Parameter delay: Delay in seconds
     /// - Returns: Self for chaining
@@ -76,7 +76,7 @@ public final class AutoArmConfigurationBuilder {
         self.notificationDelay = delay
         return self
     }
-    
+
     /// Build the AutoArmConfiguration instance.
     /// - Returns: Configured AutoArmConfiguration
     public func build() -> AutoArmConfiguration {
@@ -89,9 +89,9 @@ public final class AutoArmConfigurationBuilder {
             notificationDelay: notificationDelay
         )
     }
-    
+
     // MARK: - Preset Configurations
-    
+
     /// Create location-only preset.
     /// - Returns: Configured builder
     public static func locationOnly() -> AutoArmConfigurationBuilder {
@@ -100,7 +100,7 @@ public final class AutoArmConfigurationBuilder {
             .armByLocation(true)
             .armOnUntrustedNetwork(false)
     }
-    
+
     /// Create network-only preset.
     /// - Returns: Configured builder
     public static func networkOnly() -> AutoArmConfigurationBuilder {
@@ -109,7 +109,7 @@ public final class AutoArmConfigurationBuilder {
             .armByLocation(false)
             .armOnUntrustedNetwork(true)
     }
-    
+
     /// Create testing preset (fast timers).
     /// - Returns: Configured builder
     public static func testing() -> AutoArmConfigurationBuilder {
@@ -122,15 +122,15 @@ public final class AutoArmConfigurationBuilder {
 
 /// Builder for creating TrustedLocationDomain test instances.
 public final class TrustedLocationBuilder {
-    private var id: UUID = UUID()
+    private var id = UUID()
     private var name: String = "Test Location"
     private var latitude: Double = 37.7749
     private var longitude: Double = -122.4194
     private var radius: Double = 100.0
-    
+
     /// Initialize a new trusted location builder.
     public init() {}
-    
+
     /// Set the location ID.
     /// - Parameter id: Unique identifier
     /// - Returns: Self for chaining
@@ -139,7 +139,7 @@ public final class TrustedLocationBuilder {
         self.id = id
         return self
     }
-    
+
     /// Set the location name.
     /// - Parameter name: Location name
     /// - Returns: Self for chaining
@@ -148,7 +148,7 @@ public final class TrustedLocationBuilder {
         self.name = name
         return self
     }
-    
+
     /// Set the coordinates.
     /// - Parameters:
     ///   - latitude: Latitude
@@ -160,7 +160,7 @@ public final class TrustedLocationBuilder {
         self.longitude = longitude
         return self
     }
-    
+
     /// Set the trust radius.
     /// - Parameter radius: Radius in meters
     /// - Returns: Self for chaining
@@ -169,7 +169,7 @@ public final class TrustedLocationBuilder {
         self.radius = radius
         return self
     }
-    
+
     /// Build the TrustedLocationDomain instance.
     /// - Returns: Configured TrustedLocationDomain
     public func build() -> TrustedLocationDomain {
@@ -181,9 +181,9 @@ public final class TrustedLocationBuilder {
             radius: radius
         )
     }
-    
+
     // MARK: - Preset Locations
-    
+
     /// Create home location preset.
     /// - Returns: Configured builder
     public static func home() -> TrustedLocationBuilder {
@@ -192,7 +192,7 @@ public final class TrustedLocationBuilder {
             .coordinates(latitude: 37.7749, longitude: -122.4194)
             .radius(50)
     }
-    
+
     /// Create office location preset.
     /// - Returns: Configured builder
     public static func office() -> TrustedLocationBuilder {
@@ -201,7 +201,7 @@ public final class TrustedLocationBuilder {
             .coordinates(latitude: 37.7858, longitude: -122.4065)
             .radius(100)
     }
-    
+
     /// Create cafe location preset.
     /// - Returns: Configured builder
     public static func cafe() -> TrustedLocationBuilder {
@@ -215,11 +215,11 @@ public final class TrustedLocationBuilder {
 /// Builder for creating TrustedNetwork test instances.
 public final class TrustedNetworkBuilder {
     private var ssid: String = "TestNetwork"
-    private var addedDate: Date = Date()
-    
+    private var addedDate = Date()
+
     /// Initialize a new trusted network builder.
     public init() {}
-    
+
     /// Set the network SSID.
     /// - Parameter ssid: Network name
     /// - Returns: Self for chaining
@@ -228,7 +228,7 @@ public final class TrustedNetworkBuilder {
         self.ssid = ssid
         return self
     }
-    
+
     /// Set when the network was added.
     /// - Parameter date: Added date
     /// - Returns: Self for chaining
@@ -237,7 +237,7 @@ public final class TrustedNetworkBuilder {
         self.addedDate = date
         return self
     }
-    
+
     /// Build the TrustedNetwork instance.
     /// - Returns: Configured TrustedNetwork
     public func build() -> TrustedNetwork {
@@ -246,23 +246,23 @@ public final class TrustedNetworkBuilder {
             addedDate: addedDate
         )
     }
-    
+
     // MARK: - Preset Networks
-    
+
     /// Create home WiFi preset.
     /// - Returns: Configured builder
     public static func homeWiFi() -> TrustedNetworkBuilder {
         return TrustedNetworkBuilder()
             .ssid("HomeNetwork")
     }
-    
+
     /// Create office WiFi preset.
     /// - Returns: Configured builder
     public static func officeWiFi() -> TrustedNetworkBuilder {
         return TrustedNetworkBuilder()
             .ssid("CorporateNetwork")
     }
-    
+
     /// Create public WiFi preset.
     /// - Returns: Configured builder
     public static func publicWiFi() -> TrustedNetworkBuilder {
@@ -274,12 +274,12 @@ public final class TrustedNetworkBuilder {
 /// Builder for creating AutoArmEvent test instances.
 public final class AutoArmEventBuilder {
     private var trigger: AutoArmTrigger = .manual(reason: "Test")
-    private var timestamp: Date = Date()
+    private var timestamp = Date()
     private var configuration: AutoArmConfiguration = .default
-    
+
     /// Initialize a new auto-arm event builder.
     public init() {}
-    
+
     /// Set the trigger.
     /// - Parameter trigger: What triggered the event
     /// - Returns: Self for chaining
@@ -288,7 +288,7 @@ public final class AutoArmEventBuilder {
         self.trigger = trigger
         return self
     }
-    
+
     /// Set left trusted location trigger.
     /// - Parameter name: Location name
     /// - Returns: Self for chaining
@@ -297,7 +297,7 @@ public final class AutoArmEventBuilder {
         self.trigger = .leftTrustedLocation(name: name)
         return self
     }
-    
+
     /// Set entered untrusted network trigger.
     /// - Parameter ssid: Network SSID
     /// - Returns: Self for chaining
@@ -306,7 +306,7 @@ public final class AutoArmEventBuilder {
         self.trigger = .enteredUntrustedNetwork(ssid: ssid)
         return self
     }
-    
+
     /// Set the timestamp.
     /// - Parameter timestamp: Event timestamp
     /// - Returns: Self for chaining
@@ -315,7 +315,7 @@ public final class AutoArmEventBuilder {
         self.timestamp = timestamp
         return self
     }
-    
+
     /// Set the configuration.
     /// - Parameter configuration: Auto-arm configuration
     /// - Returns: Self for chaining
@@ -324,7 +324,7 @@ public final class AutoArmEventBuilder {
         self.configuration = configuration
         return self
     }
-    
+
     /// Build the AutoArmEvent instance.
     /// - Returns: Configured AutoArmEvent
     public func build() -> AutoArmEvent {
@@ -341,10 +341,10 @@ public final class NetworkInfoBuilder {
     private var isConnected: Bool = true
     private var currentSSID: String? = "TestNetwork"
     private var isTrusted: Bool = true
-    
+
     /// Initialize a new network info builder.
     public init() {}
-    
+
     /// Set connection status.
     /// - Parameter connected: Whether connected
     /// - Returns: Self for chaining
@@ -356,7 +356,7 @@ public final class NetworkInfoBuilder {
         }
         return self
     }
-    
+
     /// Set current SSID.
     /// - Parameter ssid: Network SSID
     /// - Returns: Self for chaining
@@ -365,7 +365,7 @@ public final class NetworkInfoBuilder {
         self.currentSSID = ssid
         return self
     }
-    
+
     /// Set trust status.
     /// - Parameter trusted: Whether network is trusted
     /// - Returns: Self for chaining
@@ -374,7 +374,7 @@ public final class NetworkInfoBuilder {
         self.isTrusted = trusted
         return self
     }
-    
+
     /// Build the NetworkInfo instance.
     /// - Returns: Configured NetworkInfo
     public func build() -> NetworkInfo {
@@ -384,9 +384,9 @@ public final class NetworkInfoBuilder {
             isTrusted: isTrusted
         )
     }
-    
+
     // MARK: - Preset Configurations
-    
+
     /// Create trusted network preset.
     /// - Returns: Configured builder
     public static func trustedNetwork() -> NetworkInfoBuilder {
@@ -395,7 +395,7 @@ public final class NetworkInfoBuilder {
             .ssid("TrustedNetwork")
             .trusted(true)
     }
-    
+
     /// Create untrusted network preset.
     /// - Returns: Configured builder
     public static func untrustedNetwork() -> NetworkInfoBuilder {
@@ -404,7 +404,7 @@ public final class NetworkInfoBuilder {
             .ssid("PublicWiFi")
             .trusted(false)
     }
-    
+
     /// Create disconnected preset.
     /// - Returns: Configured builder
     public static func disconnected() -> NetworkInfoBuilder {

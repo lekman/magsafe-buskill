@@ -162,7 +162,7 @@ final class FeatureFlagsTests: XCTestCase {
 
     // Ensure flags are initialized before modifying
     FeatureFlags.shared.reload()
-    
+
     // Modify some flags
     FeatureFlags.shared.setFlag(.verboseLogging, enabled: false)
     FeatureFlags.shared.setFlag(.mockServices, enabled: false)
@@ -181,17 +181,17 @@ final class FeatureFlagsTests: XCTestCase {
     #if CI_BUILD
     print("Saved flags: \(jsonFlags)")
     #endif
-    
+
     // Verify the flags we explicitly set
     XCTAssertEqual(jsonFlags[FeatureFlags.Flag.verboseLogging.rawValue], false)
-    
+
     // mockServices should be saved as false
     XCTAssertNotNil(jsonFlags[FeatureFlags.Flag.mockServices.rawValue], "mockServices flag should be saved")
     XCTAssertEqual(jsonFlags[FeatureFlags.Flag.mockServices.rawValue], false)
-    
+
     // powerMonitoring should have its default value (true)
     XCTAssertEqual(jsonFlags[FeatureFlags.Flag.powerMonitoring.rawValue], true)
-    
+
     // Verify that all flags from Flag.allCases are saved
     for flag in FeatureFlags.Flag.allCases {
       XCTAssertNotNil(jsonFlags[flag.rawValue], "Flag \(flag.rawValue) should be saved")
@@ -201,52 +201,52 @@ final class FeatureFlagsTests: XCTestCase {
   func testLoadFromJSON() throws {
     // Save current flags to restore later
     let currentFlags = FeatureFlags.shared.allFlags()
-    
+
     // Create test flags
     let testFlags: [String: Bool] = [
       FeatureFlags.Flag.verboseLogging.rawValue: false,
       FeatureFlags.Flag.sentryEnabled.rawValue: false,
       FeatureFlags.Flag.powerMonitoring.rawValue: true
     ]
-    
+
     // Create a temp file and save it
     let tempDir = FileManager.default.temporaryDirectory
     let testPath = tempDir.appendingPathComponent("test-feature-flags.json").path
-    
+
     let encoder = JSONEncoder()
     encoder.outputFormatting = .prettyPrinted
     let data = try encoder.encode(testFlags)
     try data.write(to: URL(fileURLWithPath: testPath))
-    
+
     // Since there's no loadFromJSON, we'll test by verifying the save/load round trip
     // First set the flags manually
     FeatureFlags.shared.setFlag(.verboseLogging, enabled: false)
     FeatureFlags.shared.setFlag(.sentryEnabled, enabled: false)
     FeatureFlags.shared.setFlag(.powerMonitoring, enabled: true)
-    
+
     // Save to the test path
     try FeatureFlags.shared.saveToJSON(at: testPath)
-    
+
     // Reset all flags to defaults
     for flag in FeatureFlags.Flag.allCases {
       FeatureFlags.shared.setFlag(flag, enabled: flag.defaultValue)
     }
-    
+
     // Verify defaults are set (different from our test values)
     XCTAssertTrue(FeatureFlags.shared.isEnabled(.verboseLogging)) // default is true
     XCTAssertTrue(FeatureFlags.shared.isEnabled(.sentryEnabled)) // default is true
-    
+
     // Now manually load and verify the JSON content
     let loadedData = try Data(contentsOf: URL(fileURLWithPath: testPath))
     let loadedFlags = try JSONDecoder().decode([String: Bool].self, from: loadedData)
-    
+
     XCTAssertEqual(loadedFlags[FeatureFlags.Flag.verboseLogging.rawValue], false)
     XCTAssertEqual(loadedFlags[FeatureFlags.Flag.sentryEnabled.rawValue], false)
     XCTAssertEqual(loadedFlags[FeatureFlags.Flag.powerMonitoring.rawValue], true)
-    
+
     // Clean up
     try? FileManager.default.removeItem(atPath: testPath)
-    
+
     // Restore original flags
     for (flag, value) in currentFlags {
       FeatureFlags.shared.setFlag(flag, enabled: value)

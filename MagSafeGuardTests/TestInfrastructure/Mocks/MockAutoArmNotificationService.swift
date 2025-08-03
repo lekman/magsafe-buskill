@@ -14,49 +14,49 @@ import Foundation
 /// Mock implementation of AutoArmNotificationService for testing.
 /// Allows full control over notification behavior in tests.
 public actor MockAutoArmNotificationService: AutoArmNotificationService {
-    
+
     // MARK: - Properties
-    
+
     /// Track method calls
     public private(set) var showAutoArmNotificationCalls = 0
     public private(set) var showAutoArmDisabledNotificationCalls = 0
     public private(set) var showAutoArmFailedNotificationCalls = 0
-    
+
     /// Track notification parameters
     public private(set) var lastAutoArmTrigger: AutoArmTrigger?
     public private(set) var lastDisabledUntil: Date?
     public private(set) var lastFailureError: Error?
-    
+
     /// Notification history
     public private(set) var notificationHistory: [NotificationRecord] = []
-    
+
     /// Delay for notifications
     public var notificationDelay: TimeInterval = 0
-    
+
     /// Whether notifications should fail
     public var shouldFailNotifications = false
-    
+
     // MARK: - Types
-    
+
     /// Record of a notification
     public struct NotificationRecord: Equatable {
         public let type: NotificationType
         public let timestamp: Date
-        
+
         public enum NotificationType: Equatable {
             case autoArm(trigger: AutoArmTrigger)
             case disabled(until: Date)
             case failed(error: String)
         }
     }
-    
+
     // MARK: - Initialization
-    
+
     /// Initialize mock service
     public init() {}
-    
+
     // MARK: - Configuration Methods
-    
+
     /// Reset all mock state
     public func reset() {
         showAutoArmNotificationCalls = 0
@@ -69,17 +69,17 @@ public actor MockAutoArmNotificationService: AutoArmNotificationService {
         notificationDelay = 0
         shouldFailNotifications = false
     }
-    
+
     // MARK: - AutoArmNotificationService Implementation
-    
+
     public func showAutoArmNotification(trigger: AutoArmTrigger) async {
         showAutoArmNotificationCalls += 1
         lastAutoArmTrigger = trigger
-        
+
         if notificationDelay > 0 {
             try? await Task.sleep(nanoseconds: UInt64(notificationDelay * 1_000_000_000))
         }
-        
+
         if !shouldFailNotifications {
             notificationHistory.append(NotificationRecord(
                 type: .autoArm(trigger: trigger),
@@ -87,15 +87,15 @@ public actor MockAutoArmNotificationService: AutoArmNotificationService {
             ))
         }
     }
-    
+
     public func showAutoArmDisabledNotification(until: Date) async {
         showAutoArmDisabledNotificationCalls += 1
         lastDisabledUntil = until
-        
+
         if notificationDelay > 0 {
             try? await Task.sleep(nanoseconds: UInt64(notificationDelay * 1_000_000_000))
         }
-        
+
         if !shouldFailNotifications {
             notificationHistory.append(NotificationRecord(
                 type: .disabled(until: until),
@@ -103,15 +103,15 @@ public actor MockAutoArmNotificationService: AutoArmNotificationService {
             ))
         }
     }
-    
+
     public func showAutoArmFailedNotification(error: Error) async {
         showAutoArmFailedNotificationCalls += 1
         lastFailureError = error
-        
+
         if notificationDelay > 0 {
             try? await Task.sleep(nanoseconds: UInt64(notificationDelay * 1_000_000_000))
         }
-        
+
         if !shouldFailNotifications {
             notificationHistory.append(NotificationRecord(
                 type: .failed(error: error.localizedDescription),
@@ -124,7 +124,7 @@ public actor MockAutoArmNotificationService: AutoArmNotificationService {
 // MARK: - Test Helpers
 
 extension MockAutoArmNotificationService {
-    
+
     /// Verify notification was shown for trigger
     /// - Parameter trigger: Expected trigger
     /// - Returns: True if notification was shown
@@ -136,13 +136,13 @@ extension MockAutoArmNotificationService {
             return false
         }
     }
-    
+
     /// Get total notification count
     /// - Returns: Total number of notifications shown
     public func getTotalNotificationCount() -> Int {
         notificationHistory.count
     }
-    
+
     /// Get notifications of specific type
     /// - Parameter type: Type to filter by
     /// - Returns: Matching notifications
@@ -160,13 +160,13 @@ extension MockAutoArmNotificationService {
             }
         }
     }
-    
+
     /// Verify no notifications were shown
     /// - Returns: True if no notifications
     public func verifyNoNotifications() -> Bool {
         notificationHistory.isEmpty
     }
-    
+
     /// Get time since last notification
     /// - Returns: Time interval, or nil if no notifications
     public func timeSinceLastNotification() -> TimeInterval? {

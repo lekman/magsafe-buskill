@@ -15,11 +15,11 @@ import Foundation
 public final class AuthenticationRequestBuilder {
     private var reason: String = "Test authentication"
     private var policy: AuthenticationPolicy = .standard
-    private var timestamp: Date = Date()
-    
+    private var timestamp = Date()
+
     /// Initialize a new authentication request builder.
     public init() {}
-    
+
     /// Set the authentication reason.
     /// - Parameter reason: Reason for authentication
     /// - Returns: Self for chaining
@@ -28,7 +28,7 @@ public final class AuthenticationRequestBuilder {
         self.reason = reason
         return self
     }
-    
+
     /// Set the authentication policy.
     /// - Parameter policy: Policy to use
     /// - Returns: Self for chaining
@@ -37,7 +37,7 @@ public final class AuthenticationRequestBuilder {
         self.policy = policy
         return self
     }
-    
+
     /// Use high security policy.
     /// - Returns: Self for chaining
     @discardableResult
@@ -45,7 +45,7 @@ public final class AuthenticationRequestBuilder {
         self.policy = .highSecurity
         return self
     }
-    
+
     /// Set the timestamp.
     /// - Parameter timestamp: Request timestamp
     /// - Returns: Self for chaining
@@ -54,7 +54,7 @@ public final class AuthenticationRequestBuilder {
         self.timestamp = timestamp
         return self
     }
-    
+
     /// Build the AuthenticationRequest instance.
     /// - Returns: Configured AuthenticationRequest
     public func build() -> AuthenticationRequest {
@@ -72,10 +72,10 @@ public final class AuthenticationPolicyBuilder {
     private var allowPasswordFallback: Bool = true
     private var requireRecentAuthentication: Bool = false
     private var cacheDuration: TimeInterval = 300
-    
+
     /// Initialize a new authentication policy builder.
     public init() {}
-    
+
     /// Require biometric authentication.
     /// - Parameter required: Whether biometric is required
     /// - Returns: Self for chaining
@@ -84,7 +84,7 @@ public final class AuthenticationPolicyBuilder {
         self.requireBiometric = required
         return self
     }
-    
+
     /// Allow password fallback.
     /// - Parameter allowed: Whether password fallback is allowed
     /// - Returns: Self for chaining
@@ -93,7 +93,7 @@ public final class AuthenticationPolicyBuilder {
         self.allowPasswordFallback = allowed
         return self
     }
-    
+
     /// Require recent authentication.
     /// - Parameter required: Whether recent auth is required
     /// - Returns: Self for chaining
@@ -102,7 +102,7 @@ public final class AuthenticationPolicyBuilder {
         self.requireRecentAuthentication = required
         return self
     }
-    
+
     /// Set cache duration.
     /// - Parameter duration: Cache duration in seconds
     /// - Returns: Self for chaining
@@ -111,7 +111,7 @@ public final class AuthenticationPolicyBuilder {
         self.cacheDuration = duration
         return self
     }
-    
+
     /// Build the AuthenticationPolicy instance.
     /// - Returns: Configured AuthenticationPolicy
     public func build() -> AuthenticationPolicy {
@@ -126,7 +126,7 @@ public final class AuthenticationPolicyBuilder {
 
 /// Builder for creating authentication result test data.
 public final class AuthenticationResultBuilder {
-    
+
     /// Create a successful authentication result.
     /// - Parameters:
     ///   - method: Authentication method used
@@ -142,14 +142,14 @@ public final class AuthenticationResultBuilder {
             cached: cached
         ))
     }
-    
+
     /// Create a failed authentication result.
     /// - Parameter failure: Failure reason
     /// - Returns: Failure result
     public static func failure(_ failure: AuthenticationFailure) -> AuthenticationResult {
         return .failure(failure)
     }
-    
+
     /// Create a cancelled authentication result.
     /// - Returns: Cancelled result
     public static func cancelled() -> AuthenticationResult {
@@ -161,11 +161,11 @@ public final class AuthenticationResultBuilder {
 public final class BiometricAvailabilityBuilder {
     private var isAvailable: Bool = true
     private var biometricType: BiometricType? = .touchID
-    private var unavailableReason: String? = nil
-    
+    private var unavailableReason: String?
+
     /// Initialize a new biometric availability builder.
     public init() {}
-    
+
     /// Set availability status.
     /// - Parameter available: Whether biometric is available
     /// - Returns: Self for chaining
@@ -177,7 +177,7 @@ public final class BiometricAvailabilityBuilder {
         }
         return self
     }
-    
+
     /// Set biometric type.
     /// - Parameter type: Type of biometric
     /// - Returns: Self for chaining
@@ -186,7 +186,7 @@ public final class BiometricAvailabilityBuilder {
         self.biometricType = type
         return self
     }
-    
+
     /// Set unavailable reason.
     /// - Parameter reason: Why biometric is unavailable
     /// - Returns: Self for chaining
@@ -195,7 +195,7 @@ public final class BiometricAvailabilityBuilder {
         self.unavailableReason = reason
         return self
     }
-    
+
     /// Build the BiometricAvailability instance.
     /// - Returns: Configured BiometricAvailability
     public func build() -> BiometricAvailability {
@@ -205,9 +205,9 @@ public final class BiometricAvailabilityBuilder {
             unavailableReason: unavailableReason
         )
     }
-    
+
     // MARK: - Preset Configurations
-    
+
     /// Create Touch ID available preset.
     /// - Returns: Configured builder
     public static func touchIDAvailable() -> BiometricAvailabilityBuilder {
@@ -215,7 +215,7 @@ public final class BiometricAvailabilityBuilder {
             .available(true)
             .type(.touchID)
     }
-    
+
     /// Create Face ID available preset.
     /// - Returns: Configured builder
     public static func faceIDAvailable() -> BiometricAvailabilityBuilder {
@@ -223,7 +223,7 @@ public final class BiometricAvailabilityBuilder {
             .available(true)
             .type(.faceID)
     }
-    
+
     /// Create biometric not enrolled preset.
     /// - Returns: Configured builder
     public static func notEnrolled() -> BiometricAvailabilityBuilder {
@@ -231,7 +231,7 @@ public final class BiometricAvailabilityBuilder {
             .available(false)
             .unavailableReason("No biometric data enrolled")
     }
-    
+
     /// Create biometric locked out preset.
     /// - Returns: Configured builder
     public static func lockedOut() -> BiometricAvailabilityBuilder {

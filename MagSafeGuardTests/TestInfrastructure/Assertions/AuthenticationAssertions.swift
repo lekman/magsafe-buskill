@@ -9,12 +9,12 @@
 //
 
 import Foundation
-import Testing
 @testable import MagSafeGuard
+import Testing
 
 /// Custom assertions for authentication testing
 public struct AuthenticationAssertions {
-    
+
     /// Assert authentication succeeded
     /// - Parameters:
     ///   - result: Authentication result to check
@@ -32,7 +32,7 @@ public struct AuthenticationAssertions {
             )
             return
         }
-        
+
         if let expectedMethod = expectedMethod {
             #expect(
                 success.method == expectedMethod,
@@ -41,7 +41,7 @@ public struct AuthenticationAssertions {
             )
         }
     }
-    
+
     /// Assert authentication failed
     /// - Parameters:
     ///   - result: Authentication result to check
@@ -59,7 +59,7 @@ public struct AuthenticationAssertions {
             )
             return
         }
-        
+
         if let expectedFailure = expectedFailure {
             #expect(
                 failure == expectedFailure,
@@ -68,7 +68,7 @@ public struct AuthenticationAssertions {
             )
         }
     }
-    
+
     /// Assert authentication was cancelled
     /// - Parameters:
     ///   - result: Authentication result to check
@@ -85,7 +85,7 @@ public struct AuthenticationAssertions {
             return
         }
     }
-    
+
     /// Assert biometric is available
     /// - Parameters:
     ///   - availability: Biometric availability to check
@@ -101,7 +101,7 @@ public struct AuthenticationAssertions {
             "Expected biometric to be available but was unavailable: \(availability.unavailableReason ?? "unknown")",
             sourceLocation: sourceLocation
         )
-        
+
         if let expectedType = expectedType {
             #expect(
                 availability.biometricType == expectedType,
@@ -110,7 +110,7 @@ public struct AuthenticationAssertions {
             )
         }
     }
-    
+
     /// Assert biometric is not available
     /// - Parameters:
     ///   - availability: Biometric availability to check
@@ -125,7 +125,7 @@ public struct AuthenticationAssertions {
             sourceLocation: sourceLocation
         )
     }
-    
+
     /// Assert authentication policy matches expected values
     /// - Parameters:
     ///   - policy: Policy to check
@@ -145,7 +145,7 @@ public struct AuthenticationAssertions {
                 sourceLocation: sourceLocation
             )
         }
-        
+
         if let expectedFallback = allowPasswordFallback {
             #expect(
                 policy.allowPasswordFallback == expectedFallback,
@@ -159,7 +159,7 @@ public struct AuthenticationAssertions {
 // MARK: - Rate Limiting Assertions
 
 extension AuthenticationAssertions {
-    
+
     /// Assert authentication is rate limited
     /// - Parameters:
     ///   - result: Authentication result to check
@@ -178,7 +178,7 @@ extension AuthenticationAssertions {
             )
             return
         }
-        
+
         if let minimumWait = minimumWait {
             let actualWait = untilDate.timeIntervalSinceNow
             #expect(
@@ -188,7 +188,7 @@ extension AuthenticationAssertions {
             )
         }
     }
-    
+
     /// Assert biometric is locked out
     /// - Parameters:
     ///   - result: Authentication result to check
@@ -205,7 +205,7 @@ extension AuthenticationAssertions {
 
 /// Extension for more natural assertion syntax
 extension AuthenticationResult {
-    
+
     /// Assert this result is success
     /// - Parameters:
     ///   - method: Expected method (optional)
@@ -216,7 +216,7 @@ extension AuthenticationResult {
     ) {
         AuthenticationAssertions.assertSuccess(self, method: method, sourceLocation: sourceLocation)
     }
-    
+
     /// Assert this result is failure
     /// - Parameters:
     ///   - reason: Expected failure reason (optional)
@@ -227,7 +227,7 @@ extension AuthenticationResult {
     ) {
         AuthenticationAssertions.assertFailure(self, reason: reason, sourceLocation: sourceLocation)
     }
-    
+
     /// Assert this result is cancelled
     /// - Parameter sourceLocation: Source location for test failure
     public func assertCancelled(
@@ -235,7 +235,7 @@ extension AuthenticationResult {
     ) {
         AuthenticationAssertions.assertCancelled(self, sourceLocation: sourceLocation)
     }
-    
+
     /// Assert this result is rate limited
     /// - Parameters:
     ///   - minimumWait: Minimum expected wait time
@@ -254,7 +254,7 @@ extension AuthenticationResult {
 
 /// Extension for biometric availability assertions
 extension BiometricAvailability {
-    
+
     /// Assert biometric is available
     /// - Parameters:
     ///   - type: Expected type (optional)
@@ -269,7 +269,7 @@ extension BiometricAvailability {
             sourceLocation: sourceLocation
         )
     }
-    
+
     /// Assert biometric is unavailable
     /// - Parameter sourceLocation: Source location for test failure
     public func assertUnavailable(

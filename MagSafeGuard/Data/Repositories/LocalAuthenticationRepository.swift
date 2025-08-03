@@ -2,8 +2,7 @@
 //  LocalAuthenticationRepository.swift
 //  MagSafe Guard
 //
-//  Repository implementation that bridges domain layer to LocalAuthentication framework.
-//  This is the only class that should contain LocalAuthentication dependencies.
+//  Created on 2025-08-03.
 //
 
 import Foundation

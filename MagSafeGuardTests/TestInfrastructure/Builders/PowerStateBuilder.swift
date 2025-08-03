@@ -14,22 +14,22 @@ import Foundation
 /// Builder for creating PowerStateInfo test instances.
 /// Provides fluent API for setting up test data with sensible defaults.
 public final class PowerStateBuilder {
-    
+
     // MARK: - Properties
-    
+
     private var isConnected: Bool = true
     private var batteryLevel: Int? = 80
     private var isCharging: Bool = true
     private var adapterWattage: Int? = 96
-    private var timestamp: Date = Date()
-    
+    private var timestamp = Date()
+
     // MARK: - Initialization
-    
+
     /// Initialize a new power state builder with defaults.
     public init() {}
-    
+
     // MARK: - Builder Methods
-    
+
     /// Set the connected state.
     /// - Parameter connected: Whether power is connected
     /// - Returns: Self for chaining
@@ -38,7 +38,7 @@ public final class PowerStateBuilder {
         self.isConnected = connected
         return self
     }
-    
+
     /// Set as disconnected (convenience method).
     /// - Returns: Self for chaining
     @discardableResult
@@ -47,7 +47,7 @@ public final class PowerStateBuilder {
         self.isCharging = false
         return self
     }
-    
+
     /// Set the battery level.
     /// - Parameter level: Battery percentage (0-100)
     /// - Returns: Self for chaining
@@ -56,7 +56,7 @@ public final class PowerStateBuilder {
         self.batteryLevel = level
         return self
     }
-    
+
     /// Set the charging state.
     /// - Parameter charging: Whether battery is charging
     /// - Returns: Self for chaining
@@ -65,7 +65,7 @@ public final class PowerStateBuilder {
         self.isCharging = charging
         return self
     }
-    
+
     /// Set the adapter wattage.
     /// - Parameter wattage: Adapter power in watts
     /// - Returns: Self for chaining
@@ -74,7 +74,7 @@ public final class PowerStateBuilder {
         self.adapterWattage = wattage
         return self
     }
-    
+
     /// Set the timestamp.
     /// - Parameter timestamp: When the state was captured
     /// - Returns: Self for chaining
@@ -83,7 +83,7 @@ public final class PowerStateBuilder {
         self.timestamp = timestamp
         return self
     }
-    
+
     /// Build the PowerStateInfo instance.
     /// - Returns: Configured PowerStateInfo
     public func build() -> PowerStateInfo {
@@ -95,9 +95,9 @@ public final class PowerStateBuilder {
             timestamp: timestamp
         )
     }
-    
+
     // MARK: - Preset Configurations
-    
+
     /// Create a builder preset for AC connected state.
     /// - Returns: Configured builder
     public static func acConnected() -> PowerStateBuilder {
@@ -107,7 +107,7 @@ public final class PowerStateBuilder {
             .batteryLevel(80)
             .adapterWattage(96)
     }
-    
+
     /// Create a builder preset for battery power state.
     /// - Returns: Configured builder
     public static func onBattery() -> PowerStateBuilder {
@@ -117,7 +117,7 @@ public final class PowerStateBuilder {
             .batteryLevel(75)
             .adapterWattage(nil)
     }
-    
+
     /// Create a builder preset for low battery state.
     /// - Returns: Configured builder
     public static func lowBattery() -> PowerStateBuilder {
@@ -127,7 +127,7 @@ public final class PowerStateBuilder {
             .batteryLevel(15)
             .adapterWattage(nil)
     }
-    
+
     /// Create a builder preset for critical battery state.
     /// - Returns: Configured builder
     public static func criticalBattery() -> PowerStateBuilder {

@@ -14,70 +14,70 @@ import Foundation
 /// Mock implementation of AuthenticationRepository for testing.
 /// Allows full control over authentication behavior in tests.
 public actor MockAuthenticationRepository: AuthenticationRepository {
-    
+
     // MARK: - Properties
-    
+
     /// Biometric availability to return
     public var biometricAvailability = BiometricAvailabilityBuilder.touchIDAvailable().build()
-    
+
     /// Authentication result to return
     public var authenticationResult: AuthenticationResult = .success(AuthenticationSuccess(
         method: .touchID,
         cached: false
     ))
-    
+
     /// Delay for async operations
     public var operationDelay: TimeInterval = 0
-    
+
     /// Track method calls
     public private(set) var isBiometricAvailableCalls = 0
     public private(set) var authenticateCalls = 0
     public private(set) var invalidateAuthenticationCalls = 0
-    
+
     /// Track authentication requests
     public private(set) var lastAuthenticationRequest: AuthenticationRequest?
     public private(set) var authenticationHistory: [AuthenticationRequest] = []
-    
+
     /// Simulate authentication dialog behavior
     public var shouldAutoAuthenticate = true
     public var authenticationDelay: TimeInterval = 0.1
-    
+
     /// Rate limiting simulation
     public var failedAttempts = 0
     public var maxFailedAttempts = 3
     public var rateLimitDuration: TimeInterval = 30
     public var lastFailedAttempt: Date?
-    
+
     // MARK: - Initialization
-    
+
     /// Initialize mock repository
     public init() {}
-    
+
     // MARK: - Configuration Methods
-    
+
     /// Configure for successful authentication
     /// - Parameter method: Authentication method to simulate
     public func configureSuccess(method: AuthenticationMethod = .touchID) {
         authenticationResult = AuthenticationResultBuilder.success(method: method)
     }
-    
+
     /// Configure for authentication failure
     /// - Parameter failure: Failure reason
     public func configureFailure(_ failure: AuthenticationFailure) {
         authenticationResult = AuthenticationResultBuilder.failure(failure)
     }
-    
+
     /// Configure for user cancellation
     public func configureCancellation() {
         authenticationResult = .cancelled
     }
-    
+
     /// Configure biometric availability
     /// - Parameter availability: Availability to return
     public func configureBiometricAvailability(_ availability: BiometricAvailability) {
         biometricAvailability = availability
     }
-    
+
     /// Simulate rate limiting
     public func simulateRateLimiting() {
         failedAttempts = maxFailedAttempts + 1
@@ -85,7 +85,7 @@ public actor MockAuthenticationRepository: AuthenticationRepository {
         let unlockDate = Date().addingTimeInterval(rateLimitDuration)
         authenticationResult = .failure(.rateLimited(untilDate: unlockDate))
     }
-    
+
     /// Reset all mock state
     public func reset() {
         biometricAvailability = BiometricAvailabilityBuilder.touchIDAvailable().build()
@@ -101,30 +101,30 @@ public actor MockAuthenticationRepository: AuthenticationRepository {
         failedAttempts = 0
         lastFailedAttempt = nil
     }
-    
+
     // MARK: - AuthenticationRepository Implementation
-    
+
     public func isBiometricAvailable() async -> BiometricAvailability {
         isBiometricAvailableCalls += 1
-        
+
         // Simulate delay if configured
         if operationDelay > 0 {
             try? await Task.sleep(nanoseconds: UInt64(operationDelay * 1_000_000_000))
         }
-        
+
         return biometricAvailability
     }
-    
+
     public func authenticate(request: AuthenticationRequest) async -> AuthenticationResult {
         authenticateCalls += 1
         lastAuthenticationRequest = request
         authenticationHistory.append(request)
-        
+
         // Simulate authentication dialog delay
         if authenticationDelay > 0 {
             try? await Task.sleep(nanoseconds: UInt64(authenticationDelay * 1_000_000_000))
         }
-        
+
         // Check rate limiting
         if let lastFailed = lastFailedAttempt {
             let timeSinceLastFailed = Date().timeIntervalSince(lastFailed)
@@ -138,7 +138,7 @@ public actor MockAuthenticationRepository: AuthenticationRepository {
                 lastFailedAttempt = nil
             }
         }
-        
+
         // Update failed attempts based on result
         switch authenticationResult {
         case .failure:
@@ -150,13 +150,13 @@ public actor MockAuthenticationRepository: AuthenticationRepository {
         case .cancelled:
             break // Don't count cancellation as failed attempt
         }
-        
+
         return authenticationResult
     }
-    
+
     public func invalidateAuthentication() async {
         invalidateAuthenticationCalls += 1
-        
+
         // Clear any cached authentication
         if case .success(let success) = authenticationResult, success.cached {
             authenticationResult = .failure(.invalidRequest(reason: "Authentication invalidated"))
@@ -167,7 +167,7 @@ public actor MockAuthenticationRepository: AuthenticationRepository {
 // MARK: - Test Helpers
 
 extension MockAuthenticationRepository {
-    
+
     /// Simulate a series of authentication attempts
     /// - Parameter results: Results to return in sequence
     public func configureSequence(_ results: [AuthenticationResult]) async {
@@ -179,7 +179,7 @@ extension MockAuthenticationRepository {
             }
         }
     }
-    
+
     /// Configure for biometric not available scenario
     /// - Parameter reason: Why biometric is unavailable
     public func configureBiometricUnavailable(reason: String = "Biometric not available") {
@@ -190,7 +190,7 @@ extension MockAuthenticationRepository {
         )
         authenticationResult = .failure(.biometryNotAvailable)
     }
-    
+
     /// Configure for biometric lockout scenario
     public func configureBiometricLockout() {
         biometricAvailability = BiometricAvailabilityBuilder
@@ -198,7 +198,7 @@ extension MockAuthenticationRepository {
             .build()
         authenticationResult = .failure(.biometryLockout)
     }
-    
+
     /// Verify authentication was requested with correct parameters
     /// - Parameters:
     ///   - reason: Expected reason
@@ -209,18 +209,18 @@ extension MockAuthenticationRepository {
         policy: AuthenticationPolicy? = nil
     ) -> Bool {
         guard let request = lastAuthenticationRequest else { return false }
-        
+
         if let expectedReason = reason, request.reason != expectedReason {
             return false
         }
-        
+
         if let expectedPolicy = policy, request.policy != expectedPolicy {
             return false
         }
-        
+
         return true
     }
-    
+
     /// Get authentication attempt count for a specific reason
     /// - Parameter reason: Reason to filter by
     /// - Returns: Number of attempts

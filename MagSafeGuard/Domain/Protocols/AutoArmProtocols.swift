@@ -2,9 +2,7 @@
 //  AutoArmProtocols.swift
 //  MagSafe Guard
 //
-//  Domain layer protocols for auto-arm functionality following Clean Architecture.
-//  These protocols define the business rules for automatic security arming
-//  independent of any system implementation details.
+//  Created on 2025-08-03.
 //
 
 import Foundation
@@ -13,13 +11,32 @@ import Foundation
 
 /// Configuration for auto-arm behavior
 public struct AutoArmConfiguration: Equatable {
+    /// Whether auto-arm is enabled
     public let isEnabled: Bool
+
+    /// Enable arming based on location changes
     public let armByLocation: Bool
+
+    /// Enable arming when connecting to untrusted networks
     public let armOnUntrustedNetwork: Bool
+
+    /// Minimum time between auto-arm activations (seconds)
     public let armCooldownPeriod: TimeInterval
+
+    /// Show notification before arming
     public let notifyBeforeArming: Bool
+
+    /// Delay before arming after notification (seconds)
     public let notificationDelay: TimeInterval
 
+    /// Initializes auto-arm configuration
+    /// - Parameters:
+    ///   - isEnabled: Whether auto-arm is enabled
+    ///   - armByLocation: Enable location-based arming
+    ///   - armOnUntrustedNetwork: Enable network-based arming
+    ///   - armCooldownPeriod: Minimum time between auto-arms
+    ///   - notifyBeforeArming: Show notification before arming
+    ///   - notificationDelay: Delay after notification
     public init(
         isEnabled: Bool = false,
         armByLocation: Bool = false,
@@ -36,15 +53,21 @@ public struct AutoArmConfiguration: Equatable {
         self.notificationDelay = max(notificationDelay, 0)
     }
 
+    /// Default configuration with auto-arm disabled
     public static let `default` = AutoArmConfiguration()
 }
 
 /// Trigger that caused auto-arm activation
 public enum AutoArmTrigger: Equatable {
+    /// Left a trusted location
     case leftTrustedLocation(name: String?)
+    /// Connected to an untrusted network
     case enteredUntrustedNetwork(ssid: String)
+    /// Disconnected from a trusted network
     case disconnectedFromTrustedNetwork(ssid: String)
+    /// Lost all network connectivity
     case lostNetworkConnectivity
+    /// Manual trigger with reason
     case manual(reason: String)
 
     /// Human-readable description of the trigger.
@@ -66,10 +89,18 @@ public enum AutoArmTrigger: Equatable {
 
 /// Auto-arm event for tracking and decision making
 public struct AutoArmEvent: Equatable {
+    /// The trigger that caused this event
     public let trigger: AutoArmTrigger
+    /// When the event occurred
     public let timestamp: Date
+    /// Configuration at time of event
     public let configuration: AutoArmConfiguration
 
+    /// Initializes an auto-arm event
+    /// - Parameters:
+    ///   - trigger: The trigger that caused this event
+    ///   - timestamp: When the event occurred
+    ///   - configuration: Configuration at time of event
     public init(
         trigger: AutoArmTrigger,
         timestamp: Date = Date(),
@@ -83,9 +114,12 @@ public struct AutoArmEvent: Equatable {
 
 /// Result of auto-arm decision
 public enum AutoArmDecision: Equatable {
+    /// Decision to arm with reason
     case arm(reason: String)
+    /// Decision to skip arming with reason
     case skip(reason: AutoArmSkipReason)
 
+    /// Whether the decision is to arm
     public var shouldArm: Bool {
         if case .arm = self { return true }
         return false
@@ -94,10 +128,15 @@ public enum AutoArmDecision: Equatable {
 
 /// Reasons for skipping auto-arm
 public enum AutoArmSkipReason: Equatable {
+    /// Auto-arm feature is disabled
     case disabled
+    /// System is already armed
     case alreadyArmed
+    /// Auto-arm temporarily disabled until date
     case temporarilyDisabled(until: Date)
+    /// In cooldown period until date
     case cooldownPeriod(until: Date)
+    /// Required conditions not met
     case conditionNotMet
 
     /// Human-readable explanation of skip reason.
@@ -121,12 +160,24 @@ public enum AutoArmSkipReason: Equatable {
 
 /// Trusted location for auto-arm
 public struct TrustedLocationDomain: Equatable {
+    /// Unique identifier
     public let id: UUID
+    /// User-friendly name
     public let name: String
+    /// Location latitude
     public let latitude: Double
+    /// Location longitude
     public let longitude: Double
-    public let radius: Double // in meters
+    /// Trust radius in meters
+    public let radius: Double
 
+    /// Initializes a trusted location
+    /// - Parameters:
+    ///   - id: Unique identifier
+    ///   - name: User-friendly name
+    ///   - latitude: Location latitude
+    ///   - longitude: Location longitude
+    ///   - radius: Trust radius in meters (minimum 10m)
     public init(
         id: UUID = UUID(),
         name: String,
@@ -144,9 +195,15 @@ public struct TrustedLocationDomain: Equatable {
 
 /// Trusted network for auto-arm
 public struct TrustedNetwork: Equatable {
+    /// Network SSID
     public let ssid: String
+    /// When the network was added as trusted
     public let addedDate: Date
 
+    /// Initializes a trusted network
+    /// - Parameters:
+    ///   - ssid: Network SSID
+    ///   - addedDate: When added as trusted
     public init(
         ssid: String,
         addedDate: Date = Date()
@@ -208,10 +265,18 @@ public protocol NetworkRepository {
 
 /// Network information
 public struct NetworkInfo: Equatable {
+    /// Whether network is connected
     public let isConnected: Bool
+    /// Current network SSID if connected
     public let currentSSID: String?
+    /// Whether current network is trusted
     public let isTrusted: Bool
 
+    /// Initializes network information
+    /// - Parameters:
+    ///   - isConnected: Whether network is connected
+    ///   - currentSSID: Current network SSID
+    ///   - isTrusted: Whether network is trusted
     public init(
         isConnected: Bool,
         currentSSID: String? = nil,
@@ -225,8 +290,11 @@ public struct NetworkInfo: Equatable {
 
 /// Network change event
 public enum NetworkChangeEvent: Equatable {
+    /// Connected to a network
     case connectedToNetwork(ssid: String, trusted: Bool)
+    /// Disconnected from a network
     case disconnectedFromNetwork(ssid: String?, trusted: Bool)
+    /// General connectivity changed
     case connectivityChanged(isConnected: Bool)
 }
 
@@ -276,13 +344,27 @@ public protocol AutoArmMonitoringUseCase {
 
 /// Auto-arm status information
 public struct AutoArmStatus: Equatable {
+    /// Whether auto-arm is enabled
     public let isEnabled: Bool
+    /// Whether actively monitoring
     public let isMonitoring: Bool
+    /// Whether temporarily disabled
     public let isTemporarilyDisabled: Bool
+    /// Temporary disable end time
     public let temporaryDisableUntil: Date?
+    /// Last auto-arm event
     public let lastEvent: AutoArmEvent?
+    /// Current conditions state
     public let currentConditions: AutoArmConditions
 
+    /// Initializes auto-arm status
+    /// - Parameters:
+    ///   - isEnabled: Whether auto-arm is enabled
+    ///   - isMonitoring: Whether actively monitoring
+    ///   - isTemporarilyDisabled: Whether temporarily disabled
+    ///   - temporaryDisableUntil: Temporary disable end time
+    ///   - lastEvent: Last auto-arm event
+    ///   - currentConditions: Current conditions state
     public init(
         isEnabled: Bool,
         isMonitoring: Bool,
@@ -302,10 +384,18 @@ public struct AutoArmStatus: Equatable {
 
 /// Current auto-arm conditions
 public struct AutoArmConditions: Equatable {
+    /// Whether in a trusted location
     public let isInTrustedLocation: Bool
+    /// Current network information
     public let currentNetwork: NetworkInfo
+    /// Whether conditions suggest auto-arm
     public let shouldAutoArm: Bool
 
+    /// Initializes auto-arm conditions
+    /// - Parameters:
+    ///   - isInTrustedLocation: Whether in trusted location
+    ///   - currentNetwork: Current network info
+    ///   - shouldAutoArm: Whether to auto-arm
     public init(
         isInTrustedLocation: Bool,
         currentNetwork: NetworkInfo,
