@@ -28,6 +28,9 @@ let package = Package(
                 "Utilities/FeatureFlags.swift",
                 "Utilities/Logger.swift"
             ],
+            exclude: [
+                "Controllers/AppController.swift"
+            ],
             swiftSettings: [
                 .define("CI_BUILD", .when(platforms: [.macOS], configuration: .debug))
             ]
