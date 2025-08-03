@@ -55,7 +55,7 @@ jobs:
 
   test:
     name: Test Suite
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     needs: check-skip
     if: needs.check-skip.outputs.should-skip != 'true'
     permissions:
@@ -71,7 +71,7 @@ jobs:
       - name: Setup Swift Build Environment
         uses: ./.github/actions/swift
         with:
-          swift-version: "5.10"
+          swift-version: "5.9"
 
       - name: Run Tests
         timeout-minutes: 5
