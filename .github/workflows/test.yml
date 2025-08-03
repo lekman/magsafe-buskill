@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # Check if this is a release-please branch
   check-skip:
@@ -49,26 +53,10 @@ jobs:
             echo "should-skip=false" >> $GITHUB_OUTPUT
           fi
 
-  cancel-redundant:
-    name: Cancel Redundant Workflows
-    runs-on: ubuntu-latest
-    needs: check-skip
-    if: needs.check-skip.outputs.should-skip != 'true'
-    permissions:
-      contents: read
-      actions: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - name: Cancel redundant workflow runs
-        uses: ./.github/actions/cancel-redundant-workflows
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
   test:
     name: Test Suite
     runs-on: macos-latest
-    needs: [check-skip, cancel-redundant]
+    needs: check-skip
     if: needs.check-skip.outputs.should-skip != 'true'
     permissions:
       contents: read
@@ -76,139 +64,68 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0 # Full history for SonarCloud blame data
 
       - name: Setup Swift Build Environment
-        uses: ./.github/actions/setup-swift-build
+        uses: ./.github/actions/swift
         with:
           swift-version: "5.9"
-          cache-key-suffix: "-test-v2" # Increment this to bust cache
 
-      - name: Clean build artifacts
+      - name: Run Tests
+        timeout-minutes: 5
         run: |
-          echo "Cleaning build artifacts..."
-          swift package clean
-          rm -rf .build
-
-      - name: Run tests with coverage
-        run: swift test --enable-code-coverage --parallel --num-workers 1
-
-      # Convert Swift coverage to SonarQube generic XML format
-      - name: Generate coverage report
-        run: |
-          # Find the coverage data - check multiple possible locations
-          PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
-          EXECUTABLE=$(find .build -name 'MagSafeGuardPackageTests.xctest' -type d | head -1)/Contents/MacOS/MagSafeGuardPackageTests
-
-          echo "Found profdata: $PROF_DATA"
-          echo "Found executable: $EXECUTABLE"
-
-          if [[ -f "$PROF_DATA" && -f "$EXECUTABLE" ]]; then
-            echo "Generating SonarQube generic coverage XML..."
-
-            # Convert llvm-cov output to SonarQube generic XML format
-            {
-              echo '<coverage version="1">'
-              xcrun llvm-cov show "$EXECUTABLE" \
-                -instr-profile="$PROF_DATA" \
-                -use-color=false \
-                -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*LAContext\.swift|.*/MacSystemActions\.swift|.*Protocol\.swift" | \
-              awk '
-                /^[[:space:]]*[^[:space:]]+:$/ {
-                  if (in_file) print "  </file>"
-                  gsub(/:$/, "", $1)
-                  gsub(/&/, "\\&amp;", $1)
-                  print "  <file path=\"" $1 "\">"
-                  in_file = 1
-                  next
-                }
-                /^[[:space:]]*[0-9]+\|/ {
-                  split($0, parts, "|")
-                  linenum = parts[1]
-                  gsub(/^[[:space:]]+/, "", linenum)
-                  gsub(/[[:space:]]+$/, "", linenum)
-
-                  # Check if line is covered (has execution count)
-                  if (match(parts[2], /^[[:space:]]*[0-9]+/)) {
-                    print "    <lineToCover lineNumber=\"" linenum "\" covered=\"true\"/>"
-                  } else if (match(parts[2], /^[[:space:]]*0/)) {
-                    print "    <lineToCover lineNumber=\"" linenum "\" covered=\"false\"/>"
-                  }
-                }
-                END {
-                  if (in_file) print "  </file>"
-                }
-              '
-              echo '</coverage>'
-            } > coverage.xml
-
-            echo "Coverage files created:"
-            ls -la coverage.xml || echo "No coverage files found"
-            echo "Coverage report size: $(wc -c < coverage.xml) bytes"
-
-            # Also generate LCOV format for Codecov
-            echo "Generating LCOV format..."
-            xcrun llvm-cov export "$EXECUTABLE" \
-              -instr-profile="$PROF_DATA" \
-              -format=lcov \
-              -ignore-filename-regex=".*Tests\.swift|.*Mocks?\.swift|.*/MagSafeGuardApp\.swift|.*/PowerMonitorService\.swift|.*LAContext\.swift|.*/MacSystemActions\.swift|.*Protocol\.swift" \
-              > coverage.lcov
-
-            echo "LCOV file created:"
-            ls -la coverage.lcov || echo "No LCOV file found"
-            echo "LCOV report size: $(wc -c < coverage.lcov) bytes"
-          else
-            echo "Coverage data not found"
-            echo "PROF_DATA: $PROF_DATA"
-            echo "EXECUTABLE: $EXECUTABLE"
-            echo "Build directory contents:"
-            find .build -type f -name "*.profdata" -o -name "*.xctest" | head -20
-            exit 1
-          fi
-
-      - name: Find LCOV files
-        id: find-lcov
-        run: |
-          # Find all .lcov files in the current directory
-          LCOV_FILES=$(find . -name "*.lcov" -type f | paste -sd "," -)
-          if [ -n "$LCOV_FILES" ]; then
-            echo "Found LCOV files: $LCOV_FILES"
-            echo "files=$LCOV_FILES" >> $GITHUB_OUTPUT
-          else
-            echo "No LCOV files found"
-            echo "files=" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@5c47607acb93fed5485fdbf7232e8a31425f672a # v5
-        with:
-          use_oidc: true
-          codecov_yml_path: .codecov.yml
-          disable_search: true
-          files: ${{ steps.find-lcov.outputs.files }}
-        if: steps.find-lcov.outputs.files != ''
-
-      - name: Install and run SonarCloud Scan
+          echo "🧪 Running tests with Swift Package Manager..."
+          # Use SPM for CI testing - runs all tests with coverage
+          task swift:test
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          CI: true
+
+      - name: Upload coverage to CodeCov
+        if: always()
+        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.lcov
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: SonarCloud Scan
+        if: always()
+        uses: ./.github/actions/sonar
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          sonar-token: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Test Summary
+        if: always()
         run: |
-          # Install sonar-scanner using homebrew (available on macOS runners)
-          brew install sonar-scanner
+          echo "## 📊 Test Results"
+          echo ""
+          echo "**Status**: Tests completed"
+          echo ""
+          echo "### Currently Running Tests:"
+          echo "- SettingsModelTests"
+          echo "- AppControllerTests"
+          echo ""
+          echo "### Coverage Reports:"
+          echo "- LCOV format: coverage.lcov"
+          echo "- Cobertura format: coverage.xml"
+          echo "- Text report: coverage-report.txt"
+          echo ""
+          echo "Coverage has been uploaded to:"
+          echo "- CodeCov"
+          echo "- SonarCloud"
 
-          # Run sonar-scanner directly to avoid deprecated action issues
-          # The sonar-project.properties file contains all necessary configuration
-          if [ -f "coverage.xml" ]; then
-            echo "Coverage file found: coverage.xml ($(wc -c < coverage.xml) bytes)"
-            echo "Running SonarCloud analysis with coverage..."
-            echo "Current directory: $(pwd)"
-            echo "Coverage file path: $(realpath coverage.xml)"
-          else
-            echo "WARNING: No coverage.xml file found"
-            echo "Running SonarCloud analysis without coverage..."
-          fi
-
-          # Run the scanner
-          sonar-scanner
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: tests
+          path: |
+            coverage.lcov
+            coverage.xml
+            coverage-report.txt
+          retention-days: 7

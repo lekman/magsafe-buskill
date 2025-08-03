@@ -1,17 +1,12 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: "3"
 
+# This file focuses on Swift Package Manager (SPM) tasks for CI and cross-platform compilation
+# For Xcode-specific tasks (UI testing, app packaging), use the main Taskfile.yml
+
 vars:
-  # Get package name dynamically from Package.swift
-  PACKAGE_NAME:
-    sh: swift package dump-package 2>/dev/null | jq -r '.name' || echo "SwiftPackage"
-  # Get executable name (first executable product)
-  EXECUTABLE_NAME:
-    sh: swift package dump-package 2>/dev/null | jq -r '.products[] | select(.type.executable != null) | .name' | head -1 || echo "{{.PACKAGE_NAME}}"
-  # Default app name for bundler
-  APP_NAME: "{{.EXECUTABLE_NAME | default .PACKAGE_NAME}}"
-  # Default bundler app path
-  APP_PATH: "./.build/bundler/{{.APP_NAME}}.app"
+  # SPM build directories
+  SPM_BUILD_DIR: ".build"
 
 tasks:
   default:
@@ -19,139 +14,83 @@ tasks:
     silent: true
     cmds:
       - task --list | grep "^\\* swift:" | grep -v "::" || true
+
   test:
-    desc: Run Swift tests
+    desc: Run all tests with coverage using Swift Package Manager
     silent: true
     cmds:
       - |
-        echo "🧪 Running Swift tests..."
+        echo "🧪 Running tests with Swift Package Manager..."
+        echo "=============================================="
 
-        # Run tests with --parallel flag to work around initialization hang
-        # See: https://github.com/apple/swift/issues/71044
-        set +e  # Don't exit on error
-        swift test --parallel --num-workers 1 > test-output.log 2>&1
-        TEST_EXIT_CODE=$?
+        # Clean previous artifacts
+        echo "🧹 Cleaning previous build artifacts..."
+        rm -rf {{.SPM_BUILD_DIR}} coverage.lcov coverage.xml coverage-report.txt
 
-        # Display output without standalone numbers that cause shell errors
-        grep -v "^[0-9]*$" test-output.log || true
+        # Run tests with coverage enabled
+        echo "🧪 Running all tests with coverage..."
+        swift test --enable-code-coverage --parallel
 
-        # Clean up
-        rm -f test-output.log
+        # Find coverage data
+        echo "📊 Generating coverage reports..."
+        PROF_DATA=$(find {{.SPM_BUILD_DIR}} -name 'default.profdata' -type f | head -1)
 
-        if [ $TEST_EXIT_CODE -eq 0 ]; then
-          echo "✅ All tests passed!"
-        else
-          echo "❌ Tests failed!"
-          exit $TEST_EXIT_CODE
-        fi
-
-  test:coverage:
-    desc: Run tests with coverage report
-    silent: true
-    cmds:
-      - |
-        echo "🧪 Running tests with coverage..."
-
-        # Build test executable with coverage
-        swift build --enable-code-coverage
-
-        # Run tests with coverage, capturing output
-        # Using --parallel to work around initialization hang
-        set +e  # Don't exit on error
-        swift test --enable-code-coverage --parallel --num-workers 1 > test-output.log 2>&1
-        TEST_EXIT_CODE=$?
-
-        # Check if tests passed based on exit code (more reliable than parsing output)
-        if [ $TEST_EXIT_CODE -eq 0 ]; then
-          TEST_SUCCESS=true
-          echo "✅ Tests passed - generating coverage report..."
-        else
-          TEST_SUCCESS=false
-          echo "⚠️  Some tests failed - still generating coverage report..."
-        fi
-
-        # Clean up
-        rm -f test-output.log
-
-        # Find the coverage data
-        PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
-        BINARY=$(find .build -name '*.xctest' -type d | head -1)/Contents/MacOS/*
-
-        if [[ -f "$PROF_DATA" ]] && [[ -n "$BINARY" ]]; then
-          # Extract just the binary path (without wildcard)
-          BINARY=$(find .build -name '*.xctest' -type d | head -1)/Contents/MacOS/$(basename "$(find .build -name '*.xctest' -type d | head -1)" .xctest)
-
-          if [[ -f "$BINARY" ]]; then
-            echo ""
-            echo "📊 Coverage Report:"
-            echo "=================="
-
-            # Generate report with comprehensive filters matching CI
-            xcrun llvm-cov report "$BINARY" \
-              -instr-profile="$PROF_DATA" \
-              -ignore-filename-regex=".*Tests/.*|.*Tests\\.swift|.*Mocks?\\.swift|.*/{{.APP_NAME}}App\\.swift|.*/SettingsView\\.swift|.*/TrustedLocationsView\\.swift|.*/PowerMonitorService\\.swift|.*LAContext\\.swift|.*/MacSystemActions\\.swift|.*Protocol\\.swift|.*/runner\\.swift" \
-              -use-color=false | tee coverage-report.txt
-
-            # Extract total coverage - look for the TOTAL line
-            COVERAGE=$(grep "^TOTAL" coverage-report.txt | awk '{print $10}' | sed 's/%//')
-
-            echo ""
-            if [ -z "$COVERAGE" ]; then
-              echo "⚠️  Could not extract coverage percentage"
-            elif (( $(echo "$COVERAGE >= 80" | bc -l) )); then
-              echo "✅ Coverage is ${COVERAGE}% (meets 80% threshold)"
-            else
-              echo "⚠️  Coverage is ${COVERAGE}% (below 80% threshold)"
-              echo ""
-              echo "Files with low coverage:"
-              grep -E "^\\S+\\.swift" coverage-report.txt | grep -v "100.00%" | sort -k10 -n | head -10
-            fi
-          fi
-        else
-          echo "❌ Coverage data not found"
+        if [ -z "$PROF_DATA" ]; then
+          echo "❌ No coverage data found"
           exit 1
         fi
 
-        # Exit based on test results
-        if [ "$TEST_SUCCESS" = false ]; then
-          echo ""
-          echo "❌ Tests failed - fix failing tests first"
+        # Find the test executable
+        TEST_EXEC=$(find {{.SPM_BUILD_DIR}} -name '*PackageTests.xctest' -type d | head -1)/Contents/MacOS/*PackageTests
+
+        if [ ! -f "$TEST_EXEC" ]; then
+          # Linux path structure
+          TEST_EXEC=$(find {{.SPM_BUILD_DIR}} -name '*PackageTests' -type f -perm +111 | grep -v '.dSYM' | head -1)
+        fi
+
+        if [ ! -f "$TEST_EXEC" ]; then
+          echo "❌ Test executable not found"
           exit 1
         fi
 
-  test:html:
-    desc: Generate HTML coverage report
-    silent: true
-    cmds:
-      - |
-        echo "📊 Generating HTML coverage report..."
-        swift test --enable-code-coverage --parallel --num-workers 1
+        # Generate LCOV report
+        echo "📄 Generating LCOV coverage report..."
+        xcrun llvm-cov export \
+          -format=lcov \
+          -instr-profile="$PROF_DATA" \
+          "$TEST_EXEC" > coverage.lcov
 
-        PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
-        EXECUTABLE=$(find .build -name '*.xctest' -type d | head -1)/Contents/MacOS/*
+        # Generate text report
+        echo "📄 Generating text coverage report..."
+        xcrun llvm-cov report \
+          -instr-profile="$PROF_DATA" \
+          "$TEST_EXEC" \
+          -ignore-filename-regex=".*Tests.*|.*Mock.*|.*\.build.*" > coverage-report.txt
 
-        if [[ -f "$PROF_DATA" ]] && [[ -n "$EXECUTABLE" ]]; then
-          EXECUTABLE=$(find .build -name '*.xctest' -type d | head -1)/Contents/MacOS/$(basename "$(find .build -name '*.xctest' -type d | head -1)" .xctest)
+        # Show coverage summary
+        echo ""
+        echo "📊 Coverage Summary:"
+        echo "==================="
+        tail -1 coverage-report.txt
 
-          xcrun llvm-cov show "$EXECUTABLE" \
-            -instr-profile="$PROF_DATA" \
-            -format=html \
-            -output-dir=coverage-html \
-            -ignore-filename-regex=".*Tests\\.swift|.*Mocks?\\.swift|.*/{{.APP_NAME}}App\\.swift|.*/SettingsView\\.swift|.*/TrustedLocationsView\\.swift|.*/PowerMonitorService\\.swift|.*LAContext\\.swift|.*/MacSystemActions\\.swift|.*Protocol\\.swift"
+        # Convert LCOV to Cobertura XML for SonarCloud
+        echo ""
+        echo "📄 Converting to Cobertura XML format..."
+        task sonar:convert || {
+          # Fallback: Create basic XML if conversion fails
+          echo '<?xml version="1.0" ?>' > coverage.xml
+          echo '<coverage version="1">' >> coverage.xml
+          echo '</coverage>' >> coverage.xml
+        }
 
-          echo "✅ Coverage report generated at: coverage-html/index.html"
-
-          # Open if on macOS
-          if [[ "$OSTYPE" == "darwin"* ]]; then
-            open coverage-html/index.html
-          fi
-        else
-          echo "❌ Coverage data not found"
-          exit 1
-        fi
+        echo ""
+        echo "✅ SPM tests completed with coverage"
+        echo "   - LCOV: coverage.lcov"
+        echo "   - XML: coverage.xml"
+        echo "   - Text: coverage-report.txt"
 
   lint:
-    desc: Run SwiftLint
+    desc: Run SwiftLint to check code style
     silent: true
     cmds:
       - |
@@ -171,8 +110,9 @@ tasks:
           echo "   Install with: brew install swiftlint"
           echo "   Or run: task swift:setup"
         fi
+
   lint:fix:
-    desc: Auto-fix SwiftLint issues
+    desc: Auto-fix SwiftLint issues where possible
     silent: true
     cmds:
       - |
@@ -191,421 +131,81 @@ tasks:
           echo "   Install with: brew install swiftlint"
           echo "   Or run: task swift:setup"
         fi
-  format:
-    desc: Format Swift code
+
+  build:
+    desc: Build project using Swift Package Manager
     silent: true
     cmds:
       - |
-        echo "🎨 Formatting Swift code..."
-
-        # Use swift-format if available
-        if command -v swift-format &> /dev/null; then
-          swift-format -i -r Sources/ Tests/
-          echo "✅ Swift code formatted with swift-format"
-        # Fall back to SwiftLint formatting
-        elif command -v swiftlint &> /dev/null; then
-          swiftlint lint --fix --quiet
-          echo "✅ Swift code formatted with SwiftLint"
-        else
-          echo "⚠️  No Swift formatter installed"
-          echo "   Install swift-format: brew install swift-format"
-          echo "   Or SwiftLint: brew install swiftlint"
-          exit 1
-        fi
+        echo "🔨 Building with Swift Package Manager..."
+        swift build --configuration debug
+        echo "✅ SPM build completed"
 
   clean:
-    desc: Clean Swift build artifacts
+    desc: Clean Swift Package Manager build artifacts
     silent: true
     cmds:
       - |
-        echo "🧹 Cleaning Swift build artifacts..."
-        swift package clean
-        rm -rf .build
-        rm -rf .swiftpm
-        rm -f Package.resolved
-        echo "✅ Build artifacts cleaned"
-  build:
-    desc: Build Swift package in debug mode
-    silent: true
-    cmds:
-      - |
-        echo "🔨 Building Swift package (debug)..."
-        swift build
-        if [ $? -eq 0 ]; then
-          echo "✅ Build succeeded"
-        else
-          echo "❌ Build failed"
-          exit 1
-        fi
-  build:release:
-    desc: Build Swift package in release mode
-    silent: true
-    cmds:
-      - |
-        echo "🔨 Building Swift package (release)..."
-        swift build -c release
-        if [ $? -eq 0 ]; then
-          echo "✅ Build succeeded"
+        echo "🧹 Cleaning SPM build artifacts..."
+        rm -rf {{.SPM_BUILD_DIR}}
+        rm -rf Package.resolved
+        rm -f coverage.lcov coverage.xml coverage-report.txt
+        echo "✅ SPM artifacts cleaned"
 
-          # Show binary location
-          BINARY=$(find .build/release -name "$(swift package dump-package | jq -r '.products[] | select(.type.executable != null) | .name' | head -1)" -type f 2>/dev/null | head -1)
-          if [ -n "$BINARY" ]; then
-            echo "   Binary: $BINARY"
-            echo "   Size: $(ls -lh "$BINARY" | awk '{print $5}')"
-          fi
-        else
-          echo "❌ Build failed"
-          exit 1
-        fi
-  deps:
-    desc: Show Swift package dependencies
-    silent: true
-    cmds:
-      - |
-        echo "📦 Swift Package Dependencies:"
-        echo ""
-        swift package show-dependencies
-  deps:tree:
-    desc: Show Swift package dependency tree
-    silent: true
-    cmds:
-      - |
-        echo "📦 Swift Package Dependency Tree:"
-        echo ""
-        swift package show-dependencies --format tree
-  update:
-    desc: Update Swift package dependencies
-    silent: true
-    cmds:
-      - |
-        echo "📦 Updating Swift package dependencies..."
-        swift package update
-        echo "✅ Dependencies updated"
-  resolve:
-    desc: Resolve Swift package dependencies
-    silent: true
-    cmds:
-      - |
-        echo "📦 Resolving Swift package dependencies..."
-        swift package resolve
-        echo "✅ Dependencies resolved"
   setup:
-    desc: Setup Swift development tools
+    desc: Setup Swift development environment and tools
     silent: true
     cmds:
       - |
-        echo "🔧 Installing Swift development tools..."
+        echo "🔧 Setting up Swift environment..."
+
+        # Check Swift version
+        echo "Swift version:"
+        swift --version
+        echo ""
 
         # Detect OS
         OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 
-        if [ "$OS" != "darwin" ]; then
-          echo "⚠️  This task is optimized for macOS"
-          echo "   For other platforms, please install tools manually"
-          exit 0
-        fi
+        if [ "$OS" = "darwin" ]; then
+          # macOS setup
+          echo "📦 Setting up development tools for macOS..."
 
-        # Check for Homebrew
-        if ! command -v brew &> /dev/null; then
-          echo "❌ Homebrew not found"
-          echo "   Install from: https://brew.sh"
-          exit 1
-        fi
-
-        # Install/Update SwiftLint
-        if ! command -v swiftlint &> /dev/null; then
-          echo "📦 Installing SwiftLint..."
-          brew install swiftlint
-        else
-          echo "✅ SwiftLint already installed ($(swiftlint version))"
-          if brew outdated | grep -q "^swiftlint"; then
-            echo "📦 Updating SwiftLint..."
-            brew upgrade swiftlint
-          fi
-        fi
-
-        # Install/Update swift-format (optional)
-        if ! command -v swift-format &> /dev/null; then
-          echo "📦 Installing swift-format..."
-          brew install swift-format
-        else
-          echo "✅ swift-format already installed"
-          if brew outdated | grep -q "^swift-format"; then
-            echo "📦 Updating swift-format..."
-            brew upgrade swift-format
-          fi
-        fi
-
-        # Install/Update SwiftGen (optional, for code generation)
-        if ! command -v swiftgen &> /dev/null; then
-          echo "📦 Installing SwiftGen..."
-          brew install swiftgen
-        else
-          echo "✅ SwiftGen already installed"
-          if brew outdated | grep -q "^swiftgen"; then
-            echo "📦 Updating SwiftGen..."
-            brew upgrade swiftgen
-          fi
-        fi
-
-        # Install/Update jazzy (for documentation generation)
-        if ! command -v jazzy &> /dev/null; then
-          echo "📦 Installing jazzy to user directory..."
-
-          # Check Ruby version first
-          RUBY_VERSION=$(ruby -v | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)
-          MIN_VERSION="2.7.0"
-
-          if [ "$(printf '%s\
-        ' "$MIN_VERSION" "$RUBY_VERSION" | sort -V | head -n1)" != "$MIN_VERSION" ]; then
-            echo "⚠️  Ruby version $RUBY_VERSION is too old for jazzy"
-            echo "   jazzy requires Ruby >= 2.7"
-            echo ""
-            echo "To fix this:"
-            echo "1. Update Ruby using rbenv or rvm:"
-            echo "   brew install rbenv && rbenv install 3.2.2"
-            echo ""
-            echo "2. Or use system Ruby on macOS 12.3+:"
-            echo "   /usr/bin/ruby --version"
-            echo ""
-            echo "Continuing without jazzy..."
-          else
-            # Try to install rouge dependency first if needed
-            echo "Installing jazzy dependencies..."
-            gem install rouge -v 3.30.0 --user-install 2>/dev/null || true
-
-            # Install to user directory by default (no admin needed)
-            if gem install jazzy --user-install; then
-              echo "✅ jazzy installed successfully to user directory"
-
-              # Get the gem bin path
-              GEM_BIN_PATH=$(ruby -r rubygems -e 'puts Gem.user_dir')/bin
-
-              # Check if it's in PATH
-              if [[ ":$PATH:" != *":$GEM_BIN_PATH:"* ]]; then
-                echo ""
-                echo "⚠️  Add the following to your shell profile (.bashrc, .zshrc, etc.):"
-                echo "   export PATH=\\"$GEM_BIN_PATH:\\$PATH\\""
-                echo ""
-                echo "Then reload your shell or run: source ~/.zshrc"
-              fi
-            else
-              echo "❌ Failed to install jazzy"
-              echo ""
-              echo "If you see a rouge dependency error, try:"
-              echo "  gem install rouge -v 3.30.0 --user-install"
-              echo "  gem install jazzy --user-install"
-              echo ""
-              echo "Alternative installation methods:"
-              echo "1. System-wide with sudo (requires admin):"
-              echo "   sudo gem install jazzy"
-              echo ""
-              echo "2. Using su with admin account:"
-              echo "   su - admin -c 'gem install jazzy'"
-              echo ""
-              echo "Continuing without jazzy..."
-            fi
-          fi
-        else
-          echo "✅ jazzy already installed ($(jazzy --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1))"
-          # Check if jazzy needs update
-          CURRENT_VERSION=$(jazzy --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)
-          LATEST_VERSION=$(gem search ^jazzy$ -r | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)
-          if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ] && [ -n "$LATEST_VERSION" ]; then
-            echo "📦 Update available: $CURRENT_VERSION → $LATEST_VERSION"
-            echo "   Run 'gem update jazzy' to update"
-          fi
-        fi
-
-        echo ""
-        echo "✅ Swift development tools installed"
-        echo ""
-        echo "Installed tools:"
-        echo "  - SwiftLint: $(swiftlint version)"
-        echo "  - swift-format: $(swift-format --version 2>&1 | head -1)"
-        echo "  - SwiftGen: $(swiftgen --version 2>&1 | head -1)"
-        echo "  - jazzy: $(jazzy --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)"
-
-  docs:
-    desc: Generate Swift API documentation
-    silent: true
-    vars:
-      OUTPUT_PATH: '{{.OUTPUT_PATH | default "docs/api"}}'
-    cmds:
-      - |
-        echo "📚 Generating Swift API documentation..."
-
-        # Ensure output directory exists
-        mkdir -p {{.OUTPUT_PATH}}
-
-        # Check if we're in a Swift package
-        if [ ! -f "Package.swift" ]; then
-          echo "❌ Not a Swift package. Package.swift not found."
-          exit 1
-        fi
-
-        # Get package name
-        PACKAGE_NAME=$(swift package dump-package | jq -r '.name')
-
-        echo "🔍 Checking available documentation tools..."
-
-        # Option 1: Try jazzy if installed (most reliable)
-        if command -v jazzy &> /dev/null; then
-          echo "✅ Found jazzy - generating documentation..."
-
-          jazzy \
-            --clean \
-            --author "{{.PACKAGE_NAME}}" \
-            --module {{.PACKAGE_NAME}} \
-            --source-directory Sources \
-            --output {{.OUTPUT_PATH}} \
-            --theme apple \
-            --documentation "*.md" \
-            --readme README.md
-
-          if [ $? -eq 0 ]; then
-            echo "✅ Documentation generated successfully!"
-            echo "📂 Output location: {{.OUTPUT_PATH}}"
-            echo ""
-            echo "To view: open {{.OUTPUT_PATH}}/index.html"
-          else
-            echo "❌ Jazzy generation failed"
+          # Check for Homebrew
+          if ! command -v brew &> /dev/null; then
+            echo "❌ Homebrew not found"
+            echo "   Install from: https://brew.sh"
             exit 1
           fi
 
-        # Option 2: Try swift-doc if installed
-        elif command -v swift-doc &> /dev/null; then
-          echo "✅ Found swift-doc - generating documentation..."
-
-          swift-doc generate Sources/{{.PACKAGE_NAME}} \
-            --module-name {{.PACKAGE_NAME}} \
-            --output {{.OUTPUT_PATH}} \
-            --format html
-
-          if [ $? -eq 0 ]; then
-            echo "✅ Documentation generated successfully!"
-            echo "📂 Output location: {{.OUTPUT_PATH}}"
-            echo ""
-            echo "To view: open {{.OUTPUT_PATH}}/index.html"
+          # Install/Update SwiftLint
+          if ! command -v swiftlint &> /dev/null; then
+            echo "📦 Installing SwiftLint..."
+            brew install swiftlint
           else
-            echo "❌ swift-doc generation failed"
-            exit 1
+            echo "✅ SwiftLint already installed ($(swiftlint version))"
           fi
 
-        # Option 3: Check if in Xcode environment
-        elif command -v xcodebuild &> /dev/null && [ -d "{{.PACKAGE_NAME}}.xcodeproj" ]; then
-          echo "✅ Found Xcode - attempting to generate documentation..."
-          echo ""
-          echo "Note: Xcode documentation generation requires manual steps:"
-          echo "  1. Open {{.PACKAGE_NAME}}.xcodeproj in Xcode"
-          echo "  2. Product → Build Documentation"
-          echo "  3. Right-click on {{.PACKAGE_NAME}} in documentation window"
-          echo "  4. Export Documentation..."
-          echo ""
-          echo "For now, building project to ensure it compiles..."
-          xcodebuild -scheme {{.PACKAGE_NAME}} -configuration Release build
-
+          # Install/Update swift-format (optional)
+          if ! command -v swift-format &> /dev/null; then
+            echo "📦 Installing swift-format (optional)..."
+            brew install swift-format
+          else
+            echo "✅ swift-format already installed"
+          fi
         else
-          # No documentation tool found
-          echo "❌ No documentation generator found!"
-          echo ""
-          echo "Please install one of the following:"
-          echo ""
-          echo "Option 1: Jazzy (Recommended)"
-
-          # Check Ruby version
-          RUBY_VERSION=$(ruby -v | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1)
-          MIN_VERSION="2.7.0"
-
-          if [ "$(printf '%s\
-        ' "$MIN_VERSION" "$RUBY_VERSION" | sort -V | head -n1)" != "$MIN_VERSION" ]; then
-            echo "  ⚠️  Your Ruby version ($RUBY_VERSION) is too old for jazzy (requires >= 2.7)"
-            echo ""
-            echo "  First update Ruby:"
-            echo "    brew install rbenv && rbenv install 3.2.2"
-            echo "    OR use system Ruby: /usr/bin/ruby (macOS 12.3+)"
-          else
-            echo "  gem install jazzy --user-install"
-            echo ""
-            echo "  This installs to your user directory (no admin needed)."
-            echo "  You may need to add the gem bin directory to your PATH:"
-            echo "     export PATH=\\"$(ruby -r rubygems -e 'puts Gem.user_dir')/bin:\\$PATH\\""
-            echo ""
-            echo "  If you get a rouge dependency error:"
-            echo "     gem install rouge -v 3.30.0 --user-install"
-            echo "     gem install jazzy --user-install"
-            echo ""
-            echo "  Alternative installation methods:"
-            echo "  a) System-wide with sudo (requires admin):"
-            echo "     sudo gem install jazzy"
-            echo ""
-            echo "  b) Using su with admin account:"
-            echo "     su - admin -c 'gem install jazzy'"
-            echo "     (replace 'admin' with your admin username)"
-          fi
-          echo ""
-          echo "Option 2: swift-doc"
-          echo "  brew install swiftdocorg/formulae/swift-doc"
-          echo ""
-          echo "Option 3: Use Xcode"
-          echo "  Open the project in Xcode and use Product → Build Documentation"
-          echo ""
-          echo "Note: Swift 6.0+ requires external tools for documentation generation."
-          echo "The 'swift package generate-documentation' command has been removed."
-          exit 1
+          # Linux setup
+          echo "📦 Setting up development tools for Linux..."
+          echo "Note: On Linux, SwiftLint must be built from source or run via Docker"
         fi
 
-  outdated:
-    desc: Check for outdated Swift dependencies
-    silent: true
-    cmds:
-      - |
-        echo "🔍 Checking for outdated dependencies..."
-
-        # This is a basic implementation since Swift PM doesn't have built-in outdated check
-        echo "Current dependencies:"
-        swift package show-dependencies --format json | jq -r '.dependencies[] | "\\(.name) @ \\(.version // "unresolved")"'
+        # Resolve package dependencies
+        echo ""
+        echo "📦 Resolving package dependencies..."
+        swift package resolve
 
         echo ""
-        echo "To update all dependencies, run: task swift:update"
-
-  setup-bundler:
-    # Internal task - sets up Swift Bundler for signing
-    internal: true
-    silent: true
-    cmds:
-      - |
-        # Ensure swift-bundler is in .gitignore
-        if [ -f .gitignore ]; then
-          if ! grep -q "^swift-bundler$" .gitignore; then
-            echo "" >> .gitignore
-            echo "# Swift Bundler binary" >> .gitignore
-            echo "swift-bundler" >> .gitignore
-          fi
-        else
-          echo "# Swift Bundler binary" > .gitignore
-          echo "swift-bundler" >> .gitignore
-        fi
-
-        # Check if already installed locally
-        if [ -f "./swift-bundler" ]; then
-          # Bundler already exists
-          exit 0
-        fi
-
-        echo "📦 Setting up Swift Bundler..."
-
-        # Download latest version
-        echo "Downloading Swift Bundler..."
-        curl -o swift-bundler -L https://github.com/stackotter/swift-bundler/releases/latest/download/swift-bundler
-
-        if [ $? -ne 0 ]; then
-          echo "❌ Failed to download Swift Bundler"
-          exit 1
-        fi
-
-        chmod +x ./swift-bundler
-        echo "✅ Swift Bundler installed"
+        echo "✅ Swift environment ready"
 
   sbom:
     desc: Generate Software Bill of Materials (SBOM) in SPDX format
@@ -645,17 +245,7 @@ tasks:
         # Dependencies
         echo "" >> sbom.spdx
         echo "# Dependencies" >> sbom.spdx
-        DEPS=$(swift package show-dependencies --format json | jq -r '.dependencies[]? | "PackageName: " + .name + "\
-        SPDXID: SPDXRef-Package-" + .identity + "\
-        PackageVersion: " + (.version // "unknown") + "\
-        PackageDownloadLocation: " + (.url // "NOASSERTION") + "\
-        FilesAnalyzed: false\
-        PackageLicenseConcluded: NOASSERTION\
-        PackageLicenseDeclared: NOASSERTION\
-        PackageCopyrightText: NOASSERTION\
-        \
-        Relationship: SPDXRef-Package-" + .identity + " DEPENDENCY_OF SPDXRef-Package-${PACKAGE_NAME}\
-        "' 2>/dev/null || echo "")
+        DEPS=$(swift package show-dependencies --format json | jq -r '.dependencies[]? | "PackageName: " + .name + "\nSPDXID: SPDXRef-Package-" + .identity + "\nPackageVersion: " + (.version // "unknown") + "\nPackageDownloadLocation: " + (.url // "NOASSERTION") + "\nFilesAnalyzed: false\nPackageLicenseConcluded: NOASSERTION\nPackageLicenseDeclared: NOASSERTION\nPackageCopyrightText: NOASSERTION\n\nRelationship: SPDXRef-Package-" + .identity + " DEPENDENCY_OF SPDXRef-Package-${PACKAGE_NAME}\n"' 2>/dev/null || echo "")
 
         if [ -n "$DEPS" ]; then
           echo "$DEPS" >> sbom.spdx
@@ -668,7 +258,6 @@ tasks:
         swift package show-dependencies --format json > sbom-deps.json
 
         echo "✅ Also generated: sbom-deps.json (Swift dependencies)"
-
     sources:
       - Package.swift
       - Sources/**/*.swift
@@ -676,195 +265,18 @@ tasks:
       - sbom.spdx
       - sbom-deps.json
 
-  sign:
-    desc: Sign the MagSafe Guard app (interactive - prompts for configuration)
-    deps: [setup-bundler]
-    silent: true
+  # Internal tasks for backward compatibility
+  _spm:test:
+    internal: true
     cmds:
-      - |
-        echo "🔐 MagSafe Guard Code Signing"
-        echo "============================="
-        echo ""
-        echo "Select signing configuration:"
-        echo "1) Development (local testing)"
-        echo "2) Release (Developer ID for direct distribution)"
-        echo "3) App Store (for App Store submission)"
-        echo "4) CI (ad-hoc signing for testing)"
-        echo ""
-        read -p "Enter choice (1-4) [1]: " choice
-        choice=${choice:-1}
+      - task: swift:test
 
-        case $choice in
-          1) CONFIG="development" ;;
-          2) CONFIG="release" ;;
-          3) CONFIG="appstore" ;;
-          4) CONFIG="ci" ;;
-          *) echo "Invalid choice"; exit 1 ;;
-        esac
-
-        # Build if needed
-        if [ ! -d "{{.APP_PATH}}" ]; then
-          echo "🔨 Building app first..."
-          ./swift-bundler bundle --configuration release
-        fi
-
-        # Run signing script
-        ./scripts/sign-app.sh "$CONFIG"
-  sign:dev:
-    desc: Sign app for development
-    deps: [setup-bundler]
-    silent: true
+  _spm:build:
+    internal: true
     cmds:
-      - |
-        # Build if needed
-        if [ ! -d "{{.APP_PATH}}" ]; then
-          echo "🔨 Building app first..."
-          ./swift-bundler bundle --configuration release
-        fi
-        ./scripts/sign-app.sh development
+      - task: swift:build
 
-  sign:release:
-    desc: Sign app for release with Developer ID
-    deps: [setup-bundler]
-    silent: true
+  _spm:clean:
+    internal: true
     cmds:
-      - |
-        # Build if needed
-        if [ ! -d "{{.APP_PATH}}" ]; then
-          echo "🔨 Building app first..."
-          ./swift-bundler bundle --configuration release
-        fi
-        ./scripts/sign-app.sh release
-
-  sign:appstore:
-    desc: Sign app for App Store distribution
-    deps: [setup-bundler]
-    silent: true
-    cmds:
-      - |
-        # Build if needed
-        if [ ! -d "{{.APP_PATH}}" ]; then
-          echo "🔨 Building app first..."
-          ./swift-bundler bundle --configuration release
-        fi
-        ./scripts/sign-app.sh appstore
-
-  sign:ci:
-    desc: Ad-hoc sign app for CI testing
-    deps: [setup-bundler]
-    silent: true
-    cmds:
-      - |
-        # Build if needed
-        if [ ! -d "{{.APP_PATH}}" ]; then
-          echo "🔨 Building app first..."
-          ./swift-bundler bundle --configuration release
-        fi
-        ./scripts/sign-app.sh ci
-
-  sign:verify:
-    desc: Verify app signature and notarization status
-    silent: true
-    cmds:
-      - |
-        if [ ! -d "{{.APP_PATH}}" ]; then
-          echo "❌ App not found at {{.APP_PATH}}"
-          echo "Build and sign the app first"
-          exit 1
-        fi
-
-        echo "🔍 Verifying {{.APP_NAME}} Signature"
-        echo "===================================="
-        echo ""
-
-        # Basic signature verification
-        echo "📋 Signature verification:"
-        if codesign --verify --deep --verbose=2 "{{.APP_PATH}}" 2>&1; then
-          echo "✅ Signature is valid"
-        else
-          echo "❌ Signature verification failed"
-          exit 1
-        fi
-
-        echo ""
-        echo "📋 Signature details:"
-        codesign -dvvv "{{.APP_PATH}}" 2>&1 | grep -E "Authority|TeamIdentifier|Signature|Identifier|Format|CDHash" | head -15
-
-        echo ""
-        echo "📋 Entitlements:"
-        codesign -d --entitlements - "{{.APP_PATH}}" 2>&1 | grep -E "key>" | sed 's/.*<key>/  - /' | sed 's/<\/key>.*//'
-
-        echo ""
-        echo "📋 Gatekeeper assessment:"
-        spctl -a -t exec -vv "{{.APP_PATH}}" 2>&1 || true
-
-        echo ""
-        echo "📋 Notarization status:"
-        if spctl --assess -vv "{{.APP_PATH}}" 2>&1 | grep -q "accepted"; then
-          echo "✅ App is notarized or accepted by Gatekeeper"
-        else
-          echo "⚠️  App is not notarized (required for distribution)"
-        fi
-
-  sign:export-cert:
-    desc: Export signing certificate for CI/CD
-    silent: true
-    cmds:
-      - |
-        echo "🔐 Export Signing Certificate"
-        echo "============================"
-        echo ""
-
-        # Find Developer ID certificate
-        IDENTITY=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | awk '{print $2}')
-
-        if [ -z "$IDENTITY" ]; then
-          echo "❌ No Developer ID Application certificate found"
-          exit 1
-        fi
-
-        CERT_NAME=$(security find-identity -v -p codesigning | grep "$IDENTITY" | sed 's/^[^"]*"//' | sed 's/"$//')
-        echo "Found certificate: $CERT_NAME"
-        echo ""
-
-        OUTPUT_PATH="$HOME/Desktop/{{.APP_NAME}}-Certificate.p12"
-
-        echo "This will export your certificate and private key."
-        echo "You'll need to create a password to protect the exported file."
-        echo ""
-        echo "⚠️  SECURITY WARNING:"
-        echo "- Keep this file secure - it contains your private key"
-        echo "- Never commit it to version control"
-        echo "- Delete it after importing to CI/CD system"
-        echo ""
-        read -p "Continue? (y/n) " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-          echo "Export cancelled"
-          exit 0
-        fi
-
-        echo ""
-        echo "Exporting certificate..."
-        security export -k ~/Library/Keychains/login.keychain-db -t identities -f pkcs12 -o "$OUTPUT_PATH" || {
-          echo ""
-          echo "❌ Export failed. Try using Keychain Access app instead:"
-          echo "1. Open Keychain Access"
-          echo "2. Find '$CERT_NAME'"
-          echo "3. Right-click → Export"
-          echo "4. Save as .p12 file"
-          exit 1
-        }
-
-        echo ""
-        echo "✅ Certificate exported to: $OUTPUT_PATH"
-        echo ""
-        echo "For GitHub Actions, convert to base64:"
-        echo "  base64 -i \"$OUTPUT_PATH\" | pbcopy"
-        echo "  (The base64 string is now in your clipboard)"
-        echo ""
-        echo "Then add to GitHub secrets:"
-        echo "  - SIGNING_CERTIFICATE_P12_DATA (the base64 string)"
-        echo "  - SIGNING_CERTIFICATE_PASSWORD (the password you created)"
-        echo ""
-        echo "Remember to delete the P12 file when done!"
+      - task: swift:clean

@@ -1,0 +1,78 @@
+name: "SonarCloud Analysis"
+description: "Runs SonarCloud analysis with sonar-scanner CLI"
+
+inputs:
+  github-token:
+    description: "GitHub token for authentication"
+    required: true
+  sonar-token:
+    description: "SonarCloud token for authentication"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Cache Homebrew packages
+      id: cache-homebrew
+      uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+      with:
+        path: |
+          /opt/homebrew/Cellar/sonar-scanner
+          /opt/homebrew/opt/sonar-scanner
+          /opt/homebrew/bin/sonar-scanner
+          /usr/local/Cellar/sonar-scanner
+          /usr/local/opt/sonar-scanner
+          /usr/local/bin/sonar-scanner
+        key: ${{ runner.os }}-homebrew-sonar-scanner-v1
+        restore-keys: |
+          ${{ runner.os }}-homebrew-sonar-scanner-
+
+    - name: Install sonar-scanner
+      shell: bash
+      run: |
+        echo "📦 Setting up sonar-scanner..."
+        if command -v sonar-scanner &> /dev/null; then
+          echo "✅ sonar-scanner already available: $(sonar-scanner -v | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+        else
+          echo "📦 Installing sonar-scanner via Homebrew..."
+          brew install sonar-scanner
+          echo "✅ sonar-scanner installed: $(sonar-scanner -v | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+        fi
+
+    - name: Run SonarCloud analysis
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        SONAR_TOKEN: ${{ inputs.sonar-token }}
+      run: |
+        echo "🔍 Running SonarCloud analysis..."
+        
+        # Check for coverage file
+        if [ -f "coverage.xml" ]; then
+          echo "✅ Coverage file found: coverage.xml ($(wc -c < coverage.xml) bytes)"
+          echo "   Current directory: $(pwd)"
+          echo "   Coverage file path: $(realpath coverage.xml)"
+          
+          # Validate XML structure
+          if xmllint --noout coverage.xml 2>/dev/null; then
+            echo "✅ Coverage XML is valid"
+          else
+            echo "⚠️  Coverage XML validation failed, analysis may not include coverage"
+          fi
+        else
+          echo "⚠️  No coverage.xml file found"
+          echo "   SonarCloud analysis will run without coverage data"
+        fi
+        
+        # Check for sonar-project.properties
+        if [ -f "sonar-project.properties" ]; then
+          echo "✅ Found sonar-project.properties"
+        else
+          echo "❌ Missing sonar-project.properties file"
+          exit 1
+        fi
+        
+        # Run the scanner
+        echo ""
+        echo "🚀 Starting SonarCloud scanner..."
+        sonar-scanner

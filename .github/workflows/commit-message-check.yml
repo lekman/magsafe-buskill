@@ -13,31 +13,20 @@ on:
 permissions:
   contents: read
 
-jobs:
-  cancel-redundant:
-    name: Cancel Redundant Workflows
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - name: Cancel redundant workflow runs
-        uses: ./.github/actions/cancel-redundant-workflows
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+jobs:
   check-commit-messages:
     name: Validate Commit Messages
     runs-on: ubuntu-latest
-    needs: cancel-redundant
     permissions:
       contents: read
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0 # Fetch all history for all branches
 
@@ -92,6 +81,6 @@ jobs:
           echo "✅ No blocked words found in commit messages"
 
       - name: Check conventional commits format
-        uses: webiny/action-conventional-commits@8bc41ff4e7d423d56fa4905f6ff79209a78776c7 # v1
+        uses: webiny/action-conventional-commits@54c7d1f80e5f26de9ab24968e1c6f3273210f95b # 8bc41ff4e7d423d56fa4905f6ff79209a78776c7
         with:
           allowed-commit-types: "feat,fix,docs,style,refactor,perf,test,build,ci,chore,revert"

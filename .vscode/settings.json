@@ -6,32 +6,23 @@
     "**/CVS": true,
     "**/.DS_Store": true,
     "**/Thumbs.db": true,
-    ".markdownlint.json": true,
-    ".markdownlintignore": true,
-    ".env": true,
-    "CLAUDE.md": true,
     ".vscode": true,
     ".claude": true,
     ".taskmaster": true,
     ".build": true,
     ".swiftpm": true,
-    "MagSafeGuard.xcodeproj": true,
-    ".githooks": true,
-    "sonar-project.properties": true,
     "coverage.lcov": true,
     "*.lcov": true,
     ".coverage": true,
     "coverage": true,
-    ".snyk": true,
-    ".codecov.yml": true,
-    "coverage.xml": true,
-    "sbom.spdx": true,
     "sbom-deps.json": true,
-    ".swiftlint.yml": true,
     ".scannerwork": true,
     ".sonarcloud": true,
     ".task": true,
-    "coverage*.txt": true
+    "coverage*.txt": true,
+    "build": true,
+    "DerivedData": true,
+    "LICENSE": true
   },
   "search.exclude": {
     "**/node_modules": true,
@@ -61,5 +52,6 @@
   "sonarlint.connectedMode.project": {
     "connectionId": "lekman",
     "projectKey": "lekman_magsafe-buskill"
-  }
+  },
+  "postman.settings.dotenv-detection-notification-visibility": false
 }

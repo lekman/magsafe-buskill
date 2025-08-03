@@ -1,0 +1,50 @@
+name: "Setup Swift Build Environment"
+description: "Sets up Swift toolchain and SPM caching for efficient builds"
+
+inputs:
+  swift-version:
+    description: "Swift version to use"
+    required: false
+    default: "5.9"
+  cache-key-suffix:
+    description: "Additional suffix for cache key"
+    required: false
+    default: "v1"
+
+outputs:
+  spm-cache-hit:
+    description: "Whether SPM cache was hit"
+    value: ${{ steps.spm-cache.outputs.cache-hit }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: ${{ inputs.swift-version }}
+
+    - name: Create cache directories
+      shell: bash
+      run: |
+        # Create directories that will be cached to avoid warnings
+        mkdir -p .build
+        mkdir -p ~/.swiftpm
+    
+    - name: Cache Swift Package Manager dependencies
+      id: spm-cache
+      uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+      with:
+        path: |
+          .build
+          ~/.swiftpm
+          ~/Library/Caches/org.swift.swiftpm
+        key: ${{ runner.os }}-spm-${{ hashFiles('Package.swift', 'Package.resolved') }}-${{ inputs.cache-key-suffix }}
+        restore-keys: |
+          ${{ runner.os }}-spm-${{ hashFiles('Package.swift') }}-
+          ${{ runner.os }}-spm-
+
+    - name: Cache and Install Taskfile
+      uses: ./.github/actions/taskfile
+      with:
+        cache-key-suffix: ${{ inputs.cache-key-suffix }}

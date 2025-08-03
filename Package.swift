@@ -9,28 +9,39 @@ let package = Package(
         .macOS(.v13)
     ],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
-        .executable(
-            name: "MagSafeGuard",
-            targets: ["MagSafeGuard"]
+        .library(
+            name: "MagSafeGuardCore",
+            targets: ["MagSafeGuardCore"]
         ),
     ],
     dependencies: [
-        // Dependencies declare other packages that this package depends on.
-        // Currently no external dependencies
+        // Add package dependencies here if needed
     ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
-        .executableTarget(
-            name: "MagSafeGuard",
+        // Core business logic target (testable)
+        .target(
+            name: "MagSafeGuardCore",
             dependencies: [],
-            path: "Sources/MagSafeGuard"
+            path: "MagSafeGuard",
+            sources: [
+                "Models/SettingsModel.swift",
+                "Utilities/FeatureFlags.swift",
+                "Utilities/Logger.swift"
+            ],
+            swiftSettings: [
+                .define("CI_BUILD", .when(platforms: [.macOS], configuration: .debug))
+            ]
         ),
+        // Test target
         .testTarget(
-            name: "MagSafeGuardTests",
-            dependencies: ["MagSafeGuard"],
-            path: "Tests/MagSafeGuardTests"
+            name: "MagSafeGuardCoreTests",
+            dependencies: ["MagSafeGuardCore"],
+            path: "MagSafeGuardTests",
+            sources: [
+                "Models/SettingsModelTests.swift",
+                "Utilities/FeatureFlagsTests.swift",
+                "Utilities/LoggerTests.swift"
+            ]
         ),
     ]
 )

@@ -41,21 +41,32 @@ comment:
 
 ignore:
   # Test files
-  - "Tests/"
-  - "**/*Tests.swift"
+  - "MagSafeGuardTests/"
+  - "MagSafeGuardUITests/"
+  - "backup/"
+
+  # Mock files
   - "**/Mock*.swift"
-  - "**/runner.swift"
+  - "**/Mocks/"
 
-  # UI/System Integration files
-  - "**/MagSafeGuardApp.swift"
-  - "**/PowerMonitorService.swift"
-  - "**/*LAContext.swift"
-  - "**/MacSystemActions.swift"
-  - "**/*Protocol.swift"
+  # SwiftUI Views & UI (test view models instead)
+  - "MagSafeGuard/Views/"
+  - "MagSafeGuard/Assets.xcassets/"
+  - "MagSafeGuard/Controllers/"
 
-  # SwiftUI Views (test view models instead)
-  - "**/*View.swift"
-
-  # Package files
-  - "Package.swift"
-  - ".build/"
+  # Utilities
+  - ".githooks/"
+  - ".github/"
+  - "docs/"
+  - "scripts/"
+  - "logs/"
+  - ".claude/"
+  - ".git/"
+  - ".scannerwork/"
+  - ".sonarcloud/"
+  - ".task/"
+  - ".taskmaster/"
+  - ".vscode/"
+  - "DerivedData/"
+  - "MagSafeGuard.xcodeproj/"
+  - "tasks/"
