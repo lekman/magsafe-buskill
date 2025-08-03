@@ -450,8 +450,11 @@ tasks:
           SWIFT_OPTIMIZATION_LEVEL=-Onone \
           SWIFT_WHOLE_MODULE_OPTIMIZATION=NO \
           BUILD_LIBRARY_FOR_DISTRIBUTION=NO \
+          COMPILER_INDEX_STORE_ENABLE=NO \
+          -skipUnavailableActions \
           -parallelizeTargets \
-          -quiet
+          -quiet \
+          -hideShellScriptEnvironment
 
         if [ $? -eq 0 ]; then
           echo "✅ CI build succeeded"

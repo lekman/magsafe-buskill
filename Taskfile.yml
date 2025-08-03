@@ -348,8 +348,24 @@ tasks:
       - |
         echo "🧪 Running tests for Models and Controllers..."
 
-        # Run tests (xcodebuild has its own timeout mechanisms)
-        xcodebuild test \
+        # First build without tests to speed up the process
+        echo "🔨 Building test dependencies..."
+        xcodebuild build-for-testing \
+          -project MagSafeGuard.xcodeproj \
+          -scheme MagSafeGuard \
+          -configuration Debug \
+          -destination 'platform=macOS,arch=arm64' \
+          -derivedDataPath DerivedData \
+          -skipUnavailableActions \
+          CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGN_IDENTITY= \
+          CODE_SIGNING_REQUIRED=NO \
+          COMPILER_INDEX_STORE_ENABLE=NO \
+          -quiet || true
+        
+        # Now run only the specific tests
+        echo "🧪 Running specific tests..."
+        xcodebuild test-without-building \
           -project MagSafeGuard.xcodeproj \
           -scheme MagSafeGuard \
           -configuration Debug \
