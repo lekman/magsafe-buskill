@@ -160,6 +160,9 @@ final class FeatureFlagsTests: XCTestCase {
     let tempDir = FileManager.default.temporaryDirectory
     let testPath = tempDir.appendingPathComponent("test-feature-flags.json").path
 
+    // Ensure flags are initialized before modifying
+    FeatureFlags.shared.reload()
+    
     // Modify some flags
     FeatureFlags.shared.setFlag(.verboseLogging, enabled: false)
     FeatureFlags.shared.setFlag(.mockServices, enabled: false)
@@ -174,9 +177,25 @@ final class FeatureFlagsTests: XCTestCase {
     let data = try Data(contentsOf: URL(fileURLWithPath: testPath))
     let jsonFlags = try JSONDecoder().decode([String: Bool].self, from: data)
 
+    // Debug: print all saved flags in CI
+    #if CI_BUILD
+    print("Saved flags: \(jsonFlags)")
+    #endif
+    
+    // Verify the flags we explicitly set
     XCTAssertEqual(jsonFlags[FeatureFlags.Flag.verboseLogging.rawValue], false)
+    
+    // mockServices should be saved as false
+    XCTAssertNotNil(jsonFlags[FeatureFlags.Flag.mockServices.rawValue], "mockServices flag should be saved")
     XCTAssertEqual(jsonFlags[FeatureFlags.Flag.mockServices.rawValue], false)
+    
+    // powerMonitoring should have its default value (true)
     XCTAssertEqual(jsonFlags[FeatureFlags.Flag.powerMonitoring.rawValue], true)
+    
+    // Verify that all flags from Flag.allCases are saved
+    for flag in FeatureFlags.Flag.allCases {
+      XCTAssertNotNil(jsonFlags[flag.rawValue], "Flag \(flag.rawValue) should be saved")
+    }
   }
 
   func testLoadFromJSON() throws {
