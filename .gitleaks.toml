@@ -1,0 +1,71 @@
+# Gitleaks configuration for MagSafe Guard
+# Focuses on authentication tokens and API keys
+# Basic password patterns are handled by GitHub Advanced Security
+
+[extend]
+# Use the default gitleaks config as base
+useDefault = true
+
+# Additional rules for auth tokens not covered by defaults
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API Key"
+regex = '''sk-[a-zA-Z0-9]{48}'''
+tags = ["key", "OpenAI"]
+
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic API Key"
+regex = '''sk-ant-api[0-9]{2}-[a-zA-Z0-9-_]{95}'''
+tags = ["key", "Anthropic"]
+
+[[rules]]
+id = "github-personal-access-token"
+description = "GitHub Personal Access Token"
+regex = '''github_pat_[0-9a-zA-Z_]{82}'''
+tags = ["key", "GitHub"]
+
+[[rules]]
+id = "github-oauth-token"
+description = "GitHub OAuth Token"
+regex = '''gho_[0-9a-zA-Z]{36}'''
+tags = ["key", "GitHub"]
+
+[[rules]]
+id = "github-app-token"
+description = "GitHub App Token"
+regex = '''ghs_[0-9a-zA-Z]{36}'''
+tags = ["key", "GitHub"]
+
+[[rules]]
+id = "github-refresh-token"
+description = "GitHub Refresh Token"
+regex = '''ghr_[0-9a-zA-Z]{36}'''
+tags = ["key", "GitHub"]
+
+# Allowlists for false positives
+[[allowlist]]
+# Allow pattern definitions in security task files
+description = "Security scanning pattern definitions"
+paths = [
+    '''tasks/security\.yml''',
+    '''\.gitleaks\.toml''',
+]
+
+[[allowlist]]
+# Allow test files that may contain mock tokens
+description = "Test files with mock tokens"
+paths = [
+    '''.*Tests?/.*''',
+    '''.*test.*''',
+    '''.*Mock.*''',
+]
+
+[[allowlist]]
+# Allow example and documentation files
+description = "Documentation and examples"
+paths = [
+    '''.*example.*''',
+    '''.*\.md$''',
+    '''docs/.*''',
+]

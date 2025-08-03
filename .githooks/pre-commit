@@ -21,12 +21,6 @@ check_secrets() {
         echo "Checking Swift files for secrets..."
         
         for file in $staged_swift; do
-            # Check for hardcoded passwords
-            if git show ":$file" | grep -q -i -E 'password\s*=\s*"[^"]+"'; then
-                echo -e "${RED}❌ Potential hardcoded password in: $file${NC}"
-                found_issues=1
-            fi
-            
             # Check for API keys
             if git show ":$file" | grep -q -i -E 'api_?key\s*=\s*"[^"]+"'; then
                 echo -e "${RED}❌ Potential hardcoded API key in: $file${NC}"

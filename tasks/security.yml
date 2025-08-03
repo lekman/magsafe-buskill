@@ -18,45 +18,81 @@ tasks:
       - task: pins
       - echo "✅ All security checks passed!"
   secrets:
-    desc: Scan for hardcoded secrets and sensitive data
+    desc: Scan for authentication tokens and API keys
     silent: true
     cmds:
       - |
-        echo "🔍 Scanning for secrets and sensitive data..."
+        echo "🔍 Scanning for authentication tokens and API keys..."
         echo ""
 
-        # Common patterns to check
+        # Authentication token patterns to check
         patterns=(
-          'password.*=.*["'"'"'"]'
-          'api[_-]?key.*=.*["'"'"'"]'
-          'secret.*=.*["'"'"'"]'
-          'token.*=.*["'"'"'"]'
-          'private[_-]?key'
-          '-----BEGIN.*PRIVATE KEY-----'
-          'Bearer\s+[A-Za-z0-9\-_]+'
+          # API Keys
+          'OPENAI_API_KEY=[A-Za-z0-9-_]+'
+          'ANTHROPIC_API_KEY=[A-Za-z0-9-_]+'
+          'GOOGLE_API_KEY=[A-Za-z0-9-_]+'
+          'AWS_ACCESS_KEY_ID=[A-Z0-9]{20}'
+          'AWS_SECRET_ACCESS_KEY=[A-Za-z0-9/+=]{40}'
+          'GITHUB_TOKEN=ghp_[A-Za-z0-9]{36}'
+          'GITHUB_TOKEN=ghs_[A-Za-z0-9]{36}'
+          'GITHUB_TOKEN=github_pat_[A-Za-z0-9_]{82}'
+          
+          # Bearer tokens
+          'Bearer\s+[A-Za-z0-9\-_.~+/]+=*'
+          'Authorization:\s*Bearer\s+[A-Za-z0-9\-_.~+/]+=*'
+          
+          # Private keys
+          '-----BEGIN\s+(RSA|DSA|EC|OPENSSH)\s+PRIVATE\s+KEY-----'
+          '-----BEGIN\s+PGP\s+PRIVATE\s+KEY\s+BLOCK-----'
+          
+          # Cloud provider tokens
+          'DIGITALOCEAN_TOKEN=[A-Za-z0-9]{64}'
+          'HEROKU_API_KEY=[A-Za-z0-9]{8}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{12}'
+          'SLACK_TOKEN=xox[baprs]-[0-9]{10,12}-[0-9]{10,12}-[a-zA-Z0-9]{24}'
+          
+          # Database URLs with credentials
+          'postgres://[^:]+:[^@]+@[^/]+/[^\s]+'
+          'mysql://[^:]+:[^@]+@[^/]+/[^\s]+'
+          'mongodb://[^:]+:[^@]+@[^/]+/[^\s]+'
         )
 
         found_issues=0
+        temp_file=$(mktemp)
 
         for pattern in "${patterns[@]}"; do
-          # Search in source files, excluding common false positives
-          results=$(find . \
+          # Find files that might contain the pattern
+          files=$(find . \
             -type f \
-            \( -name "*.swift" -o -name "*.js" -o -name "*.ts" -o -name "*.py" -o -name "*.rb" -o -name "*.java" -o -name "*.go" \) \
+            \( -name "*.swift" -o -name "*.js" -o -name "*.ts" -o -name "*.py" -o -name "*.rb" -o -name "*.java" -o -name "*.go" -o -name "*.yml" -o -name "*.yaml" -o -name "*.json" -o -name "*.env*" \) \
             -not -path "./.build/*" \
             -not -path "./node_modules/*" \
             -not -path "./.git/*" \
             -not -path "./vendor/*" \
             -not -path "*test*" \
+            -not -path "*example*" \
+            -not -path "./tasks/security.yml" \
             -exec grep -l -E "$pattern" {} \; 2>/dev/null || true)
 
-          if [ -n "$results" ]; then
-            echo "⚠️  Found potential secrets matching pattern: $pattern"
-            echo "$results" | head -5
-            echo ""
-            found_issues=$((found_issues + 1))
-          fi
+          for file in $files; do
+            # Skip if file is gitignored
+            if git check-ignore "$file" >/dev/null 2>&1; then
+              continue
+            fi
+            echo "$file" >> "$temp_file"
+          done
         done
+
+        # Report unique files with potential tokens
+        if [ -s "$temp_file" ]; then
+          echo "⚠️  Found potential authentication tokens in:"
+          sort -u "$temp_file" | while read -r file; do
+            echo "   - $file"
+          done
+          echo ""
+          found_issues=1
+        fi
+
+        rm -f "$temp_file"
 
         # Check for .env files that might be committed
         env_files=$(find . -name ".env*" -not -path "./.git/*" -not -path "./node_modules/*" 2>/dev/null || true)
@@ -80,11 +116,15 @@ tasks:
         fi
 
         if [ $found_issues -eq 0 ]; then
-          echo "✅ No secrets or sensitive data found!"
+          echo "✅ No authentication tokens or exposed .env files found!"
         else
-          echo "❌ Found $found_issues potential security issues"
+          echo "❌ Found potential security issues"
           echo ""
-          echo "Please review and remove any sensitive data"
+          echo "Tips:"
+          echo "  • Use environment variables or secure key management for tokens"
+          echo "  • Add .env files to .gitignore"
+          echo "  • Use GitHub Secrets for CI/CD workflows"
+          echo "  • Consider using tools like 'gitleaks' for comprehensive scanning"
           exit 1
         fi
 
