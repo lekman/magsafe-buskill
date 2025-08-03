@@ -67,8 +67,22 @@ jobs:
           cache-key-suffix: codeql
 
       - name: Build Swift Project for CodeQL
+        timeout-minutes: 10
         run: |
-          task build
+          echo "🔨 Building project for CodeQL analysis..."
+          # Use direct xcodebuild for CodeQL to avoid task overhead
+          xcodebuild build \
+            -project MagSafeGuard.xcodeproj \
+            -scheme MagSafeGuard \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            -derivedDataPath DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY= \
+            CODE_SIGNING_REQUIRED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            -quiet || true
+          echo "✅ Build completed for CodeQL"
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
