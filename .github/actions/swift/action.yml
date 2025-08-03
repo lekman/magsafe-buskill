@@ -1,24 +1,17 @@
 name: "Setup Swift Build Environment"
-description: "Sets up Swift toolchain, Xcode, and caching for efficient builds"
+description: "Sets up Swift toolchain and SPM caching for efficient builds"
 
 inputs:
   swift-version:
     description: "Swift version to use"
     required: false
     default: "5.9"
-  xcode-version:
-    description: "Xcode version to use"
-    required: false
-    default: "latest-stable"
   cache-key-suffix:
     description: "Additional suffix for cache key"
     required: false
     default: "v1"
 
 outputs:
-  cache-hit:
-    description: "Whether Xcode cache was hit"
-    value: ${{ steps.cache.outputs.cache-hit }}
   spm-cache-hit:
     description: "Whether SPM cache was hit"
     value: ${{ steps.spm-cache.outputs.cache-hit }}
@@ -27,38 +20,16 @@ runs:
   using: "composite"
   steps:
     - name: Setup Swift
-      if: runner.os == 'Linux'
       uses: swift-actions/setup-swift@3748edaead97501df15295c9e6263bbfe72c427a # 1c8768daf6498a797dd4cabf37c3a3628406b779
       with:
         swift-version: ${{ inputs.swift-version }}
-
-    - name: Set up Xcode
-      if: runner.os == 'macOS'
-      uses: maxim-lobanov/setup-xcode@7f352e61cbe8130c957c3bc898c4fb025784ea1e # c51a66b42363123fa82a6cfe02c60af4281dab93
-      with:
-        xcode-version: ${{ inputs.xcode-version }}
 
     - name: Create cache directories
       shell: bash
       run: |
         # Create directories that will be cached to avoid warnings
-        mkdir -p DerivedData
-        mkdir -p build
         mkdir -p .build
         mkdir -p ~/.swiftpm
-
-    - name: Cache Xcode dependencies
-      id: cache
-      uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
-      with:
-        path: |
-          DerivedData
-          build
-          ~/Library/Developer/Xcode/DerivedData/MagSafeGuard-*
-        key: ${{ runner.os }}-xcode-${{ hashFiles('MagSafeGuard.xcodeproj/project.pbxproj', '**/*.swift') }}-${{ inputs.cache-key-suffix }}
-        restore-keys: |
-          ${{ runner.os }}-xcode-${{ hashFiles('MagSafeGuard.xcodeproj/project.pbxproj', '**/*.swift') }}-
-          ${{ runner.os }}-xcode-
     
     - name: Cache Swift Package Manager dependencies
       id: spm-cache

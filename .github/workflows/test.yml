@@ -55,7 +55,7 @@ jobs:
 
   test:
     name: Test Suite
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     needs: check-skip
     if: needs.check-skip.outputs.should-skip != 'true'
     permissions:
@@ -83,6 +83,7 @@ jobs:
           CI: true
 
       - name: Upload coverage to CodeCov
+        if: always()
         uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -92,6 +93,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: SonarCloud Scan
+        if: always()
         # nosemgrep: generic.secrets.security.detected-sonarqube-docs-api-key
         uses: SonarSource/sonarcloud-github-action@e44258b109568baa0df60ed515909fc6c72cba92 # v2
         env:
