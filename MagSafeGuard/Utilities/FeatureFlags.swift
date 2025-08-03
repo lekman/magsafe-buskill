@@ -134,12 +134,12 @@ public final class FeatureFlags {
       // Current directory
       fileManager.currentDirectoryPath,
       // Bundle resources
-      Bundle.main.resourcePath ?? "",
+      Bundle.main.resourcePath ?? "" as Any,
       // User's home directory
       NSHomeDirectory(),
       // Application Support directory
       fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?.path ?? ""
-    ].compactMap { $0 }
+    ].compactMap { $0 as? String }
 
     for basePath in searchPaths {
       let jsonPath = "\(basePath)/\(jsonFileName)"

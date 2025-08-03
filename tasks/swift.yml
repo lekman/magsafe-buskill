@@ -1,16 +1,12 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: "3"
 
+# This file focuses on Swift Package Manager (SPM) tasks for CI and cross-platform compilation
+# For Xcode-specific tasks (UI testing, app packaging), use the main Taskfile.yml
+
 vars:
-  # Project configuration for Xcode (inherited from parent Taskfile)
-  PROJECT_NAME: '{{.PROJECT_NAME | default "MyProject"}}'
-  SCHEME_NAME: "{{.SCHEME_NAME | default .PROJECT_NAME}}"
-  # Build directories
-  BUILD_DIR: "build"
-  DERIVED_DATA: "DerivedData"
-  # App paths
-  DEBUG_APP_PATH: "{{.BUILD_DIR}}/Debug/{{.PROJECT_NAME}}.app"
-  RELEASE_APP_PATH: "{{.BUILD_DIR}}/Release/{{.PROJECT_NAME}}.app"
+  # SPM build directories
+  SPM_BUILD_DIR: ".build"
 
 tasks:
   default:
@@ -18,662 +14,83 @@ tasks:
     silent: true
     cmds:
       - task --list | grep "^\\* swift:" | grep -v "::" || true
-  
-  # Swift Package Manager tasks for CI
-  spm:test:
-    desc: Run tests using Swift Package Manager (for CI)
+
+  test:
+    desc: Run all tests with coverage using Swift Package Manager
     silent: true
     cmds:
       - |
         echo "🧪 Running tests with Swift Package Manager..."
         echo "=============================================="
-        
+
         # Clean previous artifacts
-        rm -rf .build
-        
-        # Build the package
-        echo "🔨 Building package..."
-        swift build --configuration debug || true
-        
-        # Run tests  
-        echo "🧪 Running tests..."
-        swift test --configuration debug --parallel || true
-        
-        # Generate coverage
-        echo "📊 Generating coverage..."
-        swift test --enable-code-coverage || true
-        
-        # Convert coverage to LCOV
-        if [ -d ".build/debug/codecov" ]; then
-          PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
-          BINARY=$(find .build -name '*PackageTests.xctest' -type d | head -1)/Contents/MacOS/*PackageTests
-          
-          if [[ -f "$PROF_DATA" ]] && [[ -f "$BINARY" ]]; then
-            xcrun llvm-cov export \
-              -format=lcov \
-              -instr-profile="$PROF_DATA" \
-              "$BINARY" > coverage.lcov || true
-          fi
-        fi
-        
-        echo "✅ SPM tests completed"
-  
-  spm:build:
-    desc: Build project using Swift Package Manager
-    silent: true  
-    cmds:
-      - |
-        echo "🔨 Building with Swift Package Manager..."
-        swift build --configuration debug
-        echo "✅ SPM build completed"
-  
-  spm:clean:
-    desc: Clean Swift Package Manager build artifacts
-    silent: true
-    cmds:
-      - |
-        echo "🧹 Cleaning SPM build artifacts..."
-        rm -rf .build
-        rm -rf Package.resolved
-        echo "✅ SPM artifacts cleaned"
+        echo "🧹 Cleaning previous build artifacts..."
+        rm -rf {{.SPM_BUILD_DIR}} coverage.lcov coverage.xml coverage-report.txt
 
-  test:
-    desc: Run unit tests (excluding UI tests)
-    silent: true
-    cmds:
-      - |
-        echo "🧪 Running unit tests..."
-
-        # Clean derived data to ensure fresh test run
-        rm -rf {{.DERIVED_DATA}}
-
-        # Check if xcpretty is available
-        if command -v xcpretty &> /dev/null || [ -f "$HOME/.gem/ruby/2.6.0/bin/xcpretty" ]; then
-          export PATH="$HOME/.gem/ruby/2.6.0/bin:$PATH"
-          FORMATTER="xcpretty --simple --color"
-          echo "Using xcpretty for output formatting"
-        else
-          FORMATTER="cat"
-          echo "xcpretty not found, using plain output"
-        fi
-
-        # Run only unit tests (exclude UI tests)
-        if xcodebuild test \
-          -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme {{.SCHEME_NAME}} \
-          -destination 'platform=macOS' \
-          -only-testing:{{.PROJECT_NAME}}Tests \
-          -derivedDataPath {{.DERIVED_DATA}} \
-          2>&1 | $FORMATTER; then
-          echo "✅ All unit tests passed!"
-        else
-          echo "❌ Unit tests failed!"
-          exit 1
-        fi
-
-  test:ui:
-    desc: Run UI tests (requires user interaction)
-    silent: true
-    cmds:
-      - |
-        echo "🖥️  Running UI tests..."
-        echo "⚠️  UI tests require user interaction and may take several minutes"
-
-        # Check if xcpretty is available
-        if command -v xcpretty &> /dev/null || [ -f "$HOME/.gem/ruby/2.6.0/bin/xcpretty" ]; then
-          export PATH="$HOME/.gem/ruby/2.6.0/bin:$PATH"
-          FORMATTER="xcpretty --simple --color"
-          echo "Using xcpretty for output formatting"
-        else
-          FORMATTER="cat"
-          echo "xcpretty not found, using plain output"
-        fi
-
-        # Run only UI tests
-        if xcodebuild test \
-          -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme {{.SCHEME_NAME}} \
-          -destination 'platform=macOS' \
-          -only-testing:{{.PROJECT_NAME}}UITests \
-          2>&1 | $FORMATTER; then
-          echo "✅ All UI tests passed!"
-        else
-          echo "❌ UI tests failed!"
-          exit 1
-        fi
-
-  test:all:
-    desc: Run all tests (unit and UI)
-    silent: true
-    cmds:
-      - |
-        echo "🧪 Running all tests..."
-        echo "⚠️  UI tests require user interaction and may take several minutes"
-
-        # Clean derived data
-        rm -rf {{.DERIVED_DATA}}
-
-        # Check if xcpretty is available
-        if command -v xcpretty &> /dev/null || [ -f "$HOME/.gem/ruby/2.6.0/bin/xcpretty" ]; then
-          export PATH="$HOME/.gem/ruby/2.6.0/bin:$PATH"
-          FORMATTER="xcpretty --simple --color"
-          echo "Using xcpretty for output formatting"
-        else
-          FORMATTER="cat"
-          echo "xcpretty not found, using plain output"
-        fi
-
-        # Run all tests
-        if xcodebuild test \
-          -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme {{.SCHEME_NAME}} \
-          -destination 'platform=macOS' \
-          -derivedDataPath {{.DERIVED_DATA}} \
-          2>&1 | $FORMATTER; then
-          echo "✅ All tests passed!"
-        else
-          echo "❌ Tests failed!"
-          exit 1
-        fi
-
-  test:coverage:
-    desc: Run unit tests with coverage report
-    silent: true
-    vars:
-      # Allow overriding test targets (comma-separated list)
-      TEST_TARGETS: '{{.TEST_TARGETS | default (printf "%sTests" .PROJECT_NAME)}}'
-      # Allow specifying specific test classes or methods
-      TEST_FILTER: '{{.TEST_FILTER | default ""}}'
-      # Allow custom exclude patterns for coverage
-      COVERAGE_EXCLUDE: '{{.COVERAGE_EXCLUDE | default (printf ".*Tests/.*|.*Tests\\\\.swift|.*Mocks?\\\\.swift|.*/%sApp\\\\.swift|.*/SettingsView\\\\.swift|.*/TrustedLocationsView\\\\.swift|.*/PowerMonitorService\\\\.swift|.*LAContext\\\\.swift|.*/MacSystemActions\\\\.swift|.*Protocol\\\\.swift" .PROJECT_NAME)}}'
-    cmds:
-      - |
-        echo "🧪 Running unit tests with coverage..."
-
-        # Clean derived data
-        rm -rf {{.DERIVED_DATA}}
-
-        # Check if xcpretty is available
-        if command -v xcpretty &> /dev/null || [ -f "$HOME/.gem/ruby/2.6.0/bin/xcpretty" ]; then
-          export PATH="$HOME/.gem/ruby/2.6.0/bin:$PATH"
-          FORMATTER="xcpretty --simple --color"
-          echo "Using xcpretty for output formatting"
-        else
-          FORMATTER="cat"
-          echo "xcpretty not found, using plain output"
-        fi
-
-        # Run unit tests with coverage (exclude UI tests)
-        echo "Running xcodebuild test..."
-        echo "Current directory: $(pwd)"
-        echo "Looking for project: {{.PROJECT_NAME}}.xcodeproj"
-        echo "Directory contents:"
-        ls -la | grep -E "xcodeproj|Taskfile" | head -10 || echo "No matching files"
-        echo "Project exists: $(ls {{.PROJECT_NAME}}.xcodeproj 2>/dev/null || echo 'NO')"
-
-        set +e  # Don't exit on error
-
-        # Build test targeting options
-        TEST_OPTIONS=""
-        if [ -n "{{.TEST_TARGETS}}" ]; then
-          # Convert comma-separated list to multiple -only-testing flags
-          # Build the options string directly
-          for target in $(echo "{{.TEST_TARGETS}}" | tr ',' ' '); do
-            if [ -n "$target" ]; then
-              TEST_OPTIONS="$TEST_OPTIONS -only-testing:$target"
-            fi
-          done
-        fi
-
-        # Add any custom test filters
-        if [ -n "{{.TEST_FILTER}}" ]; then
-          TEST_OPTIONS="$TEST_OPTIONS {{.TEST_FILTER}}"
-        fi
-
-        # Run xcodebuild without formatter to capture exit code properly
-        # In CI, disable code signing for tests and skip UI
-        if [ "$CI" = "true" ]; then
-          SIGNING_FLAGS="CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY= CODE_SIGNING_REQUIRED=NO"
-          # Also disable app sandbox and hardened runtime which might cause issues
-          SIGNING_FLAGS="$SIGNING_FLAGS ENABLE_APP_SANDBOX=NO ENABLE_HARDENED_RUNTIME=NO"
-          # Skip UI tests completely
-          TEST_OPTIONS="$TEST_OPTIONS -skip-testing:{{.PROJECT_NAME}}UITests"
-          # Use default scheme for tests (MagSafeGuardCI is only for builds)
-          SCHEME_TO_USE="{{.SCHEME_NAME}}"
-          echo "CI mode: Using $SCHEME_TO_USE scheme with UI tests disabled via filter"
-        else
-          SIGNING_FLAGS=""
-          SCHEME_TO_USE="{{.SCHEME_NAME}}"
-        fi
-
-        echo "Running: xcodebuild test -project {{.PROJECT_NAME}}.xcodeproj -scheme $SCHEME_TO_USE -destination 'platform=macOS' $TEST_OPTIONS -derivedDataPath {{.DERIVED_DATA}} -enableCodeCoverage YES $SIGNING_FLAGS"
-
-        # Run tests - add -quiet flag in CI to reduce output that might cause hanging
-        if [ "$CI" = "true" ]; then
-          # Set environment variable for the test process
-          xcodebuild test \
-            -project {{.PROJECT_NAME}}.xcodeproj \
-            -scheme $SCHEME_TO_USE \
-            -destination 'platform=macOS' \
-            $TEST_OPTIONS \
-            -derivedDataPath {{.DERIVED_DATA}} \
-            -enableCodeCoverage YES \
-            -quiet \
-            $SIGNING_FLAGS \
-            MAGSAFE_GUARD_TEST_MODE=1 \
-            TEST_HOST= \
-            BUNDLE_LOADER= \
-            > test_output.log 2>&1 &
-          
-          # Get the PID and implement a timeout
-          XCODEBUILD_PID=$!
-          SECONDS=0
-          
-          while kill -0 $XCODEBUILD_PID 2>/dev/null; do
-            if [ $SECONDS -gt 180 ]; then
-              echo "Timeout: xcodebuild has been running for more than 3 minutes, killing process..."
-              kill -9 $XCODEBUILD_PID 2>/dev/null || true
-              echo "Process killed due to timeout"
-              TEST_EXIT_CODE=124  # timeout exit code
-              break
-            fi
-            sleep 1
-          done
-          
-          # If process finished normally, get its exit code
-          if [ -z "$TEST_EXIT_CODE" ]; then
-            wait $XCODEBUILD_PID
-            TEST_EXIT_CODE=$?
-          fi
-        else
-          xcodebuild test \
-            -project {{.PROJECT_NAME}}.xcodeproj \
-            -scheme $SCHEME_TO_USE \
-            -destination 'platform=macOS' \
-            $TEST_OPTIONS \
-            -derivedDataPath {{.DERIVED_DATA}} \
-            -enableCodeCoverage YES \
-            $SIGNING_FLAGS \
-            > test_output.log 2>&1
-          TEST_EXIT_CODE=$?
-        fi
-
-        echo "xcodebuild exit code: $TEST_EXIT_CODE"
-
-        # Display output with formatter if available
-        if [ "$FORMATTER" = "cat" ]; then
-          cat test_output.log
-        else
-          cat test_output.log | $FORMATTER || cat test_output.log
-        fi
-
-        # In CI, keep the log file for debugging and show errors
-        if [ "$CI" = "true" ]; then
-          echo ""
-          echo "Test output saved to test_output.log for debugging"
-          if [ "$TEST_EXIT_CODE" != "0" ]; then
-            echo ""
-            echo "First 20 lines of error output:"
-            head -20 test_output.log
-            echo ""
-            echo "Last 20 lines of error output:"
-            tail -20 test_output.log
-          fi
-        else
-          rm -f test_output.log
-        fi
-
-        # Check if tests passed based on exit code (more reliable than parsing output)
-        if [ "$TEST_EXIT_CODE" = "0" ]; then
-          TEST_SUCCESS=true
-          echo "✅ Tests passed - generating coverage report..."
-        else
-          TEST_SUCCESS=false
-          echo "⚠️  Some tests failed - still generating coverage report..."
-        fi
-
-        # Find the coverage data
-        echo ""
-        echo "Looking for coverage data in {{.DERIVED_DATA}}..."
-
-        if [ -d "{{.DERIVED_DATA}}" ]; then
-          echo "DerivedData exists, searching for coverage files..."
-          find {{.DERIVED_DATA}} -name "*.profdata" -o -name "*.xctest" | head -20 || echo "No coverage files found"
-        else
-          echo "DerivedData directory does not exist!"
-        fi
-
-        PROF_DATA=$(find {{.DERIVED_DATA}} -name 'Coverage.profdata' -type f 2>/dev/null | head -1)
-
-        # Find the app binary for coverage (not the test binary)
-        # Coverage data is in the app binary when tests are run with host application
-        APP_BUNDLE=$(find {{.DERIVED_DATA}} -path "*/Debug/{{.PROJECT_NAME}}.app" -type d 2>/dev/null | head -1)
-        if [ -n "$APP_BUNDLE" ]; then
-          BINARY="$APP_BUNDLE/Contents/MacOS/{{.PROJECT_NAME}}"
-        else
-          # Fallback to test binary if app not found
-          TEST_BUNDLE=$(find {{.DERIVED_DATA}} -path "*/{{.PROJECT_NAME}}.app/Contents/PlugIns/{{.PROJECT_NAME}}Tests.xctest" -type d 2>/dev/null | head -1)
-          if [ -n "$TEST_BUNDLE" ]; then
-            BINARY="$TEST_BUNDLE/Contents/MacOS/{{.PROJECT_NAME}}Tests"
-          fi
-        fi
-
-        echo "Coverage data: $PROF_DATA"
-        echo "Binary path: $BINARY"
-
-        if [[ -f "$PROF_DATA" ]] && [[ -f "$BINARY" ]]; then
-          echo ""
-          echo "📊 Coverage Report:"
-          echo "=================="
-
-          # Generate report with comprehensive filters
-          xcrun llvm-cov report "$BINARY" \
-            -instr-profile="$PROF_DATA" \
-            -ignore-filename-regex="{{.COVERAGE_EXCLUDE}}" \
-            -use-color=false | tee coverage-report.txt
-
-          # Extract total coverage - look for the TOTAL line
-          COVERAGE=$(grep "^TOTAL" coverage-report.txt | awk '{print $10}' | sed 's/%//')
-
-          echo ""
-          if [ -z "$COVERAGE" ]; then
-            echo "⚠️  Could not extract coverage percentage"
-          elif (( $(echo "$COVERAGE >= 80" | bc -l) )); then
-            echo "✅ Coverage is ${COVERAGE}% (meets 80% threshold)"
-          else
-            echo "⚠️  Coverage is ${COVERAGE}% (below 80% threshold)"
-            echo ""
-            echo "Files with low coverage:"
-            grep -E "^\\S+\\.swift" coverage-report.txt | grep -v "100.00%" | sort -k10 -n | head -10
-          fi
-          
-          # Generate LCOV format for Codecov
-          echo ""
-          echo "📄 Generating LCOV format for Codecov..."
-          xcrun llvm-cov export "$BINARY" \
-            -instr-profile="$PROF_DATA" \
-            -format=lcov \
-            -ignore-filename-regex="{{.COVERAGE_EXCLUDE}}" \
-            > coverage.lcov
-          
-          if [ -f "coverage.lcov" ] && [ -s "coverage.lcov" ]; then
-            echo "✅ Generated coverage.lcov ($(wc -c < coverage.lcov) bytes)"
-            
-            # Convert LCOV to Cobertura format for SonarCloud
-            echo ""
-            echo "📄 Converting to Cobertura format..."
-            # Use the sonar:convert task which handles the conversion properly
-            task sonar:convert || echo "⚠️  Failed to convert to Cobertura format"
-          else
-            echo "⚠️  Failed to generate LCOV file"
-          fi
-        else
-          echo "❌ Coverage data not found"
-          exit 1
-        fi
-
-        # Exit based on test results
-        if [ "$TEST_SUCCESS" = false ]; then
-          echo ""
-          echo "❌ Tests failed - fix failing tests first"
-          exit 1
-        fi
-
-  test:coverage:html:
-    desc: Generate HTML coverage report
-    silent: true
-    cmds:
-      - |
-        echo "📊 Generating HTML coverage report..."
-
-        # Clean and run tests with coverage
-        rm -rf {{.DERIVED_DATA}}
-
-        # Check if xcpretty is available
-        if command -v xcpretty &> /dev/null || [ -f "$HOME/.gem/ruby/2.6.0/bin/xcpretty" ]; then
-          export PATH="$HOME/.gem/ruby/2.6.0/bin:$PATH"
-          FORMATTER="xcpretty --simple --color"
-          echo "Using xcpretty for output formatting"
-        else
-          FORMATTER="cat"
-          echo "xcpretty not found, using plain output"
-        fi
-
-        xcodebuild test \
-          -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme {{.SCHEME_NAME}} \
-          -destination 'platform=macOS' \
-          -only-testing:{{.PROJECT_NAME}}Tests \
-          -derivedDataPath {{.DERIVED_DATA}} \
-          -enableCodeCoverage YES \
-          2>&1 | $FORMATTER || true
+        # Run tests with coverage enabled
+        echo "🧪 Running all tests with coverage..."
+        swift test --enable-code-coverage --parallel
 
         # Find coverage data
-        PROF_DATA=$(find {{.DERIVED_DATA}} -name 'Coverage.profdata' -type f | head -1)
-        BINARY=$(find {{.DERIVED_DATA}} -name '{{.PROJECT_NAME}}Tests.xctest' -type d | head -1)/Contents/MacOS/{{.PROJECT_NAME}}Tests
+        echo "📊 Generating coverage reports..."
+        PROF_DATA=$(find {{.SPM_BUILD_DIR}} -name 'default.profdata' -type f | head -1)
 
-        if [[ -f "$PROF_DATA" ]] && [[ -f "$BINARY" ]]; then
-          xcrun llvm-cov show "$BINARY" \
-            -instr-profile="$PROF_DATA" \
-            -format=html \
-            -output-dir=coverage-html \
-            -ignore-filename-regex=".*Tests\\.swift|.*Mocks?\\.swift|.*/{{.PROJECT_NAME}}App\\.swift|.*/SettingsView\\.swift|.*/TrustedLocationsView\\.swift|.*/PowerMonitorService\\.swift|.*LAContext\\.swift|.*/MacSystemActions\\.swift|.*Protocol\\.swift"
-
-          echo "✅ Coverage report generated at: coverage-html/index.html"
-
-          # Open if on macOS
-          if [[ "$OSTYPE" == "darwin"* ]]; then
-            open coverage-html/index.html
-          fi
-        else
-          echo "❌ Coverage data not found"
+        if [ -z "$PROF_DATA" ]; then
+          echo "❌ No coverage data found"
           exit 1
         fi
 
-  build:ci:
-    desc: Build project for CI using MagSafeGuardCI scheme
-    silent: true
-    cmds:
-      - |
-        echo "🔨 Building project for CI (MagSafeGuardCI scheme)..."
-        echo "This build excludes UI tests and disables system services"
+        # Find the test executable
+        TEST_EXEC=$(find {{.SPM_BUILD_DIR}} -name '*PackageTests.xctest' -type d | head -1)/Contents/MacOS/*PackageTests
 
-        # Enable incremental builds and build time optimizations
-        export XCODEBUILD_BUILD_SETTINGS_OPTIMIZATION=YES
+        if [ ! -f "$TEST_EXEC" ]; then
+          # Linux path structure
+          TEST_EXEC=$(find {{.SPM_BUILD_DIR}} -name '*PackageTests' -type f -perm +111 | grep -v '.dSYM' | head -1)
+        fi
 
-        # Build with CI-specific settings
-        xcodebuild build \
-          -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme MagSafeGuardCI \
-          -configuration Debug \
-          -destination 'platform=macOS' \
-          -derivedDataPath {{.DERIVED_DATA}} \
-          CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Debug \
-          CODE_SIGNING_ALLOWED=NO \
-          CODE_SIGN_IDENTITY= \
-          CODE_SIGNING_REQUIRED=NO \
-          ENABLE_APP_SANDBOX=NO \
-          ENABLE_HARDENED_RUNTIME=NO \
-          SKIP_INSTALL=YES \
-          GCC_PREPROCESSOR_DEFINITIONS='DEBUG=1 CI_BUILD=1' \
-          OTHER_SWIFT_FLAGS='-D CI_BUILD' \
-          MAGSAFE_GUARD_TEST_MODE=1 \
-          NSLocationWhenInUseUsageDescription="CI Build - Location Services Disabled" \
-          NSLocationAlwaysUsageDescription="CI Build - Location Services Disabled" \
-          com.apple.security.device.location=NO \
-          com.apple.developer.icloud-services= \
-          com.apple.developer.icloud-container-identifiers= \
-          com.apple.developer.ubiquity-kvstore-identifier= \
-          SWIFT_COMPILATION_MODE=incremental \
-          SWIFT_OPTIMIZATION_LEVEL=-Onone \
-          SWIFT_WHOLE_MODULE_OPTIMIZATION=NO \
-          BUILD_LIBRARY_FOR_DISTRIBUTION=NO \
-          COMPILER_INDEX_STORE_ENABLE=NO \
-          -skipUnavailableActions \
-          -parallelizeTargets \
-          -quiet \
-          -hideShellScriptEnvironment
-
-        if [ $? -eq 0 ]; then
-          echo "✅ CI build succeeded"
-        else
-          echo "❌ CI build failed"
+        if [ ! -f "$TEST_EXEC" ]; then
+          echo "❌ Test executable not found"
           exit 1
         fi
 
-  build:
-    desc: Build project in debug mode
-    silent: true
-    cmds:
-      - |
-        echo "🔨 Building project (debug)..."
+        # Generate LCOV report
+        echo "📄 Generating LCOV coverage report..."
+        xcrun llvm-cov export \
+          -format=lcov \
+          -instr-profile="$PROF_DATA" \
+          "$TEST_EXEC" > coverage.lcov
 
-        # Check if xcpretty is available
-        if command -v xcpretty &> /dev/null || [ -f "$HOME/.gem/ruby/2.6.0/bin/xcpretty" ]; then
-          export PATH="$HOME/.gem/ruby/2.6.0/bin:$PATH"
-          FORMATTER="xcpretty --simple --color"
-          echo "Using xcpretty for output formatting"
-        else
-          FORMATTER="cat"
-          echo "xcpretty not found, using plain output"
-        fi
+        # Generate text report
+        echo "📄 Generating text coverage report..."
+        xcrun llvm-cov report \
+          -instr-profile="$PROF_DATA" \
+          "$TEST_EXEC" \
+          -ignore-filename-regex=".*Tests.*|.*Mock.*|.*\.build.*" > coverage-report.txt
 
-        echo "Building debug configuration..."
-        echo "Current directory: $(pwd)"
-        echo "Looking for project: {{.PROJECT_NAME}}.xcodeproj"
-        echo "Directory contents:"
-        ls -la | grep -E "xcodeproj|Taskfile" | head -10 || echo "No matching files"
-        echo "Project exists: $(ls {{.PROJECT_NAME}}.xcodeproj 2>/dev/null || echo 'NO')"
+        # Show coverage summary
+        echo ""
+        echo "📊 Coverage Summary:"
+        echo "==================="
+        tail -1 coverage-report.txt
 
-        # CI-specific settings
-        if [ "$CI" = "true" ]; then
-          EXTRA_FLAGS="CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY= CODE_SIGNING_REQUIRED=NO"
-          EXTRA_FLAGS="$EXTRA_FLAGS ENABLE_APP_SANDBOX=NO ENABLE_HARDENED_RUNTIME=NO"
-          EXTRA_FLAGS="$EXTRA_FLAGS MAGSAFE_GUARD_TEST_MODE=1"
-        else
-          EXTRA_FLAGS=""
-        fi
+        # Convert LCOV to Cobertura XML for SonarCloud
+        echo ""
+        echo "📄 Converting to Cobertura XML format..."
+        task sonar:convert || {
+          # Fallback: Create basic XML if conversion fails
+          echo '<?xml version="1.0" ?>' > coverage.xml
+          echo '<coverage version="1">' >> coverage.xml
+          echo '</coverage>' >> coverage.xml
+        }
 
-        set +e
-        xcodebuild build \
-          -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme {{.SCHEME_NAME}} \
-          -configuration Debug \
-          -destination 'platform=macOS' \
-          -derivedDataPath {{.DERIVED_DATA}} \
-          CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Debug \
-          $EXTRA_FLAGS \
-          > build_output.log 2>&1
-
-        BUILD_EXIT_CODE=$?
-
-        # Display output with formatter if available
-        if [ "$FORMATTER" = "cat" ]; then
-          cat build_output.log
-        else
-          cat build_output.log | $FORMATTER || cat build_output.log
-        fi
-
-        rm -f build_output.log
-        set -e
-
-        if [ $BUILD_EXIT_CODE -eq 0 ]; then
-          echo "✅ Build succeeded"
-          echo "   App: {{.DEBUG_APP_PATH}}"
-        else
-          echo "❌ Build failed"
-          exit 1
-        fi
-
-  build:release:
-    desc: Build project in release mode
-    silent: true
-    cmds:
-      - |
-        echo "🔨 Building project (release)..."
-
-        # Check if xcpretty is available
-        if command -v xcpretty &> /dev/null || [ -f "$HOME/.gem/ruby/2.6.0/bin/xcpretty" ]; then
-          export PATH="$HOME/.gem/ruby/2.6.0/bin:$PATH"
-          FORMATTER="xcpretty --simple --color"
-          echo "Using xcpretty for output formatting"
-        else
-          FORMATTER="cat"
-          echo "xcpretty not found, using plain output"
-        fi
-
-        echo "Building release configuration..."
-        echo "Current directory: $(pwd)"
-        echo "Looking for project: {{.PROJECT_NAME}}.xcodeproj"
-        echo "Directory contents:"
-        ls -la | grep -E "xcodeproj|Taskfile" | head -10 || echo "No matching files"
-        echo "Project exists: $(ls {{.PROJECT_NAME}}.xcodeproj 2>/dev/null || echo 'NO')"
-
-        # CI-specific settings
-        if [ "$CI" = "true" ]; then
-          EXTRA_FLAGS="CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY= CODE_SIGNING_REQUIRED=NO"
-          EXTRA_FLAGS="$EXTRA_FLAGS ENABLE_APP_SANDBOX=NO ENABLE_HARDENED_RUNTIME=NO"
-          EXTRA_FLAGS="$EXTRA_FLAGS MAGSAFE_GUARD_TEST_MODE=1"
-        else
-          EXTRA_FLAGS=""
-        fi
-
-        set +e
-        xcodebuild build \
-          -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme {{.SCHEME_NAME}} \
-          -configuration Release \
-          -destination 'platform=macOS' \
-          -derivedDataPath {{.DERIVED_DATA}} \
-          CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Release \
-          $EXTRA_FLAGS \
-          > build_output.log 2>&1
-
-        BUILD_EXIT_CODE=$?
-
-        # Display output with formatter if available
-        if [ "$FORMATTER" = "cat" ]; then
-          cat build_output.log
-        else
-          cat build_output.log | $FORMATTER || cat build_output.log
-        fi
-
-        rm -f build_output.log
-        set -e
-
-        if [ $BUILD_EXIT_CODE -eq 0 ]; then
-          echo "✅ Build succeeded"
-          echo "   App: {{.RELEASE_APP_PATH}}"
-          if [ -d "{{.RELEASE_APP_PATH}}" ]; then
-            echo "   Size: $(du -sh "{{.RELEASE_APP_PATH}}" | cut -f1)"
-          fi
-        else
-          echo "❌ Build failed"
-          exit 1
-        fi
-
-  clean:
-    desc: Clean Xcode build artifacts
-    silent: true
-    cmds:
-      - |
-        echo "🧹 Cleaning build artifacts..."
-
-        # Clean using xcodebuild
-        xcodebuild clean \
-          -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme {{.SCHEME_NAME}} \
-          -quiet || true
-
-        # Remove build directories
-        rm -rf {{.BUILD_DIR}}
-        rm -rf {{.DERIVED_DATA}}
-        rm -rf ~/Library/Developer/Xcode/DerivedData/{{.PROJECT_NAME}}-*
-
-        echo "✅ Build artifacts cleaned"
+        echo ""
+        echo "✅ SPM tests completed with coverage"
+        echo "   - LCOV: coverage.lcov"
+        echo "   - XML: coverage.xml"
+        echo "   - Text: coverage-report.txt"
 
   lint:
-    desc: Run SwiftLint
+    desc: Run SwiftLint to check code style
     silent: true
     cmds:
       - |
@@ -695,7 +112,7 @@ tasks:
         fi
 
   lint:fix:
-    desc: Auto-fix SwiftLint issues
+    desc: Auto-fix SwiftLint issues where possible
     silent: true
     cmds:
       - |
@@ -715,183 +132,80 @@ tasks:
           echo "   Or run: task swift:setup"
         fi
 
-  format:
-    desc: Format Swift code
+  build:
+    desc: Build project using Swift Package Manager
     silent: true
     cmds:
       - |
-        echo "🎨 Formatting Swift code..."
+        echo "🔨 Building with Swift Package Manager..."
+        swift build --configuration debug
+        echo "✅ SPM build completed"
 
-        # Use swift-format if available
-        if command -v swift-format &> /dev/null; then
-          swift-format -i -r {{.PROJECT_NAME}}/ {{.PROJECT_NAME}}Tests/
-          echo "✅ Swift code formatted with swift-format"
-        # Fall back to SwiftLint formatting
-        elif command -v swiftlint &> /dev/null; then
-          swiftlint lint --fix --quiet
-          echo "✅ Swift code formatted with SwiftLint"
-        else
-          echo "⚠️  No Swift formatter installed"
-          echo "   Install swift-format: brew install swift-format"
-          echo "   Or SwiftLint: brew install swiftlint"
-          exit 1
-        fi
-
-  deps:
-    desc: Show project dependencies
+  clean:
+    desc: Clean Swift Package Manager build artifacts
     silent: true
     cmds:
       - |
-        echo "📦 Project Dependencies:"
-        echo ""
-        echo "This is an Xcode project. Dependencies are managed through:"
-        echo "  - Swift Package Manager in Xcode (File > Add Package Dependencies)"
-        echo "  - CocoaPods (if Podfile exists)"
-        echo "  - Carthage (if Cartfile exists)"
-        echo ""
-        if [ -f "Package.resolved" ]; then
-          echo "SPM Dependencies:"
-          cat Package.resolved | jq -r '.pins[] | "  - \(.identity) @ \(.state.version // .state.revision[0:7])"'
-        else
-          echo "No Swift Package Manager dependencies found."
-        fi
-
-  deps:tree:
-    desc: Show project dependency tree
-    silent: true
-    cmds:
-      - |
-        echo "📦 Dependency Tree:"
-        echo ""
-        task swift:deps
-
-  update:
-    desc: Update project dependencies
-    silent: true
-    cmds:
-      - |
-        echo "📦 Updating dependencies..."
-        echo ""
-        echo "For Xcode projects, update dependencies through:"
-        echo "  1. Open {{.PROJECT_NAME}}.xcodeproj in Xcode"
-        echo "  2. File > Packages > Update to Latest Package Versions"
-        echo ""
-        echo "Or use xcodebuild:"
-        xcodebuild -resolvePackageDependencies -project {{.PROJECT_NAME}}.xcodeproj -scheme {{.PROJECT_NAME}} || true
-        echo "✅ Package resolution complete"
-
-  resolve:
-    desc: Resolve project dependencies
-    silent: true
-    cmds:
-      - |
-        echo "📦 Resolving dependencies..."
-        xcodebuild -resolvePackageDependencies -project {{.PROJECT_NAME}}.xcodeproj -scheme {{.PROJECT_NAME}}
-        echo "✅ Dependencies resolved"
+        echo "🧹 Cleaning SPM build artifacts..."
+        rm -rf {{.SPM_BUILD_DIR}}
+        rm -rf Package.resolved
+        rm -f coverage.lcov coverage.xml coverage-report.txt
+        echo "✅ SPM artifacts cleaned"
 
   setup:
-    desc: Setup Swift development tools
+    desc: Setup Swift development environment and tools
     silent: true
     cmds:
       - |
-        echo "🔧 Installing Swift development tools..."
+        echo "🔧 Setting up Swift environment..."
+
+        # Check Swift version
+        echo "Swift version:"
+        swift --version
+        echo ""
 
         # Detect OS
         OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 
-        if [ "$OS" != "darwin" ]; then
-          echo "⚠️  This task is optimized for macOS"
-          echo "   For other platforms, please install tools manually"
-          exit 0
-        fi
+        if [ "$OS" = "darwin" ]; then
+          # macOS setup
+          echo "📦 Setting up development tools for macOS..."
 
-        # Check for Homebrew
-        if ! command -v brew &> /dev/null; then
-          echo "❌ Homebrew not found"
-          echo "   Install from: https://brew.sh"
-          exit 1
-        fi
-
-        # Install/Update SwiftLint
-        if ! command -v swiftlint &> /dev/null; then
-          echo "📦 Installing SwiftLint..."
-          brew install swiftlint
-        else
-          echo "✅ SwiftLint already installed ($(swiftlint version))"
-          if brew outdated | grep -q "^swiftlint"; then
-            echo "📦 Updating SwiftLint..."
-            brew upgrade swiftlint
+          # Check for Homebrew
+          if ! command -v brew &> /dev/null; then
+            echo "❌ Homebrew not found"
+            echo "   Install from: https://brew.sh"
+            exit 1
           fi
-        fi
 
-        # Install/Update xcpretty (for cleaner xcodebuild output)
-        if ! command -v xcpretty &> /dev/null; then
-          echo "📦 Installing xcpretty..."
-          gem install xcpretty --user-install 2>/dev/null || {
-            echo "  If that fails, try: sudo gem install xcpretty"
-          }
-        else
-          echo "✅ xcpretty already installed"
-        fi
-
-        # Install/Update swift-format (optional)
-        if ! command -v swift-format &> /dev/null; then
-          echo "📦 Installing swift-format..."
-          brew install swift-format
-        else
-          echo "✅ swift-format already installed"
-          if brew outdated | grep -q "^swift-format"; then
-            echo "📦 Updating swift-format..."
-            brew upgrade swift-format
+          # Install/Update SwiftLint
+          if ! command -v swiftlint &> /dev/null; then
+            echo "📦 Installing SwiftLint..."
+            brew install swiftlint
+          else
+            echo "✅ SwiftLint already installed ($(swiftlint version))"
           fi
+
+          # Install/Update swift-format (optional)
+          if ! command -v swift-format &> /dev/null; then
+            echo "📦 Installing swift-format (optional)..."
+            brew install swift-format
+          else
+            echo "✅ swift-format already installed"
+          fi
+        else
+          # Linux setup
+          echo "📦 Setting up development tools for Linux..."
+          echo "Note: On Linux, SwiftLint must be built from source or run via Docker"
         fi
+
+        # Resolve package dependencies
+        echo ""
+        echo "📦 Resolving package dependencies..."
+        swift package resolve
 
         echo ""
-        echo "✅ Swift development tools installed"
-
-  docs:
-    desc: Generate Swift API documentation
-    silent: true
-    vars:
-      OUTPUT_PATH: '{{.OUTPUT_PATH | default "docs/api"}}'
-    cmds:
-      - |
-        echo "📚 Generating Swift API documentation..."
-
-        # Build documentation using DocC
-        echo "Building documentation with Xcode..."
-        xcodebuild docbuild \
-          -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme {{.SCHEME_NAME}} \
-          -derivedDataPath {{.DERIVED_DATA}}
-
-        if [ $? -eq 0 ]; then
-          echo "✅ Documentation built successfully!"
-          echo ""
-          echo "To view in Xcode:"
-          echo "  1. Open {{.PROJECT_NAME}}.xcodeproj"
-          echo "  2. Product → Documentation"
-        else
-          echo "❌ Documentation build failed"
-        fi
-
-  outdated:
-    desc: Check for outdated dependencies
-    silent: true
-    cmds:
-      - |
-        echo "🔍 Checking for outdated dependencies..."
-        echo ""
-        if [ -f "Package.resolved" ]; then
-          echo "Current SPM dependencies:"
-          cat Package.resolved | jq -r '.pins[] | "  - \(.identity) @ \(.state.version // .state.revision[0:7])"'
-          echo ""
-          echo "To update dependencies:"
-          echo "  1. Open Xcode"
-          echo "  2. File > Packages > Update to Latest Package Versions"
-        else
-          echo "No Swift Package Manager dependencies found."
-        fi
+        echo "✅ Swift environment ready"
 
   sbom:
     desc: Generate Software Bill of Materials (SBOM) in SPDX format
@@ -900,8 +214,8 @@ tasks:
       - |
         echo "📦 Generating SBOM for Swift project..."
 
-        # Get project info
-        PACKAGE_NAME={{.PROJECT_NAME}}
+        # Get package info
+        PACKAGE_NAME=$(swift package dump-package | jq -r '.name')
         VERSION=$(git describe --tags --always 2>/dev/null || echo "1.0.0")
         TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
@@ -928,292 +242,41 @@ tasks:
         echo "PackageCopyrightText: NOASSERTION" >> sbom.spdx
         echo "" >> sbom.spdx
 
-        # Dependencies from Package.resolved if exists
+        # Dependencies
         echo "" >> sbom.spdx
         echo "# Dependencies" >> sbom.spdx
+        DEPS=$(swift package show-dependencies --format json | jq -r '.dependencies[]? | "PackageName: " + .name + "\nSPDXID: SPDXRef-Package-" + .identity + "\nPackageVersion: " + (.version // "unknown") + "\nPackageDownloadLocation: " + (.url // "NOASSERTION") + "\nFilesAnalyzed: false\nPackageLicenseConcluded: NOASSERTION\nPackageLicenseDeclared: NOASSERTION\nPackageCopyrightText: NOASSERTION\n\nRelationship: SPDXRef-Package-" + .identity + " DEPENDENCY_OF SPDXRef-Package-${PACKAGE_NAME}\n"' 2>/dev/null || echo "")
 
-        if [ -f "Package.resolved" ]; then
-          DEPS=$(cat Package.resolved | jq -r '.pins[]? | 
-            "PackageName: " + .identity + "\n" +
-            "SPDXID: SPDXRef-Package-" + (.identity | gsub("[^a-zA-Z0-9]"; "-")) + "\n" +
-            "PackageVersion: " + (.state.version // .state.revision[0:7] // "unknown") + "\n" +
-            "PackageDownloadLocation: " + .location + "\n" +
-            "FilesAnalyzed: false\n" +
-            "PackageLicenseConcluded: NOASSERTION\n" +
-            "PackageLicenseDeclared: NOASSERTION\n" +
-            "PackageCopyrightText: NOASSERTION\n" +
-            "\n" +
-            "Relationship: SPDXRef-Package-" + (.identity | gsub("[^a-zA-Z0-9]"; "-")) + " DEPENDENCY_OF SPDXRef-Package-${PACKAGE_NAME}\n"' 2>/dev/null || echo "")
-
-          if [ -n "$DEPS" ]; then
-            echo "$DEPS" >> sbom.spdx
-          fi
-        else
-          echo "# No dependencies found" >> sbom.spdx
+        if [ -n "$DEPS" ]; then
+          echo "$DEPS" >> sbom.spdx
         fi
 
         echo "✅ Generated: sbom.spdx"
         echo "   Project: ${PACKAGE_NAME} v${VERSION}"
 
-        # Also generate Package.resolved copy if exists
-        if [ -f "Package.resolved" ]; then
-          cp Package.resolved sbom-deps.json
-          echo "✅ Also generated: sbom-deps.json (copy of Package.resolved)"
-        fi
+        # Also generate in JSON format
+        swift package show-dependencies --format json > sbom-deps.json
 
+        echo "✅ Also generated: sbom-deps.json (Swift dependencies)"
     sources:
-      - "{{.PROJECT_NAME}}/**/*.swift"
-      - "{{.PROJECT_NAME}}Tests/**/*.swift"
+      - Package.swift
+      - Sources/**/*.swift
     generates:
       - sbom.spdx
       - sbom-deps.json
 
-  sign:
-    desc: Sign the MagSafe Guard app (interactive - prompts for configuration)
-    silent: true
+  # Internal tasks for backward compatibility
+  _spm:test:
+    internal: true
     cmds:
-      - |
-        echo "🔐 MagSafe Guard Code Signing"
-        echo "============================="
-        echo ""
-        echo "Select signing configuration:"
-        echo "1) Development (local testing)"
-        echo "2) Release (Developer ID for direct distribution)"
-        echo "3) App Store (for App Store submission)"
-        echo "4) CI (ad-hoc signing for testing)"
-        echo ""
-        read -p "Enter choice (1-4) [1]: " choice
-        choice=${choice:-1}
+      - task: swift:test
 
-        case $choice in
-          1) task swift:sign:dev ;;
-          2) task swift:sign:release ;;
-          3) task swift:sign:appstore ;;
-          4) task swift:sign:ci ;;
-          *) echo "Invalid choice"; exit 1 ;;
-        esac
-
-  sign:dev:
-    desc: Sign app for development
-    silent: true
+  _spm:build:
+    internal: true
     cmds:
-      - |
-        ./scripts/sign-app.sh development
-          2>&1 | $FORMATTER
+      - task: swift:build
 
-        EXIT_CODE=$?
-        set -e
-
-        if [ $EXIT_CODE -eq 0 ]; then
-          echo "✅ App built and signed for development"
-          echo "   App: {{.DEBUG_APP_PATH}}"
-        else
-          echo "❌ Build/signing failed"
-          exit 1
-        fi
-
-  sign:release:
-    desc: Sign app for release with Developer ID
-    silent: true
+  _spm:clean:
+    internal: true
     cmds:
-      - |
-        ./scripts/sign-app.sh release
-          DEVELOPMENT_TEAM=PW6K4BERFV \
-          2>&1 | $FORMATTER
-
-        EXIT_CODE=$?
-        set -e
-
-        if [ $EXIT_CODE -eq 0 ]; then
-          echo "✅ App built and signed for release"
-          echo "   App: {{.RELEASE_APP_PATH}}"
-          echo ""
-          echo "Next steps:"
-          echo "  1. Notarize: xcrun notarytool submit {{.RELEASE_APP_PATH}}"
-          echo "  2. Staple: xcrun stapler staple {{.RELEASE_APP_PATH}}"
-        else
-          echo "❌ Build/signing failed"
-          exit 1
-        fi
-
-  sign:appstore:
-    desc: Sign app for App Store distribution
-    silent: true
-    cmds:
-      - |
-        # Build with App Store signing
-        echo "🔨 Building for App Store..."
-        set +e
-        xcodebuild build \
-          -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme {{.SCHEME_NAME}} \
-          -configuration Release \
-          -derivedDataPath {{.DERIVED_DATA}} \
-          CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Release \
-          CODE_SIGN_STYLE=Manual \
-          CODE_SIGN_IDENTITY="Apple Distribution" \
-          DEVELOPMENT_TEAM=PW6K4BERFV \
-          2>&1 | $FORMATTER
-
-        EXIT_CODE=$?
-        set -e
-
-        if [ $EXIT_CODE -eq 0 ]; then
-          echo "✅ App built and signed for App Store"
-          echo "   App: {{.RELEASE_APP_PATH}}"
-          echo ""
-          echo "Next step: Archive and upload to App Store Connect"
-        else
-          echo "❌ Build/signing failed"
-          exit 1
-        fi
-
-  sign:ci:
-    desc: Ad-hoc sign app for CI testing
-    silent: true
-    cmds:
-      - |
-        ./scripts/sign-app.sh ci
-          -project {{.PROJECT_NAME}}.xcodeproj \
-          -scheme {{.SCHEME_NAME}} \
-          -configuration Release \
-          -derivedDataPath {{.DERIVED_DATA}} \
-          CONFIGURATION_BUILD_DIR={{.BUILD_DIR}}/Release \
-          CODE_SIGN_IDENTITY="-" \
-          CODE_SIGNING_ALLOWED=YES \
-          > build_output.log 2>&1
-
-        EXIT_CODE=$?
-
-        # Display output with formatter if available
-        if [ "$FORMATTER" = "cat" ]; then
-          cat build_output.log
-        else
-          cat build_output.log | $FORMATTER || cat build_output.log
-        fi
-
-        rm -f build_output.log
-        set -e  # Re-enable exit on error
-
-        if [ $EXIT_CODE -eq 0 ]; then
-          echo "✅ App built with ad-hoc signing"
-          echo "   App: {{.RELEASE_APP_PATH}}"
-          # Also check if app actually exists
-          if [ -d "{{.RELEASE_APP_PATH}}" ]; then
-            echo "   App bundle verified at: $(realpath {{.RELEASE_APP_PATH}})"
-          else
-            echo "   ⚠️  Warning: App bundle not found at expected location"
-          fi
-        else
-          echo "❌ Build/signing failed"
-          exit 1
-        fi
-
-  sign:verify:
-    desc: Verify app signature and notarization status
-    silent: true
-    cmds:
-      - |
-        # Use the bundler app path
-        APP_PATH=".build/bundler/MagSafeGuard.app"
-        if [ ! -d "$APP_PATH" ]; then
-          echo "❌ No app found at $APP_PATH. Build the app first with 'task build'."
-          exit 1
-        fi
-
-        echo "🔍 Verifying {{.PROJECT_NAME}} Signature"
-        echo "===================================="
-        echo "App: $APP_PATH"
-        echo ""
-
-        # Basic signature verification
-        echo "📋 Signature verification:"
-        if codesign --verify --deep --verbose=2 "$APP_PATH" 2>&1; then
-          echo "✅ Signature is valid"
-        else
-          echo "❌ Signature verification failed"
-          exit 1
-        fi
-
-        echo ""
-        echo "📋 Signature details:"
-        codesign -dvvv "$APP_PATH" 2>&1 | grep -E "Authority|TeamIdentifier|Signature|Identifier|Format|CDHash" | head -15
-
-        echo ""
-        echo "📋 Entitlements:"
-        codesign -d --entitlements - "$APP_PATH" 2>&1 | grep -E "key>" | sed 's/.*<key>/  - /' | sed 's/<\/key>.*//'
-
-        echo ""
-        echo "📋 Gatekeeper assessment:"
-        spctl -a -t exec -vv "$APP_PATH" 2>&1 || true
-
-        echo ""
-        echo "📋 Notarization status:"
-        if spctl --assess -vv "$APP_PATH" 2>&1 | grep -q "accepted"; then
-          echo "✅ App is notarized or accepted by Gatekeeper"
-        else
-          echo "⚠️  App is not notarized (required for distribution)"
-        fi
-
-  sign:export-cert:
-    desc: Export signing certificate for CI/CD
-    silent: true
-    cmds:
-      - |
-        echo "🔐 Export Signing Certificate"
-        echo "============================"
-        echo ""
-
-        # Find Developer ID certificate
-        IDENTITY=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | awk '{print $2}')
-
-        if [ -z "$IDENTITY" ]; then
-          echo "❌ No Developer ID Application certificate found"
-          exit 1
-        fi
-
-        CERT_NAME=$(security find-identity -v -p codesigning | grep "$IDENTITY" | sed 's/^[^"]*"//' | sed 's/"$//')
-        echo "Found certificate: $CERT_NAME"
-        echo ""
-
-        OUTPUT_PATH="$HOME/Desktop/{{.PROJECT_NAME}}-Certificate.p12"
-
-        echo "This will export your certificate and private key."
-        echo "You'll need to create a password to protect the exported file."
-        echo ""
-        echo "⚠️  SECURITY WARNING:"
-        echo "- Keep this file secure - it contains your private key"
-        echo "- Never commit it to version control"
-        echo "- Delete it after importing to CI/CD system"
-        echo ""
-        read -p "Continue? (y/n) " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-          echo "Export cancelled"
-          exit 0
-        fi
-
-        echo ""
-        echo "Exporting certificate..."
-        security export -k ~/Library/Keychains/login.keychain-db -t identities -f pkcs12 -o "$OUTPUT_PATH" || {
-          echo ""
-          echo "❌ Export failed. Try using Keychain Access app instead:"
-          echo "1. Open Keychain Access"
-          echo "2. Find '$CERT_NAME'"
-          echo "3. Right-click → Export"
-          echo "4. Save as .p12 file"
-          exit 1
-        }
-
-        echo ""
-        echo "✅ Certificate exported to: $OUTPUT_PATH"
-        echo ""
-        echo "For GitHub Actions, convert to base64:"
-        echo "  base64 -i \"$OUTPUT_PATH\" | pbcopy"
-        echo "  (The base64 string is now in your clipboard)"
-        echo ""
-        echo "Then add to GitHub secrets:"
-        echo "  - SIGNING_CERTIFICATE_P12_DATA (the base64 string)"
-        echo "  - SIGNING_CERTIFICATE_PASSWORD (the password you created)"
-        echo ""
-        echo "Remember to delete the P12 file when done!"
+      - task: swift:clean

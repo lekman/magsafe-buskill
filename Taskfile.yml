@@ -348,21 +348,24 @@ tasks:
       - |
         echo "🧪 Running tests for Models and Controllers..."
 
-        # First build without tests to speed up the process
-        echo "🔨 Building test dependencies..."
+        # First build with coverage enabled
+        echo "🔨 Building test dependencies with coverage..."
         xcodebuild build-for-testing \
           -project MagSafeGuard.xcodeproj \
           -scheme MagSafeGuard \
           -configuration Debug \
           -destination 'platform=macOS,arch=arm64' \
           -derivedDataPath DerivedData \
+          -enableCodeCoverage YES \
           -skipUnavailableActions \
           CODE_SIGNING_ALLOWED=NO \
           CODE_SIGN_IDENTITY= \
           CODE_SIGNING_REQUIRED=NO \
           COMPILER_INDEX_STORE_ENABLE=NO \
+          GCC_GENERATE_TEST_COVERAGE_FILES=YES \
+          GCC_INSTRUMENT_PROGRAM_FLOW_ARCS=YES \
           -quiet || true
-        
+
         # Now run only the specific tests
         echo "🧪 Running specific tests..."
         xcodebuild test-without-building \
@@ -391,15 +394,26 @@ tasks:
 
         # Find the coverage profdata
         PROFDATA=$(find DerivedData -name '*.profdata' -type f | head -1)
-        BINARY_PATH="DerivedData/Build/Products/Debug/MagSafeGuard.app/Contents/MacOS/MagSafeGuard"
 
-        if [ -n "$PROFDATA" ] && [ -f "$BINARY_PATH" ]; then
-          # Generate LCOV report
+        # Find the test bundle binary
+        TEST_BUNDLE=$(find DerivedData -path "*/MagSafeGuard.app/Contents/PlugIns/MagSafeGuardTests.xctest" -type d | head -1)
+        if [ -n "$TEST_BUNDLE" ]; then
+          TEST_BINARY="$TEST_BUNDLE/Contents/MacOS/MagSafeGuardTests"
+        fi
+
+        # Find the app binary
+        APP_BUNDLE=$(find DerivedData -path "*/Debug/MagSafeGuard.app" -type d | head -1)
+        if [ -n "$APP_BUNDLE" ]; then
+          APP_BINARY="$APP_BUNDLE/Contents/MacOS/MagSafeGuard"
+        fi
+
+        if [ -n "$PROFDATA" ] && [ -f "$TEST_BINARY" ] && [ -f "$APP_BINARY" ]; then
+          # Generate LCOV report including both binaries
           xcrun llvm-cov export \
             -format=lcov \
             -instr-profile="$PROFDATA" \
-            "DerivedData/Build/Products/Debug/MagSafeGuard.app/Contents/PlugIns/MagSafeGuardTests.xctest/Contents/MacOS/MagSafeGuardTests" \
-            -object "$BINARY_PATH" > coverage-raw.lcov
+            "$TEST_BINARY" \
+            -object "$APP_BINARY" > coverage-raw.lcov
           
           # Filter to only include source files (exclude tests and mocks)
           awk '/^SF:/ { 
@@ -426,8 +440,8 @@ tasks:
           # Generate text report for debugging
           xcrun llvm-cov report \
             -instr-profile="$PROFDATA" \
-            "DerivedData/Build/Products/Debug/MagSafeGuard.app/Contents/PlugIns/MagSafeGuardTests.xctest/Contents/MacOS/MagSafeGuardTests" \
-            -object "$BINARY_PATH" > coverage-report-raw.txt || echo "No coverage data" > coverage-report-raw.txt
+            "$TEST_BINARY" \
+            -object "$APP_BINARY" > coverage-report-raw.txt || echo "No coverage data" > coverage-report-raw.txt
           
           # Filter out mock files from the text report
           if [ -f coverage-report-raw.txt ]; then
@@ -548,7 +562,7 @@ tasks:
     cmds:
       - echo "🔬 Running standard QA suite..."
       - task: qa:fix
-      - task: swift:test:coverage
+      - task: swift:test
       - task: swift:lint
       - task: yaml:lint
       - task: markdown:lint
