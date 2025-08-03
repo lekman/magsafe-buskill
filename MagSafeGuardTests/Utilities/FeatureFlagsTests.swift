@@ -15,6 +15,10 @@ final class FeatureFlagsTests: XCTestCase {
     super.setUp()
     // Reset to defaults before each test
     FeatureFlags.shared.reload()
+    // Ensure all flags are at their default values
+    for flag in FeatureFlags.Flag.allCases {
+      FeatureFlags.shared.setFlag(flag, enabled: flag.defaultValue)
+    }
   }
 
   override func tearDown() {
@@ -153,7 +157,8 @@ final class FeatureFlagsTests: XCTestCase {
   // MARK: - JSON Save/Load Tests
 
   func testSaveToJSON() throws {
-    let testPath = FileManager.default.currentDirectoryPath + "/test-feature-flags.json"
+    let tempDir = FileManager.default.temporaryDirectory
+    let testPath = tempDir.appendingPathComponent("test-feature-flags.json").path
 
     // Modify some flags
     FeatureFlags.shared.setFlag(.verboseLogging, enabled: false)
@@ -175,7 +180,8 @@ final class FeatureFlagsTests: XCTestCase {
   }
 
   func testLoadFromJSON() throws {
-    let testPath = FileManager.default.currentDirectoryPath + "/feature-flags.json"
+    let tempDir = FileManager.default.temporaryDirectory
+    let testPath = tempDir.appendingPathComponent("feature-flags.json").path
 
     // Create test JSON
     let testFlags: [String: Bool] = [
