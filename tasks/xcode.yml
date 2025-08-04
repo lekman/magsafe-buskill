@@ -267,27 +267,70 @@ tasks:
         fi
 
   setup:
-    desc: Install dependencies for better Xcode output
+    desc: Setup Xcode development tools
     silent: true
     cmds:
       - |
-        echo "🔧 Setting up Xcode tools..."
+        echo "🔧 Setting up Xcode development tools..."
+        echo ""
 
-        # Install xcbeautify for better output
-        if ! command -v xcbeautify &> /dev/null; then
-          if command -v brew &> /dev/null; then
-            echo "Installing xcbeautify..."
-            brew install xcbeautify
-          else
-            echo "⚠️  Homebrew not found. Install xcbeautify manually:"
-            echo "   brew install xcbeautify"
-          fi
+        # Check for Xcode
+        if ! command -v xcodebuild &> /dev/null; then
+          echo "❌ Xcode not found"
+          echo "   Please install Xcode from the App Store or Xcode Command Line Tools:"
+          echo "   xcode-select --install"
+          exit 1
         else
-          echo "✅ xcbeautify already installed"
+          XCODE_VERSION=$(xcodebuild -version | head -1)
+          echo "✅ $XCODE_VERSION installed"
         fi
 
+        # Check for Homebrew
+        if ! command -v brew &> /dev/null; then
+          echo "❌ Homebrew not found"
+          echo "   Please install Homebrew first:"
+          echo "   /bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+          exit 1
+        fi
+
+        # Install/Update xcbeautify
+        if ! command -v xcbeautify &> /dev/null; then
+          echo "📦 Installing xcbeautify..."
+          brew install xcbeautify
+          if [ $? -eq 0 ]; then
+            echo "✅ xcbeautify installed successfully"
+          else
+            echo "❌ Failed to install xcbeautify"
+            exit 1
+          fi
+        else
+          # Check if update is available
+          echo "🔍 Checking for xcbeautify updates..."
+          CURRENT_VERSION=$(xcbeautify --version 2>/dev/null | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+          
+          # Check if outdated using brew
+          if brew outdated --quiet | grep -q "^xcbeautify$"; then
+            echo "📦 Updating xcbeautify from version $CURRENT_VERSION..."
+            brew upgrade xcbeautify
+            if [ $? -eq 0 ]; then
+              NEW_VERSION=$(xcbeautify --version 2>/dev/null | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+              echo "✅ xcbeautify updated to version $NEW_VERSION"
+            else
+              echo "⚠️  Failed to update xcbeautify, but current version will work"
+            fi
+          else
+            echo "✅ xcbeautify is up to date (version $CURRENT_VERSION)"
+          fi
+        fi
+
+        # Verify all tools are available
         echo ""
-        echo "✅ Xcode tools setup complete"
+        echo "📋 Tool Summary:"
+        echo "   ✅ Xcode: $(xcodebuild -version | head -1 | sed 's/Xcode //')"
+        echo "   ✅ xcbeautify: $(xcbeautify --version 2>/dev/null | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' || echo "installed")"
+
+        echo ""
+        echo "✅ Xcode development tools are ready!"
 
   install-xcbeautify:
     desc: Install xcbeautify for prettier output

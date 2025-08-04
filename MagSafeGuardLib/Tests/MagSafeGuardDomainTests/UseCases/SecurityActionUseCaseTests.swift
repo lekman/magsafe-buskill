@@ -216,23 +216,33 @@ struct SecurityActionUseCaseTests {
         }
     }
 
-    @Test("Should validate configuration - invalid alarm volume")
-    func testInvalidAlarmVolumeValidation() {
-        // Given
-        let useCase = SecurityActionConfigurationUseCaseImpl()
-        let invalidConfiguration = SecurityActionConfiguration(
+    @Test("SecurityActionConfiguration clamps alarm volume")
+    func testAlarmVolumeClamping() {
+        // Given - Try to create configuration with invalid volumes
+        let tooHighConfig = SecurityActionConfiguration(
             enabledActions: [.lockScreen],
-            alarmVolume: 1.5 // Invalid - above 1.0
+            alarmVolume: 1.5 // Should be clamped to 1.0
+        )
+        
+        let tooLowConfig = SecurityActionConfiguration(
+            enabledActions: [.lockScreen],
+            alarmVolume: -0.5 // Should be clamped to 0.0
         )
 
-        // When
-        let result = useCase.validateConfiguration(invalidConfiguration)
-
-        // Then
-        if case .failure(let error) = result {
-            #expect(error == .invalidConfiguration(reason: "Alarm volume must be between 0 and 1"))
-        } else {
-            Issue.record("Expected validation failure")
+        // Then - Volume should be clamped to valid range
+        #expect(tooHighConfig.alarmVolume == 1.0)
+        #expect(tooLowConfig.alarmVolume == 0.0)
+        
+        // Verify validation passes for clamped values
+        let useCase = SecurityActionConfigurationUseCaseImpl()
+        let result1 = useCase.validateConfiguration(tooHighConfig)
+        let result2 = useCase.validateConfiguration(tooLowConfig)
+        
+        if case .failure = result1 {
+            Issue.record("Expected validation to pass for clamped high value")
+        }
+        if case .failure = result2 {
+            Issue.record("Expected validation to pass for clamped low value")
         }
     }
 
