@@ -65,7 +65,6 @@ let package = Package(
             dependencies: ["MagSafeGuardDomain", "MagSafeGuardCore"],
             path: "MagSafeGuardTests",
             sources: [
-                "SimpleTest.swift",
                 "Domain/DomainProtocolTests.swift",
                 "Domain/UseCases/SecurityActionUseCaseImplTests.swift",
                 "Domain/UseCases/PowerMonitorUseCaseImplTests.swift",

@@ -249,7 +249,7 @@ task git:cve:analyze MIN_SEVERITY=critical
 - Summary report with CVE details
 - Filtered JSON data
 - Raw API response
-- Saved to `./logs/vulnerabilities/`
+- Saved to `./.logs/vulnerabilities/`
 
 #### List Dependabot Alerts (`task git:cve:list`)
 
@@ -324,11 +324,11 @@ sudo apt install gh
 task git:pr:comments PR=21
 
 # 2. Review GHAS alerts in the report
-cat .github/pr-comments/pr-21-report.md
+cat .logs/pr/pr-21-report.md
 
 # 3. Check specific security findings
 jq '.[] | select(.app.slug == "github-code-scanning")' \
-  .github/pr-comments/pr-21-check-runs.json
+  .logs/pr/pr-21-check-runs.json
 ```
 
 ### Security Audit Workflow
@@ -341,7 +341,7 @@ task git:cve:analyze MIN_SEVERITY=low
 task git:cve:list
 
 # 3. Review detailed report
-cat ./logs/vulnerabilities/vulns-*-summary.txt
+cat ./.logs/vulnerabilities/vulns-*-summary.txt
 ```
 
 ### Branch Cleanup Workflow
@@ -366,11 +366,11 @@ Extract specific types of comments:
 ```bash
 # Get only security-related comments
 jq '.[] | select(.body | contains("security"))' \
-  .github/pr-comments/pr-21-issue-comments.json
+  .logs/pr/pr-21-issue-comments.json
 
 # Find unresolved review comments
 jq '.[] | select(.resolved == false)' \
-  .github/pr-comments/pr-21-review-comments.json
+  .logs/pr/pr-21-review-comments.json
 ```
 
 ### Automating Reports
@@ -399,7 +399,7 @@ Use in GitHub Actions:
   uses: actions/upload-artifact@v3
   with:
     name: pr-comments
-    path: .github/pr-comments/
+    path: .logs/pr/
 ```
 
 ## Troubleshooting

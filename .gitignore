@@ -125,7 +125,7 @@ sbom-deps.json
 .scannerwork/
 
 # GitHub reports
-.github/pr-comments/
+.logs/pr/
 
 # Swift Bundler binary, build files, and cache
 DerivedData/

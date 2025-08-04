@@ -324,7 +324,7 @@ tasks:
     dotenv: [".env"]
     vars:
       MIN_SEVERITY: '{{.MIN_SEVERITY | default "medium"}}'
-      LOG_DIR: "./logs/vulnerabilities"
+      LOG_DIR: "./.logs/vulnerabilities"
     cmds:
       - |
         # Set up authentication - prefer gh CLI auth, fallback to GITHUB_TOKEN
