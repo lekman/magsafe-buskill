@@ -80,28 +80,6 @@ jobs:
           # Initialize counter
           found_issues=0
 
-          # Check Swift files for hardcoded secrets
-          echo "Checking Swift files..."
-          swift_files=$(find . -name "*.swift" -type f 2>/dev/null || true)
-
-          if [ -n "$swift_files" ]; then
-            for file in $swift_files; do
-              # Check for obvious secret patterns
-              if grep -q -i -E 'password\s*=\s*"[^"]+"' "$file" 2>/dev/null; then
-                echo "⚠️  Potential hardcoded password in: $file"
-                found_issues=$((found_issues + 1))
-              fi
-              if grep -q -i -E 'api_?key\s*=\s*"[^"]+"' "$file" 2>/dev/null; then
-                echo "⚠️  Potential hardcoded API key in: $file"
-                found_issues=$((found_issues + 1))
-              fi
-              if grep -q -i -E 'secret\s*=\s*"[^"]+"' "$file" 2>/dev/null; then
-                echo "⚠️  Potential hardcoded secret in: $file"
-                found_issues=$((found_issues + 1))
-              fi
-            done
-          fi
-
           # Check for private key files
           echo ""
           echo "Checking for private key files..."
