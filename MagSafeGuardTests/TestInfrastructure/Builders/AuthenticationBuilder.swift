@@ -9,7 +9,8 @@
 //
 
 import Foundation
-@testable import MagSafeGuard
+@testable import MagSafeGuardDomain
+@testable import MagSafeGuardCore
 
 /// Builder for creating AuthenticationRequest test instances.
 public final class AuthenticationRequestBuilder {

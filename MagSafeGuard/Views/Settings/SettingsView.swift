@@ -299,7 +299,7 @@ struct SecuritySettingsView: View {
       Spacer()
 
       Button("Reset to Defaults") {
-        settingsManager.updateSetting(\.securityActions, value: [.lockScreen, .unmountVolumes])
+        settingsManager.updateSetting(\.securityActions, value: [.lockScreen, .soundAlarm])
       }
       .buttonStyle(.link)
     }

@@ -8,7 +8,7 @@
 import Foundation
 
 /// macOS implementation of SecurityActionRepository
-public final class MacSystemActionsRepository: SecurityActionRepository {
+public final class MacSystemActionsRepository: SecurityActionRepository, @unchecked Sendable {
 
     // MARK: - Properties
 
@@ -27,7 +27,7 @@ public final class MacSystemActionsRepository: SecurityActionRepository {
 
     /// Locks the screen immediately
     public func lockScreen() async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             queue.async { [weak self] in
                 guard let self = self else {
                     continuation.resume(throwing: SecurityActionError.systemError(description: "Service unavailable"))
@@ -47,7 +47,7 @@ public final class MacSystemActionsRepository: SecurityActionRepository {
     /// Plays an alarm sound at the specified volume
     /// - Parameter volume: The volume level (0.0-1.0)
     public func playAlarm(volume: Float) async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             queue.async { [weak self] in
                 guard let self = self else {
                     continuation.resume(throwing: SecurityActionError.systemError(description: "Service unavailable"))
@@ -66,7 +66,7 @@ public final class MacSystemActionsRepository: SecurityActionRepository {
 
     /// Stops any currently playing alarm
     public func stopAlarm() async {
-        await withCheckedContinuation { continuation in
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             queue.async { [weak self] in
                 self?.systemActions.stopAlarm()
                 continuation.resume()
@@ -76,7 +76,7 @@ public final class MacSystemActionsRepository: SecurityActionRepository {
 
     /// Forces logout of all users
     public func forceLogout() async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             queue.async { [weak self] in
                 guard let self = self else {
                     continuation.resume(throwing: SecurityActionError.systemError(description: "Service unavailable"))
@@ -96,7 +96,7 @@ public final class MacSystemActionsRepository: SecurityActionRepository {
     /// Schedules a system shutdown after the specified delay
     /// - Parameter afterSeconds: The delay before shutdown
     public func scheduleShutdown(afterSeconds: TimeInterval) async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             queue.async { [weak self] in
                 guard let self = self else {
                     continuation.resume(throwing: SecurityActionError.systemError(description: "Service unavailable"))
@@ -116,7 +116,7 @@ public final class MacSystemActionsRepository: SecurityActionRepository {
     /// Executes a custom script at the specified path
     /// - Parameter path: The path to the script file
     public func executeScript(at path: String) async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             queue.async { [weak self] in
                 guard let self = self else {
                     continuation.resume(throwing: SecurityActionError.systemError(description: "Service unavailable"))

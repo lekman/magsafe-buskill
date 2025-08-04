@@ -9,7 +9,8 @@
 //
 
 import Foundation
-@testable import MagSafeGuard
+@testable import MagSafeGuardDomain
+@testable import MagSafeGuardCore
 
 /// Mock implementation of SystemArmingService for testing.
 /// Allows full control over system arming behavior in tests.

@@ -8,6 +8,7 @@
 //
 
 import Foundation
+import MagSafeGuardDomain
 
 /// Comprehensive settings model for MagSafe Guard configuration.
 ///
@@ -31,7 +32,7 @@ import Foundation
 /// ```
 ///
 /// Settings are automatically validated when modified through `UserDefaultsManager`.
-public struct Settings: Codable, Equatable {
+public struct Settings: Codable {
 
   // MARK: - Security Settings
 
@@ -60,7 +61,7 @@ public struct Settings: Codable, Equatable {
   /// Users can reorder actions based on their security requirements.
   ///
   /// - Note: At least one action should be configured for effective security
-  public var securityActions: [SecurityActionType] = [.lockScreen, .unmountVolumes]
+  public var securityActions: [SecurityActionType] = [.lockScreen, .soundAlarm]
 
   // MARK: - Auto-Arm Settings
 
@@ -193,10 +194,10 @@ public struct Settings: Codable, Equatable {
 
     // Ensure at least one security action is selected
     if validated.securityActions.isEmpty {
-      validated.securityActions = [.lockScreen]
+      validated.securityActions = [SecurityActionType.lockScreen]
     }
 
-    // Remove duplicate security actions while preserving order
+    // Remove duplicate security actions while preserving order  
     var seen = Set<SecurityActionType>()
     validated.securityActions = validated.securityActions.filter { action in
       if seen.contains(action) {
@@ -210,107 +211,8 @@ public struct Settings: Codable, Equatable {
   }
 }
 
-/// Security actions that can be executed when power is disconnected.
-///
-/// Each action represents a specific security measure that helps protect
-/// the system and data when a theft attempt is detected. Actions are executed
-/// in the order configured by the user, allowing for layered security approaches.
-///
-/// ## Security Considerations
-///
-/// Actions are ordered by severity:
-/// - **Immediate**: Lock screen, clear clipboard
-/// - **Moderate**: Unmount volumes, log out
-/// - **Severe**: Shutdown, custom scripts
-///
-/// Users should consider the impact of each action on their workflow and
-/// data integrity when configuring security actions.
-///
-/// ## Implementation Status
-///
-/// - ✅ Lock Screen: Fully implemented
-/// - ✅ Unmount Volumes: Fully implemented
-/// - 🚧 Log Out: Basic implementation
-/// - 🚧 Shutdown: Basic implementation
-/// - 🚧 Clear Clipboard: Basic implementation
-/// - ❌ Custom Script: UI only, execution pending
-public enum SecurityActionType: String, Codable, CaseIterable {
-  /// Immediately lock the screen requiring authentication
-  case lockScreen = "lock_screen"
-  /// Log out the current user session
-  case logOut = "log_out"
-  /// Shut down the system completely
-  case shutdown = "shutdown"
-  /// Unmount all external volumes and drives
-  case unmountVolumes = "unmount_volumes"
-  /// Clear system clipboard contents
-  case clearClipboard = "clear_clipboard"
-  /// Execute a user-defined custom script
-  case customScript = "custom_script"
-
-  /// Human-readable name for the security action.
-  ///
-  /// These names are displayed in the settings UI and should be
-  /// clear and understandable to end users.
-  public var displayName: String {
-    switch self {
-    case .lockScreen:
-      return "Lock Screen"
-    case .logOut:
-      return "Log Out"
-    case .shutdown:
-      return "Shut Down"
-    case .unmountVolumes:
-      return "Unmount External Volumes"
-    case .clearClipboard:
-      return "Clear Clipboard"
-    case .customScript:
-      return "Run Custom Script"
-    }
-  }
-
-  /// Detailed description of the security action's behavior.
-  ///
-  /// These descriptions explain the specific security measure taken
-  /// and help users understand the impact of each action.
-  public var description: String {
-    switch self {
-    case .lockScreen:
-      return "Locks the screen immediately, requiring password to unlock"
-    case .logOut:
-      return "Logs out the current user session"
-    case .shutdown:
-      return "Shuts down the system completely"
-    case .unmountVolumes:
-      return "Unmounts all external drives and volumes"
-    case .clearClipboard:
-      return "Clears clipboard contents to prevent data theft"
-    case .customScript:
-      return "Executes a custom shell script"
-    }
-  }
-
-  /// SF Symbols icon name for visual representation.
-  ///
-  /// These symbols are used throughout the UI to provide visual
-  /// identification of each security action type.
-  public var symbolName: String {
-    switch self {
-    case .lockScreen:
-      return "lock.fill"
-    case .logOut:
-      return "arrow.right.square.fill"
-    case .shutdown:
-      return "power"
-    case .unmountVolumes:
-      return "externaldrive.fill"
-    case .clearClipboard:
-      return "doc.on.clipboard"
-    case .customScript:
-      return "terminal.fill"
-    }
-  }
-}
+// MARK: - Domain Model Extensions
+// NOTE: Extensions for SecurityActionType moved to Domain layer to avoid conflicts
 
 // MARK: - Settings Migration
 

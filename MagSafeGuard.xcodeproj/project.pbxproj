@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		199EA3382E4073870077CF35 /* MagSafeGuardCore in Frameworks */ = {isa = PBXBuildFile; productRef = 199EA3372E4073870077CF35 /* MagSafeGuardCore */; };
+		199EA33A2E4073870077CF35 /* MagSafeGuardDomain in Frameworks */ = {isa = PBXBuildFile; productRef = 199EA3392E4073870077CF35 /* MagSafeGuardDomain */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		193DA6B92E3B164D00DE6E06 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +57,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				199EA3382E4073870077CF35 /* MagSafeGuardCore in Frameworks */,
+				199EA33A2E4073870077CF35 /* MagSafeGuardDomain in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +119,8 @@
 			);
 			name = MagSafeGuard;
 			packageProductDependencies = (
+				199EA3372E4073870077CF35 /* MagSafeGuardCore */,
+				199EA3392E4073870077CF35 /* MagSafeGuardDomain */,
 			);
 			productName = MagSafeGuard;
 			productReference = 193DA6A82E3B164A00DE6E06 /* MagSafeGuard.app */;
@@ -195,6 +204,9 @@
 			);
 			mainGroup = 193DA69F2E3B164A00DE6E06;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				199EA3362E4073870077CF35 /* XCLocalSwiftPackageReference "../magsafe-buskill" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 193DA6A92E3B164A00DE6E06 /* Products */;
 			projectDirPath = "";
@@ -557,6 +569,24 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		199EA3362E4073870077CF35 /* XCLocalSwiftPackageReference "../magsafe-buskill" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../magsafe-buskill";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		199EA3372E4073870077CF35 /* MagSafeGuardCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MagSafeGuardCore;
+		};
+		199EA3392E4073870077CF35 /* MagSafeGuardDomain */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MagSafeGuardDomain;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 193DA6A02E3B164A00DE6E06 /* Project object */;
 }

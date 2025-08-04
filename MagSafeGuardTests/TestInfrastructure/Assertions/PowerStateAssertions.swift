@@ -9,7 +9,8 @@
 //
 
 import Foundation
-@testable import MagSafeGuard
+@testable import MagSafeGuardDomain
+@testable import MagSafeGuardCore
 import Testing
 
 /// Custom assertions for power state testing

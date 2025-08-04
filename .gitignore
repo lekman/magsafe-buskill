@@ -140,10 +140,4 @@ profiles/
 # Test coverage reports and logs
 coverage/
 *.log
-# Exclude coverage files except the ones needed for CI
-coverage-raw.lcov
-coverage-report-raw.txt
-# Keep these coverage files for CI
-!coverage.lcov
-!coverage.xml
-!coverage-report.txt
+coverage*.*

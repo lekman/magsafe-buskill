@@ -259,7 +259,7 @@ public actor AutoArmMonitoringUseCaseImpl: AutoArmMonitoringUseCase {
     }
 
     /// Returns a stream of auto-arm events
-    public func observeAutoArmEvents() -> AsyncStream<AutoArmEvent> {
+    nonisolated public func observeAutoArmEvents() -> AsyncStream<AutoArmEvent> {
         return eventStream.stream
     }
 

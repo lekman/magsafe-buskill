@@ -39,22 +39,55 @@ comment:
   behavior: default
   require_changes: false
 
+# Coverage Targets by Component (aligned with TEST_REFACTORING_PLAN_V2.md)
+flags:
+  domain:
+    paths:
+      - MagSafeGuard/Domain/
+    target: 95%              # Domain Use Cases: 95-100%
+    
+  models:
+    paths:
+      - MagSafeGuard/Models/
+    target: 100%             # Data Models: 100%
+    
+  usecases:
+    paths:
+      - MagSafeGuard/Domain/UseCases/
+    target: 95%              # Business logic: 95-100%
+
 ignore:
-  # Test files
+  # Test Infrastructure (not covered by design - per TEST_REFACTORING_PLAN_V2.md)
   - "MagSafeGuardTests/"
   - "MagSafeGuardUITests/"
-  - "backup/"
-
-  # Mock files
+  - "**/TestInfrastructure/"
   - "**/Mock*.swift"
   - "**/Mocks/"
+  - "**/Builders/"
+  - "**/Fixtures/"
+  - "**/Assertions/"
+  - "backup/"
 
-  # SwiftUI Views & UI (test view models instead)
+  # System Integration Layer (excluded per plan)
+  - "MagSafeGuard/Services/MacSystemActions.swift"
+  - "MagSafeGuard/Services/IOKit*.swift"
+  - "MagSafeGuard/Services/CoreLocation*.swift"
+  - "MagSafeGuard/Services/Network*.swift"
+  - "MagSafeGuard/Data/Repositories/*Repository.swift"
+
+  # SwiftUI Views (excluded per plan)
   - "MagSafeGuard/Views/"
   - "MagSafeGuard/Assets.xcassets/"
+
+  # Bootstrap Code (excluded per plan)
+  - "MagSafeGuard/AppDelegate.swift"
+  - "MagSafeGuard/AppDelegateCore.swift"
+  - "MagSafeGuard/MagSafeGuardApp.swift"
+
+  # Legacy Controllers (being refactored)
   - "MagSafeGuard/Controllers/"
 
-  # Utilities
+  # Infrastructure
   - ".githooks/"
   - ".github/"
   - "docs/"

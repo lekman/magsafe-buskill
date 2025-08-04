@@ -128,7 +128,7 @@ public actor SecurityActionConfigurationUseCaseImpl: SecurityActionConfiguration
         Task {
             // Load persisted configuration
             if let stored = await configurationStore.loadConfiguration() {
-                self.currentConfiguration = stored
+                await setCurrentConfiguration(stored)
             }
         }
     }
@@ -154,7 +154,7 @@ public actor SecurityActionConfigurationUseCaseImpl: SecurityActionConfiguration
     }
 
     /// Validates a security action configuration
-    public func validateConfiguration(_ configuration: SecurityActionConfiguration) -> Result<Void, SecurityActionError> {
+    nonisolated public func validateConfiguration(_ configuration: SecurityActionConfiguration) -> Result<Void, SecurityActionError> {
         // Validate alarm volume
         if configuration.alarmVolume < 0 || configuration.alarmVolume > 1 {
             return .failure(.invalidConfiguration(reason: "Alarm volume must be between 0 and 1"))
@@ -190,6 +190,12 @@ public actor SecurityActionConfigurationUseCaseImpl: SecurityActionConfiguration
     public func resetToDefault() async {
         currentConfiguration = .default
         try? await configurationStore.saveConfiguration(currentConfiguration)
+    }
+    
+    // MARK: - Private Methods
+    
+    private func setCurrentConfiguration(_ configuration: SecurityActionConfiguration) async {
+        currentConfiguration = configuration
     }
 }
 

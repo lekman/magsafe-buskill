@@ -9,7 +9,8 @@
 //
 
 import Foundation
-@testable import MagSafeGuard
+@testable import MagSafeGuardDomain
+@testable import MagSafeGuardCore
 
 /// Mock implementation of SecurityActionRepository for testing.
 /// Allows full control over security action behavior in tests.

@@ -9,7 +9,8 @@
 //
 
 import Foundation
-@testable import MagSafeGuard
+@testable import MagSafeGuardDomain
+@testable import MagSafeGuardCore
 
 /// Mock implementation of NetworkRepository for testing.
 /// Allows full control over network behavior in tests.

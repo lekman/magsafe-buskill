@@ -9,7 +9,7 @@ import Foundation
 import IOKit.ps
 
 /// IOKit-based implementation of PowerStateRepository
-public final class IOKitPowerStateRepository: PowerStateRepository {
+public final class IOKitPowerStateRepository: PowerStateRepository, @unchecked Sendable {
 
     // MARK: - Properties
 
@@ -28,7 +28,9 @@ public final class IOKitPowerStateRepository: PowerStateRepository {
         useNotifications: Bool = true
     ) {
         self.pollingInterval = pollingInterval
-        self.useNotifications = useNotifications && !isTestEnvironment
+        // Check test environment before setting useNotifications
+        let isTest = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        self.useNotifications = useNotifications && !isTest
     }
 
     // MARK: - PowerStateRepository Implementation
@@ -85,24 +87,28 @@ public final class IOKitPowerStateRepository: PowerStateRepository {
         var powerInfo = PowerStateInfo(isConnected: false)
 
         for source in sources {
-            guard let sourceInfo = IOPSGetPowerSourceDescription(snapshot, source)?.takeUnretainedValue() as? [String: Any] else {
+            guard let sourcePtr = source as? Unmanaged<CFTypeRef>,
+                  let sourceInfo = IOPSGetPowerSourceDescription(snapshot, sourcePtr.takeUnretainedValue()) else {
+                continue
+            }
+            guard let sourceInfoDict = sourceInfo.takeUnretainedValue() as? [String: Any] else {
                 continue
             }
 
             // Extract power source information
-            if let sourceType = sourceInfo[kIOPSTypeKey] as? String {
+            if let sourceType = sourceInfoDict[kIOPSTypeKey] as? String {
                 if sourceType == kIOPSInternalBatteryType {
                     // Battery information
-                    let currentCapacity = sourceInfo[kIOPSCurrentCapacityKey] as? Int ?? 0
-                    let maxCapacity = sourceInfo[kIOPSMaxCapacityKey] as? Int ?? 100
+                    let currentCapacity = sourceInfoDict[kIOPSCurrentCapacityKey] as? Int ?? 0
+                    let maxCapacity = sourceInfoDict[kIOPSMaxCapacityKey] as? Int ?? 100
                     let batteryLevel = maxCapacity > 0 ? (currentCapacity * 100) / maxCapacity : 0
 
-                    let isCharging = sourceInfo[kIOPSIsChargingKey] as? Bool ?? false
-                    let powerSourceState = sourceInfo[kIOPSPowerSourceStateKey] as? String
+                    let isCharging = sourceInfoDict[kIOPSIsChargingKey] as? Bool ?? false
+                    let powerSourceState = sourceInfoDict[kIOPSPowerSourceStateKey] as? String
                     let isConnected = powerSourceState == kIOPSACPowerValue
 
                     var adapterWattage: Int?
-                    if let adapterInfo = sourceInfo[kIOPSPowerAdapterIDKey] as? Int {
+                    if let adapterInfo = sourceInfoDict[kIOPSPowerAdapterIDKey] as? Int {
                         adapterWattage = extractWattage(from: adapterInfo)
                     }
 

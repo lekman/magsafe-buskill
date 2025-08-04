@@ -9,7 +9,7 @@
 
 import XCTest
 
-@testable import MagSafeGuard
+@testable import MagSafeGuardCore
 
 final class AppControllerTests: XCTestCase {
 

@@ -15,7 +15,7 @@ import Foundation
 
 /// Domain model representing a security action type.
 /// All possible security responses to potential theft.
-public enum SecurityActionType: String, CaseIterable, Equatable {
+public enum SecurityActionType: String, CaseIterable, Equatable, Codable {
     /// Lock the screen immediately
     case lockScreen = "lock_screen"
     /// Sound an alarm
@@ -35,6 +35,22 @@ public enum SecurityActionType: String, CaseIterable, Equatable {
         case .forceLogout: return "Force Logout"
         case .shutdown: return "System Shutdown"
         case .customScript: return "Custom Script"
+        }
+    }
+    
+    /// SF Symbols icon name for visual representation
+    public var symbolName: String {
+        switch self {
+        case .lockScreen:
+            return "lock.fill"
+        case .soundAlarm:
+            return "speaker.wave.3.fill"
+        case .forceLogout:
+            return "arrow.right.square.fill"
+        case .shutdown:
+            return "power"
+        case .customScript:
+            return "terminal.fill"
         }
     }
 
