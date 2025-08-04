@@ -260,7 +260,21 @@ public actor AutoArmMonitoringUseCaseImpl: AutoArmMonitoringUseCase {
 
     /// Returns a stream of auto-arm events
     nonisolated public func observeAutoArmEvents() -> AsyncStream<AutoArmEvent> {
-        return eventStream.stream
+        AsyncStream { continuation in
+            Task {
+                await self.setupEventStreamContinuation(continuation)
+            }
+        }
+    }
+    
+    private func setupEventStreamContinuation(_ continuation: AsyncStream<AutoArmEvent>.Continuation) {
+        // Connect the internal event stream to the external continuation
+        Task {
+            for await event in eventStream.stream {
+                continuation.yield(event)
+            }
+            continuation.finish()
+        }
     }
 
     // MARK: - Private Methods

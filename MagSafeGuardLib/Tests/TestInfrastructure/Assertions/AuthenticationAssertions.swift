@@ -24,7 +24,7 @@ public struct AuthenticationAssertions {
     public static func assertSuccess(
         _ result: AuthenticationResult,
         method expectedMethod: AuthenticationMethod? = nil,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         guard case .success(let success) = result else {
             Issue.record(
@@ -51,7 +51,7 @@ public struct AuthenticationAssertions {
     public static func assertFailure(
         _ result: AuthenticationResult,
         reason expectedFailure: AuthenticationFailure? = nil,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         guard case .failure(let failure) = result else {
             Issue.record(
@@ -76,7 +76,7 @@ public struct AuthenticationAssertions {
     ///   - sourceLocation: Source location for test failure
     public static func assertCancelled(
         _ result: AuthenticationResult,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         guard case .cancelled = result else {
             Issue.record(
@@ -95,7 +95,7 @@ public struct AuthenticationAssertions {
     public static func assertBiometricAvailable(
         _ availability: BiometricAvailability,
         type expectedType: BiometricType? = nil,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         #expect(
             availability.isAvailable,
@@ -118,7 +118,7 @@ public struct AuthenticationAssertions {
     ///   - sourceLocation: Source location for test failure
     public static func assertBiometricUnavailable(
         _ availability: BiometricAvailability,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         #expect(
             !availability.isAvailable,
@@ -137,7 +137,7 @@ public struct AuthenticationAssertions {
         _ policy: AuthenticationPolicy,
         requireBiometric: Bool? = nil,
         allowPasswordFallback: Bool? = nil,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         if let expectedBiometric = requireBiometric {
             #expect(
@@ -169,7 +169,7 @@ extension AuthenticationAssertions {
     public static func assertRateLimited(
         _ result: AuthenticationResult,
         minimumWait: TimeInterval? = nil,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         guard case .failure(let failure) = result,
               case .rateLimited(let untilDate) = failure else {
@@ -196,7 +196,7 @@ extension AuthenticationAssertions {
     ///   - sourceLocation: Source location for test failure
     public static func assertBiometryLockout(
         _ result: AuthenticationResult,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         assertFailure(result, reason: .biometryLockout, sourceLocation: sourceLocation)
     }
@@ -213,7 +213,7 @@ extension AuthenticationResult {
     ///   - sourceLocation: Source location for test failure
     public func assertSuccess(
         method: AuthenticationMethod? = nil,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         AuthenticationAssertions.assertSuccess(self, method: method, sourceLocation: sourceLocation)
     }
@@ -224,7 +224,7 @@ extension AuthenticationResult {
     ///   - sourceLocation: Source location for test failure
     public func assertFailure(
         reason: AuthenticationFailure? = nil,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         AuthenticationAssertions.assertFailure(self, reason: reason, sourceLocation: sourceLocation)
     }
@@ -232,7 +232,7 @@ extension AuthenticationResult {
     /// Assert this result is cancelled
     /// - Parameter sourceLocation: Source location for test failure
     public func assertCancelled(
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         AuthenticationAssertions.assertCancelled(self, sourceLocation: sourceLocation)
     }
@@ -243,7 +243,7 @@ extension AuthenticationResult {
     ///   - sourceLocation: Source location for test failure
     public func assertRateLimited(
         minimumWait: TimeInterval? = nil,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         AuthenticationAssertions.assertRateLimited(
             self,
@@ -262,7 +262,7 @@ extension BiometricAvailability {
     ///   - sourceLocation: Source location for test failure
     public func assertAvailable(
         type: BiometricType? = nil,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         AuthenticationAssertions.assertBiometricAvailable(
             self,
@@ -274,7 +274,7 @@ extension BiometricAvailability {
     /// Assert biometric is unavailable
     /// - Parameter sourceLocation: Source location for test failure
     public func assertUnavailable(
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         AuthenticationAssertions.assertBiometricUnavailable(self, sourceLocation: sourceLocation)
     }

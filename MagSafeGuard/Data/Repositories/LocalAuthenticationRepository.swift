@@ -7,6 +7,7 @@
 
 import Foundation
 import LocalAuthentication
+import MagSafeGuardDomain
 
 /// LocalAuthentication-based implementation of AuthenticationRepository
 public final class LocalAuthenticationRepository: AuthenticationRepository {

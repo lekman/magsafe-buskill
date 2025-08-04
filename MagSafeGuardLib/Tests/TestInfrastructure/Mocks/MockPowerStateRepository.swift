@@ -110,38 +110,49 @@ public actor MockPowerStateRepository: PowerStateRepository {
         return currentPowerState
     }
 
-    public func observePowerStateChanges() -> AsyncThrowingStream<PowerStateInfo, Error> {
-        observePowerStateChangesCalls += 1
-
-        if shouldFailObservation {
-            return AsyncThrowingStream { continuation in
-                continuation.finish(throwing: MockError.observationFailed)
-            }
-        }
-
+    nonisolated public func observePowerStateChanges() -> AsyncThrowingStream<PowerStateInfo, Error> {
         return AsyncThrowingStream { continuation in
-            self.continuation = continuation
-
-            // Emit sequence if configured
-            if !powerStateSequence.isEmpty {
-                Task {
-                    for state in powerStateSequence {
-                        if operationDelay > 0 {
-                            try? await Task.sleep(nanoseconds: UInt64(operationDelay * 1_000_000_000))
+            Task {
+                await self.incrementObserveCalls()
+                
+                let shouldFail = await self.shouldFailObservation
+                if shouldFail {
+                    continuation.finish(throwing: MockError.observationFailed)
+                    return
+                }
+                
+                await self.setContinuation(continuation)
+                
+                // Emit sequence if configured
+                let sequence = await self.powerStateSequence
+                let delay = await self.operationDelay
+                
+                if !sequence.isEmpty {
+                    for state in sequence {
+                        if delay > 0 {
+                            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
                         }
                         continuation.yield(state)
                     }
                 }
-            }
-
-            continuation.onTermination = { _ in
-                Task { await self.handleTermination() }
+                
+                continuation.onTermination = { _ in
+                    Task { await self.handleTermination() }
+                }
             }
         }
     }
 
     private func handleTermination() {
         continuation = nil
+    }
+    
+    private func incrementObserveCalls() {
+        observePowerStateChangesCalls += 1
+    }
+    
+    private func setContinuation(_ continuation: AsyncThrowingStream<PowerStateInfo, Error>.Continuation) {
+        self.continuation = continuation
     }
 }
 

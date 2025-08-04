@@ -7,6 +7,7 @@
 
 import CloudKit
 import Foundation
+import MagSafeGuardCore
 
 // Debug logging extension
 extension Data {

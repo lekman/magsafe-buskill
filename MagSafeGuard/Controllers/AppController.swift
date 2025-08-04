@@ -11,6 +11,7 @@
 import AppKit
 import Combine
 import Foundation
+import MagSafeGuardCore
 
 /// Application states representing the security system's current mode.
 ///

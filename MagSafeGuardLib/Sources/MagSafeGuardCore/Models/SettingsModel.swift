@@ -183,6 +183,17 @@ public struct Settings: Codable {
   /// Older evidence data will be automatically deleted to save storage space.
   public var iCloudDataAgeLimitDays: Double = 30.0
 
+  // MARK: - Initialization
+
+  /// Creates a new Settings instance with default values.
+  ///
+  /// All properties are initialized to their default values as specified
+  /// in the property declarations. This initializer is required for cross-module
+  /// initialization since the automatic memberwise initializer is internal.
+  public init() {
+    // All properties have default values, so nothing needs to be done here
+  }
+
   // MARK: - Validation
 
   /// Validates settings and returns normalized version

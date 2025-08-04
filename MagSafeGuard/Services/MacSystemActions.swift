@@ -10,6 +10,7 @@
 import AppKit
 import AVFoundation
 import Foundation
+import MagSafeGuardCore
 
 /// Real implementation of system actions for macOS
 public class MacSystemActions: SystemActionsProtocol {

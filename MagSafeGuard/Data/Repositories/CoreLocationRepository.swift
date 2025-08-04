@@ -7,6 +7,7 @@
 
 import CoreLocation
 import Foundation
+import MagSafeGuardDomain
 
 /// CoreLocation-based implementation of LocationRepository
 public final class CoreLocationRepository: LocationRepository {

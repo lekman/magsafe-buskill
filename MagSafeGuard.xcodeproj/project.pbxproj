@@ -205,7 +205,7 @@
 			mainGroup = 193DA69F2E3B164A00DE6E06;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				199EA3362E4073870077CF35 /* XCLocalSwiftPackageReference "../magsafe-buskill" */,
+				199EA3362E4073870077CF35 /* XCLocalSwiftPackageReference "MagSafeGuardLib" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 193DA6A92E3B164A00DE6E06 /* Products */;
@@ -571,9 +571,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		199EA3362E4073870077CF35 /* XCLocalSwiftPackageReference "../magsafe-buskill" */ = {
+		199EA3362E4073870077CF35 /* XCLocalSwiftPackageReference "MagSafeGuardLib" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../magsafe-buskill";
+			relativePath = MagSafeGuardLib;
 		};
 /* End XCLocalSwiftPackageReference section */
 

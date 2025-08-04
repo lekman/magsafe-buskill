@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import MagSafeGuardDomain
 import Network
 
 /// Network framework-based implementation of NetworkRepository

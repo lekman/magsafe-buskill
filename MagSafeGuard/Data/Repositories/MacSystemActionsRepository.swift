@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import MagSafeGuardDomain
 
 /// macOS implementation of SecurityActionRepository
 public final class MacSystemActionsRepository: SecurityActionRepository, @unchecked Sendable {

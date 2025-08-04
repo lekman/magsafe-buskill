@@ -7,6 +7,7 @@
 
 import Foundation
 import IOKit.ps
+import MagSafeGuardCore
 
 /// Service responsible for monitoring power adapter connection status.
 ///

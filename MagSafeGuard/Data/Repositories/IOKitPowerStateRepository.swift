@@ -7,6 +7,7 @@
 
 import Foundation
 import IOKit.ps
+import MagSafeGuardDomain
 
 /// IOKit-based implementation of PowerStateRepository
 public final class IOKitPowerStateRepository: PowerStateRepository, @unchecked Sendable {

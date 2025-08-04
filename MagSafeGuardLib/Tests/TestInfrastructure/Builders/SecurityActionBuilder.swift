@@ -338,7 +338,7 @@ public final class SecurityActionExecutionResultBuilder {
         let builder = SecurityActionExecutionResultBuilder(request: request)
 
         for action in request.configuration.enabledActions {
-            builder.addResult(.success(for: action))
+            builder.addResult(SecurityActionResultBuilder.success(for: action))
         }
 
         return builder.duration(0.5).build()

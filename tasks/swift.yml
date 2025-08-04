@@ -6,7 +6,8 @@ version: "3"
 
 vars:
   # SPM build directories
-  SPM_BUILD_DIR: ".build"
+  SPM_BUILD_DIR: "MagSafeGuardLib/.build"
+  SPM_PACKAGE_DIR: "MagSafeGuardLib"
 
 tasks:
   default:
@@ -27,13 +28,16 @@ tasks:
         echo "🧹 Cleaning previous build artifacts..."
         rm -rf {{.SPM_BUILD_DIR}} coverage.lcov coverage.xml coverage-report.txt
 
+        # Change to the library directory
+        cd {{.SPM_PACKAGE_DIR}}
+
         # Run tests with coverage enabled
         echo "🧪 Running all tests with coverage..."
         swift test --enable-code-coverage --parallel
 
         # Find coverage data
         echo "📊 Generating coverage reports..."
-        PROF_DATA=$(find {{.SPM_BUILD_DIR}} -name 'default.profdata' -type f | head -1)
+        PROF_DATA=$(find .build -name 'default.profdata' -type f | head -1)
 
         if [ -z "$PROF_DATA" ]; then
           echo "❌ No coverage data found"
@@ -41,11 +45,11 @@ tasks:
         fi
 
         # Find the test executable
-        TEST_EXEC=$(find {{.SPM_BUILD_DIR}} -name '*PackageTests.xctest' -type d | head -1)/Contents/MacOS/*PackageTests
+        TEST_EXEC=$(find .build -name '*PackageTests.xctest' -type d | head -1)/Contents/MacOS/*PackageTests
 
         if [ ! -f "$TEST_EXEC" ]; then
           # Linux path structure
-          TEST_EXEC=$(find {{.SPM_BUILD_DIR}} -name '*PackageTests' -type f -perm +111 | grep -v '.dSYM' | head -1)
+          TEST_EXEC=$(find .build -name '*PackageTests' -type f -perm +111 | grep -v '.dSYM' | head -1)
         fi
 
         if [ ! -f "$TEST_EXEC" ]; then
@@ -58,24 +62,25 @@ tasks:
         xcrun llvm-cov export \
           -format=lcov \
           -instr-profile="$PROF_DATA" \
-          "$TEST_EXEC" > coverage.lcov
+          "$TEST_EXEC" > ../coverage.lcov
 
         # Generate text report
         echo "📄 Generating text coverage report..."
         xcrun llvm-cov report \
           -instr-profile="$PROF_DATA" \
           "$TEST_EXEC" \
-          -ignore-filename-regex=".*Tests.*|.*Mock.*|.*\.build.*" > coverage-report.txt
+          -ignore-filename-regex=".*Tests.*|.*Mock.*|.*\.build.*" > ../coverage-report.txt
 
         # Show coverage summary
         echo ""
         echo "📊 Coverage Summary:"
         echo "==================="
-        tail -1 coverage-report.txt
+        tail -1 ../coverage-report.txt
 
         # Convert LCOV to Cobertura XML for SonarCloud
         echo ""
         echo "📄 Converting to Cobertura XML format..."
+        cd ..
         task sonar:convert || {
           # Fallback: Create basic XML if conversion fails
           echo '<?xml version="1.0" ?>' > coverage.xml
@@ -138,7 +143,7 @@ tasks:
     cmds:
       - |
         echo "🔨 Building with Swift Package Manager..."
-        swift build --configuration debug
+        cd {{.SPM_PACKAGE_DIR}} && swift build --configuration debug
         echo "✅ SPM build completed"
 
   clean:
@@ -202,7 +207,7 @@ tasks:
         # Resolve package dependencies
         echo ""
         echo "📦 Resolving package dependencies..."
-        swift package resolve
+        cd {{.SPM_PACKAGE_DIR}} && swift package resolve
 
         echo ""
         echo "✅ Swift environment ready"
@@ -215,7 +220,7 @@ tasks:
         echo "📦 Generating SBOM for Swift project..."
 
         # Get package info
-        PACKAGE_NAME=$(swift package dump-package | jq -r '.name')
+        PACKAGE_NAME=$(cd {{.SPM_PACKAGE_DIR}} && swift package dump-package | jq -r '.name')
         VERSION=$(git describe --tags --always 2>/dev/null || echo "1.0.0")
         TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
@@ -245,7 +250,7 @@ tasks:
         # Dependencies
         echo "" >> sbom.spdx
         echo "# Dependencies" >> sbom.spdx
-        DEPS=$(swift package show-dependencies --format json | jq -r '.dependencies[]? | "PackageName: " + .name + "\nSPDXID: SPDXRef-Package-" + .identity + "\nPackageVersion: " + (.version // "unknown") + "\nPackageDownloadLocation: " + (.url // "NOASSERTION") + "\nFilesAnalyzed: false\nPackageLicenseConcluded: NOASSERTION\nPackageLicenseDeclared: NOASSERTION\nPackageCopyrightText: NOASSERTION\n\nRelationship: SPDXRef-Package-" + .identity + " DEPENDENCY_OF SPDXRef-Package-${PACKAGE_NAME}\n"' 2>/dev/null || echo "")
+        DEPS=$(cd {{.SPM_PACKAGE_DIR}} && swift package show-dependencies --format json | jq -r '.dependencies[]? | "PackageName: " + .name + "\nSPDXID: SPDXRef-Package-" + .identity + "\nPackageVersion: " + (.version // "unknown") + "\nPackageDownloadLocation: " + (.url // "NOASSERTION") + "\nFilesAnalyzed: false\nPackageLicenseConcluded: NOASSERTION\nPackageLicenseDeclared: NOASSERTION\nPackageCopyrightText: NOASSERTION\n\nRelationship: SPDXRef-Package-" + .identity + " DEPENDENCY_OF SPDXRef-Package-${PACKAGE_NAME}\n"' 2>/dev/null || echo "")
 
         if [ -n "$DEPS" ]; then
           echo "$DEPS" >> sbom.spdx
@@ -255,12 +260,12 @@ tasks:
         echo "   Project: ${PACKAGE_NAME} v${VERSION}"
 
         # Also generate in JSON format
-        swift package show-dependencies --format json > sbom-deps.json
+        cd {{.SPM_PACKAGE_DIR}} && swift package show-dependencies --format json > ../sbom-deps.json
 
         echo "✅ Also generated: sbom-deps.json (Swift dependencies)"
     sources:
-      - Package.swift
-      - Sources/**/*.swift
+      - MagSafeGuardLib/Package.swift
+      - MagSafeGuardLib/Sources/**/*.swift
     generates:
       - sbom.spdx
       - sbom-deps.json

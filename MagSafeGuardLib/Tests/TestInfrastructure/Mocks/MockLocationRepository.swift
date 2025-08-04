@@ -151,21 +151,28 @@ public actor MockLocationRepository: LocationRepository {
         return trustedLocations
     }
 
-    public func observeLocationTrustChanges() -> AsyncStream<Bool> {
+    nonisolated public func observeLocationTrustChanges() -> AsyncStream<Bool> {
         AsyncStream { continuation in
-            self.continuation = continuation
-
-            // Emit current state
-            continuation.yield(isInTrustedLocation)
-
-            continuation.onTermination = { _ in
-                Task { await self.handleTermination() }
+            Task {
+                await self.setContinuation(continuation)
+                
+                // Emit current state
+                let currentTrust = await self.isInTrustedLocation
+                continuation.yield(currentTrust)
+                
+                continuation.onTermination = { _ in
+                    Task { await self.handleTermination() }
+                }
             }
         }
     }
 
     private func handleTermination() {
         continuation = nil
+    }
+    
+    private func setContinuation(_ continuation: AsyncStream<Bool>.Continuation) {
+        self.continuation = continuation
     }
 }
 

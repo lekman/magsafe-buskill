@@ -10,6 +10,7 @@
 
 import AppKit
 import Foundation
+import MagSafeGuardCore
 import UserNotifications
 
 /// Protocol for notification delivery implementations.

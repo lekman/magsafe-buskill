@@ -22,7 +22,7 @@ public struct PowerStateAssertions {
     ///   - sourceLocation: Source location for test failure
     public static func assertConnected(
         _ state: PowerStateInfo,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         #expect(
             state.isConnected,
@@ -37,7 +37,7 @@ public struct PowerStateAssertions {
     ///   - sourceLocation: Source location for test failure
     public static func assertDisconnected(
         _ state: PowerStateInfo,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         #expect(
             !state.isConnected,
@@ -54,7 +54,7 @@ public struct PowerStateAssertions {
     public static func assertBatteryLevel(
         _ state: PowerStateInfo,
         in range: ClosedRange<Int>,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         guard let batteryLevel = state.batteryLevel else {
             Issue.record(
@@ -79,7 +79,7 @@ public struct PowerStateAssertions {
     public static func assertCharging(
         _ state: PowerStateInfo,
         is isCharging: Bool,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         #expect(
             state.isCharging == isCharging,
@@ -96,7 +96,7 @@ public struct PowerStateAssertions {
     public static func assertChangeType(
         _ change: PowerStateChange,
         is expectedType: PowerStateChange.ChangeType,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         #expect(
             change.changeType == expectedType,
@@ -111,7 +111,7 @@ public struct PowerStateAssertions {
     ///   - sourceLocation: Source location for test failure
     public static func assertACDisconnection(
         _ change: PowerStateChange,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         assertChangeType(change, is: .disconnected, sourceLocation: sourceLocation)
         assertConnected(change.previousState, sourceLocation: sourceLocation)
@@ -124,7 +124,7 @@ public struct PowerStateAssertions {
     ///   - sourceLocation: Source location for test failure
     public static func assertACConnection(
         _ change: PowerStateChange,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         assertChangeType(change, is: .connected, sourceLocation: sourceLocation)
         assertDisconnected(change.previousState, sourceLocation: sourceLocation)
@@ -148,7 +148,7 @@ extension PowerStateAssertions {
         in stream: AsyncStream<PowerStateChange>,
         timeout: TimeInterval = 1.0,
         matching condition: @escaping (PowerStateChange) -> Bool,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) async -> PowerStateChange? {
         let deadline = Date().addingTimeInterval(timeout)
 
@@ -183,7 +183,7 @@ extension PowerStateAssertions {
     public static func assertDisconnectionOccurs(
         in stream: AsyncStream<PowerStateChange>,
         timeout: TimeInterval = 1.0,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) async -> PowerStateChange? {
         return await assertChangeOccurs(
             in: stream,
@@ -202,7 +202,7 @@ extension PowerStateInfo {
     /// Assert this state is connected
     /// - Parameter sourceLocation: Source location for test failure
     public func assertConnected(
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         PowerStateAssertions.assertConnected(self, sourceLocation: sourceLocation)
     }
@@ -210,7 +210,7 @@ extension PowerStateInfo {
     /// Assert this state is disconnected
     /// - Parameter sourceLocation: Source location for test failure
     public func assertDisconnected(
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         PowerStateAssertions.assertDisconnected(self, sourceLocation: sourceLocation)
     }
@@ -221,7 +221,7 @@ extension PowerStateInfo {
     ///   - sourceLocation: Source location for test failure
     public func assertBatteryLevel(
         in range: ClosedRange<Int>,
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         PowerStateAssertions.assertBatteryLevel(self, in: range, sourceLocation: sourceLocation)
     }
@@ -233,7 +233,7 @@ extension PowerStateChange {
     /// Assert this is an AC disconnection
     /// - Parameter sourceLocation: Source location for test failure
     public func assertIsDisconnection(
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         PowerStateAssertions.assertACDisconnection(self, sourceLocation: sourceLocation)
     }
@@ -241,7 +241,7 @@ extension PowerStateChange {
     /// Assert this is an AC connection
     /// - Parameter sourceLocation: Source location for test failure
     public func assertIsConnection(
-        sourceLocation: SourceLocation = SourceLocation()
+        sourceLocation: SourceLocation = #_sourceLocation
     ) {
         PowerStateAssertions.assertACConnection(self, sourceLocation: sourceLocation)
     }

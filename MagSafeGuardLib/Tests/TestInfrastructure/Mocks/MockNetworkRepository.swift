@@ -194,18 +194,24 @@ public actor MockNetworkRepository: NetworkRepository {
         return trustedNetworks
     }
 
-    public func observeNetworkChanges() -> AsyncStream<NetworkChangeEvent> {
+    nonisolated public func observeNetworkChanges() -> AsyncStream<NetworkChangeEvent> {
         AsyncStream { continuation in
-            self.continuation = continuation
-
-            continuation.onTermination = { _ in
-                Task { await self.handleTermination() }
+            Task {
+                await self.setContinuation(continuation)
+                
+                continuation.onTermination = { _ in
+                    Task { await self.handleTermination() }
+                }
             }
         }
     }
 
     private func handleTermination() {
         continuation = nil
+    }
+    
+    private func setContinuation(_ continuation: AsyncStream<NetworkChangeEvent>.Continuation) {
+        self.continuation = continuation
     }
 }
 

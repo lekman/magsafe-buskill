@@ -9,6 +9,8 @@
 
 import Combine
 import Foundation
+import MagSafeGuardCore
+import MagSafeGuardDomain
 
 /// Manages persistence and synchronization of user settings.
 ///

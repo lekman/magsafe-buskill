@@ -54,21 +54,39 @@ tasks:
           exit 1
         fi
 
-        # Build
-        xcodebuild build \
-          -project "{{.PROJECT_PATH}}" \
-          -scheme "{{.SCHEME}}" \
-          -configuration "{{.CONFIGURATION}}" \
-          -destination "{{.DESTINATION}}" \
-          -derivedDataPath "{{.DERIVED_DATA_PATH}}" \
-          {{.BUILD_SETTINGS}} \
-          2>&1 | xcbeautify --quiet --is-ci || {
-            exit_code=$?
-            echo ""
-            echo "❌ Build failed with exit code: $exit_code"
-            echo "Run 'task xcode:build:verbose' for detailed output"
-            exit $exit_code
-          }
+        # Build with optional xcbeautify
+        if command -v xcbeautify &> /dev/null; then
+          xcodebuild build \
+            -project "{{.PROJECT_PATH}}" \
+            -scheme "{{.SCHEME}}" \
+            -configuration "{{.CONFIGURATION}}" \
+            -destination "{{.DESTINATION}}" \
+            -derivedDataPath "{{.DERIVED_DATA_PATH}}" \
+            {{.BUILD_SETTINGS}} \
+            2>&1 | xcbeautify --quiet --is-ci || {
+              exit_code=$?
+              echo ""
+              echo "❌ Build failed with exit code: $exit_code"
+              echo "Run 'task xcode:build:verbose' for detailed output"
+              exit $exit_code
+            }
+        else
+          echo "⚠️  xcbeautify not found - using plain output"
+          echo "   Install with: brew install xcbeautify"
+          echo ""
+          xcodebuild build \
+            -project "{{.PROJECT_PATH}}" \
+            -scheme "{{.SCHEME}}" \
+            -configuration "{{.CONFIGURATION}}" \
+            -destination "{{.DESTINATION}}" \
+            -derivedDataPath "{{.DERIVED_DATA_PATH}}" \
+            {{.BUILD_SETTINGS}} || {
+              exit_code=$?
+              echo ""
+              echo "❌ Build failed with exit code: $exit_code"
+              exit $exit_code
+            }
+        fi
 
         echo ""
         echo "✅ Build succeeded!"
@@ -111,21 +129,39 @@ tasks:
           exit 1
         fi
 
-        # Run tests
-        xcodebuild test \
-          -project "{{.PROJECT_PATH}}" \
-          -scheme "{{.SCHEME}}" \
-          -configuration "{{.CONFIGURATION}}" \
-          -destination "{{.DESTINATION}}" \
-          -derivedDataPath "{{.DERIVED_DATA_PATH}}" \
-          {{.TEST_SETTINGS}} \
-          2>&1 | xcbeautify --quiet --is-ci || {
-            exit_code=$?
-            echo ""
-            echo "❌ Tests failed with exit code: $exit_code"
-            echo "Run 'task xcode:test:verbose' for detailed output"
-            exit $exit_code
-          }
+        # Run tests with optional xcbeautify
+        if command -v xcbeautify &> /dev/null; then
+          xcodebuild test \
+            -project "{{.PROJECT_PATH}}" \
+            -scheme "{{.SCHEME}}" \
+            -configuration "{{.CONFIGURATION}}" \
+            -destination "{{.DESTINATION}}" \
+            -derivedDataPath "{{.DERIVED_DATA_PATH}}" \
+            {{.TEST_SETTINGS}} \
+            2>&1 | xcbeautify --quiet --is-ci || {
+              exit_code=$?
+              echo ""
+              echo "❌ Tests failed with exit code: $exit_code"
+              echo "Run 'task xcode:test:verbose' for detailed output"
+              exit $exit_code
+            }
+        else
+          echo "⚠️  xcbeautify not found - using plain output"
+          echo "   Install with: brew install xcbeautify"
+          echo ""
+          xcodebuild test \
+            -project "{{.PROJECT_PATH}}" \
+            -scheme "{{.SCHEME}}" \
+            -configuration "{{.CONFIGURATION}}" \
+            -destination "{{.DESTINATION}}" \
+            -derivedDataPath "{{.DERIVED_DATA_PATH}}" \
+            {{.TEST_SETTINGS}} || {
+              exit_code=$?
+              echo ""
+              echo "❌ Tests failed with exit code: $exit_code"
+              exit $exit_code
+            }
+        fi
 
         echo ""
         echo "✅ All tests passed!"
@@ -175,20 +211,37 @@ tasks:
 
         echo "🧪 Running specific test: $TEST_FILTER"
 
-        xcodebuild test \
-          -project "{{.PROJECT_PATH}}" \
-          -scheme "{{.SCHEME}}" \
-          -configuration "{{.CONFIGURATION}}" \
-          -destination "{{.DESTINATION}}" \
-          -derivedDataPath "{{.DERIVED_DATA_PATH}}" \
-          -only-testing:"MagSafeGuardTests/$TEST_FILTER" \
-          {{.TEST_SETTINGS}} \
-          2>&1 | xcbeautify --quiet --is-ci || {
-            exit_code=$?
-            echo ""
-            echo "❌ Test failed"
-            exit $exit_code
-          }
+        # Run with optional xcbeautify
+        if command -v xcbeautify &> /dev/null; then
+          xcodebuild test \
+            -project "{{.PROJECT_PATH}}" \
+            -scheme "{{.SCHEME}}" \
+            -configuration "{{.CONFIGURATION}}" \
+            -destination "{{.DESTINATION}}" \
+            -derivedDataPath "{{.DERIVED_DATA_PATH}}" \
+            -only-testing:"MagSafeGuardTests/$TEST_FILTER" \
+            {{.TEST_SETTINGS}} \
+            2>&1 | xcbeautify --quiet --is-ci || {
+              exit_code=$?
+              echo ""
+              echo "❌ Test failed"
+              exit $exit_code
+            }
+        else
+          xcodebuild test \
+            -project "{{.PROJECT_PATH}}" \
+            -scheme "{{.SCHEME}}" \
+            -configuration "{{.CONFIGURATION}}" \
+            -destination "{{.DESTINATION}}" \
+            -derivedDataPath "{{.DERIVED_DATA_PATH}}" \
+            -only-testing:"MagSafeGuardTests/$TEST_FILTER" \
+            {{.TEST_SETTINGS}} || {
+              exit_code=$?
+              echo ""
+              echo "❌ Test failed"
+              exit $exit_code
+            }
+        fi
 
   check-deps:
     desc: Check if required dependencies are installed
@@ -235,3 +288,18 @@ tasks:
 
         echo ""
         echo "✅ Xcode tools setup complete"
+
+  install-xcbeautify:
+    desc: Install xcbeautify for prettier output
+    silent: true
+    cmds:
+      - |
+        if ! command -v brew &> /dev/null; then
+          echo "❌ Homebrew not found. Please install Homebrew first:"
+          echo "   /bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+          exit 1
+        fi
+
+        echo "📦 Installing xcbeautify..."
+        brew install xcbeautify
+        echo "✅ xcbeautify installed successfully"
