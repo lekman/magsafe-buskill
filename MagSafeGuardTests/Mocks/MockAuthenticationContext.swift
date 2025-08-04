@@ -10,7 +10,7 @@
 import Foundation
 import LocalAuthentication
 
-@testable import MagSafeGuardCore
+@testable import MagSafeGuard
 
 /// Mock implementation of authentication context for testing
 class MockAuthenticationContext: AuthenticationContextProtocol {

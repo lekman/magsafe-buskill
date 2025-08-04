@@ -12,6 +12,12 @@ includes:
     vars:
       PROJECT_NAME: "MagSafeGuard"
       SCHEME_NAME: "MagSafeGuard"
+  xcode:
+    taskfile: ./tasks/xcode.yml
+    optional: false
+    vars:
+      PROJECT_NAME: "MagSafeGuard"
+      SCHEME_NAME: "MagSafeGuard"
   security:
     taskfile: ./tasks/security.yml
     optional: false
@@ -57,6 +63,7 @@ tasks:
         echo ""
         echo "📦 Module Commands:"
         echo "  task swift:        - Swift development tasks"
+        echo "  task xcode:        - Xcode build and test tasks"
         echo "  task security:     - Security scanning tasks"
         echo "  task sonar:        - SonarCloud analysis"
         echo "  task markdown:     - Markdown linting"
@@ -609,6 +616,8 @@ tasks:
       - echo "🔬 Running standard QA suite..."
       - task: qa:fix
       - task: swift:test
+      - task: xcode:build
+      - task: xcode:test
       - task: swift:lint
       - task: yaml:lint
       - task: markdown:lint
@@ -648,6 +657,19 @@ tasks:
       - task: qa
       - task: sonar:scan
       - echo "✅ Full QA suite with SonarCloud completed!"
+  qa:local:
+    desc: Local QA suite with Xcode tests (no CI-specific checks)
+    silent: true
+    cmds:
+      - echo "🏠 Running local QA suite..."
+      - task: qa:fix
+      - task: swift:test
+      - task: xcode:build
+      - task: xcode:test
+      - task: swift:lint
+      - task: yaml:lint
+      - task: markdown:lint
+      - echo "✅ Local QA suite passed!"
 
   # Project management tasks
   commit:

@@ -169,42 +169,42 @@ public struct LocalOnlyTestTrait: TestTrait {
 
 /// Collection of commonly used test tag combinations
 public enum TestTags {
-    
+
     /// Fast unit tests for CI
     public static let ciUnit: [any TestTrait] = [
         UnitTestTrait(),
         FastTestTrait(),
         CriticalTestTrait()
     ]
-    
+
     /// Domain layer unit tests
     public static let domainUnit: [any TestTrait] = [
         DomainTestTrait(),
         UnitTestTrait(),
         FastTestTrait()
     ]
-    
+
     /// Data layer integration tests
     public static let dataIntegration: [any TestTrait] = [
         DataTestTrait(),
         IntegrationTestTrait(),
         MediumTestTrait()
     ]
-    
+
     /// Security-related tests
     public static let security: [any TestTrait] = [
         SecurityActionTestTrait(),
         AuthenticationTestTrait(),
         CriticalTestTrait()
     ]
-    
+
     /// Power monitoring tests
     public static let powerMonitoring: [any TestTrait] = [
         PowerMonitorTestTrait(),
         MacOSOnlyTestTrait(),
         SystemPermissionTestTrait()
     ]
-    
+
     /// Auto-arm feature tests
     public static let autoArm: [any TestTrait] = [
         AutoArmTestTrait(),
@@ -212,7 +212,7 @@ public enum TestTags {
         NetworkTestTrait(),
         IntegrationTestTrait()
     ]
-    
+
     /// Performance tests
     public static let performance: [any TestTrait] = [
         PerformanceTestTrait(),
@@ -225,7 +225,7 @@ public enum TestTags {
 
 /// Configuration for different test suite runs
 public struct TestSuiteConfiguration {
-    
+
     /// Fast test suite for development
     public static let development = TestSuiteConfiguration(
         includedTraits: [
@@ -239,7 +239,7 @@ public struct TestSuiteConfiguration {
             E2ETestTrait.self
         ]
     )
-    
+
     /// Full test suite for CI
     public static let ci = TestSuiteConfiguration(
         includedTraits: [
@@ -253,7 +253,7 @@ public struct TestSuiteConfiguration {
             SlowTestTrait.self
         ]
     )
-    
+
     /// Comprehensive test suite for release
     public static let release = TestSuiteConfiguration(
         includedTraits: [
@@ -267,7 +267,7 @@ public struct TestSuiteConfiguration {
             LocalOnlyTestTrait.self
         ]
     )
-    
+
     /// Performance test suite
     public static let performance = TestSuiteConfiguration(
         includedTraits: [
@@ -275,10 +275,10 @@ public struct TestSuiteConfiguration {
         ],
         excludedTraits: []
     )
-    
+
     public let includedTraits: [any TestTrait.Type]
     public let excludedTraits: [any TestTrait.Type]
-    
+
     public init(
         includedTraits: [any TestTrait.Type] = [],
         excludedTraits: [any TestTrait.Type] = []
@@ -292,11 +292,11 @@ public struct TestSuiteConfiguration {
 
 /// Helper for running tests with specific traits
 public struct TraitBasedTestRunner {
-    
+
     /// Determines if a test should run based on current configuration
     public static func shouldRun(test: Test, configuration: TestSuiteConfiguration) -> Bool {
         let testTraits = Set(test.traits.map { type(of: $0) })
-        
+
         // If included traits are specified, test must have at least one
         if !configuration.includedTraits.isEmpty {
             let includedSet = Set(configuration.includedTraits.map { $0 })
@@ -304,7 +304,7 @@ public struct TraitBasedTestRunner {
                 return false
             }
         }
-        
+
         // If excluded traits are specified, test must not have any
         if !configuration.excludedTraits.isEmpty {
             let excludedSet = Set(configuration.excludedTraits.map { $0 })
@@ -312,10 +312,10 @@ public struct TraitBasedTestRunner {
                 return false
             }
         }
-        
+
         return true
     }
-    
+
     /// Gets the appropriate test suite configuration based on environment
     public static func currentConfiguration() -> TestSuiteConfiguration {
         if TestConfiguration.isCI {
@@ -336,12 +336,12 @@ public struct TraitBasedTestRunner {
 public struct ParameterizedTest<T> {
     let parameters: [T]
     let name: String
-    
+
     public init(name: String, parameters: [T]) {
         self.name = name
         self.parameters = parameters
     }
-    
+
     /// Creates test cases for each parameter
     public func testCases<U>(
         _ testFunction: @escaping (T) async throws -> U
@@ -360,7 +360,7 @@ public struct DocumentedTestTrait: TestTrait {
     public let purpose: String
     public let requirements: [String]
     public let assumptions: [String]
-    
+
     public init(
         purpose: String,
         requirements: [String] = [],
@@ -376,7 +376,7 @@ public struct DocumentedTestTrait: TestTrait {
 
 /// Helper for test reporting and metrics
 public struct TestReporting {
-    
+
     /// Records test execution metrics
     public static func recordMetrics(
         testName: String,
@@ -386,17 +386,17 @@ public struct TestReporting {
         if TestConfiguration.verboseLogging {
             print("Test: \(testName), Duration: \(duration), Result: \(result)")
         }
-        
+
         // In a real implementation, this could send metrics to analytics
         // or write to test reporting files
     }
-    
+
     /// Generates test summary report
     public static func generateSummary(tests: [TestResult]) -> String {
         let passed = tests.filter { $0.isSuccess }.count
         let failed = tests.count - passed
         let totalDuration = tests.reduce(Duration.zero) { $0 + $1.duration }
-        
+
         return """
         Test Summary:
         - Total Tests: \(tests.count)
@@ -416,7 +416,7 @@ public struct TestResult {
     public let isSuccess: Bool
     public let duration: Duration
     public let error: Error?
-    
+
     public init(testName: String, isSuccess: Bool, duration: Duration, error: Error? = nil) {
         self.testName = testName
         self.isSuccess = isSuccess

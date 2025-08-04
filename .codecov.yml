@@ -44,17 +44,17 @@ flags:
   domain:
     paths:
       - MagSafeGuard/Domain/
-    target: 95%              # Domain Use Cases: 95-100%
-    
+    target: 95% # Domain Use Cases: 95-100%
+
   models:
     paths:
       - MagSafeGuard/Models/
-    target: 100%             # Data Models: 100%
-    
+    target: 100% # Data Models: 100%
+
   usecases:
     paths:
       - MagSafeGuard/Domain/UseCases/
-    target: 95%              # Business logic: 95-100%
+    target: 95% # Business logic: 95-100%
 
 ignore:
   # Test Infrastructure (not covered by design - per TEST_REFACTORING_PLAN_V2.md)

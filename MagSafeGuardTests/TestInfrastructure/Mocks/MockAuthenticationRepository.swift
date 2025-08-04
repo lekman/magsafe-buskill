@@ -9,8 +9,8 @@
 //
 
 import Foundation
-@testable import MagSafeGuardDomain
 @testable import MagSafeGuardCore
+@testable import MagSafeGuardDomain
 
 /// Mock implementation of AuthenticationRepository for testing.
 /// Allows full control over authentication behavior in tests.

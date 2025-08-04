@@ -9,8 +9,8 @@
 //
 
 import Foundation
-@testable import MagSafeGuardDomain
 @testable import MagSafeGuardCore
+@testable import MagSafeGuardDomain
 
 /// Mock implementation of PowerStateRepository for testing.
 /// Allows full control over power state behavior in tests.

@@ -9,8 +9,8 @@
 //
 
 import Foundation
-@testable import MagSafeGuardDomain
 @testable import MagSafeGuardCore
+@testable import MagSafeGuardDomain
 
 /// Mock implementation of LocationRepository for testing.
 /// Allows full control over location behavior in tests.

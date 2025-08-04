@@ -37,7 +37,7 @@ public enum SecurityActionType: String, CaseIterable, Equatable, Codable {
         case .customScript: return "Custom Script"
         }
     }
-    
+
     /// SF Symbols icon name for visual representation
     public var symbolName: String {
         switch self {

@@ -191,9 +191,9 @@ public actor SecurityActionConfigurationUseCaseImpl: SecurityActionConfiguration
         currentConfiguration = .default
         try? await configurationStore.saveConfiguration(currentConfiguration)
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func setCurrentConfiguration(_ configuration: SecurityActionConfiguration) async {
         currentConfiguration = configuration
     }

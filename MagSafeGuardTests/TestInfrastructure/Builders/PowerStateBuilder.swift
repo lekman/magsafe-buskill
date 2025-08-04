@@ -9,8 +9,8 @@
 //
 
 import Foundation
-@testable import MagSafeGuardDomain
 @testable import MagSafeGuardCore
+@testable import MagSafeGuardDomain
 
 /// Builder for creating PowerStateInfo test instances.
 /// Provides fluent API for setting up test data with sensible defaults.

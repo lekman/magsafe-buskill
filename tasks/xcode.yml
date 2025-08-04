@@ -1,0 +1,237 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: "3"
+
+vars:
+  PROJECT_PATH: "MagSafeGuard.xcodeproj"
+  SCHEME: "MagSafeGuard"
+  CONFIGURATION: "Debug"
+  DESTINATION: "platform=macOS"
+  DERIVED_DATA_PATH: ".build/xcode"
+
+tasks:
+  default:
+    desc: List available Xcode tasks
+    silent: true
+    cmds:
+      - task --list | grep "^\\* xcode:" | grep -v "::" || true
+    aliases: [xcode]
+
+  clean:
+    desc: Clean Xcode build artifacts
+    silent: true
+    cmds:
+      - |
+        echo "🧹 Cleaning Xcode build artifacts..."
+        xcodebuild clean \
+          -project "{{.PROJECT_PATH}}" \
+          -scheme "{{.SCHEME}}" \
+          -configuration "{{.CONFIGURATION}}" \
+          -derivedDataPath "{{.DERIVED_DATA_PATH}}" \
+          2>&1 | grep -E "(CLEAN|error:)" || true
+
+        # Also remove derived data
+        rm -rf "{{.DERIVED_DATA_PATH}}"
+        echo "✅ Xcode clean complete"
+
+  build:
+    desc: Build project using xcodebuild
+    silent: true
+    vars:
+      BUILD_SETTINGS: >-
+        CODE_SIGN_IDENTITY=""
+        CODE_SIGNING_REQUIRED=NO
+        CODE_SIGNING_ALLOWED=NO
+    cmds:
+      - |
+        echo "🔨 Building with Xcode..."
+        echo "Project: {{.PROJECT_PATH}}"
+        echo "Scheme: {{.SCHEME}}"
+        echo ""
+
+        # Check if Xcode is available
+        if ! command -v xcodebuild &> /dev/null; then
+          echo "❌ Error: xcodebuild not found. Please install Xcode."
+          exit 1
+        fi
+
+        # Build
+        xcodebuild build \
+          -project "{{.PROJECT_PATH}}" \
+          -scheme "{{.SCHEME}}" \
+          -configuration "{{.CONFIGURATION}}" \
+          -destination "{{.DESTINATION}}" \
+          -derivedDataPath "{{.DERIVED_DATA_PATH}}" \
+          {{.BUILD_SETTINGS}} \
+          2>&1 | xcbeautify --quiet --is-ci || {
+            exit_code=$?
+            echo ""
+            echo "❌ Build failed with exit code: $exit_code"
+            echo "Run 'task xcode:build:verbose' for detailed output"
+            exit $exit_code
+          }
+
+        echo ""
+        echo "✅ Build succeeded!"
+
+  build:verbose:
+    desc: Build with verbose output (for debugging)
+    silent: true
+    vars:
+      BUILD_SETTINGS: >-
+        CODE_SIGN_IDENTITY=""
+        CODE_SIGNING_REQUIRED=NO
+        CODE_SIGNING_ALLOWED=NO
+    cmds:
+      - |
+        xcodebuild build \
+          -project "{{.PROJECT_PATH}}" \
+          -scheme "{{.SCHEME}}" \
+          -configuration "{{.CONFIGURATION}}" \
+          -destination "{{.DESTINATION}}" \
+          -derivedDataPath "{{.DERIVED_DATA_PATH}}" \
+          {{.BUILD_SETTINGS}}
+
+  test:
+    desc: Run Xcode tests (includes app-layer tests like AppControllerTests)
+    silent: true
+    vars:
+      TEST_SETTINGS: >-
+        CODE_SIGN_IDENTITY=""
+        CODE_SIGNING_REQUIRED=NO
+        CODE_SIGNING_ALLOWED=NO
+    cmds:
+      - |
+        echo "🧪 Running Xcode tests..."
+        echo "This includes app-layer tests not covered by SPM tests"
+        echo ""
+
+        # Check if Xcode is available
+        if ! command -v xcodebuild &> /dev/null; then
+          echo "❌ Error: xcodebuild not found. Please install Xcode."
+          exit 1
+        fi
+
+        # Run tests
+        xcodebuild test \
+          -project "{{.PROJECT_PATH}}" \
+          -scheme "{{.SCHEME}}" \
+          -configuration "{{.CONFIGURATION}}" \
+          -destination "{{.DESTINATION}}" \
+          -derivedDataPath "{{.DERIVED_DATA_PATH}}" \
+          {{.TEST_SETTINGS}} \
+          2>&1 | xcbeautify --quiet --is-ci || {
+            exit_code=$?
+            echo ""
+            echo "❌ Tests failed with exit code: $exit_code"
+            echo "Run 'task xcode:test:verbose' for detailed output"
+            exit $exit_code
+          }
+
+        echo ""
+        echo "✅ All tests passed!"
+
+  test:verbose:
+    desc: Run tests with verbose output
+    silent: true
+    vars:
+      TEST_SETTINGS: >-
+        CODE_SIGN_IDENTITY=""
+        CODE_SIGNING_REQUIRED=NO
+        CODE_SIGNING_ALLOWED=NO
+    cmds:
+      - |
+        xcodebuild test \
+          -project "{{.PROJECT_PATH}}" \
+          -scheme "{{.SCHEME}}" \
+          -configuration "{{.CONFIGURATION}}" \
+          -destination "{{.DESTINATION}}" \
+          -derivedDataPath "{{.DERIVED_DATA_PATH}}" \
+          {{.TEST_SETTINGS}}
+
+  build-test:
+    desc: Build and test in one command
+    silent: true
+    cmds:
+      - task: build
+      - task: test
+
+  test:specific:
+    desc: Run specific test class or method
+    silent: true
+    vars:
+      TEST_SETTINGS: >-
+        CODE_SIGN_IDENTITY=""
+        CODE_SIGNING_REQUIRED=NO
+        CODE_SIGNING_ALLOWED=NO
+    cmds:
+      - |
+        if [ -z "$TEST_FILTER" ]; then
+          echo "❌ TEST_FILTER not specified"
+          echo ""
+          echo "Usage: TEST_FILTER='AppControllerTests' task xcode:test:specific"
+          echo "   or: TEST_FILTER='AppControllerTests/testInitialState' task xcode:test:specific"
+          exit 1
+        fi
+
+        echo "🧪 Running specific test: $TEST_FILTER"
+
+        xcodebuild test \
+          -project "{{.PROJECT_PATH}}" \
+          -scheme "{{.SCHEME}}" \
+          -configuration "{{.CONFIGURATION}}" \
+          -destination "{{.DESTINATION}}" \
+          -derivedDataPath "{{.DERIVED_DATA_PATH}}" \
+          -only-testing:"MagSafeGuardTests/$TEST_FILTER" \
+          {{.TEST_SETTINGS}} \
+          2>&1 | xcbeautify --quiet --is-ci || {
+            exit_code=$?
+            echo ""
+            echo "❌ Test failed"
+            exit $exit_code
+          }
+
+  check-deps:
+    desc: Check if required dependencies are installed
+    internal: true
+    silent: true
+    cmds:
+      - |
+        missing_deps=0
+
+        if ! command -v xcodebuild &> /dev/null; then
+          echo "❌ xcodebuild not found. Please install Xcode."
+          missing_deps=$((missing_deps + 1))
+        fi
+
+        if ! command -v xcbeautify &> /dev/null; then
+          echo "⚠️  xcbeautify not found (optional but recommended)"
+          echo "   Install with: brew install xcbeautify"
+          echo "   Tests will still run but output will be verbose"
+        fi
+
+        if [ $missing_deps -gt 0 ]; then
+          exit 1
+        fi
+
+  setup:
+    desc: Install dependencies for better Xcode output
+    silent: true
+    cmds:
+      - |
+        echo "🔧 Setting up Xcode tools..."
+
+        # Install xcbeautify for better output
+        if ! command -v xcbeautify &> /dev/null; then
+          if command -v brew &> /dev/null; then
+            echo "Installing xcbeautify..."
+            brew install xcbeautify
+          else
+            echo "⚠️  Homebrew not found. Install xcbeautify manually:"
+            echo "   brew install xcbeautify"
+          fi
+        else
+          echo "✅ xcbeautify already installed"
+        fi
+
+        echo ""
+        echo "✅ Xcode tools setup complete"

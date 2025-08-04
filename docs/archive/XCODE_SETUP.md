@@ -47,6 +47,7 @@ task build
 ## Long-term Solution
 
 The project should be restructured to either:
+
 1. Use Swift Package Manager exclusively (recommended for clean architecture)
 2. Configure the Xcode project to properly reference the SPM packages
 3. Create an Xcode workspace that includes both the project and the package
@@ -54,6 +55,7 @@ The project should be restructured to either:
 ## Current Architecture
 
 The project follows Clean Architecture with:
+
 - **Domain Layer** (`MagSafeGuardDomain`): Business logic, protocols, use cases
 - **Core Layer** (`MagSafeGuardCore`): Shared utilities, models
 - **App Layer**: UI, controllers, system integration

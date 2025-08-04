@@ -11,11 +11,13 @@ This plan outlines a comprehensive approach to achieve near 100% test coverage f
 Based on the project structure and existing tests:
 
 1. **Currently Tested (Limited Coverage)**:
+
    - `FeatureFlags` (has tests but failing)
    - `SettingsModel` (basic tests)
    - `Logger` (89.25% coverage)
 
 2. **Backup Tests Available** (Need Protocol Refactoring):
+
    - PowerMonitorCore/Service
    - AuthenticationService
    - SecurityActionsService
@@ -66,7 +68,7 @@ class PowerMonitorViewModel: ObservableObject {
 
 ### 2. Feature-Based Test Structure
 
-```
+```ini
 Tests/
 ├── Unit/                           # Pure business logic tests
 │   ├── Features/
@@ -123,15 +125,15 @@ We'll adopt a gradual migration strategy:
 
 ### Key Differences
 
-| XCTest | Swift Testing |
-|--------|---------------|
-| `XCTAssertEqual(a, b)` | `#expect(a == b)` |
-| `XCTAssertTrue(condition)` | `#expect(condition)` |
-| `XCTAssertThrows` | `#expect(throws:)` |
-| `func testExample()` | `@Test("Example description")` |
-| `XCTestCase` class | `struct` with `@Suite` |
-| `setUp()/tearDown()` | `init()/deinit()` |
-| Manual parameterization | `@Test(arguments:)` |
+| XCTest                     | Swift Testing                  |
+| -------------------------- | ------------------------------ |
+| `XCTAssertEqual(a, b)`     | `#expect(a == b)`              |
+| `XCTAssertTrue(condition)` | `#expect(condition)`           |
+| `XCTAssertThrows`          | `#expect(throws:)`             |
+| `func testExample()`       | `@Test("Example description")` |
+| `XCTestCase` class         | `struct` with `@Suite`         |
+| `setUp()/tearDown()`       | `init()/deinit()`              |
+| Manual parameterization    | `@Test(arguments:)`            |
 
 ### Swift Testing Features for MagSafe Guard
 
@@ -143,7 +145,7 @@ import Testing
 struct SecurityTests {
     // Shared setup in init
     let mockAuthenticator: MockAuthenticator
-    
+
     init() {
         mockAuthenticator = MockAuthenticator()
     }
@@ -197,6 +199,7 @@ protocol SecurityActionDecider {
 #### 1.2 Extract Business Logic from Services
 
 **Before (Current)**:
+
 ```swift
 class PowerMonitorService {
     func startMonitoring() {
@@ -208,13 +211,14 @@ class PowerMonitorService {
 ```
 
 **After (Target)**:
+
 ```swift
 // Business Logic (100% Testable)
 class PowerMonitorUseCase {
     private let repository: PowerSourceRepository
     private let analyzer: PowerStateAnalyzer
     private let evaluator: ThreatEvaluator
-    
+
     func processPowerChange(newState: PowerState) -> SecurityDecision {
         let analysis = analyzer.analyzePowerChange(from: lastState, to: newState)
         let threat = evaluator.evaluateThreat(analysis, context: currentContext)
@@ -238,17 +242,17 @@ class IOKitPowerSourceRepository: PowerSourceRepository {
 // TestHelpers/Builders/PowerStateBuilder.swift
 class PowerStateBuilder {
     private var state = PowerState.default
-    
+
     func withACPower(_ connected: Bool) -> PowerStateBuilder {
         state.isACConnected = connected
         return self
     }
-    
+
     func withBatteryLevel(_ level: Int) -> PowerStateBuilder {
         state.batteryLevel = level
         return self
     }
-    
+
     func build() -> PowerState { state }
 }
 
@@ -273,11 +277,11 @@ func expectThreatLevel(
 ) -> Bool {
     do {
         let actual = try expression()
-        return expect(actual == expected, 
+        return expect(actual == expected,
                      "Expected threat level \(expected), got \(actual)",
                      sourceLocation: sourceLocation)
     } catch {
-        Issue.record("Expression threw error: \(error)", 
+        Issue.record("Expression threw error: \(error)",
                     sourceLocation: sourceLocation)
         return false
     }
@@ -299,11 +303,11 @@ class MockPowerSourceRepository: PowerSourceRepository {
     var powerStateSequence: [PowerState] = []
     var shouldThrowError = false
     var delayMilliseconds = 0
-    
+
     // Verification
     private(set) var getCurrentStateCallCount = 0
     private(set) var observeCallCount = 0
-    
+
     func getCurrentPowerState() async -> PowerState {
         getCurrentStateCallCount += 1
         if shouldThrowError { throw PowerError.unavailable }
@@ -328,7 +332,7 @@ struct PowerMonitorUseCaseTests {
     let mockRepository: MockPowerSourceRepository
     let mockAnalyzer: MockPowerStateAnalyzer
     let sut: PowerMonitorUseCase
-    
+
     init() {
         mockRepository = MockPowerSourceRepository()
         mockAnalyzer = MockPowerStateAnalyzer()
@@ -337,7 +341,7 @@ struct PowerMonitorUseCaseTests {
             analyzer: mockAnalyzer
         )
     }
-    
+
     @Test("Detects AC power disconnection")
     func detectsACDisconnection() async {
         // Given
@@ -345,15 +349,15 @@ struct PowerMonitorUseCaseTests {
             .connected,
             .disconnected
         ]
-        
+
         // When
         let change = await sut.detectPowerStateChange()
-        
+
         // Then
         #expect(change?.type == .acDisconnected)
         #expect(mockRepository.getCurrentStateCallCount == 2)
     }
-    
+
     @Test("Evaluates high threat for unexpected disconnection while armed")
     func evaluatesHighThreatForUnexpectedDisconnection() {
         // Given
@@ -363,14 +367,14 @@ struct PowerMonitorUseCaseTests {
             timestamp: Date()
         )
         let context = SecurityContext(isArmed: true, location: .untrusted)
-        
+
         // When
         let threat = sut.evaluateThreat(change: change, context: context)
-        
+
         // Then
         #expect(threat == .high)
     }
-    
+
     @Test("Power state changes", arguments: [
         (PowerState.connected, PowerState.disconnected, PowerChangeType.acDisconnected),
         (PowerState.disconnected, PowerState.connected, PowerChangeType.acConnected),
@@ -379,7 +383,7 @@ struct PowerMonitorUseCaseTests {
     func detectsVariousPowerStateChanges(from: PowerState, to: PowerState, expectedType: PowerChangeType) {
         // When
         let change = sut.analyzePowerChange(from: from, to: to)
-        
+
         // Then
         #expect(change.type == expectedType)
     }
@@ -394,20 +398,20 @@ import Testing
 
 @Suite("Authentication Use Case")
 struct AuthenticationUseCaseTests {
-    
+
     @Test("Requires biometric authentication for high security actions")
     func requiresBiometricForHighSecurityActions() async {
         // Given
         let useCase = AuthenticationUseCase(policy: .alwaysRequireBiometric)
         let action = SecurityAction.lockScreen
-        
+
         // When
         let requirement = await useCase.authenticationRequirement(for: action)
-        
+
         // Then
         #expect(requirement == .biometric)
     }
-    
+
     @Test("Caches authentication for grace period")
     func cachesAuthenticationForGracePeriod() async throws {
         // Given
@@ -415,15 +419,15 @@ struct AuthenticationUseCaseTests {
             policy: .cacheAuthentication,
             gracePeriod: .seconds(30)
         )
-        
+
         // When
         try await useCase.authenticate(method: .biometric)
         let secondAuth = await useCase.isAuthenticated()
-        
+
         // Then
         #expect(secondAuth == true)
     }
-    
+
     @Test("Authentication policies", arguments: [
         (AuthPolicy.alwaysRequireBiometric, true),
         (AuthPolicy.allowPasswordFallback, false),
@@ -444,7 +448,7 @@ import Testing
 
 @Suite("Security Action Use Case")
 struct SecurityActionUseCaseTests {
-    
+
     @Test("Prioritizes security actions by severity")
     func prioritizesActionsCorrectly() {
         // Given
@@ -453,29 +457,29 @@ struct SecurityActionUseCaseTests {
             .lockScreen,
             .shutdown
         ]
-        
+
         // When
         let prioritized = SecurityActionPrioritizer.prioritize(actions)
-        
+
         // Then
         #expect(prioritized.first == .lockScreen)
         #expect(prioritized.last == .shutdown)
     }
-    
+
     @Test("Queues actions with configurable delay")
     func queuesActionsWithDelay() async {
         // Given
         let queue = SecurityActionQueue()
         let action = SecurityAction.lockScreen
-        
+
         // When
         queue.enqueue(action, delay: .seconds(5))
-        
+
         // Then
         #expect(queue.pendingCount == 1)
         #expect(queue.isExecuting == false)
     }
-    
+
     @Test("Action combinations", arguments: [
         ([.lockScreen, .playSound], 2),
         ([.shutdown], 1),
@@ -498,36 +502,36 @@ import Testing
 
 @Suite("Security Flow Integration", .serialized)
 struct PowerSecurityIntegrationTests {
-    
+
     @Test("Complete security flow from power disconnection", .timeLimit(.minutes(1)))
     func fullSecurityFlowFromPowerDisconnection() async throws {
         // Given
         let powerMonitor = PowerMonitorUseCase(/* mocks */)
         let authenticator = AuthenticationUseCase(/* mocks */)
         let actionExecutor = SecurityActionUseCase(/* mocks */)
-        
+
         let coordinator = SecurityCoordinator(
             powerMonitor: powerMonitor,
             authenticator: authenticator,
             actionExecutor: actionExecutor
         )
-        
+
         // When
         await coordinator.handlePowerChange(.disconnected)
-        
+
         // Then
         #expect(authenticator.wasPrompted == true)
         #expect(actionExecutor.executedActions == [.lockScreen])
     }
-    
+
     @Test("Handles authentication failure gracefully")
     func handlesAuthenticationFailure() async throws {
         // Given
         let coordinator = createCoordinator(authShouldFail: true)
-        
+
         // When/Then - should not throw
         await coordinator.handlePowerChange(.disconnected)
-        
+
         #expect(coordinator.lastError != nil)
         #expect(coordinator.fallbackActionExecuted == true)
     }
@@ -560,14 +564,14 @@ let package = Package(
             dependencies: [],
             path: "Sources/Domain"
         ),
-        
+
         // Data Layer (Mockable)
         .target(
             name: "MagSafeGuardCore",
             dependencies: ["MagSafeGuardDomain"],
             path: "Sources/Core"
         ),
-        
+
         // Tests using Swift Testing
         .testTarget(
             name: "MagSafeGuardDomainTests",
@@ -577,7 +581,7 @@ let package = Package(
             ],
             path: "Tests/Unit"
         ),
-        
+
         // Legacy XCTest tests during migration
         .testTarget(
             name: "MagSafeGuardLegacyTests",
@@ -598,11 +602,11 @@ struct TestConfiguration {
     static var isCI: Bool {
         ProcessInfo.processInfo.environment["CI"] == "true"
     }
-    
+
     static var testTimeout: Duration {
         isCI ? .seconds(10) : .seconds(30)
     }
-    
+
     static var skipIntegrationTests: Bool {
         isCI || ProcessInfo.processInfo.environment["SKIP_INTEGRATION"] == "true"
     }
@@ -646,20 +650,24 @@ swift test --xunit-output results.xml
 ## Test Coverage Targets
 
 ### Phase 1-2 Target (Foundation)
+
 - Protocol definitions: N/A (interfaces)
 - Test infrastructure: N/A (test code)
 
 ### Phase 3 Target (Business Logic)
+
 - Domain Use Cases: **95-100%**
 - Business Rules: **95-100%**
 - State Management: **90-95%**
 - Data Models: **100%**
 
 ### Phase 4 Target (Integration)
+
 - Use Case Integration: **80-90%**
 - Service Orchestration: **80-90%**
 
 ### Excluded from Coverage
+
 - System Integration Layer (IOKit, CoreLocation, etc.)
 - SwiftUI Views
 - AppDelegate/SceneDelegate bootstrap code
@@ -668,11 +676,13 @@ swift test --xunit-output results.xml
 ## Success Metrics
 
 1. **Coverage Goals**:
+
    - Overall project: 80%+
    - Business logic: 95%+
    - Critical paths: 100%
 
 2. **Test Quality**:
+
    - All tests run in < 30 seconds
    - No flaky tests
    - Clear test names describing behavior
@@ -687,21 +697,25 @@ swift test --xunit-output results.xml
 ## Migration Strategy
 
 ### Week 1: Foundation
+
 1. Create protocol definitions
 2. Set up test infrastructure
 3. Migrate PowerMonitorCore tests
 
 ### Week 2: Core Services
+
 1. Extract AuthenticationService business logic
 2. Extract SecurityActionsService business logic
 3. Create comprehensive test suites
 
 ### Week 3: Orchestration
+
 1. Extract AppController business logic
 2. Test service coordination
 3. Integration test suite
 
 ### Week 4: Polish
+
 1. Address coverage gaps
 2. Performance optimization
 3. Documentation
@@ -709,6 +723,7 @@ swift test --xunit-output results.xml
 ## Testing Best Practices
 
 ### 1. Test Naming Convention (Swift Testing)
+
 ```swift
 // Swift Testing uses descriptive strings instead of method names
 @Test("Evaluates high threat when armed and disconnected")
@@ -727,16 +742,17 @@ func evaluatesThreatCorrectly(armed: Bool, connected: Bool, expectedThreat: Thre
 ```
 
 ### 2. AAA Pattern with Swift Testing
+
 ```swift
 @Test("Processes input correctly")
 func processesInput() {
     // Arrange
     let sut = createSUT()
     let input = createInput()
-    
+
     // Act
     let result = sut.process(input)
-    
+
     // Assert (using #expect)
     #expect(result == expected)
     #expect(result.count == 5)
@@ -747,6 +763,7 @@ func processesInput() {
 ```
 
 ### 3. Test Data Builders
+
 ```swift
 extension PowerState {
     static func connected(batteryLevel: Int = 100) -> PowerState {
@@ -759,13 +776,14 @@ extension PowerState {
 ```
 
 ### 4. Async Testing with Swift Testing
+
 ```swift
 @Test("Performs async operations", .timeLimit(.seconds(5)))
 func asyncBehavior() async throws {
     // Swift Testing has built-in async support
     let result = await sut.performAsyncOperation()
     #expect(result == expected)
-    
+
     // Test async sequences
     var values: [Int] = []
     for await value in sut.asyncSequence() {
@@ -790,6 +808,7 @@ func timeSensitiveOperation() async throws {
 By migrating to Swift Testing, we gain several specific advantages for this project:
 
 1. **Parameterized Security Tests**: Test multiple threat scenarios efficiently
+
    ```swift
    @Test("Threat scenarios", arguments: ThreatScenarios.all)
    func evaluatesThreat(scenario: ThreatScenario) {
@@ -798,6 +817,7 @@ By migrating to Swift Testing, we gain several specific advantages for this proj
    ```
 
 2. **Better Async Testing**: Natural support for our async security operations
+
    ```swift
    @Test("Authenticates within timeout", .timeLimit(.seconds(30)))
    func authentication() async throws {
@@ -807,11 +827,13 @@ By migrating to Swift Testing, we gain several specific advantages for this proj
    ```
 
 3. **Tagged Test Organization**: Group tests by feature or criticality
+
    ```swift
    @Suite("Critical Security", .tags(.security, .critical))
    ```
 
 4. **Conditional Testing**: Skip tests based on environment
+
    ```swift
    @Test("Biometric test", .enabled(if: !TestConfiguration.isCI))
    ```

@@ -125,7 +125,3 @@ This documentation is organized by audience and role to help you find the inform
 2. Use your editor's file search in the `docs/` directory
 3. Review the [Architecture Overview](architecture/architecture-overview.md) for system understanding
 4. See [Troubleshooting](maintainers/troubleshooting.md) for common issues
-
----
-
-**Last updated: January 2025**

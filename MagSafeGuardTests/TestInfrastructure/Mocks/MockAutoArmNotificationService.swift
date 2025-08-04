@@ -9,8 +9,8 @@
 //
 
 import Foundation
-@testable import MagSafeGuardDomain
 @testable import MagSafeGuardCore
+@testable import MagSafeGuardDomain
 
 /// Mock implementation of AutoArmNotificationService for testing.
 /// Allows full control over notification behavior in tests.

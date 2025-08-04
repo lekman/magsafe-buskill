@@ -9,7 +9,7 @@
 
 import Foundation
 
-@testable import MagSafeGuardCore
+@testable import MagSafeGuard
 
 /// Mock factory for creating mock authentication contexts
 class MockAuthenticationContextFactory: AuthenticationContextFactoryProtocol {

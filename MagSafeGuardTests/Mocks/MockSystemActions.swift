@@ -9,7 +9,7 @@
 
 import Foundation
 
-@testable import MagSafeGuardCore
+@testable import MagSafeGuard
 
 /// Mock implementation of system actions for testing
 class MockSystemActions: SystemActionsProtocol {

@@ -9,8 +9,8 @@
 //
 
 import Foundation
-@testable import MagSafeGuardDomain
 @testable import MagSafeGuardCore
+@testable import MagSafeGuardDomain
 
 /// Builder for creating AutoArmConfiguration test instances.
 public final class AutoArmConfigurationBuilder {

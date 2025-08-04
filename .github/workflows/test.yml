@@ -106,7 +106,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Status**: Tests completed with Clean Architecture coverage analysis" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           # Display coverage report if it exists
           if [ -f coverage-report.txt ]; then
             echo "### 📈 Coverage Summary" >> $GITHUB_STEP_SUMMARY
@@ -128,20 +128,20 @@ jobs:
             echo "| 📊 Overall | - | $OVERALL |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           echo "### 📋 Test Execution" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ FeatureFlags tests: $(grep -c "FeatureFlagsTests" <<< "$(cat coverage-report.txt 2>/dev/null)" || echo "0") functions" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Logger tests: $(grep -c "LoggerTests" <<< "$(cat coverage-report.txt 2>/dev/null)" || echo "0") functions" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Settings tests: 100% model coverage" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Simple domain tests: Basic validation" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           echo "### 🎯 Next Steps" >> $GITHUB_STEP_SUMMARY
           echo "- Create Domain Use Case tests (0% coverage currently)" >> $GITHUB_STEP_SUMMARY
           echo "- Add Protocol behavior tests" >> $GITHUB_STEP_SUMMARY
           echo "- Target: 95-100% Domain layer coverage" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           echo "### 📁 Artifacts Generated" >> $GITHUB_STEP_SUMMARY
           echo "- \`coverage.lcov\` - LCOV format for CodeCov" >> $GITHUB_STEP_SUMMARY
           echo "- \`coverage.xml\` - Cobertura format for SonarCloud" >> $GITHUB_STEP_SUMMARY
