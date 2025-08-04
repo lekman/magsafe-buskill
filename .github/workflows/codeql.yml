@@ -47,7 +47,7 @@ jobs:
             ${{ runner.os }}-codeql-
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
+        uses: github/codeql-action/init@51f77329afa6477de8c49fc9c7046c15b9a4e79d # v3.29.5
         with:
           languages: swift
           build-mode: manual
@@ -68,7 +68,7 @@ jobs:
           echo "✅ Build completed for CodeQL"
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
+        uses: github/codeql-action/analyze@51f77329afa6477de8c49fc9c7046c15b9a4e79d # v3.29.5
         with:
           category: "/language:swift"
           upload: true
