@@ -69,7 +69,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
         with:
           fetch-depth: 0
 
@@ -162,10 +162,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
 
       - name: Dependency Review
-        uses: actions/dependency-review-action@89c73830747a68fcfdecb3b682ff934fc8c3abf1 # da24556b548a50705dd671f47852072ea4c105d9
+        uses: actions/dependency-review-action@89c73830747a68fcfdecb3b682ff934fc8c3abf1 # v3
         with:
           # Fail on high severity vulnerabilities
           fail-on-severity: high
@@ -185,13 +185,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
         with:
           fetch-depth: 0 # Fetch all history for scanning
 
       - name: TruffleHog OSS
         id: trufflehog
-        uses: trufflesecurity/trufflehog@2f1baea40da850cf64656bb98e0e91935ccc7b0d # a05cf0859455b5b16317ee22d809887a4043cdf0
+        uses: trufflesecurity/trufflehog@9d7c0afbc82629a94e316ff54b5b803ec6a6a39b # v3
         with:
           path: ./
           base: ${{ github.event.repository.default_branch }}
@@ -233,7 +233,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
 
       - name: Check for security policy
         run: |
@@ -257,11 +257,11 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
 
       # Run Semgrep - automatically uses cloud rules if SEMGREP_APP_TOKEN is set
       - name: Run Semgrep
-        uses: returntocorp/semgrep-action@713efdd345f3035192eaa63f56867b88e63e4e5d # 713efdd345f3035192eaa63f56867b88e63e4e5d
+        uses: returntocorp/semgrep-action@713efdd345f3035192eaa63f56867b88e63e4e5d # v1
         env:
           # If token is set, Semgrep will use cloud configuration
           # If not set, it will use the default rules
@@ -284,7 +284,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
 
       - name: Setup Snyk
         uses: snyk/actions/setup@b98d498629f1c368650224d6d212bf7dfa89e4bf # v0.4.0
@@ -317,10 +317,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
 
       - name: Run License Scan
-        uses: fossas/fossa-action@1a4ab2c09a021b27eab71629bd33ded21866fc3b # af5662f6f8877dad2ea85109ee5444f4ca3b0fe2
+        uses: fossas/fossa-action@4f804ad44d80e2b8a3d4f2caeb20887ed344c14b # v1
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
         continue-on-error: true # Don't fail if FOSSA is not configured
@@ -340,12 +340,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
         with:
           persist-credentials: false
 
       - name: Run Scorecard
-        uses: ossf/scorecard-action@f35c64557cf912815708bb1126d9948f3e459487 # 62b2cac7ed8198b15735ed49ab1e5cf35480ba46
+        uses: ossf/scorecard-action@f35c64557cf912815708bb1126d9948f3e459487 # v2
         with:
           results_file: results.sarif
           results_format: sarif

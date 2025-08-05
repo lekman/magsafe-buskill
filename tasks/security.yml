@@ -94,8 +94,8 @@ tasks:
 
         rm -f "$temp_file"
 
-        # Check for .env files that might be committed
-        env_files=$(find . -name ".env*" -not -path "./.git/*" -not -path "./node_modules/*" 2>/dev/null || true)
+        # Check for .env files that might be committed (exclude .env.example files)
+        env_files=$(find . -name ".env*" -not -name "*.example" -not -path "./.git/*" -not -path "./node_modules/*" 2>/dev/null || true)
         if [ -n "$env_files" ]; then
           # Check if these files are in .gitignore
           unignored_env_files=""
@@ -295,6 +295,9 @@ tasks:
           temp_file="${file}.tmp"
           cp "$file" "$temp_file"
 
+          # Track processed actions in this file to avoid duplicates
+          processed=""
+          
           # Find all uses statements
           while IFS= read -r line; do
             # Check if line contains uses: and has @ symbol (external actions only)
@@ -303,16 +306,21 @@ tasks:
               action=$(echo "$line" | sed -E 's/^[[:space:]]*uses:[[:space:]]*([^@]+)@.*/\1/')
               full_version=$(echo "$line" | sed -E 's/^[[:space:]]*uses:[[:space:]]*[^@]+@(.*)/\1/')
 
-              # Check if already pinned (has SHA followed by comment with version)
-              if echo "$full_version" | grep -qE '^[a-f0-9]{40}[[:space:]]*#'; then
-                continue
-              fi
-
               # Extract just the version part (remove any trailing comments or spaces)
               version=$(echo "$full_version" | sed 's/[[:space:]]*#.*//' | sed 's/[[:space:]]*$//')
 
-              # Skip if version is already a SHA (40 character hex)
+              # Create unique key for this action@version
+              action_key="${action}@${version}"
+              
+              # Skip if we've already processed this exact action@version in this file
+              if echo "$processed" | grep -qF "$action_key"; then
+                continue
+              fi
+              processed="$processed $action_key"
+
+              # Check if this is already a SHA
               if echo "$version" | grep -qE '^[a-f0-9]{40}$'; then
+                # It's already a SHA - skip it completely
                 continue
               fi
 
@@ -406,28 +414,51 @@ tasks:
           temp_file="${file}.tmp"
           cp "$file" "$temp_file"
 
-          # Find all uses statements with SHA and comment showing version
+          # Find all uses statements with SHA and comment
           while IFS= read -r line; do
             if [[ $line =~ uses:[[:space:]]*([^@]+)@([a-f0-9]{40})[[:space:]]*#[[:space:]]*([^[:space:]]+) ]]; then
               action="${BASH_REMATCH[1]}"
               current_sha="${BASH_REMATCH[2]}"
-              version="${BASH_REMATCH[3]}"
+              version_or_sha="${BASH_REMATCH[3]}"
 
-              echo "  Found: $action@$current_sha # $version"
-
-              # Get the latest SHA for this version
-              new_sha=$(get_sha_for_tag "$action" "$version")
-
-              if [ -n "$new_sha" ] && [ "$new_sha" != "null" ] && [ "$new_sha" != "$current_sha" ]; then
-                # Replace in temp file
+              # Check if the comment contains a duplicate SHA
+              if [[ "$version_or_sha" =~ ^[a-f0-9]{40}$ ]]; then
+                # Comment has duplicate SHA - try to extract version from git
+                echo "  Found: $action@$current_sha # $version_or_sha (duplicate SHA)"
+                
+                # Use gh to get tags containing this commit
+                version=$(gh api repos/$action/git/refs/tags 2>/dev/null | \
+                  jq -r --arg sha "$current_sha" '.[] | select(.object.sha == $sha) | .ref | sub("refs/tags/"; "")' | \
+                  head -1)
+                
+                if [ -z "$version" ]; then
+                  echo "    ⚠️  Cannot determine version for SHA, skipping"
+                  continue
+                fi
+                
+                # Fix the comment
                 escaped_action=$(echo "$action" | sed 's/[[\\.*^$()+?{|]/\\\\&/g')
-
-                sed -i '' "s|uses: ${escaped_action}@${current_sha} # ${version}|uses: ${action}@${new_sha} # ${version}|g" "$temp_file"
-
-                echo "    ✅ Updated to: $new_sha"
+                sed -i '' "s|uses: ${escaped_action}@${current_sha} # ${version_or_sha}|uses: ${action}@${current_sha} # ${version}|g" "$temp_file"
+                echo "    ✅ Fixed comment: $version"
                 total_updated=$((total_updated + 1))
               else
-                echo "    ✓ Already up to date"
+                version="$version_or_sha"
+                echo "  Found: $action@$current_sha # $version"
+
+                # Get the latest SHA for this version
+                new_sha=$(get_sha_for_tag "$action" "$version")
+
+                if [ -n "$new_sha" ] && [ "$new_sha" != "null" ] && [ "$new_sha" != "$current_sha" ]; then
+                  # Replace in temp file
+                  escaped_action=$(echo "$action" | sed 's/[[\\.*^$()+?{|]/\\\\&/g')
+
+                  sed -i '' "s|uses: ${escaped_action}@${current_sha} # ${version}|uses: ${action}@${new_sha} # ${version}|g" "$temp_file"
+
+                  echo "    ✅ Updated to: $new_sha"
+                  total_updated=$((total_updated + 1))
+                else
+                  echo "    ✓ Already up to date"
+                fi
               fi
             fi
           done < "$file"

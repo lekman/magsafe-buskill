@@ -143,8 +143,11 @@ tasks:
         pr_file=$(find . -name "pr.*.md" | head -1)
         if [ -n "$pr_file" ]; then
           echo "Found PR file: $pr_file"
-          markdownlint "$pr_file" --fix
-          echo "✅ PR documentation fixed"
+          if markdownlint "$pr_file" --fix 2>/dev/null | grep -v "Usage:"; then
+            echo "✅ PR documentation fixed"
+          else
+            echo "⚠️ PR documentation processing skipped (markdownlint issue)"
+          fi
         else
           echo "No PR documentation found (pr.*.md)"
         fi

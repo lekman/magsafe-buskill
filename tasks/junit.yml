@@ -1,0 +1,119 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: "3"
+
+# JUnit XML generation for test execution reporting
+# Provides test performance tracking, flaky test detection, and insights via Codecov Test Analytics
+
+vars:
+  SPM_PACKAGE_DIR: '{{.SPM_PACKAGE_DIR | default "./MagSafeGuardLib"}}'
+  JUNIT_OUTPUT: '{{.JUNIT_OUTPUT | default "./test-results.xml"}}'
+
+tasks:
+  generate-junit:
+    desc: Generate JUnit XML from Swift test output for Codecov Test Analytics
+    silent: true
+    cmds:
+      - |
+        echo "📊 Generating JUnit XML for Test Analytics..."
+
+        # Run tests with xcresult output
+        xcrun xcodebuild test \
+          -scheme MagSafeGuard \
+          -resultBundlePath TestResults.xcresult \
+          -enableCodeCoverage YES \
+          -parallel-testing-enabled YES \
+          -quiet | xcbeautify
+
+        # Convert xcresult to JUnit XML
+        if command -v xcresulttool &> /dev/null; then
+          xcresulttool -junit TestResults.xcresult > {{.JUNIT_OUTPUT}}
+          echo "✅ JUnit XML generated at {{.JUNIT_OUTPUT}}"
+        else
+          echo "⚠️ xcresulttool not found. Installing..."
+          brew install xcresulttool
+          xcresulttool -junit TestResults.xcresult > {{.JUNIT_OUTPUT}}
+        fi
+
+  swift-to-junit:
+    desc: Convert Swift test output to JUnit XML format
+    silent: true
+    cmds:
+      - |
+        echo "🔄 Converting Swift test output to JUnit XML..."
+
+        # Alternative approach using swift-junit
+        if ! command -v swift-junit &> /dev/null; then
+          echo "📦 Installing swift-junit..."
+          mint install davidahouse/swift-junit@main
+        fi
+
+        # Run tests and pipe to swift-junit
+        cd {{.SPM_PACKAGE_DIR}}
+        swift test --enable-code-coverage --parallel 2>&1 | \
+          swift-junit > ../{{.JUNIT_OUTPUT}}
+
+        echo "✅ JUnit XML generated at {{.JUNIT_OUTPUT}}"
+
+  xcbeautify-junit:
+    desc: Use xcbeautify to generate JUnit XML
+    silent: true
+    cmds:
+      - |
+        echo "🎨 Using xcbeautify for JUnit generation..."
+
+        cd {{.SPM_PACKAGE_DIR}}
+
+        # Run tests with xcbeautify JUnit reporter
+        swift test --enable-code-coverage --parallel 2>&1 | \
+          xcbeautify --report junit --report-path .. --junit-report-filename $(basename {{.JUNIT_OUTPUT}})
+
+        # xcbeautify outputs to report-path/junit-report-filename
+        JUNIT_FILE="../$(basename {{.JUNIT_OUTPUT}})"
+        if [ -f "$JUNIT_FILE" ]; then
+          echo "✅ JUnit XML generated successfully at $JUNIT_FILE"
+          echo "📊 Test results summary:"
+          # Parse and display summary
+          if command -v xmllint &> /dev/null; then
+            TESTS=$(xmllint --xpath "count(//testcase)" "$JUNIT_FILE" 2>/dev/null || echo "?")
+            FAILURES=$(xmllint --xpath "count(//failure)" "$JUNIT_FILE" 2>/dev/null || echo "0")
+            ERRORS=$(xmllint --xpath "count(//error)" "$JUNIT_FILE" 2>/dev/null || echo "0")
+            echo "   Total tests: $TESTS"
+            echo "   Failures: $FAILURES"
+            echo "   Errors: $ERRORS"
+          fi
+        else
+          echo "❌ Failed to generate JUnit XML"
+          exit 1
+        fi
+
+  validate-junit:
+    desc: Validate JUnit XML output
+    silent: true
+    cmds:
+      - |
+        if [ ! -f "{{.JUNIT_OUTPUT}}" ]; then
+          echo "❌ JUnit XML file not found at {{.JUNIT_OUTPUT}}"
+          exit 1
+        fi
+
+        echo "🔍 Validating JUnit XML..."
+
+        # Basic XML validation
+        if command -v xmllint &> /dev/null; then
+          xmllint --noout {{.JUNIT_OUTPUT}}
+          if [ $? -eq 0 ]; then
+            echo "✅ JUnit XML is valid"
+          else
+            echo "❌ JUnit XML validation failed"
+            exit 1
+          fi
+        else
+          echo "⚠️ xmllint not found, skipping validation"
+        fi
+
+  clean:
+    desc: Clean test analytics artifacts
+    cmds:
+      - rm -f {{.JUNIT_OUTPUT}}
+      - rm -rf TestResults.xcresult
+      - rm -f test-output.log

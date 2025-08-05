@@ -58,6 +58,11 @@ flags:
     paths:
       - MagSafeGuardLib/Sources/MagSafeGuardDomain/UseCases/
 
+  # Test execution reporting flag for JUnit results
+  test-execution:
+    paths:
+      - MagSafeGuardLib/
+
 ignore:
   # Only MagSafeGuardLib is covered - exclude everything else
   - "MagSafeGuard/"

@@ -8,6 +8,17 @@
 import Foundation
 import MagSafeGuardDomain
 import Network
+import Security
+
+/// Network repository error types
+public enum NetworkRepositoryError: Error {
+    /// Error occurred during storage operations
+    case storageError(String)
+    /// Network services are unavailable
+    case networkUnavailable
+    /// Network path monitoring failed to start
+    case pathMonitoringFailed
+}
 
 /// Network framework-based implementation of NetworkRepository
 public final class NetworkFrameworkRepository: NetworkRepository {
@@ -26,7 +37,7 @@ public final class NetworkFrameworkRepository: NetworkRepository {
     ///   - trustedNetworksStore: Storage for trusted networks
     public init(
         networkMonitor: NetworkMonitor = NetworkMonitor(),
-        trustedNetworksStore: TrustedNetworksStore = UserDefaultsTrustedNetworksStore()
+        trustedNetworksStore: TrustedNetworksStore = KeychainTrustedNetworksStore()
     ) {
         self.networkMonitor = networkMonitor
         self.trustedNetworksStore = trustedNetworksStore
@@ -129,26 +140,59 @@ public protocol TrustedNetworksStore {
     func loadTrustedNetworks() async -> [TrustedNetwork]
 }
 
-/// UserDefaults-based storage for trusted networks
-public actor UserDefaultsTrustedNetworksStore: TrustedNetworksStore {
-    private let userDefaults: UserDefaults
-    private let key = "MagSafeGuard.TrustedNetworks"
+/// Keychain-based secure storage for trusted networks
+public actor KeychainTrustedNetworksStore: TrustedNetworksStore {
+    private let service = "com.lekman.MagSafeGuard.TrustedNetworks"
+    private let account = "trusted-networks"
 
-    /// Initializes with UserDefaults storage
-    public init(userDefaults: UserDefaults = .standard) {
-        self.userDefaults = userDefaults
-    }
+    /// Initializes keychain storage
+    public init() {}
 
-    /// Saves trusted networks to UserDefaults
+    /// Saves trusted networks to Keychain (encrypted)
     public func saveTrustedNetworks(_ networks: [TrustedNetwork]) async throws {
         let encoder = JSONEncoder()
         let data = try encoder.encode(networks.map(NetworkDTO.init))
-        userDefaults.set(data, forKey: key)
+
+        // Delete existing item first
+        let deleteQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        SecItemDelete(deleteQuery as CFDictionary)
+
+        // Add new encrypted item
+        let addQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        ]
+
+        let status = SecItemAdd(addQuery as CFDictionary, nil)
+        guard status == errSecSuccess else {
+            throw NetworkRepositoryError.storageError("Failed to save to keychain: \(status)")
+        }
     }
 
-    /// Loads trusted networks from UserDefaults
+    /// Loads trusted networks from Keychain (decrypted)
     public func loadTrustedNetworks() async -> [TrustedNetwork] {
-        guard let data = userDefaults.data(forKey: key) else { return [] }
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+
+        guard status == errSecSuccess,
+              let data = item as? Data else {
+            return []
+        }
 
         let decoder = JSONDecoder()
         guard let dtos = try? decoder.decode([NetworkDTO].self, from: data) else { return [] }

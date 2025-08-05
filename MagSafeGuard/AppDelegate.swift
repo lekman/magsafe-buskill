@@ -31,6 +31,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       return
     }
 
+    // Initialize logging system including Sentry
+    Log.initialize()
+
     // Check for previous crashes
     checkForPreviousCrashes()
 

@@ -29,14 +29,14 @@ jobs:
     steps:
       - name: Generate GitHub App Token
         id: app-token
-        uses: actions/create-github-app-token@d7ee28121512479a18a428398f948ac5ce15fb4c # df432ceedc7162793a195dd1713ff69aefc7379e
+        uses: actions/create-github-app-token@d7ee28121512479a18a428398f948ac5ce15fb4c # v1
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
       - name: Release Please
         id: release
-        uses: googleapis/release-please-action@1155c2c8dcbd6b15e85bae6bc6d1fed9552663cb # a02a34c4d625f9be7cb89156071d8567266a2445
+        uses: googleapis/release-please-action@1155c2c8dcbd6b15e85bae6bc6d1fed9552663cb # v4
         with:
           token: ${{ steps.app-token.outputs.token }}
           config-file: .github/.release-please-config.json
@@ -50,13 +50,13 @@ jobs:
     steps:
       - name: Generate GitHub App Token
         id: app-token
-        uses: actions/create-github-app-token@d7ee28121512479a18a428398f948ac5ce15fb4c # df432ceedc7162793a195dd1713ff69aefc7379e
+        uses: actions/create-github-app-token@d7ee28121512479a18a428398f948ac5ce15fb4c # v1
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
       - name: Auto-approve Release PR
-        uses: lekman/auto-approve-action@2b40a27e3d7b9c34e6a7aac0a3268bfbee787da9 # 25d5b39fc1a1e8a04ad7473a47f1a9ecd9748fa3
+        uses: lekman/auto-approve-action@2b40a27e3d7b9c34e6a7aac0a3268bfbee787da9 # v1
         with:
           allowed-authors: "app/lekman-release-please-bot"
           github-token: ${{ secrets.APPROVE_TOKEN }}
@@ -73,7 +73,7 @@ jobs:
     steps:
       - name: Generate GitHub App Token
         id: app-token
-        uses: actions/create-github-app-token@d7ee28121512479a18a428398f948ac5ce15fb4c # df432ceedc7162793a195dd1713ff69aefc7379e
+        uses: actions/create-github-app-token@d7ee28121512479a18a428398f948ac5ce15fb4c # v1
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}

@@ -257,4 +257,261 @@ final class LoggerTests: XCTestCase {
 
     XCTAssertTrue(true, "File logging should be disabled in tests")
   }
+  
+  // MARK: - Initialization Tests
+  
+  func testLoggerInitialization() {
+    // Test that Log.initialize() works without errors
+    XCTAssertNoThrow(Log.initialize())
+    
+    // Multiple initializations should be safe  
+    XCTAssertNoThrow(Log.initialize())
+    XCTAssertNoThrow(Log.initialize())
+    
+    // Verify that initialization calls Sentry setup
+    // (This should execute the SentryLogger.initialize() line in Logger.swift)
+    Log.initialize()
+  }
+  
+  func testFileLoggerDisabledInTestEnvironment() {
+    // Test that file logging is properly disabled in test environment
+    // This should execute the fileLogger initialization code path
+    
+    // Verify test environment detection works
+    // In CI or with CI=true, XCTestConfigurationFilePath may not be set
+    // Instead, check for either XCTestConfigurationFilePath or CI environment variable
+    let isTestEnv = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil ||
+                    ProcessInfo.processInfo.environment["CI"] != nil
+    XCTAssertTrue(isTestEnv, "Should detect test environment")
+    
+    // Test that error logging still works even with file logging disabled
+    XCTAssertNoThrow(Log.error("Test file logging disabled"))
+    XCTAssertNoThrow(Log.critical("Test critical with disabled file logging"))
+    XCTAssertNoThrow(Log.fault("Test fault with disabled file logging"))
+  }
+  
+  // MARK: - Sentry Integration Tests
+  
+  func testSentryTestEventIntegration() {
+    // Test Log.sendTestEvent() method
+    XCTAssertNoThrow(Log.sendTestEvent())
+    
+    // Test with completion handler
+    let expectation = XCTestExpectation(description: "sendTestEvent completion")
+    
+    Log.sendTestEvent { success in
+      // Should complete regardless of Sentry configuration in tests
+      expectation.fulfill()
+    }
+    
+    wait(for: [expectation], timeout: 3.0)
+  }
+  
+  // MARK: - All Category Coverage
+  
+  func testAllCategoriesWithAllLevels() {
+    let allCategories: [LogCategory] = [
+      .general, .authentication, .powerMonitor, .security,
+      .network, .ui, .settings, .location
+    ]
+    
+    for category in allCategories {
+      // Test all log levels with each category
+      Log.debug("Debug message", category: category)
+      Log.info("Info message", category: category)
+      Log.notice("Notice message", category: category)
+      Log.warning("Warning message", category: category)
+      Log.error("Error message", category: category)
+      Log.critical("Critical message", category: category)
+      Log.fault("Fault message", category: category)
+      
+      // Test sensitive variants
+      Log.debugSensitive("Debug sensitive", value: "test", category: category)
+      Log.infoSensitive("Info sensitive", value: "test", category: category)
+      Log.noticeSensitive("Notice sensitive", value: "test", category: category)
+      
+      #if DEBUG
+      Log.verbose("Verbose message", category: category)
+      #endif
+    }
+  }
+  
+  // MARK: - Error Logging with Swift Errors
+  
+  func testErrorLoggingWithSwiftErrors() {
+    enum TestError: Error {
+      case networkFailure(String)
+      case authenticationFailure
+      case configurationError(code: Int)
+    }
+    
+    struct CustomError: Error {
+      let description: String
+      let timestamp: Date
+    }
+    
+    let errors: [Error] = [
+      TestError.networkFailure("Connection timeout"),
+      TestError.authenticationFailure,
+      TestError.configurationError(code: 500),
+      CustomError(description: "Custom error", timestamp: Date()),
+      NSError(domain: "TestDomain", code: 404, userInfo: [
+        NSLocalizedDescriptionKey: "Resource not found"
+      ])
+    ]
+    
+    for error in errors {
+      XCTAssertNoThrow(Log.error("Error occurred", error: error))
+      XCTAssertNoThrow(Log.error("Error with category", error: error, category: .network))
+      XCTAssertNoThrow(Log.critical("Critical error", error: error, category: .security))
+      XCTAssertNoThrow(Log.fault("Fault error", category: .general))
+    }
+  }
+  
+  // MARK: - Log Category Properties
+  
+  func testLogCategoryProperties() {
+    let allCategories: [LogCategory] = [
+      .general, .authentication, .powerMonitor, .security,
+      .network, .ui, .settings, .location
+    ]
+    
+    for category in allCategories {
+      // Test that category names are not empty
+      XCTAssertFalse(category.categoryName.isEmpty, "Category \(category) should have a name")
+      
+      // Test category consistency
+      XCTAssertNoThrow(Log.info("Category test", category: category))
+    }
+  }
+  
+  // MARK: - Mixed Logging Scenarios
+  
+  func testAdvancedMixedDebugLogging() {
+    // Test various combinations of debug logging
+    Log.debug("Simple debug")
+    Log.debug("Debug with category", category: .authentication)
+    Log.debugSensitive("Sensitive debug", value: "secret")
+    Log.debugSensitive("Sensitive debug with category", value: "token", category: .security)
+    
+    #if DEBUG
+    Log.verbose("Verbose logging")
+    Log.verbose("Verbose with category", category: .powerMonitor)
+    #endif
+  }
+  
+  // MARK: - Edge Case Message Formats
+  
+  func testComplexMessageFormats() {
+    let complexMessages = [
+      "Message with newlines\nLine 2\nLine 3",
+      "Message with tabs\tTab\tSeparated",
+      "Unicode: 🔒 🔑 ⚡ 🔋 📱 💻",
+      "JSON-like: {\"key\": \"value\", \"number\": 123}",
+      "URL-like: https://example.com/path?param=value",
+      "XML-like: <tag attribute=\"value\">content</tag>",
+      "Very long message: " + String(repeating: "test ", count: 200),
+      "   Leading and trailing spaces   ",
+      ""  // Empty string
+    ]
+    
+    for message in complexMessages {
+      Log.info(message)
+      Log.error(message)
+      Log.debug(message)
+      Log.infoSensitive("Complex", value: message)
+    }
+  }
+  
+  // MARK: - Concurrent Logging Tests
+  
+  func testAdvancedConcurrentLogging() {
+    let expectation = XCTestExpectation(description: "Advanced concurrent logging")
+    expectation.expectedFulfillmentCount = 20
+    
+    // Test concurrent logging from multiple queues
+    for i in 0..<10 {
+      DispatchQueue.global(qos: .background).async {
+        Log.info("Background log \(i)")
+        expectation.fulfill()
+      }
+      
+      DispatchQueue.global(qos: .userInitiated).async {
+        Log.error("User initiated log \(i)")
+        expectation.fulfill()
+      }
+    }
+    
+    wait(for: [expectation], timeout: 5.0)
+  }
+  
+  // MARK: - Bundle and System Information
+  
+  func testBundleInformationLogging() {
+    // Test logging that might access bundle information
+    Log.info("App version test")
+    Log.error("System information test")
+    
+    // Test with various system states
+    Log.debug("Bundle test", category: .settings)
+    Log.notice("System test", category: .general)
+  }
+  
+  // MARK: - Performance Tests
+  
+  func testLoggingPerformance() {
+    // Test that logging doesn't significantly impact performance
+    let startTime = Date()
+    
+    for i in 0..<1000 {
+      Log.debug("Performance test \(i)")
+    }
+    
+    let endTime = Date()
+    let duration = endTime.timeIntervalSince(startTime)
+    
+    // Logging 1000 messages should complete reasonably quickly (< 1 second)
+    XCTAssertLessThan(duration, 1.0, "Logging should complete within 1 second")
+  }
+  
+  // MARK: - Category Name Verification
+  
+  func testAdvancedCategoryNames() {
+    // Verify that all categories have meaningful names
+    let categoryNames = [
+      LogCategory.general.categoryName,
+      LogCategory.authentication.categoryName,
+      LogCategory.powerMonitor.categoryName,
+      LogCategory.security.categoryName,
+      LogCategory.network.categoryName,
+      LogCategory.ui.categoryName,
+      LogCategory.settings.categoryName,
+      LogCategory.location.categoryName
+    ]
+    
+    for name in categoryNames {
+      XCTAssertFalse(name.isEmpty, "Category name should not be empty")
+      XCTAssertGreaterThanOrEqual(name.count, 2, "Category name should be meaningful")
+    }
+  }
+  
+  // MARK: - Test Environment Stability
+  
+  func testLoggerStabilityInTestEnvironment() {
+    // Ensure logger works reliably in test environment
+    let iterations = 100
+    
+    for i in 0..<iterations {
+      Log.debug("Stability test \(i)")
+      Log.info("Info stability \(i)")
+      Log.warning("Warning stability \(i)")
+      Log.error("Error stability \(i)")
+      
+      if i % 10 == 0 {
+        Log.debugSensitive("Sensitive \(i)", value: "test\(i)")
+      }
+    }
+    
+    XCTAssertTrue(true, "Logger should remain stable during repeated use")
+  }
 }

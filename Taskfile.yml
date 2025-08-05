@@ -12,6 +12,12 @@ includes:
     vars:
       PROJECT_NAME: "MagSafeGuard"
       SCHEME_NAME: "MagSafeGuard"
+  junit:
+    taskfile: ./tasks/junit.yml
+    optional: false
+    vars:
+      PROJECT_NAME: "MagSafeGuard"
+      SCHEME_NAME: "MagSafeGuard"
   xcode:
     taskfile: ./tasks/xcode.yml
     optional: false
@@ -353,14 +359,13 @@ tasks:
 
   # Testing and quality assurance
   test:
-    desc: Run Clean Architecture tests using SPM (focus on Domain and Data layers per TEST_REFACTORING_PLAN_V2.md)
+    desc: Run Clean Architecture tests using SPM
     silent: true
     env:
       CI: "true"
     cmds:
       - |
         echo "🧪 Running Clean Architecture tests with SPM..."
-        echo "Based on TEST_REFACTORING_PLAN_V2.md - Focus on Business Logic"
         echo ""
 
         # Use Swift Package Manager for testing
@@ -537,7 +542,7 @@ tasks:
               cat coverage-report.txt >> "$GITHUB_STEP_SUMMARY"
               echo '```' >> "$GITHUB_STEP_SUMMARY"
 
-              echo "## Targets (per TEST_REFACTORING_PLAN_V2.md)" >> "$GITHUB_STEP_SUMMARY"
+              echo "## Targets" >> "$GITHUB_STEP_SUMMARY"
               echo "- 🏛️ **Domain Layer**: 95-100% (business logic)" >> "$GITHUB_STEP_SUMMARY"
               echo "- 🧠 **Core Models**: 100% (data models)" >> "$GITHUB_STEP_SUMMARY"
               echo "- 📊 **Overall Project**: 80%+" >> "$GITHUB_STEP_SUMMARY"
@@ -684,6 +689,11 @@ tasks:
       - task: security:scan
       - task: swift:sbom
       - echo "✅ Standard QA suite passed!"
+      - |
+        if [ -f "coverage-report.txt" ]; then
+          echo "📊 Opening coverage report..."
+          code coverage-report.txt 2>/dev/null || echo "   View coverage at: coverage-report.txt"
+        fi
   qa:quick:
     desc: Quick QA checks for git hooks
     silent: true
@@ -704,7 +714,6 @@ tasks:
       - task: swift:lint:fix
       - task: yaml:lint:fix
       - task: markdown:lint:fix
-      - task: markdown:pr:fix
       - echo "✅ Auto-fix complete!"
   qa:full:
     desc: Full QA suite including SonarCloud analysis

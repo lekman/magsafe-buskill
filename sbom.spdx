@@ -2,13 +2,13 @@ SPDXVersion: SPDX-2.3
 DataLicense: CC0-1.0
 SPDXID: SPDXRef-DOCUMENT
 DocumentName: MagSafeGuardLib
-DocumentNamespace: https://sbom.swift/MagSafeGuardLib/spdx-v1.9.0-130-g899a2b7-1754377544
+DocumentNamespace: https://sbom.swift/MagSafeGuardLib/spdx-v1.10.0-65-g50fca2a-1754412803
 Creator: Tool: swift-package-sbom-1.0.0
-Created: 2025-08-05T07:05:44Z
+Created: 2025-08-05T16:53:23Z
 
 PackageName: MagSafeGuardLib
 SPDXID: SPDXRef-Package-MagSafeGuardLib
-PackageVersion: v1.9.0-130-g899a2b7
+PackageVersion: v1.10.0-65-g50fca2a
 PackageSupplier: Organization: Swift Package
 PackageDownloadLocation: NOASSERTION
 FilesAnalyzed: true
@@ -19,3 +19,13 @@ PackageCopyrightText: NOASSERTION
 
 
 # Dependencies
+PackageName: Sentry
+SPDXID: SPDXRef-Package-sentry-cocoa
+PackageVersion: 8.54.0
+PackageDownloadLocation: https://github.com/getsentry/sentry-cocoa
+FilesAnalyzed: false
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: NOASSERTION
+PackageCopyrightText: NOASSERTION
+
+Relationship: SPDXRef-Package-sentry-cocoa DEPENDENCY_OF SPDXRef-Package-${PACKAGE_NAME}

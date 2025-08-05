@@ -107,7 +107,7 @@ runs:
     - name: Setup Swift
       id: setup-swift-toolchain
       if: steps.check-swift.outputs.swift-available != 'true' && steps.tool-cache.outputs.tool-cache-hit != 'true'
-      uses: swift-actions/setup-swift@v2
+      uses: swift-actions/setup-swift@3748edaead97501df15295c9e6263bbfe72c427a # v2
       with:
         swift-version: ${{ inputs.swift-version }}
 
@@ -135,7 +135,7 @@ runs:
 
     - name: Cache Swift Package Manager dependencies
       id: spm-cache
-      uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+      uses: actions/cache@640a1c2554105b57832a23eea0b4672fc7a790d5 # v4
       with:
         path: |
           ${{ inputs.project-path }}/.build

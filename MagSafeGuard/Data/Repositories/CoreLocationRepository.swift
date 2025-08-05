@@ -8,6 +8,17 @@
 import CoreLocation
 import Foundation
 import MagSafeGuardDomain
+import Security
+
+/// Location repository error types
+public enum LocationRepositoryError: Error {
+    /// Error occurred during storage operations
+    case storageError(String)
+    /// Location services are unavailable
+    case locationUnavailable
+    /// Location access authorization was denied
+    case authorizationDenied
+}
 
 /// CoreLocation-based implementation of LocationRepository
 public final class CoreLocationRepository: LocationRepository {
@@ -26,7 +37,7 @@ public final class CoreLocationRepository: LocationRepository {
     ///   - trustedLocationsStore: Storage for trusted locations
     public init(
         locationManager: LocationManagerProtocol,
-        trustedLocationsStore: TrustedLocationsStore = UserDefaultsTrustedLocationsStore()
+        trustedLocationsStore: TrustedLocationsStore = KeychainTrustedLocationsStore()
     ) {
         self.locationManager = locationManager
         self.trustedLocationsStore = trustedLocationsStore
@@ -137,26 +148,59 @@ public protocol TrustedLocationsStore {
     func loadTrustedLocations() async -> [TrustedLocationDomain]
 }
 
-/// UserDefaults-based storage for trusted locations
-public actor UserDefaultsTrustedLocationsStore: TrustedLocationsStore {
-    private let userDefaults: UserDefaults
-    private let key = "MagSafeGuard.TrustedLocations"
+/// Keychain-based secure storage for trusted locations
+public actor KeychainTrustedLocationsStore: TrustedLocationsStore {
+    private let service = "com.lekman.MagSafeGuard.TrustedLocations"
+    private let account = "trusted-locations"
 
-    /// Initializes with UserDefaults storage
-    public init(userDefaults: UserDefaults = .standard) {
-        self.userDefaults = userDefaults
-    }
+    /// Initializes keychain storage
+    public init() {}
 
-    /// Saves trusted locations to UserDefaults
+    /// Saves trusted locations to Keychain (encrypted)
     public func saveTrustedLocations(_ locations: [TrustedLocationDomain]) async throws {
         let encoder = JSONEncoder()
         let data = try encoder.encode(locations.map(LocationDTO.init))
-        userDefaults.set(data, forKey: key)
+
+        // Delete existing item first
+        let deleteQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        SecItemDelete(deleteQuery as CFDictionary)
+
+        // Add new encrypted item
+        let addQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        ]
+
+        let status = SecItemAdd(addQuery as CFDictionary, nil)
+        guard status == errSecSuccess else {
+            throw LocationRepositoryError.storageError("Failed to save to keychain: \(status)")
+        }
     }
 
-    /// Loads trusted locations from UserDefaults
+    /// Loads trusted locations from Keychain (decrypted)
     public func loadTrustedLocations() async -> [TrustedLocationDomain] {
-        guard let data = userDefaults.data(forKey: key) else { return [] }
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+
+        guard status == errSecSuccess,
+              let data = item as? Data else {
+            return []
+        }
 
         let decoder = JSONDecoder()
         guard let dtos = try? decoder.decode([LocationDTO].self, from: data) else { return [] }

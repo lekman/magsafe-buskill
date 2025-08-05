@@ -91,6 +91,9 @@ sonar-coverage.lcov
 .coverage/
 coverage/
 coverage-html/
+test-results.xml
+coverage/
+*.log
 
 # Local scratch files
 .taskmaster
@@ -142,10 +145,7 @@ logs/
 # Local profiles, do not sync
 profiles/
 
-# Test coverage reports and logs
-coverage/
-*.log
-*.log
-
 # AI agent justifications and false positives
 !.justifications.md
+.mcp.json
+

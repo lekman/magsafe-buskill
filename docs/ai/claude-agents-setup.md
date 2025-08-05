@@ -8,7 +8,7 @@ This guide explains how to set up and use Claude Code agents for continuous code
 
 Claude Code agents must be placed in the `.claude/agents/` directory (not `.claude-agents/`):
 
-```
+```ini
 .claude/
 ├── agents/                 # Agent instruction files
 │   ├── architect.md       # Architecture review agent
@@ -26,18 +26,21 @@ Claude Code agents must be placed in the `.claude/agents/` directory (not `.clau
 ### Primary Agents
 
 1. **@architect** (`.claude/agents/architect.md`)
+
    - Reviews architecture quality
    - Validates SOLID principles
    - Checks security patterns
    - Aligns with PRD requirements
 
 2. **@qa** (`.claude/agents/qa.md`)
+
    - Runs comprehensive quality checks
    - Analyzes test coverage
    - Performs security scanning
    - Reviews performance metrics
 
 3. **@author** (`.claude/agents/author.md`)
+
    - Maintains documentation
    - Checks documentation coverage
    - Validates API documentation

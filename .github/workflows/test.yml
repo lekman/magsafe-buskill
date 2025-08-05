@@ -64,7 +64,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
         with:
           fetch-depth: 0 # Full history for SonarCloud blame data
 
@@ -79,12 +79,20 @@ jobs:
           echo "🧪 Running Clean Architecture tests with coverage reporting..."
           # Use main test task which includes Clean Architecture coverage reporting
           task test
+
+          # Generate JUnit XML for test execution reporting
+          if command -v xcbeautify &> /dev/null; then
+            echo "📊 Generating JUnit XML for test execution reporting..."
+            task junit:xcbeautify-junit
+          else
+            echo "⚠️ Skipping JUnit generation - xcbeautify not available"
+          fi
         env:
           CI: true
 
       - name: Upload coverage to CodeCov
         if: always()
-        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5
+        uses: codecov/codecov-action@2db07e317924c76f654a414629d71c65876882e2 # v3
         with:
           use_oidc: true
           files: ./coverage.xml
@@ -92,6 +100,17 @@ jobs:
           name: codecov-umbrella
           slug: lekman/magsafe-buskill
           codecov_yml_path: .codecov.yml
+          fail_ci_if_error: false
+
+      - name: Upload Test Results to CodeCov
+        if: always()
+        uses: codecov/test-results-action@47f89e9acb64b76debcd5ea40642d25a4adced9f # v1
+        with:
+          use_oidc: true
+          files: ./test-results.xml
+          flags: test-execution
+          name: test-results
+          slug: lekman/magsafe-buskill
           fail_ci_if_error: false
 
       - name: SonarCloud Scan
@@ -116,7 +135,7 @@ jobs:
 
       - name: Upload test artifacts
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@de65e23aa2b7e23d713bb51fbfcb6d502f8667d8 # v4
         with:
           name: tests
           path: |
