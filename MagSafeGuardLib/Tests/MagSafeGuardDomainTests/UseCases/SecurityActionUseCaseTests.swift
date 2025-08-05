@@ -245,6 +245,51 @@ struct SecurityActionUseCaseTests {
             Issue.record("Expected validation to pass for clamped low value")
         }
     }
+    
+    @Test("Validate configuration - negative shutdown delay")
+    func testValidateConfigurationNegativeShutdownDelay() {
+        // Given
+        let useCase = SecurityActionConfigurationUseCaseImpl()
+        // Note: SecurityActionConfiguration constructor clamps negative values to 0
+        // So we need to test the validation logic directly
+        let configuration = SecurityActionConfiguration(
+            enabledActions: [.lockScreen],
+            shutdownDelay: -10 // Will be clamped to 0 by constructor
+        )
+        
+        // When
+        let result = useCase.validateConfiguration(configuration)
+        
+        // Then - Should pass because constructor clamps negative values
+        if case .failure = result {
+            Issue.record("Expected validation to pass for clamped shutdown delay")
+        }
+        #expect(configuration.shutdownDelay == 0) // Verify it was clamped
+    }
+    
+    @Test("Validate configuration - negative action delay") 
+    func testValidateConfigurationNegativeActionDelay() {
+        // Given
+        let useCase = SecurityActionConfigurationUseCaseImpl()
+        // Test that negative action delay is handled properly
+        let configuration = SecurityActionConfiguration(
+            enabledActions: [.lockScreen],
+            actionDelay: -5 // Negative delay should fail validation
+        )
+        
+        // When
+        let result = useCase.validateConfiguration(configuration)
+        
+        // Then - Should pass because constructor doesn't clamp actionDelay
+        // The validation in validateConfiguration checks for < 0
+        if case .success = result {
+            // If constructor doesn't clamp, validation should fail
+            #expect(configuration.actionDelay == -5)
+            Issue.record("Expected validation to fail for negative action delay")
+        } else if case .failure(let error) = result {
+            #expect(error == .invalidConfiguration(reason: "Action delay cannot be negative"))
+        }
+    }
 
     @Test("Should validate configuration - no actions enabled")
     func testNoActionsEnabledValidation() {
@@ -304,5 +349,219 @@ struct SecurityActionUseCaseTests {
         // Then
         let configuration = await useCase.getCurrentConfiguration()
         #expect(configuration == .default)
+    }
+    
+    // MARK: - SecurityActionType Tests
+    
+    @Test("SecurityActionType defaultEnabled property")
+    func testSecurityActionTypeDefaultEnabled() {
+        // Only lockScreen should be enabled by default
+        #expect(SecurityActionType.lockScreen.defaultEnabled == true)
+        #expect(SecurityActionType.soundAlarm.defaultEnabled == false)
+        #expect(SecurityActionType.forceLogout.defaultEnabled == false)
+        #expect(SecurityActionType.shutdown.defaultEnabled == false)
+        #expect(SecurityActionType.customScript.defaultEnabled == false)
+        
+        // Test all cases comprehensively
+        for actionType in SecurityActionType.allCases {
+            if actionType == .lockScreen {
+                #expect(actionType.defaultEnabled == true)
+            } else {
+                #expect(actionType.defaultEnabled == false)
+            }
+        }
+    }
+    
+    @Test("SecurityActionType forceLogout case properties")
+    func testSecurityActionTypeForceLogout() {
+        let action = SecurityActionType.forceLogout
+        
+        #expect(action.rawValue == "force_logout")
+        #expect(action.displayName == "Force Logout")
+        #expect(action.symbolName == "arrow.right.square.fill")
+        #expect(action.description == "Force logout all users and lock screen")
+        #expect(action.defaultEnabled == false)
+    }
+    
+    @Test("SecurityActionType customScript case properties")
+    func testSecurityActionTypeCustomScript() {
+        let action = SecurityActionType.customScript
+        
+        #expect(action.rawValue == "custom_script")
+        #expect(action.displayName == "Custom Script")
+        #expect(action.symbolName == "terminal.fill")
+        #expect(action.description == "Execute a custom shell script")
+        #expect(action.defaultEnabled == false)
+    }
+    
+    // MARK: - Execution Strategy Error Mapping Tests
+    
+    @Test("SequentialExecutionStrategy mapError with non-SecurityActionError")
+    func testSequentialExecutionStrategyMapErrorDefault() async {
+        // Given
+        struct CustomError: LocalizedError {
+            var errorDescription: String? { "Custom error message" }
+        }
+        
+        let mockRepository = MockSecurityActionRepositoryWithCustomError()
+        let configuration = SecurityActionConfiguration(enabledActions: [.lockScreen])
+        let strategy = SequentialExecutionStrategy()
+        
+        // When
+        let results = await strategy.executeActions(
+            [.lockScreen],
+            configuration: configuration,
+            repository: mockRepository
+        )
+        
+        // Then
+        #expect(results.count == 1)
+        if let result = results.first {
+            #expect(result.success == false)
+            if case .actionFailed(let type, let reason) = result.error {
+                #expect(type == .lockScreen)
+                #expect(reason == "Custom error message")
+            } else {
+                Issue.record("Expected actionFailed error")
+            }
+        }
+    }
+    
+    @Test("ParallelExecutionStrategy mapError with non-SecurityActionError")
+    func testParallelExecutionStrategyMapErrorDefault() async {
+        // Given
+        struct CustomError: LocalizedError {
+            var errorDescription: String? { "Custom parallel error" }
+        }
+        
+        let mockRepository = MockSecurityActionRepositoryWithCustomError()
+        let configuration = SecurityActionConfiguration(enabledActions: [.soundAlarm])
+        let strategy = ParallelExecutionStrategy()
+        
+        // When
+        let results = await strategy.executeActions(
+            [.soundAlarm],
+            configuration: configuration,
+            repository: mockRepository
+        )
+        
+        // Then
+        #expect(results.count == 1)
+        if let result = results.first {
+            #expect(result.success == false)
+            if case .actionFailed(let type, let reason) = result.error {
+                #expect(type == .soundAlarm)
+                #expect(reason == "Custom parallel error")
+            } else {
+                Issue.record("Expected actionFailed error")
+            }
+        }
+    }
+    
+    @Test("Execute forceLogout action")
+    func testExecuteForceLogoutAction() async {
+        // Given
+        let mockRepository = MockSecurityActionRepository()
+        let useCase = SecurityActionExecutionUseCaseImpl(repository: mockRepository)
+        
+        let configuration = SecurityActionConfiguration(enabledActions: [.forceLogout])
+        let request = SecurityActionRequest(
+            configuration: configuration,
+            trigger: .testTrigger
+        )
+        
+        // When
+        let result = await useCase.executeActions(request: request)
+        
+        // Then
+        #expect(result.allSucceeded)
+        #expect(await mockRepository.forceLogoutCalls == 1)
+        #expect(result.executedActions.first?.actionType == .forceLogout)
+    }
+    
+    @Test("Execute customScript action with valid path")
+    func testExecuteCustomScriptWithValidPath() async {
+        // Given
+        let mockRepository = MockSecurityActionRepository()
+        let useCase = SecurityActionExecutionUseCaseImpl(repository: mockRepository)
+        
+        let configuration = SecurityActionConfiguration(
+            enabledActions: [.customScript],
+            customScriptPath: "/usr/local/bin/security-script.sh"
+        )
+        let request = SecurityActionRequest(
+            configuration: configuration,
+            trigger: .testTrigger
+        )
+        
+        // When
+        let result = await useCase.executeActions(request: request)
+        
+        // Then
+        #expect(result.allSucceeded)
+        #expect(await mockRepository.executeScriptCalls == 1)
+        #expect(await mockRepository.lastScriptPath == "/usr/local/bin/security-script.sh")
+    }
+    
+    @Test("Execute customScript action without path")
+    func testExecuteCustomScriptWithoutPath() async {
+        // Given
+        let mockRepository = MockSecurityActionRepository()
+        let useCase = SecurityActionExecutionUseCaseImpl(repository: mockRepository)
+        
+        let configuration = SecurityActionConfiguration(
+            enabledActions: [.customScript],
+            customScriptPath: nil // Missing path
+        )
+        let request = SecurityActionRequest(
+            configuration: configuration,
+            trigger: .testTrigger
+        )
+        
+        // When
+        let result = await useCase.executeActions(request: request)
+        
+        // Then
+        #expect(!result.allSucceeded)
+        #expect(result.executedActions.first?.success == false)
+        if case .scriptNotFound(let path) = result.executedActions.first?.error {
+            #expect(path == "No path configured")
+        } else {
+            Issue.record("Expected scriptNotFound error")
+        }
+    }
+}
+
+// MARK: - Mock Repository with Custom Error
+
+/// Mock repository that throws custom errors for testing mapError
+private actor MockSecurityActionRepositoryWithCustomError: SecurityActionRepository {
+    struct CustomError: LocalizedError {
+        let message: String
+        var errorDescription: String? { message }
+    }
+    
+    func lockScreen() async throws {
+        throw CustomError(message: "Custom error message")
+    }
+    
+    func playAlarm(volume: Float) async throws {
+        throw CustomError(message: "Custom parallel error")
+    }
+    
+    func stopAlarm() async {
+        // No-op
+    }
+    
+    func forceLogout() async throws {
+        throw CustomError(message: "Custom logout error")
+    }
+    
+    func scheduleShutdown(afterSeconds: TimeInterval) async throws {
+        throw CustomError(message: "Custom shutdown error")
+    }
+    
+    func executeScript(at path: String) async throws {
+        throw CustomError(message: "Custom script error")
     }
 }

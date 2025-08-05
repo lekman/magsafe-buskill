@@ -602,6 +602,106 @@ struct PowerMonitorUseCaseImplTests {
         try? await Task.sleep(nanoseconds: 5_000_000) // 5ms
         await useCase.stopMonitoring()
     }
+    
+    @Test("handleStateUpdate guard clause - first state update sets previousState")
+    func testHandleStateUpdateFirstStateNoPreviousState() async throws {
+        // Given - Create a repository that will emit states after monitoring starts
+        // Use a specific initial state that's different from what we'll simulate
+        let initialState = PowerStateInfo(
+            isConnected: true,
+            batteryLevel: 80,  // Different from 90 we'll simulate
+            isCharging: true,
+            timestamp: Date()
+        )
+        let repository = MockPowerStateRepository(mockState: initialState)
+        let analyzer = MockPowerStateAnalyzer()
+        let useCase = PowerMonitorUseCaseImpl(repository: repository, analyzer: analyzer)
+        
+        // Create a way to track if changes were emitted
+        var receivedChanges: [PowerStateChange] = []
+        
+        // Monitor the stream
+        let streamTask = Task {
+            for await change in useCase.powerStateChanges {
+                receivedChanges.append(change)
+            }
+        }
+        
+        // When - Start monitoring
+        // The initial getCurrentPowerState call will set previousState to 80% battery
+        try await useCase.startMonitoring()
+        
+        // Wait a bit to let monitoring stabilize
+        try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        
+        // Simulate a state update with significant battery change
+        // This is actually the second state the use case sees (first was from getCurrentPowerState)
+        let changedState = PowerStateInfo(
+            isConnected: true,
+            batteryLevel: 90,  // 10% change from initial 80%
+            isCharging: true,
+            timestamp: Date()
+        )
+        await repository.simulateStateChange(changedState)
+        
+        // Wait a bit to ensure the state was processed
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        
+        // Then - We should have received ONE change (80% -> 90%)
+        #expect(receivedChanges.count == 1)
+        if let change = receivedChanges.first {
+            #expect(change.previousState.batteryLevel == 80)
+            #expect(change.currentState.batteryLevel == 90)
+            #expect(change.changeType == .batteryLevelChanged(from: 80, to: 90))
+        }
+        
+        // Now test that the guard clause properly handles nil previousState
+        // We'll create a new use case instance without starting monitoring
+        let useCase2 = PowerMonitorUseCaseImpl(repository: repository, analyzer: analyzer)
+        
+        // The handleStateUpdate method is private, but we can test its behavior
+        // by observing that no changes are emitted when previousState is nil
+        var receivedChanges2: [PowerStateChange] = []
+        let streamTask2 = Task {
+            for await change in useCase2.powerStateChanges {
+                receivedChanges2.append(change)
+            }
+        }
+        
+        // Don't start monitoring, so previousState remains nil
+        // Simulate a state change - this should be handled by the guard clause
+        await repository.simulateStateChange(changedState)
+        
+        // Wait and verify no changes were emitted
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        #expect(receivedChanges2.isEmpty)
+        
+        // Clean up
+        await useCase.stopMonitoring()
+        streamTask.cancel()
+        streamTask2.cancel()
+    }
+    
+    // Helper expectation function for async testing
+    private func expectation(description: String) -> SimpleExpectation {
+        return SimpleExpectation(description: description)
+    }
+    
+    private class SimpleExpectation {
+        let description: String
+        var isInverted = false
+        private var fulfilled = false
+        
+        init(description: String) {
+            self.description = description
+        }
+        
+        func fulfill() {
+            fulfilled = true
+        }
+        
+        var isFulfilled: Bool { fulfilled }
+    }
 
     // MARK: - DefaultPowerStateAnalyzer Tests
 
