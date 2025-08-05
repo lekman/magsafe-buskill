@@ -533,36 +533,37 @@ tasks:
           fi
 
           # Generate SonarQube Generic Test Coverage XML
-          # Navigate back to project root if needed
-          if [[ "$CHANGED_DIR" == "true" ]]; then
-            cd ..
-          fi
+          echo "📊 Generating SonarQube coverage.xml..."
           
-          # Create proper SonarQube Generic Test Coverage XML
-          echo '<?xml version="1.0" encoding="UTF-8"?>' > coverage.xml
-          echo '<coverage version="1">' >> coverage.xml
-          
+          # Create proper SonarQube Generic Test Coverage XML in the same directory as coverage.lcov
           if [ -s coverage.lcov ]; then
-            echo "📊 Processing coverage.lcov ($(wc -l < coverage.lcov) lines) into SonarQube XML..."
-            # Parse LCOV and generate SonarQube XML
+            echo "📊 Processing coverage.lcov ($(wc -l < coverage.lcov) lines) into SonarQube Generic XML..."
+            echo '<?xml version="1.0" encoding="UTF-8"?>' > coverage.xml
+            echo '<coverage version="1">' >> coverage.xml
+            # Parse LCOV and generate SonarQube Generic Test Coverage XML
             awk '
               BEGIN { 
                 current_file = ""
                 in_file = 0
+                file_count = 0
               }
               /^SF:/ {
                 # Close previous file if open
-                if (in_file) {
+                if (in_file && file_count > 0) {
                   print "  </file>"
                 }
-                # Extract filename and make it relative from MagSafeGuardLib
+                # Extract filename and make it relative from sonar sources directory
                 file = substr($0, 4)
-                gsub(/.*MagSafeGuardLib\//, "MagSafeGuardLib/", file)
+                # Ensure path is relative from project root (remove any absolute path prefix)
+                gsub(/.*\/magsafe-buskill\//, "", file)
+                # Make paths relative to sonar.sources (MagSafeGuardLib/Sources)
+                gsub(/^MagSafeGuardLib\/Sources\//, "", file)
                 # Skip test files, build artifacts, and runner files
                 if (file !~ /Tests\// && file !~ /\.build\// && file !~ /runner\.swift/) {
                   print "  <file path=\"" file "\">"
                   in_file = 1
                   current_file = file
+                  file_count++
                 } else {
                   in_file = 0
                   current_file = ""
@@ -577,21 +578,26 @@ tasks:
                 print "    <lineToCover lineNumber=\"" line_num "\" covered=\"" covered "\"/>"
               }
               /^end_of_record/ && in_file {
-                print "  </file>"
-                in_file = 0
-                current_file = ""
+                # Record processed, will close on next SF: or END
               }
               END {
                 # Close last file if still open
-                if (in_file) {
+                if (in_file && file_count > 0) {
                   print "  </file>"
+                }
+                if (file_count == 0) {
+                  print "  <!-- No source files found with coverage data -->"
                 }
               }
             ' coverage.lcov >> coverage.xml
+            echo '</coverage>' >> coverage.xml
+          else
+            echo '<?xml version="1.0" encoding="UTF-8"?>' > coverage.xml
+            echo '<coverage version="1">' >> coverage.xml
+            echo '  <!-- No coverage data available -->' >> coverage.xml
+            echo '</coverage>' >> coverage.xml
           fi
           
-          echo '</coverage>' >> coverage.xml
-
           # Return to root directory if we changed into it
           if [[ "$CHANGED_DIR" == "true" ]]; then
             cd ..
@@ -609,9 +615,9 @@ tasks:
           echo "LH:1" >> coverage.lcov
           echo "end_of_record" >> coverage.lcov
 
-          # Create minimal Cobertura XML
+          # Create minimal coverage XML
           cat > coverage.xml << 'EOF'
-        <?xml version="1.0" ?>
+        <?xml version="1.0" encoding="UTF-8"?>
         <coverage version="1">
           <file path="MagSafeGuard/Models/SettingsModel.swift">
             <lineToCover lineNumber="1" covered="true"/>
@@ -621,6 +627,15 @@ tasks:
         fi
 
         echo "✅ Coverage reports generated"
+        
+        # Ensure coverage files are in project root for CI
+        if [ -f "MagSafeGuardLib/coverage.lcov" ] && [ ! -f "coverage.lcov" ]; then
+          echo "📊 Copying coverage files from MagSafeGuardLib to project root..."
+          cp MagSafeGuardLib/coverage.lcov coverage.lcov
+          cp MagSafeGuardLib/coverage.xml coverage.xml 2>/dev/null || true
+          cp MagSafeGuardLib/coverage-report.txt coverage-report.txt 2>/dev/null || true
+          cp MagSafeGuardLib/coverage-report.md coverage-report.md 2>/dev/null || true
+        fi
       - echo "✅ Build completed!"
   test:specific:
     desc: Run specific test files (use TEST_FILES environment variable)
