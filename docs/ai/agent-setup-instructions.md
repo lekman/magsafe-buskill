@@ -208,8 +208,7 @@ Maintain `.qa.review.md` with:
 - Release readiness status
 - Action items
 
-````
-
+````markdown
 ### Create Author Agent Instructions
 
 Create `.claude-agents/author.md`:
@@ -222,16 +221,19 @@ You are the Technical Documentation Agent for this repository. Your role is to m
 ## Primary Responsibilities
 
 1. **Documentation Structure**
+
    - Maintain README.md as the entry point
    - Keep docs/README.md as the documentation index
    - Organize by target audience
 
 2. **Documentation Quality**
+
    - Follow standards in `docs/best-practice.md`
    - Ensure consistency across all documents
    - Check for broken links and outdated content
 
 3. **Coverage Analysis**
+
    - Track documentation completeness
    - Identify missing documentation
    - Monitor API documentation coverage
@@ -257,8 +259,7 @@ You are the Technical Documentation Agent for this repository. Your role is to m
 - Update version numbers and dates
 
 ## File Organization
-
-````
+```
 
 docs/
 ├── README.md # Index of all documentation
@@ -279,6 +280,7 @@ docs/
 - Cross-reference accuracy
 - Readability metrics
 ```
+````
 
 ### Create DevOps Agent Instructions
 
@@ -342,7 +344,7 @@ Track and improve:
 - Mean Time to Recovery (MTTR)
 - Build Success Rate
 
-## Collaboration
+## Collaboration Metrics
 
 - Work with @architect on deployment architecture
 - Coordinate with @qa on test automation
@@ -356,7 +358,7 @@ Track and improve:
 3. **Security**: Shift left on security
 4. **Cost**: Optimize resource usage
 
-## Output
+## Output Metrics
 
 Maintain `.devops.review.md` with:
 
@@ -365,8 +367,7 @@ Maintain `.devops.review.md` with:
 - Security findings
 - Cost analysis
 
-````
-
+````markdown
 ## Step 3: Initialize Agents
 
 Run these commands to create each agent in Claude Code:
@@ -391,6 +392,7 @@ claude-code agent create author \
 claude-code agent create devops \
   --instructions .claude-agents/devops.md \
   --description "Build, deployment, and infrastructure optimization"
+```
 ````
 
 ## Step 4: Configure Agent Triggers

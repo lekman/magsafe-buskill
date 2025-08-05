@@ -11,6 +11,7 @@ This project uses **Taskfile** (`task` command) as the primary interface for ALL
 3. **Module-specific tasks**: Use `task <module>:` to see module commands
 
 Example workflow:
+
 ```bash
 # ❌ Don't use direct commands
 swift test
@@ -28,10 +29,11 @@ task security:scan
 This project uses project-level Claude Code agents with specialized subagents. **Always prefer using subagents** for specific tasks rather than general agents.
 
 **Quick Agent Commands:**
+
 ```bash
 task ai                 # List all 24 AI commands
 task ai:qa              # Run quality assurance on latest PR
-task ai:architect       # Architecture review with subagents  
+task ai:architect       # Architecture review with subagents
 task ai:quick-check     # Fast P0/P1 issue scan
 task ai:status          # Check agent reports
 ```
@@ -41,6 +43,7 @@ task ai:status          # Check agent reports
 #### @architect - Architecture Review
 
 **Prefer these subagents for specific analysis:**
+
 - `task ai:architect:solid-validator` - SOLID principles compliance
 - `task ai:architect:security-architect` - Security architecture patterns
 - `task ai:architect:ddd-analyzer` - Domain-driven design validation
@@ -48,6 +51,7 @@ task ai:status          # Check agent reports
 #### @qa - Quality Assurance
 
 **Prefer these subagents for targeted testing:**
+
 - `task ai:qa:security-scanner` - Security vulnerability analysis
 - `task ai:qa:coverage-analyzer` - Deep test coverage analysis
 - `task ai:qa:performance-profiler` - Performance metrics and profiling
@@ -55,6 +59,7 @@ task ai:status          # Check agent reports
 #### @author - Documentation
 
 **Prefer these subagents for documentation tasks:**
+
 - `task ai:author:api-docs` - API documentation generation
 - `task ai:author:markdown-lint` - Markdown quality checking
 - `task ai:author:diagram-gen` - Architecture diagram generation
@@ -62,6 +67,7 @@ task ai:status          # Check agent reports
 #### @devops - Build & Deploy
 
 **Prefer these subagents for infrastructure:**
+
 - `task ai:devops:docker-optimizer` - Container optimization (N/A for macOS)
 - `task ai:devops:k8s-validator` - Kubernetes validation (N/A for macOS)
 - `task ai:devops:cost-analyzer` - Infrastructure cost analysis
@@ -608,6 +614,7 @@ This project uses **project-level agents** defined in `.claude/agents/`. **Alway
 ### Project Context
 
 **MagSafe Guard** is a macOS menu bar security application using:
+
 - Swift 6.0 with SwiftUI
 - macOS 13+ target
 - Swift Package Manager
@@ -616,6 +623,7 @@ This project uses **project-level agents** defined in `.claude/agents/`. **Alway
 ### Agent Usage Guidelines
 
 #### For Architecture Reviews
+
 ```bash
 # Prefer specific subagents:
 task ai:architect:solid-validator    # Check SOLID compliance
@@ -627,6 +635,7 @@ task ai:architect                    # Use only for comprehensive review
 ```
 
 #### For Quality Assurance
+
 ```bash
 # Prefer targeted analysis:
 task ai:qa:security-scanner          # Security vulnerabilities
@@ -638,6 +647,7 @@ task ai:qa                           # Use only for full QA suite
 ```
 
 #### For Documentation
+
 ```bash
 # Prefer specific tasks:
 task ai:author:api-docs              # API documentation
@@ -651,6 +661,7 @@ task ai:author                       # Use only for full doc review
 ### MagSafe Guard Specific Examples
 
 #### Example 1: Adding Power Monitoring Feature
+
 ```bash
 # Use specific subagents in sequence:
 task ai:architect:security-architect  # Review security implications
@@ -659,6 +670,7 @@ task ai:qa:coverage-analyzer          # Ensure test coverage
 ```
 
 #### Example 2: Performance Optimization
+
 ```bash
 # Targeted analysis:
 task ai:qa:performance-profiler       # Identify bottlenecks
@@ -666,6 +678,7 @@ task ai:architect:solid-validator     # Check for violations
 ```
 
 #### Example 3: Security Review
+
 ```bash
 # Security-focused workflow:
 task ai:qa:security-scanner           # Vulnerability scan

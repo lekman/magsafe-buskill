@@ -35,7 +35,8 @@
     "test_output.log": true,
     ".githooks/": true,
     "CLAUDE.md": true,
-    ".snyk": true
+    ".snyk": true,
+    "**.tmp": true
   },
   "search.exclude": {
     "**/node_modules": true,
