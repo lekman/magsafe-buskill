@@ -14,7 +14,7 @@ import Testing
 // MARK: - Mock Repository for Testing
 
 /// Mock SecurityActionRepository for testing execution strategies
-private class MockSecurityActionRepository: SecurityActionRepository {
+private final class MockSecurityActionRepository: SecurityActionRepository, @unchecked Sendable {
     private let shouldFail: Bool
     private let shouldFailShutdown: Bool
 
@@ -560,9 +560,8 @@ struct DomainProtocolTests {
 
     @Test("SequentialExecutionStrategy initialization")
     func sequentialExecutionStrategyInit() {
-        let strategy = SequentialExecutionStrategy()
+        _ = SequentialExecutionStrategy()
         // Just test that it initializes without error
-        #expect(strategy != nil)
     }
 
     @Test("SequentialExecutionStrategy executes actions sequentially")
@@ -644,9 +643,8 @@ struct DomainProtocolTests {
 
     @Test("ParallelExecutionStrategy initialization")
     func parallelExecutionStrategyInit() {
-        let strategy = ParallelExecutionStrategy()
+        _ = ParallelExecutionStrategy()
         // Just test that it initializes without error
-        #expect(strategy != nil)
     }
 
     @Test("ParallelExecutionStrategy executes actions in parallel")

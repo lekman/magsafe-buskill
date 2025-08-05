@@ -549,11 +549,11 @@ struct SecurityActionUseCaseImplTests {
     @Test("UserDefaultsConfigurationStore save and load")
     func userDefaultsConfigurationStoreSaveAndLoad() async throws {
         // Use a test UserDefaults suite to avoid polluting real defaults
-        let testDefaults = UserDefaults(suiteName: "test.SecurityActionUseCaseImplTests")!
-        let store = UserDefaultsConfigurationStore(userDefaults: testDefaults)
+        let suiteName = "test.SecurityActionUseCaseImplTests"
+        let store = UserDefaultsConfigurationStore(suiteName: suiteName)
 
         // Clean up any existing data
-        testDefaults.removeObject(forKey: "SecurityActionConfiguration")
+        UserDefaults(suiteName: suiteName)?.removeObject(forKey: "SecurityActionConfiguration")
 
         // Initially empty
         let initialConfig = await store.loadConfiguration()
@@ -582,23 +582,23 @@ struct SecurityActionUseCaseImplTests {
         #expect(loadedConfig?.executeInParallel == testConfig.executeInParallel)
 
         // Clean up
-        testDefaults.removeObject(forKey: "SecurityActionConfiguration")
+        UserDefaults(suiteName: suiteName)?.removeObject(forKey: "SecurityActionConfiguration")
     }
 
     @Test("UserDefaultsConfigurationStore handles corrupted data")
     func userDefaultsConfigurationStoreHandlesCorruptedData() async {
-        let testDefaults = UserDefaults(suiteName: "test.SecurityActionUseCaseImplTests.Corrupted")!
-        let store = UserDefaultsConfigurationStore(userDefaults: testDefaults)
+        let suiteName = "test.SecurityActionUseCaseImplTests.Corrupted"
+        let store = UserDefaultsConfigurationStore(suiteName: suiteName)
 
         // Set corrupted data
-        testDefaults.set("corrupted data", forKey: "SecurityActionConfiguration")
+        UserDefaults(suiteName: suiteName)?.set("corrupted data", forKey: "SecurityActionConfiguration")
 
         // Should return nil for corrupted data
         let loadedConfig = await store.loadConfiguration()
         #expect(loadedConfig == nil)
 
         // Clean up
-        testDefaults.removeObject(forKey: "SecurityActionConfiguration")
+        UserDefaults(suiteName: suiteName)?.removeObject(forKey: "SecurityActionConfiguration")
     }
 
     // MARK: - ConfigurationDTO Tests

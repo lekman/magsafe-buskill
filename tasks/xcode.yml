@@ -129,6 +129,11 @@ tasks:
           exit 1
         fi
 
+        # Clean up UITests-Runner to prevent "damaged app" popup
+        echo "🧹 Cleaning up UITests-Runner..."
+        find . -name "MagSafeGuardUITests-Runner.app" -type d -exec rm -rf {} + 2>/dev/null || true
+        find . -name "MagSafeGuardUITests-Runner" -type f -exec rm -f {} + 2>/dev/null || true
+
         # Run tests with optional xcbeautify
         if command -v xcbeautify &> /dev/null; then
           xcodebuild test \
@@ -176,6 +181,11 @@ tasks:
         CODE_SIGNING_ALLOWED=NO
     cmds:
       - |
+        # Clean up UITests-Runner to prevent "damaged app" popup
+        echo "🧹 Cleaning up UITests-Runner..."
+        find . -name "MagSafeGuardUITests-Runner.app" -type d -exec rm -rf {} + 2>/dev/null || true
+        find . -name "MagSafeGuardUITests-Runner" -type f -exec rm -f {} + 2>/dev/null || true
+
         xcodebuild test \
           -project "{{.PROJECT_PATH}}" \
           -scheme "{{.SCHEME}}" \
@@ -307,7 +317,7 @@ tasks:
           # Check if update is available
           echo "🔍 Checking for xcbeautify updates..."
           CURRENT_VERSION=$(xcbeautify --version 2>/dev/null | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
-          
+
           # Check if outdated using brew
           if brew outdated --quiet | grep -q "^xcbeautify$"; then
             echo "📦 Updating xcbeautify from version $CURRENT_VERSION..."

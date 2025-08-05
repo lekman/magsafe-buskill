@@ -1,0 +1,24 @@
+# Prettier configuration for MagSafe Guard
+# Align with yamllint line length settings
+
+# Default print width
+printWidth: 120
+
+# Override for specific file types
+overrides:
+  - files: "*.yml"
+    options:
+      printWidth: 120
+      proseWrap: preserve
+  - files: "*.yaml"
+    options:
+      printWidth: 120
+      proseWrap: preserve
+  - files: ".github/workflows/*.yml"
+    options:
+      printWidth: 120
+      proseWrap: preserve
+  - files: "tasks/*.yml"
+    options:
+      printWidth: 120
+      proseWrap: preserve

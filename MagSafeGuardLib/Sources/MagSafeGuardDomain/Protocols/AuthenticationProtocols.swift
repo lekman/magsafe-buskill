@@ -184,7 +184,7 @@ public enum AuthenticationFailure: Equatable, Sendable {
 
 /// Repository protocol for device authentication.
 /// Abstracts the system-level authentication implementation.
-public protocol AuthenticationRepository {
+public protocol AuthenticationRepository: Sendable {
     /// Check if biometric authentication is available.
     /// - Returns: Availability status and biometric type
     func isBiometricAvailable() async -> BiometricAvailability

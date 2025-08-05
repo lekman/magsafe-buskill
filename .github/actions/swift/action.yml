@@ -36,7 +36,7 @@ runs:
         SWIFT_VERSION=$(swift --version | head -n1 | sed 's/.*version \([0-9.]*\).*/\1/')
         echo "version=$SWIFT_VERSION" >> $GITHUB_OUTPUT
         echo "Swift version: $SWIFT_VERSION"
-    
+
     - name: Create cache directories
       shell: bash
       env:
@@ -46,7 +46,7 @@ runs:
         mkdir -p "$PROJECT_PATH/.build"
         mkdir -p ~/.swiftpm
         mkdir -p ~/Library/Caches/org.swift.swiftpm
-    
+
     - name: Cache Swift Package Manager dependencies
       id: spm-cache
       uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
@@ -69,7 +69,7 @@ runs:
         echo "📦 Resolving Swift package dependencies..."
         cd "$PROJECT_PATH" && swift package resolve
         echo "✅ Dependencies resolved"
-    
+
     - name: Cache and Install Taskfile
       uses: ./.github/actions/taskfile
       with:

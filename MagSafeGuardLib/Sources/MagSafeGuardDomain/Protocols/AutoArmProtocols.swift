@@ -216,7 +216,7 @@ public struct TrustedNetwork: Equatable, Sendable {
 // MARK: - Repository Protocols
 
 /// Repository for location monitoring
-public protocol LocationRepository {
+public protocol LocationRepository: Sendable {
     /// Start monitoring location changes
     func startMonitoring() async throws
 
@@ -240,7 +240,7 @@ public protocol LocationRepository {
 }
 
 /// Repository for network monitoring
-public protocol NetworkRepository {
+public protocol NetworkRepository: Sendable {
     /// Start monitoring network changes
     func startMonitoring() async throws
 
@@ -410,7 +410,7 @@ public struct AutoArmConditions: Equatable, Sendable {
 // MARK: - Service Protocol
 
 /// Protocol for system arming operations
-public protocol SystemArmingService {
+public protocol SystemArmingService: Sendable {
     /// Check if system is currently armed
     func isArmed() async -> Bool
 
@@ -421,7 +421,7 @@ public protocol SystemArmingService {
 // MARK: - Notification Protocol
 
 /// Protocol for user notifications
-public protocol AutoArmNotificationService {
+public protocol AutoArmNotificationService: Sendable {
     /// Show notification about auto-arm event
     func showAutoArmNotification(trigger: AutoArmTrigger) async
 

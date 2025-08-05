@@ -282,6 +282,7 @@ final class FeatureFlagsTests: XCTestCase {
 
   // MARK: - Thread Safety Tests
 
+  @MainActor
   func testConcurrentAccess() {
     let expectation = self.expectation(description: "Concurrent access")
     expectation.expectedFulfillmentCount = 100

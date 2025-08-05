@@ -202,7 +202,7 @@ public actor SecurityActionConfigurationUseCaseImpl: SecurityActionConfiguration
 // MARK: - Configuration Storage
 
 /// Protocol for persisting security action configuration
-public protocol SecurityActionConfigurationStore {
+public protocol SecurityActionConfigurationStore: Sendable {
     /// Saves configuration to persistent storage
     func saveConfiguration(_ configuration: SecurityActionConfiguration) async throws
     /// Loads configuration from persistent storage
@@ -229,12 +229,16 @@ public actor InMemoryConfigurationStore: SecurityActionConfigurationStore {
 
 /// UserDefaults-based configuration store
 public actor UserDefaultsConfigurationStore: SecurityActionConfigurationStore {
-    private let userDefaults: UserDefaults
+    private let suiteName: String?
     private let key = "SecurityActionConfiguration"
 
     /// Initializes with UserDefaults storage
-    public init(userDefaults: UserDefaults = .standard) {
-        self.userDefaults = userDefaults
+    public init(suiteName: String? = nil) {
+        self.suiteName = suiteName
+    }
+    
+    private var userDefaults: UserDefaults {
+        UserDefaults(suiteName: suiteName) ?? .standard
     }
 
     /// Saves configuration to UserDefaults

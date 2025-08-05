@@ -8,7 +8,7 @@
 import Foundation
 
 /// Concrete implementation of AuthenticationUseCase
-public final class AuthenticationUseCaseImpl: AuthenticationUseCase {
+public actor AuthenticationUseCaseImpl: AuthenticationUseCase {
 
     // MARK: - Properties
 
@@ -201,7 +201,7 @@ public final class AuthenticationStateUseCaseImpl: AuthenticationStateUseCase {
 // MARK: - State Management
 
 /// Protocol for managing authentication state
-public protocol AuthenticationStateManager {
+public protocol AuthenticationStateManager: Sendable {
     /// Records an authentication attempt
     func recordAttempt(_ attempt: AuthenticationAttempt) async
     /// Gets recent attempts since the specified date

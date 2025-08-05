@@ -10,7 +10,7 @@
 import Foundation
 
 /// Centralized feature flag management
-public final class FeatureFlags {
+public final class FeatureFlags: @unchecked Sendable {
   /// Shared instance for feature flag management
   public static let shared = FeatureFlags()
 

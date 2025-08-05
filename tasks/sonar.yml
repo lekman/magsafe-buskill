@@ -722,7 +722,7 @@ tasks:
           echo "Found coverage data:"
           echo "  Profile: $PROF_DATA"
           echo "  Executable: $EXECUTABLE"
-          
+
           # Generate XML coverage report
           PROJECT_ROOT=$(pwd)
           {
@@ -761,7 +761,7 @@ tasks:
             '
             echo '</coverage>'
           } > coverage.xml
-          
+
           echo "✅ Generated coverage.xml"
           echo "   File size: $(wc -c < coverage.xml) bytes"
           echo "   Files covered: $(grep -c '<file path=' coverage.xml || echo 0)"
@@ -770,7 +770,7 @@ tasks:
           # Create minimal valid XML for SonarCloud
           echo '<?xml version="1.0" ?>' > coverage.xml
           echo '<coverage version="1">' >> coverage.xml
-          echo '  <packages/>' >> coverage.xml  
+          echo '  <packages/>' >> coverage.xml
           echo '</coverage>' >> coverage.xml
         fi
 

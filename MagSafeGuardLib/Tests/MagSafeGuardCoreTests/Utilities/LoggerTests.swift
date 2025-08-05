@@ -175,6 +175,7 @@ final class LoggerTests: XCTestCase {
 
   // MARK: - Stress Tests
 
+  @MainActor
   func testConcurrentLogging() {
     // Test thread safety with concurrent logging
     let expectation = self.expectation(description: "Concurrent logging")

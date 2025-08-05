@@ -241,6 +241,25 @@ tasks:
           FILES=$(echo $FILES | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
 
           if [ -n "$FILES" ]; then
+            # First remove trailing spaces using a safer approach
+            echo "🧹 Removing trailing spaces..."
+            # Save IFS and process files
+            OLD_IFS="$IFS"
+            IFS=$'\n'
+            for file in $(echo "$FILES" | tr ' ' '\n'); do
+              if [ -n "$file" ] && [ -f "$file" ]; then
+                # Remove trailing spaces and tabs at end of lines
+                if [[ "$OSTYPE" == "darwin"* ]]; then
+                  # macOS sed requires empty string for -i
+                  sed -i '' 's/[[:space:]]*$//' "$file" 2>/dev/null || true
+                else
+                  # Linux sed
+                  sed -i 's/[[:space:]]*$//' "$file" 2>/dev/null || true
+                fi
+              fi
+            done
+            IFS="$OLD_IFS"
+
             # Run prettier and capture the output
             OUTPUT=$(prettier --write $FILES 2>&1)
 
@@ -259,6 +278,7 @@ tasks:
               # All files were changed
               echo "✅ Formatted all files"
             fi
+            echo "✅ Removed trailing spaces from YAML files"
           else
             echo "⚠️  No YAML files found"
           fi
@@ -361,7 +381,7 @@ tasks:
         for file in $FILES; do
           TOTAL=$((TOTAL + 1))
           ERROR_OUTPUT=""
-          
+
           case "$VALIDATOR" in
             "js-yaml")
               # js-yaml provides detailed error messages

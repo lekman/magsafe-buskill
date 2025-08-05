@@ -162,7 +162,7 @@ public struct Log {
 // MARK: - Log Categories
 
 /// Log categories for organizing and filtering logs
-public enum LogCategory {
+public enum LogCategory: Sendable {
   /// General application logs
   case general
   /// Power monitoring and battery state logs
@@ -215,7 +215,7 @@ public enum LogCategory {
 // MARK: - File Logger
 
 /// Handles writing error logs to the file system
-private class FileLogger {
+private final class FileLogger: @unchecked Sendable {
   private let logFileURL: URL
   private let dateFormatter: DateFormatter
   private let queue = DispatchQueue(label: "com.magsafeguard.filelogger", qos: .utility)

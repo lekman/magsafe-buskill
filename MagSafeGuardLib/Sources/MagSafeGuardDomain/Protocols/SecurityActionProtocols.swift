@@ -119,7 +119,7 @@ public struct SecurityActionConfiguration: Equatable, Sendable {
 }
 
 /// Security action execution request
-public struct SecurityActionRequest: Equatable {
+public struct SecurityActionRequest: Equatable, Sendable {
     /// Configuration for the security actions
     public let configuration: SecurityActionConfiguration
     /// What triggered this request
@@ -144,7 +144,7 @@ public struct SecurityActionRequest: Equatable {
 }
 
 /// What triggered the security action
-public enum SecurityTrigger: Equatable {
+public enum SecurityTrigger: Equatable, Sendable {
     /// Power adapter was disconnected
     case powerDisconnected
     /// User manually triggered
@@ -170,7 +170,7 @@ public enum SecurityTrigger: Equatable {
 }
 
 /// Result of executing security actions
-public struct SecurityActionExecutionResult: Equatable {
+public struct SecurityActionExecutionResult: Equatable, Sendable {
     /// The original request
     public let request: SecurityActionRequest
     /// Results for each executed action
@@ -245,7 +245,7 @@ public struct SecurityActionResult: Equatable, Sendable {
 }
 
 /// Security action execution errors
-public enum SecurityActionError: LocalizedError, Equatable {
+public enum SecurityActionError: LocalizedError, Equatable, Sendable {
     /// Action failed with specific reason
     case actionFailed(type: SecurityActionType, reason: String)
     /// Actions are already being executed
@@ -281,7 +281,7 @@ public enum SecurityActionError: LocalizedError, Equatable {
 // MARK: - Repository Protocol
 
 /// Repository for executing system-level security actions
-public protocol SecurityActionRepository {
+public protocol SecurityActionRepository: Sendable {
     /// Lock the screen
     func lockScreen() async throws
 
@@ -343,7 +343,7 @@ public protocol SecurityActionExecutionStrategy {
 }
 
 /// Sequential execution strategy
-public struct SequentialExecutionStrategy: SecurityActionExecutionStrategy {
+public struct SequentialExecutionStrategy: SecurityActionExecutionStrategy, Sendable {
     /// Initializes the sequential execution strategy
     public init() {}
 
@@ -412,7 +412,7 @@ public struct SequentialExecutionStrategy: SecurityActionExecutionStrategy {
 }
 
 /// Parallel execution strategy
-public struct ParallelExecutionStrategy: SecurityActionExecutionStrategy {
+public struct ParallelExecutionStrategy: SecurityActionExecutionStrategy, Sendable {
     /// Initializes the parallel execution strategy
     public init() {}
 
@@ -425,7 +425,7 @@ public struct ParallelExecutionStrategy: SecurityActionExecutionStrategy {
         await withTaskGroup(of: SecurityActionResult.self) { group in
             for action in actions {
                 group.addTask {
-                    await executeAction(
+                    await self.executeAction(
                         action,
                         configuration: configuration,
                         repository: repository

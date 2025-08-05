@@ -224,7 +224,7 @@ public enum TestTags {
 // MARK: - Test Suite Configuration
 
 /// Configuration for different test suite runs
-public struct TestSuiteConfiguration {
+public struct TestSuiteConfiguration: Sendable {
 
     /// Fast test suite for development
     public static let development = TestSuiteConfiguration(

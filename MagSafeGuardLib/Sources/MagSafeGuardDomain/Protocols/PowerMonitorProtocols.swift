@@ -98,7 +98,7 @@ public struct PowerStateChange: Equatable, Sendable {
 // MARK: - Repository Protocol
 
 /// Repository protocol for accessing power state data
-public protocol PowerStateRepository {
+public protocol PowerStateRepository: Sendable {
     /// Get the current power state
     func getCurrentPowerState() async throws -> PowerStateInfo
 
@@ -114,7 +114,7 @@ public protocol PowerMonitorUseCase {
     func startMonitoring() async throws
 
     /// Stop monitoring power state changes
-    func stopMonitoring()
+    func stopMonitoring() async
 
     /// Get the current power state
     func getCurrentPowerState() async throws -> PowerStateInfo

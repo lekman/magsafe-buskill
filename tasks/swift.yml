@@ -101,13 +101,32 @@ tasks:
       - |
         echo "🔍 Linting Swift files..."
         if command -v swiftlint &> /dev/null; then
-          swiftlint lint --quiet
-          if [ $? -eq 0 ]; then
-            echo "✅ SwiftLint passed"
+          # Run SwiftLint and save output to a temp file
+          TEMP_FILE=$(mktemp)
+          swiftlint lint > "$TEMP_FILE" 2>&1
+          EXIT_CODE=$?
+
+          # Extract summary line
+          SUMMARY=$(tail -1 "$TEMP_FILE")
+
+          # Check if there are violations
+          if echo "$SUMMARY" | grep -q "Found 0 violations"; then
+            echo "✅ SwiftLint passed - no violations found"
+            rm "$TEMP_FILE"
           else
-            echo "❌ SwiftLint found issues"
+            # Extract violation counts
+            VIOLATIONS=$(echo "$SUMMARY" | grep -oE "Found [0-9]+ violations" | grep -oE "[0-9]+" || echo "0")
+            SERIOUS=$(echo "$SUMMARY" | grep -oE "[0-9]+ serious" | grep -oE "[0-9]+" || echo "0")
+
+            echo "❌ SwiftLint found issues:"
+            echo "   - Total violations: $VIOLATIONS"
+            echo "   - Serious violations: $SERIOUS"
             echo ""
+            echo "$SUMMARY"
+            echo ""
+            echo "Run 'swiftlint lint' to see all issues"
             echo "Run 'task swift:lint:fix' to auto-fix what's possible"
+            rm "$TEMP_FILE"
             exit 1
           fi
         else

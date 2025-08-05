@@ -106,7 +106,7 @@ struct SecurityActionUseCaseTests {
             configuration: configuration,
             trigger: .testTrigger
         )
-        let startTime = Date()
+        _ = Date() // Start time for reference
 
         // When
         let result = await useCase.executeActions(request: request)

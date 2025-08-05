@@ -30,12 +30,6 @@ includes:
   git:
     taskfile: ./tasks/git.yml
     optional: false
-  test-ci:
-    taskfile: ./tasks/test-ci.yml
-    optional: false
-  test-local:
-    taskfile: ./tasks/test-local.yml
-    optional: false
 vars:
   HOOKS_PATH: .githooks
   SEMGREP_CONFIG: auto
@@ -398,25 +392,25 @@ tasks:
         if [ -n "$PROFDATA" ] && [ -f "$TEST_EXEC" ]; then
           echo "📊 Found profdata: $PROFDATA"
           echo "📊 Found test executable: $TEST_EXEC"
-          
+
           # Generate LCOV report from SPM test executable
           xcrun llvm-cov export \
             -format=lcov \
             -instr-profile="$PROFDATA" \
             "$TEST_EXEC" > coverage-raw.lcov
-          
+
           # Filter to only include source files (exclude tests and mocks)
-          awk '/^SF:/ { 
-            if ($0 !~ /Tests\// && $0 !~ /Mock/) { 
-              capture=1 
-            } else { 
-              capture=0 
-            } 
-          } 
-          capture && /^(SF:|FN:|FNDA:|DA:|LF:|LH:|end_of_record)/ { 
-            print 
+          awk '/^SF:/ {
+            if ($0 !~ /Tests\// && $0 !~ /Mock/) {
+              capture=1
+            } else {
+              capture=0
+            }
+          }
+          capture && /^(SF:|FN:|FNDA:|DA:|LF:|LH:|end_of_record)/ {
+            print
           }' coverage-raw.lcov > ../coverage.lcov || true
-          
+
           # If no source coverage, create minimal file
           if [ ! -s coverage.lcov ]; then
             echo "TN:" > coverage.lcov
@@ -426,36 +420,36 @@ tasks:
             echo "LH:1" >> coverage.lcov
             echo "end_of_record" >> coverage.lcov
           fi
-          
+
           # Generate text report for debugging with focus on Clean Architecture
           xcrun llvm-cov report \
             -instr-profile="$PROFDATA" \
             "$TEST_EXEC" \
             -ignore-filename-regex=".*Tests.*|.*Mock.*|.*\\.build.*" > ../coverage-report-raw.txt || echo "No coverage data" > ../coverage-report-raw.txt
-          
+
           # Filter to show only Clean Architecture files and generate markdown
           if [ -f ../coverage-report-raw.txt ]; then
             # Generate markdown table without header (per task 18.15 requirements)
             echo "| File | Regions | Cover | Functions | Executed | Lines | Cover |" > ../coverage-report.md
             echo "|------|---------|-------|-----------|----------|-------|-------|" >> ../coverage-report.md
-            
+
             # Show all non-test, non-mock files with markdown table format (exclude TOTAL row)
             awk 'NR>2 && !/Mock/ && !/Tests\// && !/^TOTAL/ && NF>0 && $1!="" && length($1) < 100 {
               # Calculate coverage percentages with division by zero protection
               region_cover = ($2>0) ? ($2-$3)*100/$2 : 0
               function_executed = $5-$6
               line_cover = ($8>0) ? ($8-$9)*100/$8 : 0
-              
-              printf "| %s | %d | %.1f%% | %d | %d | %d | %.1f%% |\n", 
+
+              printf "| %s | %d | %.1f%% | %d | %d | %d | %.1f%% |\n",
                 $1, $2, region_cover, $5, function_executed, $8, line_cover
             }' ../coverage-report-raw.txt >> ../coverage-report.md
-            
-            
+
+
             # Add summary section
             echo "" >> ../coverage-report.md
             echo "### Summary:" >> ../coverage-report.md
             echo "" >> ../coverage-report.md
-            
+
             # Extract totals from the TOTAL row
             TOTAL_LINE=$(grep "^TOTAL" ../coverage-report-raw.txt)
             if [ -n "$TOTAL_LINE" ]; then
@@ -464,24 +458,24 @@ tasks:
               echo "- Total: ${REGION_PCT}%" >> ../coverage-report.md
               echo "- Lines: ${LINE_PCT}%" >> ../coverage-report.md
             fi
-            
+
             # Add a blank line at the end
             echo "" >> ../coverage-report.md
-            
+
             # Also create a simplified text version for terminal display
             echo "Clean Architecture Coverage Report" > ../coverage-report.txt
             echo "" >> ../coverage-report.txt
             echo "🏛️ DOMAIN LAYER (Target: 95-100%)" >> ../coverage-report.txt
             echo "🧠 CORE LAYER (Target: 100% for models)" >> ../coverage-report.txt
             echo "" >> ../coverage-report.txt
-            
+
             # Simple text table
             awk 'NR>2 && !/Mock/ && !/Tests\// && NF>0 && $1!="" && length($1) < 100 {
               region_cover = ($2>0) ? ($2-$3)*100/$2 : 0
               line_cover = ($8>0) ? ($8-$9)*100/$8 : 0
               printf "%-50s %6.1f%% regions  %6.1f%% lines\n", $1, region_cover, line_cover
             }' ../coverage-report-raw.txt >> ../coverage-report.txt
-            
+
             echo "" >> ../coverage-report.txt
             awk 'BEGIN {
               regions=0; missed_regions=0; lines=0; missed_lines=0
@@ -496,19 +490,19 @@ tasks:
                 printf "TOTAL: %.1f%% regions, %.1f%% lines (%d files)\n", region_cover, line_cover, NR-2
               }
             }' ../coverage-report-raw.txt >> ../coverage-report.txt
-            
+
             rm -f ../coverage-report-raw.txt
-            
+
             # Generate GitHub Actions Step Summary if in CI
             if [ -n "$GITHUB_STEP_SUMMARY" ]; then
               echo "📊 **Clean Architecture Coverage Report**" >> "$GITHUB_STEP_SUMMARY"
               echo "" >> "$GITHUB_STEP_SUMMARY"
-              
+
               # Extract key metrics
               OVERALL_COVERAGE=$(tail -1 coverage-report.txt | awk '{print $6}')
               DOMAIN_FILES=$(grep -c "Domain/" coverage-report.txt || echo "0")
               CORE_FILES=$(grep -c "Models/\|Utilities/" coverage-report.txt || echo "0")
-              
+
               echo "## Summary" >> "$GITHUB_STEP_SUMMARY"
               echo "| Layer | Files | Status |" >> "$GITHUB_STEP_SUMMARY"
               echo "|-------|-------|--------|" >> "$GITHUB_STEP_SUMMARY"
@@ -516,30 +510,30 @@ tasks:
               echo "| 🧠 Core | $CORE_FILES | ✅ Active |" >> "$GITHUB_STEP_SUMMARY"
               echo "| 📊 Overall | - | $OVERALL_COVERAGE Coverage |" >> "$GITHUB_STEP_SUMMARY"
               echo "" >> "$GITHUB_STEP_SUMMARY"
-              
+
               echo "## Detailed Results" >> "$GITHUB_STEP_SUMMARY"
               echo '```' >> "$GITHUB_STEP_SUMMARY"
               cat coverage-report.txt >> "$GITHUB_STEP_SUMMARY"
               echo '```' >> "$GITHUB_STEP_SUMMARY"
-              
+
               echo "## Targets (per TEST_REFACTORING_PLAN_V2.md)" >> "$GITHUB_STEP_SUMMARY"
               echo "- 🏛️ **Domain Layer**: 95-100% (business logic)" >> "$GITHUB_STEP_SUMMARY"
               echo "- 🧠 **Core Models**: 100% (data models)" >> "$GITHUB_STEP_SUMMARY"
               echo "- 📊 **Overall Project**: 80%+" >> "$GITHUB_STEP_SUMMARY"
             fi
           fi
-          
+
           # Always generate Cobertura XML for SonarCloud
           # Try to convert LCOV to Cobertura first
           if command -v lcov-cobertura &> /dev/null; then
             lcov-cobertura coverage.lcov -o coverage.xml 2>/dev/null || true
           fi
-          
+
           # If conversion failed or lcov-cobertura not available, create XML manually
           if [ ! -s coverage.xml ]; then
             echo '<?xml version="1.0" ?>' > coverage.xml
             echo '<coverage version="1">' >> coverage.xml
-            
+
             # Parse LCOV to create basic Cobertura XML
             if [ -s coverage.lcov ]; then
               current_file=""
@@ -567,10 +561,10 @@ tasks:
               echo '    <lineToCover lineNumber="1" covered="true"/>' >> coverage.xml
               echo '  </file>' >> coverage.xml
             fi
-            
+
             echo '</coverage>' >> coverage.xml
           fi
-          
+
           # Return to root directory
           cd ..
         else
@@ -583,7 +577,7 @@ tasks:
           echo "LF:1" >> coverage.lcov
           echo "LH:1" >> coverage.lcov
           echo "end_of_record" >> coverage.lcov
-          
+
           # Create minimal Cobertura XML
           cat > coverage.xml << 'EOF'
         <?xml version="1.0" ?>
@@ -632,7 +626,6 @@ tasks:
       - task: markdown:lint
       - task: security:scan
       - task: swift:sbom
-      - task: docs:update
       - echo "✅ Standard QA suite passed!"
   qa:quick:
     desc: Quick QA checks for git hooks

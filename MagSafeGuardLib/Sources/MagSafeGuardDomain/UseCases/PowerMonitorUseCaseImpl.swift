@@ -8,7 +8,7 @@
 import Foundation
 
 /// Concrete implementation of PowerMonitorUseCase
-public final class PowerMonitorUseCaseImpl: PowerMonitorUseCase {
+public actor PowerMonitorUseCaseImpl: PowerMonitorUseCase {
 
     // MARK: - Properties
 
@@ -22,7 +22,7 @@ public final class PowerMonitorUseCaseImpl: PowerMonitorUseCase {
     // Stream for power state changes
     private let changeStream = AsyncStream<PowerStateChange>.makeStream()
     /// Stream of power state changes
-    public var powerStateChanges: AsyncStream<PowerStateChange> {
+    public nonisolated var powerStateChanges: AsyncStream<PowerStateChange> {
         changeStream.stream
     }
 
@@ -55,11 +55,9 @@ public final class PowerMonitorUseCaseImpl: PowerMonitorUseCase {
         previousState = initialState
 
         // Start monitoring task
-        monitoringTask = Task { [weak self] in
-            guard let self = self else { return }
-
+        monitoringTask = Task {
             do {
-                for try await newState in repository.observePowerStateChanges() {
+                for try await newState in self.repository.observePowerStateChanges() {
                     await self.handleStateUpdate(newState)
                 }
             } catch {
@@ -70,7 +68,7 @@ public final class PowerMonitorUseCaseImpl: PowerMonitorUseCase {
     }
 
     /// Stops monitoring power state changes
-    public func stopMonitoring() {
+    public func stopMonitoring() async {
         monitoringTask?.cancel()
         monitoringTask = nil
         previousState = nil

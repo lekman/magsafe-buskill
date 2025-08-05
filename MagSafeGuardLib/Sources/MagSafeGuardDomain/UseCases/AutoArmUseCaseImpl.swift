@@ -335,7 +335,7 @@ public actor AutoArmMonitoringUseCaseImpl: AutoArmMonitoringUseCase {
 // MARK: - Configuration Storage
 
 /// Protocol for persisting auto-arm configuration
-public protocol AutoArmConfigurationStore {
+public protocol AutoArmConfigurationStore: Sendable {
     /// Saves auto-arm configuration to persistent storage
     func saveConfiguration(_ configuration: AutoArmConfiguration) async throws
     /// Loads auto-arm configuration from persistent storage

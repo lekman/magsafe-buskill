@@ -32,7 +32,7 @@ struct PowerMonitorUseCaseImplTests {
 
     // MARK: - Mock Dependencies
 
-    private class MockPowerStateRepository: PowerStateRepository {
+    private final class MockPowerStateRepository: PowerStateRepository, @unchecked Sendable {
         private let shouldFail: Bool
         private let mockState: PowerStateInfo
         private let streamContinuation: AsyncThrowingStream<PowerStateInfo, Error>.Continuation?
@@ -209,7 +209,7 @@ struct PowerMonitorUseCaseImplTests {
         #expect(state.isConnected == true)
 
         // Clean up
-        useCase.stopMonitoring()
+        await useCase.stopMonitoring()
     }
 
     @Test("Start monitoring with repository failure")
@@ -238,7 +238,7 @@ struct PowerMonitorUseCaseImplTests {
         try await useCase.startMonitoring()
 
         // Stop monitoring - should not throw
-        useCase.stopMonitoring()
+        await useCase.stopMonitoring()
 
         // Verify we can still get current state (this goes directly to repository)
         let state = try await useCase.getCurrentPowerState()
@@ -260,7 +260,7 @@ struct PowerMonitorUseCaseImplTests {
         let state = try await useCase.getCurrentPowerState()
         #expect(state.isConnected == true)
 
-        useCase.stopMonitoring()
+        await useCase.stopMonitoring()
     }
 
     // MARK: - Power State Change Stream Tests
@@ -297,7 +297,7 @@ struct PowerMonitorUseCaseImplTests {
         // Give a moment for processing
         try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
 
-        useCase.stopMonitoring()
+        await useCase.stopMonitoring()
     }
 
     @Test("Handle state update with connection change")
@@ -328,7 +328,7 @@ struct PowerMonitorUseCaseImplTests {
         // Small delay to process the change
         try? await Task.sleep(nanoseconds: 5_000_000) // 5ms
 
-        useCase.stopMonitoring()
+        await useCase.stopMonitoring()
     }
 
     @Test("Handle state update with battery level change")
@@ -359,7 +359,7 @@ struct PowerMonitorUseCaseImplTests {
         // Small delay to process
         try? await Task.sleep(nanoseconds: 5_000_000) // 5ms
 
-        useCase.stopMonitoring()
+        await useCase.stopMonitoring()
     }
 
     @Test("Handle repository stream error")
@@ -376,7 +376,7 @@ struct PowerMonitorUseCaseImplTests {
         // Should handle the error gracefully without crashing
         try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
 
-        useCase.stopMonitoring()
+        await useCase.stopMonitoring()
     }
 
     @Test("Handle stream completion")
@@ -393,7 +393,7 @@ struct PowerMonitorUseCaseImplTests {
         // Should handle completion gracefully
         try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
 
-        useCase.stopMonitoring()
+        await useCase.stopMonitoring()
     }
 
     // MARK: - Analyzer Integration Tests
@@ -441,7 +441,7 @@ struct PowerMonitorUseCaseImplTests {
             try? await Task.sleep(nanoseconds: 2_000_000) // 2ms between changes
         }
 
-        useCase.stopMonitoring()
+        await useCase.stopMonitoring()
     }
 
     @Test("Analyzer with failure scenario")
@@ -464,7 +464,7 @@ struct PowerMonitorUseCaseImplTests {
 
         try? await Task.sleep(nanoseconds: 5_000_000) // 5ms
 
-        useCase.stopMonitoring()
+        await useCase.stopMonitoring()
     }
 
     // MARK: - Configuration Tests
@@ -491,7 +491,7 @@ struct PowerMonitorUseCaseImplTests {
         let state = try await useCase.getCurrentPowerState()
         #expect((state.batteryLevel ?? 0) >= 0)
 
-        useCase.stopMonitoring()
+        await useCase.stopMonitoring()
     }
 
     // MARK: - hasStateChanged Edge Cases Tests
@@ -502,7 +502,7 @@ struct PowerMonitorUseCaseImplTests {
         let analyzer = MockPowerStateAnalyzer()
         let useCase = PowerMonitorUseCaseImpl(repository: repository, analyzer: analyzer)
 
-        let connectedState = PowerStateInfo(isConnected: true, batteryLevel: 80, isCharging: true, timestamp: Date())
+        _ = PowerStateInfo(isConnected: true, batteryLevel: 80, isCharging: true, timestamp: Date())
         let disconnectedState = PowerStateInfo(isConnected: false, batteryLevel: 80, isCharging: false, timestamp: Date())
 
         try await useCase.startMonitoring()
@@ -511,7 +511,7 @@ struct PowerMonitorUseCaseImplTests {
         await repository.simulateStateChange(disconnectedState)
 
         try? await Task.sleep(nanoseconds: 5_000_000) // 5ms
-        useCase.stopMonitoring()
+        await useCase.stopMonitoring()
     }
 
     @Test("hasStateChanged with battery level differences")
@@ -520,7 +520,7 @@ struct PowerMonitorUseCaseImplTests {
         let analyzer = MockPowerStateAnalyzer()
         let useCase = PowerMonitorUseCaseImpl(repository: repository, analyzer: analyzer)
 
-        let highBatteryState = PowerStateInfo(isConnected: true, batteryLevel: 80, isCharging: true, timestamp: Date())
+        _ = PowerStateInfo(isConnected: true, batteryLevel: 80, isCharging: true, timestamp: Date())
         let lowBatteryState = PowerStateInfo(isConnected: true, batteryLevel: 70, isCharging: true, timestamp: Date()) // 10% difference > 5%
 
         try await useCase.startMonitoring()
@@ -529,7 +529,7 @@ struct PowerMonitorUseCaseImplTests {
         await repository.simulateStateChange(lowBatteryState)
 
         try? await Task.sleep(nanoseconds: 5_000_000) // 5ms
-        useCase.stopMonitoring()
+        await useCase.stopMonitoring()
     }
 
     @Test("hasStateChanged with minor battery level differences")
@@ -538,7 +538,7 @@ struct PowerMonitorUseCaseImplTests {
         let analyzer = MockPowerStateAnalyzer()
         let useCase = PowerMonitorUseCaseImpl(repository: repository, analyzer: analyzer)
 
-        let batteryState1 = PowerStateInfo(isConnected: true, batteryLevel: 80, isCharging: true, timestamp: Date())
+        _ = PowerStateInfo(isConnected: true, batteryLevel: 80, isCharging: true, timestamp: Date())
         let batteryState2 = PowerStateInfo(isConnected: true, batteryLevel: 78, isCharging: true, timestamp: Date()) // 2% difference < 5%
 
         try await useCase.startMonitoring()
@@ -547,7 +547,7 @@ struct PowerMonitorUseCaseImplTests {
         await repository.simulateStateChange(batteryState2)
 
         try? await Task.sleep(nanoseconds: 5_000_000) // 5ms
-        useCase.stopMonitoring()
+        await useCase.stopMonitoring()
     }
 
     @Test("hasStateChanged with charging state differences")
@@ -556,7 +556,7 @@ struct PowerMonitorUseCaseImplTests {
         let analyzer = MockPowerStateAnalyzer()
         let useCase = PowerMonitorUseCaseImpl(repository: repository, analyzer: analyzer)
 
-        let chargingState = PowerStateInfo(isConnected: true, batteryLevel: 80, isCharging: true, timestamp: Date())
+        _ = PowerStateInfo(isConnected: true, batteryLevel: 80, isCharging: true, timestamp: Date())
         let notChargingState = PowerStateInfo(isConnected: true, batteryLevel: 80, isCharging: false, timestamp: Date())
 
         try await useCase.startMonitoring()
@@ -565,7 +565,7 @@ struct PowerMonitorUseCaseImplTests {
         await repository.simulateStateChange(notChargingState)
 
         try? await Task.sleep(nanoseconds: 5_000_000) // 5ms
-        useCase.stopMonitoring()
+        await useCase.stopMonitoring()
     }
 
     @Test("hasStateChanged with nil battery levels")
@@ -574,7 +574,7 @@ struct PowerMonitorUseCaseImplTests {
         let analyzer = MockPowerStateAnalyzer()
         let useCase = PowerMonitorUseCaseImpl(repository: repository, analyzer: analyzer)
 
-        let stateWithBattery = PowerStateInfo(isConnected: true, batteryLevel: 80, isCharging: true, timestamp: Date())
+        _ = PowerStateInfo(isConnected: true, batteryLevel: 80, isCharging: true, timestamp: Date())
         let stateWithoutBattery = PowerStateInfo(isConnected: true, batteryLevel: nil, isCharging: true, timestamp: Date())
 
         try await useCase.startMonitoring()
@@ -583,7 +583,7 @@ struct PowerMonitorUseCaseImplTests {
         await repository.simulateStateChange(stateWithoutBattery)
 
         try? await Task.sleep(nanoseconds: 5_000_000) // 5ms
-        useCase.stopMonitoring()
+        await useCase.stopMonitoring()
     }
 
     @Test("handleStateUpdate with no previous state")
@@ -600,7 +600,7 @@ struct PowerMonitorUseCaseImplTests {
         await repository.simulateStateChange(newState)
 
         try? await Task.sleep(nanoseconds: 5_000_000) // 5ms
-        useCase.stopMonitoring()
+        await useCase.stopMonitoring()
     }
 
     // MARK: - DefaultPowerStateAnalyzer Tests

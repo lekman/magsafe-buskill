@@ -35,7 +35,7 @@ struct AuthenticationUseCaseImplTests {
 
     // MARK: - Mock Dependencies
 
-    private class MockAuthenticationRepository: AuthenticationRepository {
+    private final class MockAuthenticationRepository: AuthenticationRepository, @unchecked Sendable {
         private let shouldFail: Bool
         private let biometricAvailable: Bool
         private let authenticationMethod: AuthenticationMethod
@@ -146,14 +146,13 @@ struct AuthenticationUseCaseImplTests {
         let config = AuthenticationSecurityConfig.default
         let stateManager = MockAuthenticationStateManager()
 
-        let useCase = AuthenticationUseCaseImpl(
+        _ = AuthenticationUseCaseImpl(
             repository: repository,
             securityConfig: config,
             stateManager: stateManager
         )
 
         // Test that initialization doesn't fail
-        #expect(useCase != nil)
     }
 
     @Test("AuthenticationUseCaseImpl initialization with custom config")
@@ -166,7 +165,7 @@ struct AuthenticationUseCaseImplTests {
         )
         let stateManager = MockAuthenticationStateManager()
 
-        let useCase = AuthenticationUseCaseImpl(
+        _ = AuthenticationUseCaseImpl(
             repository: repository,
             securityConfig: customConfig,
             stateManager: stateManager
@@ -575,12 +574,10 @@ struct AuthenticationUseCaseImplTests {
         let stateManager = MockAuthenticationStateManager()
         let repository = MockAuthenticationRepository()
 
-        let useCase = AuthenticationStateUseCaseImpl(
+        _ = AuthenticationStateUseCaseImpl(
             stateManager: stateManager,
             repository: repository
         )
-
-        #expect(useCase != nil)
     }
 
     @Test("isAuthenticated with valid cache")
@@ -692,8 +689,7 @@ struct AuthenticationUseCaseImplTests {
 
     @Test("InMemoryAuthenticationStateManager initialization")
     func inMemoryAuthenticationStateManagerInitialization() {
-        let stateManager = InMemoryAuthenticationStateManager()
-        #expect(stateManager != nil)
+        _ = InMemoryAuthenticationStateManager()
     }
 
     @Test("Record and retrieve authentication attempts")
@@ -855,11 +851,23 @@ struct AuthenticationUseCaseImplTests {
         let useCase = AuthenticationUseCaseImpl(repository: repository, stateManager: stateManager)
 
         // Start multiple concurrent authentications
-        async let result1 = useCase.authenticate(reason: "Concurrent test 1", policy: .standard)
-        async let result2 = useCase.authenticate(reason: "Concurrent test 2", policy: .standard)
-        async let result3 = useCase.authenticate(reason: "Concurrent test 3", policy: .standard)
-
-        let results = await [result1, result2, result3]
+        let results = await withTaskGroup(of: AuthenticationResult.self) { group in
+            group.addTask {
+                await useCase.authenticate(reason: "Concurrent test 1", policy: .standard)
+            }
+            group.addTask {
+                await useCase.authenticate(reason: "Concurrent test 2", policy: .standard)
+            }
+            group.addTask {
+                await useCase.authenticate(reason: "Concurrent test 3", policy: .standard)
+            }
+            
+            var results: [AuthenticationResult] = []
+            for await result in group {
+                results.append(result)
+            }
+            return results
+        }
 
         // All should succeed
         #expect(results.allSatisfy { $0.isSuccess })

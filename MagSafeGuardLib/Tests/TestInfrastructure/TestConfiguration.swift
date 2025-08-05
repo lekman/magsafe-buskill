@@ -201,9 +201,9 @@ public struct BiometricTestTrait: TestTrait {
 // MARK: - Test Helpers
 
 /// Executes a test with timeout appropriate for environment
-public func withTimeout<T>(
+public func withTimeout<T: Sendable>(
     _ timeout: Duration? = nil,
-    operation: @escaping () async throws -> T
+    operation: @escaping @Sendable () async throws -> T
 ) async throws -> T {
     let effectiveTimeout = timeout ?? TestConfiguration.defaultTimeout
 

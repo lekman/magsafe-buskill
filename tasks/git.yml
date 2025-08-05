@@ -955,7 +955,7 @@ tasks:
         task git:runs:log WORKFLOW="Build and Sign"  # Download latest run of workflow
         task git:runs:log RUN_ID=16614742239         # Download specific run ID
         task git:runs:log WORKFLOW="build-sign"      # Partial filename match
-        
+
       The logs will be downloaded to .logs/<workflow-name>/<run-id>/ directory.
     silent: true
     vars:
@@ -981,11 +981,11 @@ tasks:
           echo -e "{{.CYAN}}Downloading logs for run ID: $RUN_ID{{.NC}}"
         elif [ -n "{{.WORKFLOW}}" ]; then
           echo -e "{{.CYAN}}Finding latest run for workflow: {{.WORKFLOW}}{{.NC}}"
-          
+
           # Get all workflows and find matching one
           WORKFLOW_ID=$(GITHUB_TOKEN=$GITHUB_TOKEN gh api "/repos/{owner}/{repo}/actions/workflows" \
             --jq '.workflows[] | select((.name | ascii_downcase | contains("{{.WORKFLOW}}" | ascii_downcase)) or (.path | ascii_downcase | contains("{{.WORKFLOW}}" | ascii_downcase))) | .id' | head -1)
-          
+
           if [ -z "$WORKFLOW_ID" ]; then
             echo -e "{{.RED}}Error: No workflow found matching '{{.WORKFLOW}}'{{.NC}}"
             echo ""
@@ -993,16 +993,16 @@ tasks:
             GITHUB_TOKEN=$GITHUB_TOKEN gh workflow list
             exit 1
           fi
-          
+
           # Get latest run for this workflow
           RUN_ID=$(GITHUB_TOKEN=$GITHUB_TOKEN gh api "/repos/{owner}/{repo}/actions/workflows/$WORKFLOW_ID/runs" \
             --jq '.workflow_runs[0].id')
-          
+
           if [ -z "$RUN_ID" ]; then
             echo -e "{{.RED}}Error: No runs found for workflow{{.NC}}"
             exit 1
           fi
-          
+
           echo -e "{{.GREEN}}Found latest run ID: $RUN_ID{{.NC}}"
         else
           echo -e "{{.RED}}Error: Either WORKFLOW or RUN_ID must be specified{{.NC}}"

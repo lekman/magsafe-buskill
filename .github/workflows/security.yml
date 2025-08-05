@@ -360,15 +360,7 @@ jobs:
   security-summary:
     name: Security Summary
     runs-on: ubuntu-latest
-    needs:
-      [
-        check-skip,
-        basic-checks,
-        dependency-review,
-        trufflehog,
-        semgrep,
-        scorecard,
-      ]
+    needs: [check-skip, basic-checks, dependency-review, trufflehog, semgrep, scorecard]
     if: always()
     permissions:
       contents: read
