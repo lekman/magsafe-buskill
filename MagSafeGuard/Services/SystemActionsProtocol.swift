@@ -109,6 +109,14 @@ public enum SystemActionError: LocalizedError {
   case insecureScriptPermissions
   /// Invalid shutdown delay value
   case invalidShutdownDelay
+  /// Script contains dangerous commands
+  case dangerousScriptContent
+  /// Script hash not in whitelist
+  case unauthorizedScriptHash
+  /// Script content validation failed
+  case scriptValidationFailed
+  /// Script execution timed out
+  case scriptExecutionTimeout
 
   /// Localized error description for user display.
   public var errorDescription: String? {
@@ -135,6 +143,14 @@ public enum SystemActionError: LocalizedError {
       return "Script has insecure file permissions"
     case .invalidShutdownDelay:
       return "Invalid shutdown delay value"
+    case .dangerousScriptContent:
+      return "Script contains potentially dangerous commands"
+    case .unauthorizedScriptHash:
+      return "Script is not in the allowed scripts whitelist"
+    case .scriptValidationFailed:
+      return "Failed to validate script content"
+    case .scriptExecutionTimeout:
+      return "Script execution timed out"
     }
   }
 }

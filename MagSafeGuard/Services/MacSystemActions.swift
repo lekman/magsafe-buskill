@@ -209,26 +209,40 @@ public class MacSystemActions: SystemActionsProtocol {
 
     Log.info("Scheduling system shutdown in \(minutes) minutes", category: .security)
 
-    // Schedule system shutdown
+    // Use AppleScript for shutdown without requiring sudo privileges
+    // This provides a safer approach that respects system security
     let task = Process()
-    task.launchPath = systemPaths.sudoPath
-    task.arguments = ["-n", "shutdown", "-h", "+\(minutes)"]
+    task.launchPath = systemPaths.osascriptPath
+    
+    // Create AppleScript to schedule shutdown with delay
+    let appleScript: String
+    if minutes == 1 {
+      // Immediate shutdown (1 minute minimum)
+      appleScript = "tell application \"System Events\" to shut down"
+    } else {
+      // Delayed shutdown using a more user-friendly approach
+      // This will show a system dialog allowing the user to cancel
+      appleScript = """
+        tell application "Finder"
+          display dialog "System will shut down in \(minutes) minutes" ¬
+            buttons {"Cancel", "Shut Down Now"} ¬
+            default button "Shut Down Now" ¬
+            with icon caution ¬
+            giving up after \(minutes * 60)
+        end tell
+        tell application "System Events" to shut down
+        """
+    }
+    
+    task.arguments = ["-e", appleScript]
 
     do {
       try task.run()
       task.waitUntilExit()
 
       if task.terminationStatus != 0 {
-        // Try alternative method without sudo
-        let alternativeTask = Process()
-        alternativeTask.launchPath = systemPaths.osascriptPath
-        alternativeTask.arguments = ["-e", "tell application \"System Events\" to shut down"]
-        try alternativeTask.run()
-        alternativeTask.waitUntilExit()
-
-        if alternativeTask.terminationStatus != 0 {
-          throw SystemActionError.shutdownFailed
-        }
+        Log.error("Shutdown scheduling failed with exit code: \(task.terminationStatus)", category: .security)
+        throw SystemActionError.shutdownFailed
       }
     } catch {
       Log.error("Shutdown failed", error: error, category: .security)
@@ -240,6 +254,12 @@ public class MacSystemActions: SystemActionsProtocol {
   /// - Parameter path: Path to the script file
   /// - Throws: SystemActionError if script doesn't exist, is invalid, or execution fails
   public func executeScript(at path: String) throws {
+    // 0. Path traversal prevention - reject any path with .. or ~
+    guard !path.contains("..") && !path.contains("~") else {
+      Log.error("Path traversal attempt detected: \(path)", category: .security)
+      throw SystemActionError.invalidScriptPath
+    }
+    
     // 1. Validate path is in allowed directory
     let allowedScriptDirs = [
       "/usr/local/magsafe-scripts/",
@@ -253,7 +273,20 @@ public class MacSystemActions: SystemActionsProtocol {
 
     // 2. Resolve symlinks and check canonical path
     let canonicalPath = (path as NSString).resolvingSymlinksInPath
-    guard allowedScriptDirs.contains(where: { canonicalPath.hasPrefix($0) }) else {
+    
+    // Double-check the canonical path doesn't escape allowed directories
+    let canonicalURL = URL(fileURLWithPath: canonicalPath)
+    let allowedURLs = allowedScriptDirs.map { URL(fileURLWithPath: $0) }
+    
+    var isInAllowedDirectory = false
+    for allowedURL in allowedURLs {
+      if canonicalURL.path.hasPrefix(allowedURL.path) {
+        isInAllowedDirectory = true
+        break
+      }
+    }
+    
+    guard isInAllowedDirectory else {
       Log.error("Canonical script path not in allowed directories: \(canonicalPath)", category: .security)
       throw SystemActionError.invalidScriptPath
     }
@@ -287,23 +320,93 @@ public class MacSystemActions: SystemActionsProtocol {
       throw SystemActionError.permissionDenied
     }
 
-    // 6. Execute with restricted environment
+    // 6. Validate script content for dangerous commands
+    do {
+      let scriptContent = try String(contentsOfFile: canonicalPath, encoding: .utf8)
+      
+      // Check for dangerous patterns
+      let dangerousPatterns = [
+        "sudo",           // Privilege escalation
+        "su ",           // Switch user
+        "rm -rf /",      // Destructive commands
+        "dd if=/dev",    // Disk operations
+        "mkfs",          // Filesystem formatting
+        ":(){ :|:& };:", // Fork bomb
+        "> /dev/sda",    // Direct disk writes
+        "chmod 777 /",   // Permission changes to root
+        "chown -R",      // Recursive ownership changes
+        "pkill -9",      // Force kill processes
+        "killall -9"     // Force kill all processes
+      ]
+      
+      for pattern in dangerousPatterns {
+        if scriptContent.contains(pattern) {
+          Log.error("Script contains dangerous command pattern: \(pattern)", category: .security)
+          throw SystemActionError.dangerousScriptContent
+        }
+      }
+      
+      // Check script hash against whitelist (if configured)
+      if let allowedHashes = ProcessInfo.processInfo.environment["MAGSAFE_ALLOWED_SCRIPT_HASHES"]?.split(separator: ",").map(String.init) {
+        let scriptData = scriptContent.data(using: .utf8)!
+        let scriptHash = scriptData.base64EncodedString()
+        
+        if !allowedHashes.contains(scriptHash) {
+          Log.error("Script hash not in whitelist", category: .security)
+          throw SystemActionError.unauthorizedScriptHash
+        }
+      }
+    } catch {
+      if let systemError = error as? SystemActionError {
+        throw systemError
+      }
+      Log.error("Failed to read script content for validation", error: error, category: .security)
+      throw SystemActionError.scriptValidationFailed
+    }
+    
+    // 7. Execute with restricted environment and timeout
     let task = Process()
     task.launchPath = systemPaths.bashPath
-    task.arguments = [canonicalPath]
+    task.arguments = ["-c", "set -euo pipefail; exec \"\(canonicalPath)\""]
 
     // Restrict environment for security
     task.environment = [
-      "PATH": "/usr/bin:/bin:/usr/local/bin",
+      "PATH": "/usr/bin:/bin", // Minimal PATH
       "HOME": NSHomeDirectory(),
-      "USER": NSUserName()
+      "USER": NSUserName(),
+      "SHELL": "/bin/bash",
+      "IFS": " \t\n" // Reset IFS to prevent manipulation
     ]
 
     Log.info("Executing security script: \(canonicalPath)", category: .security)
 
     do {
+      // Set up timeout
+      let timeout: TimeInterval = 30.0 // 30 second timeout
+      
       try task.run()
+      
+      // Use a dispatch work item for timeout handling
+      let timeoutWorkItem = DispatchWorkItem {
+        if task.isRunning {
+          task.terminate()
+          Log.error("Script execution timed out after \(timeout) seconds", category: .security)
+        }
+      }
+      
+      // Schedule the timeout
+      DispatchQueue.global().asyncAfter(deadline: .now() + timeout, execute: timeoutWorkItem)
+      
+      // Wait for the task to complete
       task.waitUntilExit()
+      
+      // Cancel timeout if task completed
+      timeoutWorkItem.cancel()
+      
+      // Check if terminated due to timeout
+      if task.terminationStatus == SIGTERM {
+        throw SystemActionError.scriptExecutionTimeout
+      }
 
       if task.terminationStatus != 0 {
         Log.error("Script failed with exit code: \(task.terminationStatus)", category: .security)
