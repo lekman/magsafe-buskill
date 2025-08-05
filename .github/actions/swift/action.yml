@@ -9,7 +9,7 @@ inputs:
   cache-key-suffix:
     description: "Additional suffix for cache key"
     required: false
-    default: "v4-swift6"
+    default: "v5-swift6"
   project-path:
     description: "Path to the Swift package directory"
     required: false
@@ -46,10 +46,10 @@ runs:
           ${{ inputs.project-path }}/.build
           ~/.swiftpm
           ~/Library/Caches/org.swift.swiftpm
-        key: ${{ runner.os }}-spm-${{ hashFiles(format('{0}/Package.swift', inputs.project-path), format('{0}/Package.resolved', inputs.project-path)) }}-${{ inputs.cache-key-suffix }}
+        key: ${{ runner.os }}-${{ runner.arch }}-spm-${{ hashFiles(format('{0}/Package.swift', inputs.project-path), format('{0}/Package.resolved', inputs.project-path)) }}-${{ inputs.cache-key-suffix }}
         restore-keys: |
-          ${{ runner.os }}-spm-${{ hashFiles(format('{0}/Package.swift', inputs.project-path)) }}-
-          ${{ runner.os }}-spm-
+          ${{ runner.os }}-${{ runner.arch }}-spm-${{ hashFiles(format('{0}/Package.swift', inputs.project-path)) }}-
+          ${{ runner.os }}-${{ runner.arch }}-spm-
 
     - name: Resolve Swift Package Dependencies
       shell: bash
