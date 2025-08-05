@@ -353,7 +353,13 @@ tasks:
 
         # Use Swift Package Manager for testing
         echo "🔨 Building with SPM and running tests..."
-        cd MagSafeGuardLib && swift test --enable-code-coverage --parallel
+        # Navigate to MagSafeGuardLib directory if not already there
+        CHANGED_DIR=false
+        if [[ "$(basename $(pwd))" != "MagSafeGuardLib" ]]; then
+          cd MagSafeGuardLib
+          CHANGED_DIR=true
+        fi
+        swift test --enable-code-coverage --parallel
 
         test_exit_code=$?
 
@@ -366,8 +372,11 @@ tasks:
         # Generate coverage reports using SPM build artifacts
         echo "📊 Generating coverage reports..."
 
-        # Continue in MagSafeGuardLib directory
-        cd MagSafeGuardLib || exit 1
+        # Navigate to MagSafeGuardLib directory if not already there (unless we already changed)
+        if [[ "$CHANGED_DIR" != "true" ]] && [[ "$(basename $(pwd))" != "MagSafeGuardLib" ]]; then
+          cd MagSafeGuardLib || exit 1
+          CHANGED_DIR=true
+        fi
         CODECOV_DIR=$(find .build -name 'codecov' -type d | head -1)
         if [ -n "$CODECOV_DIR" ] && [ -d "$CODECOV_DIR" ]; then
           echo "📊 Found coverage data in: $CODECOV_DIR"
@@ -409,7 +418,7 @@ tasks:
           }
           capture && /^(SF:|FN:|FNDA:|DA:|LF:|LH:|end_of_record)/ {
             print
-          }' coverage-raw.lcov > ../coverage.lcov || true
+          }' coverage-raw.lcov > coverage.lcov || true
 
           # If no source coverage, create minimal file
           if [ ! -s coverage.lcov ]; then
@@ -425,13 +434,13 @@ tasks:
           xcrun llvm-cov report \
             -instr-profile="$PROFDATA" \
             "$TEST_EXEC" \
-            -ignore-filename-regex=".*Tests.*|.*Mock.*|.*\\.build.*" > ../coverage-report-raw.txt || echo "No coverage data" > ../coverage-report-raw.txt
+            -ignore-filename-regex=".*Tests.*|.*Mock.*|.*\\.build.*" > coverage-report-raw.txt || echo "No coverage data" > coverage-report-raw.txt
 
           # Filter to show only Clean Architecture files and generate markdown
-          if [ -f ../coverage-report-raw.txt ]; then
+          if [ -f coverage-report-raw.txt ]; then
             # Generate markdown table without header (per task 18.15 requirements)
-            echo "| File | Regions | Cover | Functions | Executed | Lines | Cover |" > ../coverage-report.md
-            echo "|------|---------|-------|-----------|----------|-------|-------|" >> ../coverage-report.md
+            echo "| File | Regions | Cover | Functions | Executed | Lines | Cover |" > coverage-report.md
+            echo "|------|---------|-------|-----------|----------|-------|-------|" >> coverage-report.md
 
             # Show all non-test, non-mock files with markdown table format (exclude TOTAL row)
             awk 'NR>2 && !/Mock/ && !/Tests\// && !/^TOTAL/ && NF>0 && $1!="" && length($1) < 100 {
@@ -442,41 +451,41 @@ tasks:
 
               printf "| %s | %d | %.1f%% | %d | %d | %d | %.1f%% |\n",
                 $1, $2, region_cover, $5, function_executed, $8, line_cover
-            }' ../coverage-report-raw.txt >> ../coverage-report.md
+            }' coverage-report-raw.txt >> coverage-report.md
 
 
             # Add summary section
-            echo "" >> ../coverage-report.md
-            echo "### Summary:" >> ../coverage-report.md
-            echo "" >> ../coverage-report.md
+            echo "" >> coverage-report.md
+            echo "### Summary:" >> coverage-report.md
+            echo "" >> coverage-report.md
 
             # Extract totals from the TOTAL row
-            TOTAL_LINE=$(grep "^TOTAL" ../coverage-report-raw.txt)
+            TOTAL_LINE=$(grep "^TOTAL" coverage-report-raw.txt)
             if [ -n "$TOTAL_LINE" ]; then
               REGION_PCT=$(echo "$TOTAL_LINE" | awk '{printf "%.1f", ($2>0) ? ($2-$3)*100/$2 : 0}')
               LINE_PCT=$(echo "$TOTAL_LINE" | awk '{printf "%.1f", ($8>0) ? ($8-$9)*100/$8 : 0}')
-              echo "- Total: ${REGION_PCT}%" >> ../coverage-report.md
-              echo "- Lines: ${LINE_PCT}%" >> ../coverage-report.md
+              echo "- Total: ${REGION_PCT}%" >> coverage-report.md
+              echo "- Lines: ${LINE_PCT}%" >> coverage-report.md
             fi
 
             # Add a blank line at the end
-            echo "" >> ../coverage-report.md
+            echo "" >> coverage-report.md
 
             # Also create a simplified text version for terminal display
-            echo "Clean Architecture Coverage Report" > ../coverage-report.txt
-            echo "" >> ../coverage-report.txt
-            echo "🏛️ DOMAIN LAYER (Target: 95-100%)" >> ../coverage-report.txt
-            echo "🧠 CORE LAYER (Target: 100% for models)" >> ../coverage-report.txt
-            echo "" >> ../coverage-report.txt
+            echo "Clean Architecture Coverage Report" > coverage-report.txt
+            echo "" >> coverage-report.txt
+            echo "🏛️ DOMAIN LAYER (Target: 95-100%)" >> coverage-report.txt
+            echo "🧠 CORE LAYER (Target: 100% for models)" >> coverage-report.txt
+            echo "" >> coverage-report.txt
 
             # Simple text table
             awk 'NR>2 && !/Mock/ && !/Tests\// && NF>0 && $1!="" && length($1) < 100 {
               region_cover = ($2>0) ? ($2-$3)*100/$2 : 0
               line_cover = ($8>0) ? ($8-$9)*100/$8 : 0
               printf "%-50s %6.1f%% regions  %6.1f%% lines\n", $1, region_cover, line_cover
-            }' ../coverage-report-raw.txt >> ../coverage-report.txt
+            }' coverage-report-raw.txt >> coverage-report.txt
 
-            echo "" >> ../coverage-report.txt
+            echo "" >> coverage-report.txt
             awk 'BEGIN {
               regions=0; missed_regions=0; lines=0; missed_lines=0
             }
@@ -489,9 +498,9 @@ tasks:
                 line_cover=(lines>0) ? (lines-missed_lines)*100/lines : 0
                 printf "TOTAL: %.1f%% regions, %.1f%% lines (%d files)\n", region_cover, line_cover, NR-2
               }
-            }' ../coverage-report-raw.txt >> ../coverage-report.txt
+            }' coverage-report-raw.txt >> coverage-report.txt
 
-            rm -f ../coverage-report-raw.txt
+            rm -f coverage-report-raw.txt
 
             # Generate GitHub Actions Step Summary if in CI
             if [ -n "$GITHUB_STEP_SUMMARY" ]; then
@@ -565,11 +574,15 @@ tasks:
             echo '</coverage>' >> coverage.xml
           fi
 
-          # Return to root directory
-          cd ..
+          # Return to root directory if we changed into it
+          if [[ "$CHANGED_DIR" == "true" ]]; then
+            cd ..
+          fi
         else
           echo "⚠️ Coverage data not found, creating minimal files"
-          cd ..
+          if [[ "$CHANGED_DIR" == "true" ]]; then
+            cd ..
+          fi
           # Create minimal LCOV file
           echo "TN:" > coverage.lcov
           echo "SF:MagSafeGuard/Models/SettingsModel.swift" >> coverage.lcov
