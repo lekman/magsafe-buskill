@@ -55,7 +55,7 @@ jobs:
 
   test:
     name: Test Suite
-    runs-on: macos-latest
+    runs-on: macos-15
     needs: check-skip
     if: needs.check-skip.outputs.should-skip != 'true'
     permissions:
@@ -71,14 +71,14 @@ jobs:
       - name: Setup Swift Build Environment
         uses: ./.github/actions/swift
         with:
-          swift-version: "5.9"
+          swift-version: "6.0"
 
       - name: Run Tests
         timeout-minutes: 5
         run: |
-          echo "🧪 Running tests with Swift Package Manager..."
-          # Use SPM for CI testing - runs all tests with coverage
-          task swift:test
+          echo "🧪 Running Clean Architecture tests with coverage reporting..."
+          # Use main test task which includes Clean Architecture coverage reporting
+          task test
         env:
           CI: true
 
@@ -86,10 +86,12 @@ jobs:
         if: always()
         uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage.lcov
+          use_oidc: true
+          files: ./coverage.xml
           flags: unittests
           name: codecov-umbrella
+          slug: lekman/magsafe-buskill
+          codecov_yml_path: .codecov.yml
           fail_ci_if_error: false
 
       - name: SonarCloud Scan
@@ -102,22 +104,15 @@ jobs:
       - name: Test Summary
         if: always()
         run: |
-          echo "## 📊 Test Results"
-          echo ""
-          echo "**Status**: Tests completed"
-          echo ""
-          echo "### Currently Running Tests:"
-          echo "- SettingsModelTests"
-          echo "- AppControllerTests"
-          echo ""
-          echo "### Coverage Reports:"
-          echo "- LCOV format: coverage.lcov"
-          echo "- Cobertura format: coverage.xml"
-          echo "- Text report: coverage-report.txt"
-          echo ""
-          echo "Coverage has been uploaded to:"
-          echo "- CodeCov"
-          echo "- SonarCloud"
+          echo "## 📊 Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Display the markdown coverage report directly
+          if [ -f coverage-report.md ]; then
+            cat coverage-report.md >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Coverage report not found" >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Upload test artifacts
         if: always()
@@ -128,4 +123,5 @@ jobs:
             coverage.lcov
             coverage.xml
             coverage-report.txt
+            coverage-report.md
           retention-days: 7

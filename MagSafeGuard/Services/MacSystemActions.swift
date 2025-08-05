@@ -10,6 +10,7 @@
 import AppKit
 import AVFoundation
 import Foundation
+import MagSafeGuardCore
 
 /// Real implementation of system actions for macOS
 public class MacSystemActions: SystemActionsProtocol {
@@ -48,9 +49,24 @@ public class MacSystemActions: SystemActionsProtocol {
 
     /// Get default system paths from configuration
     /// This satisfies SonarCloud's requirement for customizable URIs
+    /// Environment overrides are only allowed in debug builds for security
     private static func getDefaultPath(for utility: String) -> String {
       guard let config = UtilityConfig.utilities[utility] else { return "" }
-      return ProcessInfo.processInfo.environment[config.envVar] ?? config.defaultPath
+
+      #if DEBUG
+      // Only allow environment override in debug builds for security
+      if let envPath = ProcessInfo.processInfo.environment[config.envVar] {
+        // Validate the override path exists and is executable
+        guard FileManager.default.isExecutableFile(atPath: envPath) else {
+          Log.warning("Invalid override path for \(utility): \(envPath), using default", category: .security)
+          return config.defaultPath
+        }
+        Log.info("Using override path for \(utility): \(envPath)", category: .security)
+        return envPath
+      }
+      #endif
+
+      return config.defaultPath
     }
 
     /// Default system paths for macOS standard locations
@@ -179,13 +195,24 @@ public class MacSystemActions: SystemActionsProtocol {
   }
 
   /// Schedules system shutdown after specified delay
-  /// - Parameter afterSeconds: Delay before shutdown in seconds
-  /// - Throws: SystemActionError if scheduling fails
+  /// - Parameter afterSeconds: Delay before shutdown in seconds (0-3600 max)
+  /// - Throws: SystemActionError if scheduling fails or delay is invalid
   public func scheduleShutdown(afterSeconds: TimeInterval) throws {
+    // Validate input range (0-3600 seconds = 1 hour max)
+    guard afterSeconds >= 0 && afterSeconds <= 3600 else {
+      Log.error("Invalid shutdown delay: \(afterSeconds) seconds", category: .security)
+      throw SystemActionError.invalidShutdownDelay
+    }
+
+    // Convert to minutes with minimum of 1 minute
+    let minutes = max(1, Int(afterSeconds / 60))
+
+    Log.info("Scheduling system shutdown in \(minutes) minutes", category: .security)
+
     // Schedule system shutdown
     let task = Process()
     task.launchPath = systemPaths.sudoPath
-    task.arguments = ["-n", "shutdown", "-h", "+\(Int(afterSeconds / 60))"]
+    task.arguments = ["-n", "shutdown", "-h", "+\(minutes)"]
 
     do {
       try task.run()
@@ -211,23 +238,79 @@ public class MacSystemActions: SystemActionsProtocol {
 
   /// Executes a shell script at the specified path
   /// - Parameter path: Path to the script file
-  /// - Throws: SystemActionError if script doesn't exist or execution fails
+  /// - Throws: SystemActionError if script doesn't exist, is invalid, or execution fails
   public func executeScript(at path: String) throws {
-    guard FileManager.default.fileExists(atPath: path) else {
+    // 1. Validate path is in allowed directory
+    let allowedScriptDirs = [
+      "/usr/local/magsafe-scripts/",
+      NSHomeDirectory() + "/.magsafe/scripts/"
+    ]
+
+    guard allowedScriptDirs.contains(where: { path.hasPrefix($0) }) else {
+      Log.error("Script path not in allowed directories: \(path)", category: .security)
+      throw SystemActionError.invalidScriptPath
+    }
+
+    // 2. Resolve symlinks and check canonical path
+    let canonicalPath = (path as NSString).resolvingSymlinksInPath
+    guard allowedScriptDirs.contains(where: { canonicalPath.hasPrefix($0) }) else {
+      Log.error("Canonical script path not in allowed directories: \(canonicalPath)", category: .security)
+      throw SystemActionError.invalidScriptPath
+    }
+
+    // 3. Validate file extension
+    let allowedExtensions = [".sh", ".zsh", ".bash"]
+    guard allowedExtensions.contains(where: { path.hasSuffix($0) }) else {
+      Log.error("Invalid script extension: \(path)", category: .security)
+      throw SystemActionError.invalidScriptType
+    }
+
+    // 4. Check if file exists
+    guard FileManager.default.fileExists(atPath: canonicalPath) else {
+      Log.error("Script not found: \(canonicalPath)", category: .security)
       throw SystemActionError.scriptNotFound
     }
 
+    // 5. Check file permissions (not world-writable)
+    do {
+      let attributes = try FileManager.default.attributesOfItem(atPath: canonicalPath)
+      if let permissions = attributes[.posixPermissions] as? NSNumber {
+        let perms = permissions.intValue
+        // Check if world-writable (last bit set)
+        if (perms & 0o002) != 0 {
+          Log.error("Script is world-writable: \(canonicalPath)", category: .security)
+          throw SystemActionError.insecureScriptPermissions
+        }
+      }
+    } catch {
+      Log.error("Failed to check script permissions: \(canonicalPath)", error: error, category: .security)
+      throw SystemActionError.permissionDenied
+    }
+
+    // 6. Execute with restricted environment
     let task = Process()
     task.launchPath = systemPaths.bashPath
-    task.arguments = [path]
+    task.arguments = [canonicalPath]
+
+    // Restrict environment for security
+    task.environment = [
+      "PATH": "/usr/bin:/bin:/usr/local/bin",
+      "HOME": NSHomeDirectory(),
+      "USER": NSUserName()
+    ]
+
+    Log.info("Executing security script: \(canonicalPath)", category: .security)
 
     do {
       try task.run()
       task.waitUntilExit()
 
       if task.terminationStatus != 0 {
+        Log.error("Script failed with exit code: \(task.terminationStatus)", category: .security)
         throw SystemActionError.scriptExecutionFailed(exitCode: task.terminationStatus)
       }
+
+      Log.info("Script executed successfully: \(canonicalPath)", category: .security)
     } catch {
       if let systemError = error as? SystemActionError {
         throw systemError

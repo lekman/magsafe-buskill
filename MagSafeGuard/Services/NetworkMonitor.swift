@@ -9,6 +9,7 @@
 
 import CoreWLAN
 import Foundation
+import MagSafeGuardCore
 import Network
 import SystemConfiguration.CaptiveNetwork
 

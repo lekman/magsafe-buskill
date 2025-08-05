@@ -6,6 +6,7 @@
 //
 
 import AppKit
+import MagSafeGuardCore
 import SwiftUI
 import UserNotifications
 

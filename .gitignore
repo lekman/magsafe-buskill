@@ -1,5 +1,4 @@
 # VS Code files for those working on multiple tools
-.vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
@@ -10,7 +9,12 @@
 
 # AI files, local settings and scratch pads
 /*.md
+!CLAUDE.md
 .claude
+!.claude/agents/
+!.claude/commands/
+!.claude/schedule.yml
+!.claude/collaboration.yml
 .env
 
 # Feature flags (use docs/examples/feature-flags.example.json as template)
@@ -78,22 +82,23 @@ fastlane/test_output
 iOSInjectionProject/
 
 # Coverage reports
-# Note: coverage.lcov and coverage.xml are checked in for CI
+# All coverage files are generated and should not be committed
+coverage*
+**/*coverage*
+*.lcov
+*.profdata
 sonar-coverage.lcov
 .coverage/
 coverage/
 coverage-html/
-# Exclude all lcov except the main ones
-**/*.lcov
-!coverage.lcov
-!coverage.xml
-!coverage-report.txt
 
 # Local scratch files
 .taskmaster
+*.tmp
 
 # Logs
 logs
+.logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -126,7 +131,7 @@ sbom-deps.json
 .scannerwork/
 
 # GitHub reports
-.github/pr-comments/
+.logs/pr/
 
 # Swift Bundler binary, build files, and cache
 DerivedData/
@@ -140,10 +145,7 @@ profiles/
 # Test coverage reports and logs
 coverage/
 *.log
-# Exclude coverage files except the ones needed for CI
-coverage-raw.lcov
-coverage-report-raw.txt
-# Keep these coverage files for CI
-!coverage.lcov
-!coverage.xml
-!coverage-report.txt
+*.log
+
+# AI agent justifications and false positives
+!.justifications.md

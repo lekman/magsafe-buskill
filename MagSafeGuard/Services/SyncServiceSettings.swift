@@ -7,6 +7,8 @@
 
 import CloudKit
 import Foundation
+import MagSafeGuardCore
+import MagSafeGuardDomain
 
 /// Handles settings synchronization with CloudKit
 final class SyncServiceSettings {

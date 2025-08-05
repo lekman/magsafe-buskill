@@ -10,6 +10,7 @@
 //
 
 import Foundation
+import MagSafeGuardCore
 
 /// Service responsible for executing security actions when theft is detected.
 ///

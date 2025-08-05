@@ -71,7 +71,7 @@ Pins all GitHub Actions to specific commit SHAs for supply chain security.
 task security:pin-actions
 
 # Pin a specific workflow file
-task security:pin-actions TARGET_PATH=.github/workflows/build-sign.yml
+task security:pin-actions TARGET_PATH=.github/workflows/test.yml
 
 # Pin a specific composite action file
 task security:pin-actions TARGET_PATH=.github/actions/cswift/action.yml

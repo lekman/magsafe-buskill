@@ -7,6 +7,7 @@
 
 import AppKit
 import Foundation
+import MagSafeGuardCore
 
 /// Centralized manager for accessibility features and compliance.
 ///

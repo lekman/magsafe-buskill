@@ -8,6 +8,7 @@
 //
 
 import Foundation
+import MagSafeGuardCore
 
 /// Factory for creating iCloud sync service instances
 public enum SyncServiceFactory {

@@ -21,14 +21,14 @@ runs:
       run: |
         OS_KEY="${{ runner.os }}-${{ runner.arch }}"
         echo "os-key=$OS_KEY" >> $GITHUB_OUTPUT
-        
+
         # Determine Taskfile installation path
         if [[ "${{ runner.os }}" == "Linux" ]]; then
           echo "taskfile-path=/usr/local/bin" >> $GITHUB_OUTPUT
         else
           echo "taskfile-path=/usr/local/bin" >> $GITHUB_OUTPUT
         fi
-    
+
     - name: Restore Taskfile cache
       id: cache-restore
       uses: actions/cache/restore@v4
@@ -39,7 +39,7 @@ runs:
         key: taskfile-${{ steps.os-info.outputs.os-key }}-v1
         restore-keys: |
           taskfile-${{ steps.os-info.outputs.os-key }}-v1
-    
+
     - name: Install Taskfile if not cached
       if: steps.cache-restore.outputs.cache-hit != 'true'
       shell: bash
@@ -48,11 +48,11 @@ runs:
         if [[ "${{ runner.os }}" == "macOS" ]]; then
           # GitHub Actions macOS runners are always ARM64 now
           echo "Installing Taskfile for macOS ARM64..."
-          
+
           # Try direct download first to avoid Rosetta issues
           curl -sL https://github.com/go-task/task/releases/latest/download/task_darwin_arm64.tar.gz | sudo tar -xz -C /usr/local/bin task
           sudo chmod +x /usr/local/bin/task
-          
+
           # If that fails, fall back to brew with arch prefix
           if ! command -v task &> /dev/null; then
             echo "Direct download failed, trying brew..."
@@ -64,10 +64,10 @@ runs:
           echo "Unsupported OS: ${{ runner.os }}"
           exit 1
         fi
-        
+
         # Verify installation
         task --version
-    
+
     - name: Verify Taskfile is available
       shell: bash
       run: |
@@ -75,7 +75,7 @@ runs:
         task --version
         echo "Taskfile location:"
         which task
-    
+
     - name: Save Taskfile cache
       uses: actions/cache/save@v4
       # Only save cache if we didn't restore from cache (i.e., we installed fresh)
@@ -85,7 +85,7 @@ runs:
           /usr/local/bin/task
           ~/.task
         key: taskfile-${{ steps.os-info.outputs.os-key }}-v1
-    
+
     - name: Generate Taskfile summary
       if: always()
       shell: bash
@@ -94,14 +94,14 @@ runs:
         OS_KEY: ${{ steps.os-info.outputs.os-key }}
         CACHE_KEY_SUFFIX: ${{ inputs.cache-key-suffix }}
       run: |
-        TASK_VERSION=$(task --version | grep -o 'Task version: v[0-9.]*' || echo "Unknown")
+        TASK_VERSION=$(task --version | head -n1 || echo "Unknown")
         CACHE_HIT="${CACHE_HIT}"
         CACHE_KEY="taskfile-${OS_KEY}-${CACHE_KEY_SUFFIX}"
-        
+
         cat >> $GITHUB_STEP_SUMMARY << EOF
-        
+
         ## 📋 Taskfile Setup
-        
+
         | Property | Value |
         |----------|-------|
         | **Taskfile Version** | $TASK_VERSION |
@@ -109,9 +109,9 @@ runs:
         | **Cache Hit** | ${CACHE_HIT:-false} |
         | **Cache Key** | \`$CACHE_KEY\` |
         | **OS Key** | ${OS_KEY} |
-        
+
         EOF
-        
+
         if [ "$CACHE_HIT" != "true" ]; then
           cat >> $GITHUB_STEP_SUMMARY << EOF
         > ℹ️ Taskfile was installed fresh. Future runs will use the cached version.

@@ -11,6 +11,7 @@
 import AppKit
 import Combine
 import Foundation
+import MagSafeGuardCore
 
 /// Core logic for AppDelegate that can be tested without NSApp dependencies.
 ///

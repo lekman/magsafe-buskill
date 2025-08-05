@@ -37,11 +37,11 @@ jobs:
                 ...repo,
                 issue_number: context.issue.number,
                 body: `## Welcome @${creator}! 👋
-                
-                This appears to be your first pull request to this repository. 
-                
+
+                This appears to be your first pull request to this repository.
+
                 **Security Notice**: This PR will run with restricted permissions and no access to secrets until approved by a maintainer.
-                
+
                 A maintainer will review your changes soon. Thank you for your contribution!`
               });
             }

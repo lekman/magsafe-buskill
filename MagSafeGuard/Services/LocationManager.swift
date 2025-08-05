@@ -9,6 +9,7 @@
 
 import CoreLocation
 import Foundation
+import MagSafeGuardCore
 
 /// Protocol for location-based auto-arm events
 public protocol LocationManagerDelegate: AnyObject {

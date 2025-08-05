@@ -9,6 +9,7 @@
 
 import CoreLocation
 import Foundation
+import MagSafeGuardCore
 
 /// Manages automatic arming of the security system based on location and network conditions.
 ///

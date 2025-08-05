@@ -9,6 +9,8 @@
 
 import Combine
 import Foundation
+import MagSafeGuardCore
+import MagSafeGuardDomain
 
 /// Manages persistence and synchronization of user settings.
 ///
@@ -297,7 +299,7 @@ public class UserDefaultsManager: ObservableObject {
       settings.showStatusNotifications = true
       settings.playCriticalAlertSound = true
       settings.gracePeriodDuration = 10.0
-      settings.securityActions = [.lockScreen, .unmountVolumes]
+      settings.securityActions = [SecurityActionType.lockScreen, SecurityActionType.soundAlarm]
     }
   }
 }
@@ -312,7 +314,7 @@ extension UserDefaultsManager {
     set { updateSetting(\.gracePeriodDuration, value: newValue) }
   }
 
-  /// Quick access to security actions
+  /// Quick access to security actions  
   public var securityActions: [SecurityActionType] {
     get { settings.securityActions }
     set { updateSetting(\.securityActions, value: newValue) }

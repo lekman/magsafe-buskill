@@ -12,6 +12,12 @@ includes:
     vars:
       PROJECT_NAME: "MagSafeGuard"
       SCHEME_NAME: "MagSafeGuard"
+  xcode:
+    taskfile: ./tasks/xcode.yml
+    optional: false
+    vars:
+      PROJECT_NAME: "MagSafeGuard"
+      SCHEME_NAME: "MagSafeGuard"
   security:
     taskfile: ./tasks/security.yml
     optional: false
@@ -24,11 +30,8 @@ includes:
   git:
     taskfile: ./tasks/git.yml
     optional: false
-  test-ci:
-    taskfile: ./tasks/test-ci.yml
-    optional: false
-  test-local:
-    taskfile: ./tasks/test-local.yml
+  ai:
+    taskfile: ./tasks/ai.yml
     optional: false
 vars:
   HOOKS_PATH: .githooks
@@ -57,11 +60,21 @@ tasks:
         echo ""
         echo "📦 Module Commands:"
         echo "  task swift:        - Swift development tasks"
+        echo "  task xcode:        - Xcode build and test tasks"
         echo "  task security:     - Security scanning tasks"
         echo "  task sonar:        - SonarCloud analysis"
         echo "  task markdown:     - Markdown linting"
         echo "  task yaml:         - YAML validation and linting"
         echo "  task git:          - Git and GitHub tasks"
+        echo "  task ai:           - AI agent analysis tasks"
+        echo ""
+        echo "🤖 AI Analysis:"
+        echo "  task ai:qa         - Run all QA agents (security, coverage, performance)"
+        echo "  task ai:architect  - Architecture review and SOLID validation"
+        echo "  task ai:author     - Documentation analysis"
+        echo "  task ai:devops     - Build and deployment optimization"
+        echo "  task ai-review     - Consolidate findings for discussion"
+        echo "  task ai:status     - Show agent reports status"
         echo ""
         echo "💡 Tips:"
         echo "  • Use 'task <module>:' to see module-specific tasks"
@@ -83,6 +96,7 @@ tasks:
     desc: Install all development tools and dependencies
     cmds:
       - task: swift:setup
+      - task: xcode:setup
       - task: security:setup
       - task: sonar:setup
       - task: markdown:setup
@@ -335,51 +349,29 @@ tasks:
     desc: Build MagSafe Guard app for CI/QA (minimal build for testing and CodeQL)
     silent: true
     cmds:
-      - task: swift:build:ci
+      - task: swift:build
 
   # Testing and quality assurance
   test:
-    desc: Run safe unit tests (excluding tests that cause hangs)
+    desc: Run Clean Architecture tests using SPM (focus on Domain and Data layers per TEST_REFACTORING_PLAN_V2.md)
     silent: true
     env:
       CI: "true"
     cmds:
-      - task: security:secrets
       - |
-        echo "🧪 Running tests for Models and Controllers..."
+        echo "🧪 Running Clean Architecture tests with SPM..."
+        echo "Based on TEST_REFACTORING_PLAN_V2.md - Focus on Business Logic"
+        echo ""
 
-        # First build with coverage enabled
-        echo "🔨 Building test dependencies with coverage..."
-        xcodebuild build-for-testing \
-          -project MagSafeGuard.xcodeproj \
-          -scheme MagSafeGuard \
-          -configuration Debug \
-          -destination 'platform=macOS,arch=arm64' \
-          -derivedDataPath DerivedData \
-          -enableCodeCoverage YES \
-          -skipUnavailableActions \
-          CODE_SIGNING_ALLOWED=NO \
-          CODE_SIGN_IDENTITY= \
-          CODE_SIGNING_REQUIRED=NO \
-          COMPILER_INDEX_STORE_ENABLE=NO \
-          GCC_GENERATE_TEST_COVERAGE_FILES=YES \
-          GCC_INSTRUMENT_PROGRAM_FLOW_ARCS=YES \
-          -quiet || true
-
-        # Now run only the specific tests
-        echo "🧪 Running specific tests..."
-        xcodebuild test-without-building \
-          -project MagSafeGuard.xcodeproj \
-          -scheme MagSafeGuard \
-          -configuration Debug \
-          -destination 'platform=macOS,arch=arm64' \
-          -enableCodeCoverage YES \
-          -derivedDataPath DerivedData \
-          -only-testing:MagSafeGuardTests/SettingsModelTests \
-          -only-testing:MagSafeGuardTests/AppControllerTests \
-          CODE_SIGNING_ALLOWED=NO \
-          CODE_SIGN_IDENTITY= \
-          CODE_SIGNING_REQUIRED=NO
+        # Use Swift Package Manager for testing
+        echo "🔨 Building with SPM and running tests..."
+        # Navigate to MagSafeGuardLib directory if not already there
+        CHANGED_DIR=false
+        if [[ "$(basename $(pwd))" != "MagSafeGuardLib" ]]; then
+          cd MagSafeGuardLib
+          CHANGED_DIR=true
+        fi
+        swift test --enable-code-coverage --parallel
 
         test_exit_code=$?
 
@@ -389,44 +381,57 @@ tasks:
           exit 1
         fi
 
-        # Generate coverage reports
+        # Generate coverage reports using SPM build artifacts
         echo "📊 Generating coverage reports..."
 
-        # Find the coverage profdata
-        PROFDATA=$(find DerivedData -name '*.profdata' -type f | head -1)
+        # Navigate to MagSafeGuardLib directory if not already there (unless we already changed)
+        if [[ "$CHANGED_DIR" != "true" ]] && [[ "$(basename $(pwd))" != "MagSafeGuardLib" ]]; then
+          cd MagSafeGuardLib || exit 1
+          CHANGED_DIR=true
+        fi
+        CODECOV_DIR=$(find .build -name 'codecov' -type d | head -1)
+        if [ -n "$CODECOV_DIR" ] && [ -d "$CODECOV_DIR" ]; then
+          echo "📊 Found coverage data in: $CODECOV_DIR"
+          # Merge all profraw files into a single profdata file
+          xcrun llvm-profdata merge -sparse "$CODECOV_DIR"/*.profraw -o coverage-merged.profdata
+          PROFDATA="coverage-merged.profdata"
+        else
+          # Fallback to default.profdata
+          PROFDATA=$(find .build -name 'default.profdata' -type f | head -1)
+        fi
 
-        # Find the test bundle binary
-        TEST_BUNDLE=$(find DerivedData -path "*/MagSafeGuard.app/Contents/PlugIns/MagSafeGuardTests.xctest" -type d | head -1)
+        # Find the SPM test executable
+        TEST_BUNDLE=$(find .build -name '*PackageTests.xctest' -type d | head -1)
         if [ -n "$TEST_BUNDLE" ]; then
-          TEST_BINARY="$TEST_BUNDLE/Contents/MacOS/MagSafeGuardTests"
+          # macOS bundle structure
+          TEST_EXEC="$TEST_BUNDLE/Contents/MacOS/MagSafeGuardLibPackageTests"
+        else
+          # Linux/alternative path structure
+          TEST_EXEC=$(find .build -name '*PackageTests' -type f -perm +111 | grep -v '.dSYM' | head -1)
         fi
 
-        # Find the app binary
-        APP_BUNDLE=$(find DerivedData -path "*/Debug/MagSafeGuard.app" -type d | head -1)
-        if [ -n "$APP_BUNDLE" ]; then
-          APP_BINARY="$APP_BUNDLE/Contents/MacOS/MagSafeGuard"
-        fi
+        if [ -n "$PROFDATA" ] && [ -f "$TEST_EXEC" ]; then
+          echo "📊 Found profdata: $PROFDATA"
+          echo "📊 Found test executable: $TEST_EXEC"
 
-        if [ -n "$PROFDATA" ] && [ -f "$TEST_BINARY" ] && [ -f "$APP_BINARY" ]; then
-          # Generate LCOV report including both binaries
+          # Generate LCOV report from SPM test executable
           xcrun llvm-cov export \
             -format=lcov \
             -instr-profile="$PROFDATA" \
-            "$TEST_BINARY" \
-            -object "$APP_BINARY" > coverage-raw.lcov
-          
+            "$TEST_EXEC" > coverage-raw.lcov
+
           # Filter to only include source files (exclude tests and mocks)
-          awk '/^SF:/ { 
-            if ($0 !~ /Tests\// && $0 !~ /Mock/) { 
-              capture=1 
-            } else { 
-              capture=0 
-            } 
-          } 
-          capture && /^(SF:|FN:|FNDA:|DA:|LF:|LH:|end_of_record)/ { 
-            print 
+          awk '/^SF:/ {
+            if ($0 !~ /Tests\// && $0 !~ /Mock/ && $0 !~ /\.build\// && $0 !~ /runner\.swift/) {
+              capture=1
+            } else {
+              capture=0
+            }
+          }
+          capture && /^(SF:|FN:|FNDA:|DA:|LF:|LH:|end_of_record)/ {
+            print
           }' coverage-raw.lcov > coverage.lcov || true
-          
+
           # If no source coverage, create minimal file
           if [ ! -s coverage.lcov ]; then
             echo "TN:" > coverage.lcov
@@ -436,84 +441,183 @@ tasks:
             echo "LH:1" >> coverage.lcov
             echo "end_of_record" >> coverage.lcov
           fi
-          
-          # Generate text report for debugging
+
+          # Generate text report for debugging with focus on Clean Architecture
           xcrun llvm-cov report \
             -instr-profile="$PROFDATA" \
-            "$TEST_BINARY" \
-            -object "$APP_BINARY" > coverage-report-raw.txt || echo "No coverage data" > coverage-report-raw.txt
-          
-          # Filter out mock files from the text report
+            "$TEST_EXEC" \
+            -ignore-filename-regex=".*Tests.*|.*Mock.*|.*\\.build.*" > coverage-report-raw.txt || echo "No coverage data" > coverage-report-raw.txt
+
+          # Filter to show only Clean Architecture files and generate markdown
           if [ -f coverage-report-raw.txt ]; then
-            head -2 coverage-report-raw.txt > coverage-report.txt
-            grep -v "Mock" coverage-report-raw.txt | grep -v "Tests/" | tail -n +3 >> coverage-report.txt || true
-            
-            # Recalculate totals without mocks
-            if command -v awk &> /dev/null; then
-              awk 'BEGIN {
-                regions=0; missed_regions=0; functions=0; missed_functions=0; lines=0; missed_lines=0
+            # Generate markdown table without header (per task 18.15 requirements)
+            echo "| File | Regions | Cover | Functions | Executed | Lines | Cover |" > coverage-report.md
+            echo "|------|---------|-------|-----------|----------|-------|-------|" >> coverage-report.md
+
+            # Show all non-test, non-mock files with markdown table format (exclude TOTAL row)
+            awk 'NR>2 && !/Mock/ && !/Tests\// && !/^TOTAL/ && NF>0 && $1!="" && length($1) < 100 {
+              # Calculate coverage percentages with division by zero protection
+              region_cover = ($2>0) ? ($2-$3)*100/$2 : 0
+              function_executed = $5-$6
+              line_cover = ($8>0) ? ($8-$9)*100/$8 : 0
+
+              printf "| %s | %d | %.1f%% | %d | %d | %d | %.1f%% |\n",
+                $1, $2, region_cover, $5, function_executed, $8, line_cover
+            }' coverage-report-raw.txt >> coverage-report.md
+
+
+            # Add summary section
+            echo "" >> coverage-report.md
+            echo "### Summary:" >> coverage-report.md
+            echo "" >> coverage-report.md
+
+            # Extract totals from the TOTAL row
+            TOTAL_LINE=$(grep "^TOTAL" coverage-report-raw.txt)
+            if [ -n "$TOTAL_LINE" ]; then
+              REGION_PCT=$(echo "$TOTAL_LINE" | awk '{printf "%.1f", ($2>0) ? ($2-$3)*100/$2 : 0}')
+              LINE_PCT=$(echo "$TOTAL_LINE" | awk '{printf "%.1f", ($8>0) ? ($8-$9)*100/$8 : 0}')
+              echo "- Total: ${REGION_PCT}%" >> coverage-report.md
+              echo "- Lines: ${LINE_PCT}%" >> coverage-report.md
+            fi
+
+            # Add a blank line at the end
+            echo "" >> coverage-report.md
+
+            # Also create a simplified text version for terminal display
+            echo "Clean Architecture Coverage Report" > coverage-report.txt
+            echo "" >> coverage-report.txt
+            echo "🏛️ DOMAIN LAYER (Target: 95-100%)" >> coverage-report.txt
+            echo "🧠 CORE LAYER (Target: 100% for models)" >> coverage-report.txt
+            echo "" >> coverage-report.txt
+
+            # Simple text table
+            awk 'NR>2 && !/Mock/ && !/Tests\// && NF>0 && $1!="" && length($1) < 100 {
+              region_cover = ($2>0) ? ($2-$3)*100/$2 : 0
+              line_cover = ($8>0) ? ($8-$9)*100/$8 : 0
+              printf "%-50s %6.1f%% regions  %6.1f%% lines\n", $1, region_cover, line_cover
+            }' coverage-report-raw.txt >> coverage-report.txt
+
+            echo "" >> coverage-report.txt
+            awk 'BEGIN {
+              regions=0; missed_regions=0; lines=0; missed_lines=0
+            }
+            NR>2 && !/Mock/ && !/Tests\// && !/^TOTAL/ && NF>0 && $1!="" && length($1) < 100 {
+              regions+=$2; missed_regions+=$3; lines+=$8; missed_lines+=$9
+            }
+            END {
+              if (regions>0) {
+                region_cover=(regions>0) ? (regions-missed_regions)*100/regions : 0
+                line_cover=(lines>0) ? (lines-missed_lines)*100/lines : 0
+                printf "TOTAL: %.1f%% regions, %.1f%% lines (%d files)\n", region_cover, line_cover, NR-2
               }
-              NR>2 && !/Mock/ && !/Tests\// && !/^TOTAL/ && NF>0 {
-                regions+=$2; missed_regions+=$3; functions+=$5; missed_functions+=$6; lines+=$8; missed_lines+=$9
+            }' coverage-report-raw.txt >> coverage-report.txt
+
+            rm -f coverage-report-raw.txt
+
+            # Generate GitHub Actions Step Summary if in CI
+            if [ -n "$GITHUB_STEP_SUMMARY" ]; then
+              echo "📊 **Clean Architecture Coverage Report**" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+
+              # Extract key metrics
+              OVERALL_COVERAGE=$(tail -1 coverage-report.txt | awk '{print $6}')
+              DOMAIN_FILES=$(grep -c "Domain/" coverage-report.txt || echo "0")
+              CORE_FILES=$(grep -c "Models/\|Utilities/" coverage-report.txt || echo "0")
+
+              echo "## Summary" >> "$GITHUB_STEP_SUMMARY"
+              echo "| Layer | Files | Status |" >> "$GITHUB_STEP_SUMMARY"
+              echo "|-------|-------|--------|" >> "$GITHUB_STEP_SUMMARY"
+              echo "| 🏛️ Domain | $DOMAIN_FILES | $(if [ "$DOMAIN_FILES" -gt 0 ]; then echo "❌ Needs Tests"; else echo "⚪ No Files"; fi) |" >> "$GITHUB_STEP_SUMMARY"
+              echo "| 🧠 Core | $CORE_FILES | ✅ Active |" >> "$GITHUB_STEP_SUMMARY"
+              echo "| 📊 Overall | - | $OVERALL_COVERAGE Coverage |" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+
+              echo "## Detailed Results" >> "$GITHUB_STEP_SUMMARY"
+              echo '```' >> "$GITHUB_STEP_SUMMARY"
+              cat coverage-report.txt >> "$GITHUB_STEP_SUMMARY"
+              echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+              echo "## Targets (per TEST_REFACTORING_PLAN_V2.md)" >> "$GITHUB_STEP_SUMMARY"
+              echo "- 🏛️ **Domain Layer**: 95-100% (business logic)" >> "$GITHUB_STEP_SUMMARY"
+              echo "- 🧠 **Core Models**: 100% (data models)" >> "$GITHUB_STEP_SUMMARY"
+              echo "- 📊 **Overall Project**: 80%+" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+
+          # Generate SonarQube Generic Test Coverage XML
+          echo "📊 Generating SonarQube coverage.xml..."
+          
+          # Create proper SonarQube Generic Test Coverage XML in the same directory as coverage.lcov
+          if [ -s coverage.lcov ]; then
+            echo "📊 Processing coverage.lcov ($(wc -l < coverage.lcov) lines) into SonarQube Generic XML..."
+            echo '<?xml version="1.0" encoding="UTF-8"?>' > coverage.xml
+            echo '<coverage version="1">' >> coverage.xml
+            # Parse LCOV and generate SonarQube Generic Test Coverage XML
+            awk '
+              BEGIN { 
+                current_file = ""
+                in_file = 0
+                file_count = 0
+              }
+              /^SF:/ {
+                # Close previous file if open
+                if (in_file && file_count > 0) {
+                  print "  </file>"
+                }
+                # Extract filename and make it relative from project root
+                file = substr($0, 4)
+                # Ensure path is relative from project root (remove any absolute path prefix)
+                gsub(/.*\/magsafe-buskill\//, "", file)
+                # Keep full path relative to project root for SonarCloud matching
+                # Skip test files, build artifacts, and runner files
+                if (file !~ /Tests\// && file !~ /\.build\// && file !~ /runner\.swift/) {
+                  print "  <file path=\"" file "\">"
+                  in_file = 1
+                  current_file = file
+                  file_count++
+                } else {
+                  in_file = 0
+                  current_file = ""
+                }
+              }
+              /^DA:/ && in_file {
+                # Extract line number and hit count
+                split(substr($0, 4), parts, ",")
+                line_num = parts[1]
+                hit_count = parts[2]
+                covered = (hit_count > 0) ? "true" : "false"
+                print "    <lineToCover lineNumber=\"" line_num "\" covered=\"" covered "\"/>"
+              }
+              /^end_of_record/ && in_file {
+                # Record processed, will close on next SF: or END
               }
               END {
-                if (regions>0) {
-                  region_cover=(regions-missed_regions)*100/regions
-                  function_cover=(functions-missed_functions)*100/functions  
-                  line_cover=(lines-missed_lines)*100/lines
-                  printf "TOTAL %d %d %.2f%% %d %d %.2f%% %d %d %.2f%% 0 0 -\n", 
-                    regions, missed_regions, region_cover,
-                    functions, missed_functions, function_cover,
-                    lines, missed_lines, line_cover
+                # Close last file if still open
+                if (in_file && file_count > 0) {
+                  print "  </file>"
                 }
-              }' coverage-report-raw.txt >> coverage-report.txt
-            fi
-            rm -f coverage-report-raw.txt
-          fi
-          
-          # Always generate Cobertura XML for SonarCloud
-          # Try to convert LCOV to Cobertura first
-          if command -v lcov-cobertura &> /dev/null; then
-            lcov-cobertura coverage.lcov -o coverage.xml 2>/dev/null || true
-          fi
-          
-          # If conversion failed or lcov-cobertura not available, create XML manually
-          if [ ! -s coverage.xml ]; then
-            echo '<?xml version="1.0" ?>' > coverage.xml
-            echo '<coverage version="1">' >> coverage.xml
-            
-            # Parse LCOV to create basic Cobertura XML
-            if [ -s coverage.lcov ]; then
-              current_file=""
-              while IFS= read -r line; do
-                if [[ $line == SF:* ]]; then
-                  current_file="${line#SF:}"
-                  echo "  <file path=\"$current_file\">" >> coverage.xml
-                elif [[ $line == DA:* ]]; then
-                  IFS=',' read -r line_num hit_count <<< "${line#DA:}"
-                  covered="false"
-                  if [ "$hit_count" -gt 0 ]; then
-                    covered="true"
-                  fi
-                  echo "    <lineToCover lineNumber=\"$line_num\" covered=\"$covered\"/>" >> coverage.xml
-                elif [[ $line == end_of_record ]]; then
-                  if [ -n "$current_file" ]; then
-                    echo "  </file>" >> coverage.xml
-                    current_file=""
-                  fi
-                fi
-              done < coverage.lcov
-            else
-              # Fallback minimal coverage
-              echo '  <file path="MagSafeGuard/Models/SettingsModel.swift">' >> coverage.xml
-              echo '    <lineToCover lineNumber="1" covered="true"/>' >> coverage.xml
-              echo '  </file>' >> coverage.xml
-            fi
-            
+                if (file_count == 0) {
+                  print "  <!-- No source files found with coverage data -->"
+                }
+              }
+            ' coverage.lcov >> coverage.xml
             echo '</coverage>' >> coverage.xml
+          else
+            echo '<?xml version="1.0" encoding="UTF-8"?>' > coverage.xml
+            echo '<coverage version="1">' >> coverage.xml
+            echo '  <!-- No coverage data available -->' >> coverage.xml
+            echo '</coverage>' >> coverage.xml
+          fi
+          
+          # Return to root directory if we changed into it
+          if [[ "$CHANGED_DIR" == "true" ]]; then
+            cd ..
           fi
         else
           echo "⚠️ Coverage data not found, creating minimal files"
+          if [[ "$CHANGED_DIR" == "true" ]]; then
+            cd ..
+          fi
           # Create minimal LCOV file
           echo "TN:" > coverage.lcov
           echo "SF:MagSafeGuard/Models/SettingsModel.swift" >> coverage.lcov
@@ -521,10 +625,10 @@ tasks:
           echo "LF:1" >> coverage.lcov
           echo "LH:1" >> coverage.lcov
           echo "end_of_record" >> coverage.lcov
-          
-          # Create minimal Cobertura XML
+
+          # Create minimal coverage XML
           cat > coverage.xml << 'EOF'
-        <?xml version="1.0" ?>
+        <?xml version="1.0" encoding="UTF-8"?>
         <coverage version="1">
           <file path="MagSafeGuard/Models/SettingsModel.swift">
             <lineToCover lineNumber="1" covered="true"/>
@@ -534,6 +638,15 @@ tasks:
         fi
 
         echo "✅ Coverage reports generated"
+
+        # Ensure coverage files are in project root for CI
+        if [ -f "MagSafeGuardLib/coverage.xml" ]; then
+          echo "📊 Copying coverage files from MagSafeGuardLib to project root..."
+          cp MagSafeGuardLib/coverage.lcov coverage.lcov 2>/dev/null || true
+          cp MagSafeGuardLib/coverage.xml coverage.xml
+          cp MagSafeGuardLib/coverage-report.txt coverage-report.txt 2>/dev/null || true
+          cp MagSafeGuardLib/coverage-report.md coverage-report.md 2>/dev/null || true
+        fi
       - echo "✅ Build completed!"
   test:specific:
     desc: Run specific test files (use TEST_FILES environment variable)
@@ -559,16 +672,17 @@ tasks:
     silent: true
     env:
       CI: "true"
+      SKIP_UI_TESTS: "true"
     cmds:
       - echo "🔬 Running standard QA suite..."
       - task: qa:fix
       - task: swift:test
       - task: swift:lint
       - task: yaml:lint
+      - task: yaml:codecov:validate
       - task: markdown:lint
       - task: security:scan
       - task: swift:sbom
-      - task: docs:update
       - echo "✅ Standard QA suite passed!"
   qa:quick:
     desc: Quick QA checks for git hooks
@@ -602,8 +716,35 @@ tasks:
       - task: qa
       - task: sonar:scan
       - echo "✅ Full QA suite with SonarCloud completed!"
+  qa:local:
+    desc: Local QA suite with Xcode tests (no CI-specific checks)
+    silent: true
+    env:
+      SKIP_UI_TESTS: "true"
+    cmds:
+      - echo "🏠 Running local QA suite..."
+      - task: qa:fix
+      - task: swift:test
+      - task: xcode:build
+      - task: xcode:test
+      - task: swift:lint
+      - task: yaml:lint
+      - task: markdown:lint
+      - echo "✅ Local QA suite passed!"
 
   # Project management tasks
+  todo:
+    desc: Manage TODO workflow - collect findings, update .todo.md, and execute tasks
+    silent: true
+    cmds:
+      - bash -c './scripts/todo-workflow.sh'
+
+  todo:complete:
+    desc: Mark a todo item as complete and continue workflow
+    silent: true
+    cmds:
+      - bash -c './scripts/todo-workflow.sh complete "{{.CLI_ARGS}}"'
+
   commit:
     desc: Interactive commit with conventional format
     silent: true

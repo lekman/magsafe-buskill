@@ -10,6 +10,7 @@
 
 import Foundation
 import LocalAuthentication
+import MagSafeGuardCore
 
 extension AuthenticationService {
 

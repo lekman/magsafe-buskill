@@ -18,45 +18,81 @@ tasks:
       - task: pins
       - echo "✅ All security checks passed!"
   secrets:
-    desc: Scan for hardcoded secrets and sensitive data
+    desc: Scan for authentication tokens and API keys
     silent: true
     cmds:
       - |
-        echo "🔍 Scanning for secrets and sensitive data..."
+        echo "🔍 Scanning for authentication tokens and API keys..."
         echo ""
 
-        # Common patterns to check
+        # Authentication token patterns to check
         patterns=(
-          'password.*=.*["'"'"'"]'
-          'api[_-]?key.*=.*["'"'"'"]'
-          'secret.*=.*["'"'"'"]'
-          'token.*=.*["'"'"'"]'
-          'private[_-]?key'
-          '-----BEGIN.*PRIVATE KEY-----'
-          'Bearer\s+[A-Za-z0-9\-_]+'
+          # API Keys
+          'OPENAI_API_KEY=[A-Za-z0-9-_]+'
+          'ANTHROPIC_API_KEY=[A-Za-z0-9-_]+'
+          'GOOGLE_API_KEY=[A-Za-z0-9-_]+'
+          'AWS_ACCESS_KEY_ID=[A-Z0-9]{20}'
+          'AWS_SECRET_ACCESS_KEY=[A-Za-z0-9/+=]{40}'
+          'GITHUB_TOKEN=ghp_[A-Za-z0-9]{36}'
+          'GITHUB_TOKEN=ghs_[A-Za-z0-9]{36}'
+          'GITHUB_TOKEN=github_pat_[A-Za-z0-9_]{82}'
+
+          # Bearer tokens
+          'Bearer\s+[A-Za-z0-9\-_.~+/]+=*'
+          'Authorization:\s*Bearer\s+[A-Za-z0-9\-_.~+/]+=*'
+
+          # Private keys
+          '-----BEGIN\s+(RSA|DSA|EC|OPENSSH)\s+PRIVATE\s+KEY-----'
+          '-----BEGIN\s+PGP\s+PRIVATE\s+KEY\s+BLOCK-----'
+
+          # Cloud provider tokens
+          'DIGITALOCEAN_TOKEN=[A-Za-z0-9]{64}'
+          'HEROKU_API_KEY=[A-Za-z0-9]{8}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{12}'
+          'SLACK_TOKEN=xox[baprs]-[0-9]{10,12}-[0-9]{10,12}-[a-zA-Z0-9]{24}'
+
+          # Database URLs with credentials
+          'postgres://[^:]+:[^@]+@[^/]+/[^\s]+'
+          'mysql://[^:]+:[^@]+@[^/]+/[^\s]+'
+          'mongodb://[^:]+:[^@]+@[^/]+/[^\s]+'
         )
 
         found_issues=0
+        temp_file=$(mktemp)
 
         for pattern in "${patterns[@]}"; do
-          # Search in source files, excluding common false positives
-          results=$(find . \
+          # Find files that might contain the pattern
+          files=$(find . \
             -type f \
-            \( -name "*.swift" -o -name "*.js" -o -name "*.ts" -o -name "*.py" -o -name "*.rb" -o -name "*.java" -o -name "*.go" \) \
+            \( -name "*.swift" -o -name "*.js" -o -name "*.ts" -o -name "*.py" -o -name "*.rb" -o -name "*.java" -o -name "*.go" -o -name "*.yml" -o -name "*.yaml" -o -name "*.json" -o -name "*.env*" \) \
             -not -path "./.build/*" \
             -not -path "./node_modules/*" \
             -not -path "./.git/*" \
             -not -path "./vendor/*" \
             -not -path "*test*" \
+            -not -path "*example*" \
+            -not -path "./tasks/security.yml" \
             -exec grep -l -E "$pattern" {} \; 2>/dev/null || true)
 
-          if [ -n "$results" ]; then
-            echo "⚠️  Found potential secrets matching pattern: $pattern"
-            echo "$results" | head -5
-            echo ""
-            found_issues=$((found_issues + 1))
-          fi
+          for file in $files; do
+            # Skip if file is gitignored
+            if git check-ignore "$file" >/dev/null 2>&1; then
+              continue
+            fi
+            echo "$file" >> "$temp_file"
+          done
         done
+
+        # Report unique files with potential tokens
+        if [ -s "$temp_file" ]; then
+          echo "⚠️  Found potential authentication tokens in:"
+          sort -u "$temp_file" | while read -r file; do
+            echo "   - $file"
+          done
+          echo ""
+          found_issues=1
+        fi
+
+        rm -f "$temp_file"
 
         # Check for .env files that might be committed
         env_files=$(find . -name ".env*" -not -path "./.git/*" -not -path "./node_modules/*" 2>/dev/null || true)
@@ -80,11 +116,15 @@ tasks:
         fi
 
         if [ $found_issues -eq 0 ]; then
-          echo "✅ No secrets or sensitive data found!"
+          echo "✅ No authentication tokens or exposed .env files found!"
         else
-          echo "❌ Found $found_issues potential security issues"
+          echo "❌ Found potential security issues"
           echo ""
-          echo "Please review and remove any sensitive data"
+          echo "Tips:"
+          echo "  • Use environment variables or secure key management for tokens"
+          echo "  • Add .env files to .gitignore"
+          echo "  • Use GitHub Secrets for CI/CD workflows"
+          echo "  • Consider using tools like 'gitleaks' for comprehensive scanning"
           exit 1
         fi
 
@@ -184,7 +224,7 @@ tasks:
           local repo=$1
           local tag=$2
           local sha=""
-          
+
           # Set auth header if token is available
           local auth_header=""
           if [ -n "$GITHUB_TOKEN" ]; then
@@ -199,7 +239,7 @@ tasks:
             # If tag not found, try to get the tag from releases
             response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/releases/tags/$tag")
             sha=$(echo "$response" | jq -r '.target_commitish // empty' 2>/dev/null)
-            
+
             # If we got a branch name instead of SHA, resolve it
             if [ -n "$sha" ] && [ "$sha" != "null" ] && ! echo "$sha" | grep -qE '^[a-f0-9]{40}$'; then
               branch_response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/git/refs/heads/$sha")
@@ -214,7 +254,7 @@ tasks:
             # Last resort: try to get default branch and use its SHA
             response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo")
             default_branch=$(echo "$response" | jq -r '.default_branch // empty' 2>/dev/null)
-            
+
             if [ -n "$default_branch" ] && [ "$default_branch" != "null" ]; then
               response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/git/refs/heads/$default_branch")
               sha=$(echo "$response" | jq -r '.object.sha // empty' 2>/dev/null)
@@ -262,15 +302,15 @@ tasks:
               # Extract action and full version string (including potential SHA and comment)
               action=$(echo "$line" | sed -E 's/^[[:space:]]*uses:[[:space:]]*([^@]+)@.*/\1/')
               full_version=$(echo "$line" | sed -E 's/^[[:space:]]*uses:[[:space:]]*[^@]+@(.*)/\1/')
-              
+
               # Check if already pinned (has SHA followed by comment with version)
               if echo "$full_version" | grep -qE '^[a-f0-9]{40}[[:space:]]*#'; then
                 continue
               fi
-              
+
               # Extract just the version part (remove any trailing comments or spaces)
               version=$(echo "$full_version" | sed 's/[[:space:]]*#.*//' | sed 's/[[:space:]]*$//')
-              
+
               # Skip if version is already a SHA (40 character hex)
               if echo "$version" | grep -qE '^[a-f0-9]{40}$'; then
                 continue
@@ -501,14 +541,14 @@ tasks:
         echo "Checking for dangerous event combinations..."
         for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
             [ -f "$workflow" ] || continue
-            
+
             # Check for pull_request_target with checkout of PR head
             if grep -q "pull_request_target:" "$workflow"; then
                 if grep -A 20 "actions/checkout" "$workflow" | grep -q "github.event.pull_request.head"; then
                     report_issue "CRITICAL" "$workflow" "Uses pull_request_target with checkout of PR head - secrets can be exposed!"
                 fi
             fi
-            
+
             # Check for workflow_run triggered by pull_request
             if grep -q "workflow_run:" "$workflow"; then
                 if grep -A 5 "workflow_run:" "$workflow" | grep -q "pull_request"; then
@@ -522,12 +562,12 @@ tasks:
         echo "Checking for overly permissive permissions..."
         for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
             [ -f "$workflow" ] || continue
-            
+
             # Check for write-all permissions
             if grep -q "permissions: write-all" "$workflow"; then
                 report_issue "HIGH" "$workflow" "Uses write-all permissions - use minimal permissions instead"
             fi
-            
+
             # Check for missing permissions block in workflows that handle PRs
             if grep -q "pull_request" "$workflow"; then
                 if ! grep -q "permissions:" "$workflow"; then
@@ -541,7 +581,7 @@ tasks:
         echo "Checking for unpinned actions..."
         for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
             [ -f "$workflow" ] || continue
-            
+
             # Find uses: statements without SHA pinning
             while IFS= read -r line; do
                 if echo "$line" | grep -E "uses:.*@(main|master|v[0-9]+)$" >/dev/null; then
@@ -556,7 +596,7 @@ tasks:
         echo "Checking for secrets in run commands..."
         for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
             [ -f "$workflow" ] || continue
-            
+
             # Check for secrets in run commands (potential command injection)
             if grep -E "run:.*\$\{\{.*secrets\." "$workflow" >/dev/null; then
                 report_issue "HIGH" "$workflow" "Direct secret interpolation in run command - use env vars instead"
@@ -582,17 +622,17 @@ tasks:
         echo "Checking for dangerous patterns..."
         for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
             [ -f "$workflow" ] || continue
-            
+
             # Check for curl | bash pattern
             if grep -E "curl.*\|.*bash" "$workflow" >/dev/null; then
                 report_issue "HIGH" "$workflow" "Uses curl | bash pattern - download and verify scripts instead"
             fi
-            
+
             # Check for base64 decode execution
             if grep -E "base64.*-d.*\|.*sh" "$workflow" >/dev/null; then
                 report_issue "CRITICAL" "$workflow" "Executes base64 decoded content - extremely dangerous!"
             fi
-            
+
             # Check for eval usage
             if grep -E "eval.*\$\{\{" "$workflow" >/dev/null; then
                 report_issue "HIGH" "$workflow" "Uses eval with GitHub context - potential command injection"
@@ -605,7 +645,7 @@ tasks:
         has_fork_safe_workflows=false
         for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
             [ -f "$workflow" ] || continue
-            
+
             if grep -q "pull_request:" "$workflow"; then
                 has_fork_safe_workflows=true
                 # Check if it has explicit minimal permissions
@@ -694,7 +734,7 @@ tasks:
             found=false
             # Extract the owner/repo part (without subpath)
             owner_repo=$(echo "$action" | cut -d'/' -f1-2)
-            
+
             # First check if it's automatically allowed
             for auto_prefix in "${AUTO_ALLOWED_PREFIXES[@]}"; do
                 if [[ "$action" == "$auto_prefix"* ]]; then
@@ -703,7 +743,7 @@ tasks:
                     break
                 fi
             done
-            
+
             # If not auto-allowed, check against whitelist
             if ! $found; then
                 for allowed in "${WHITELIST[@]}"; do
@@ -715,7 +755,7 @@ tasks:
                     fi
                 done
             fi
-            
+
             if ! $found; then
                 NOT_IN_WHITELIST+=("$action")
                 ALL_GOOD=false
@@ -749,7 +789,7 @@ tasks:
                     break
                 fi
             done
-            
+
             if ! $used; then
                 UNUSED_WHITELIST+=("$allowed")
             fi

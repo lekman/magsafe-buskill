@@ -7,6 +7,8 @@
 //  Main settings window UI using SwiftUI
 //
 
+import MagSafeGuardCore
+import MagSafeGuardDomain
 import SwiftUI
 
 /// Main settings view with sidebar navigation interface
@@ -299,7 +301,7 @@ struct SecuritySettingsView: View {
       Spacer()
 
       Button("Reset to Defaults") {
-        settingsManager.updateSetting(\.securityActions, value: [.lockScreen, .unmountVolumes])
+        settingsManager.updateSetting(\.securityActions, value: [.lockScreen, .soundAlarm])
       }
       .buttonStyle(.link)
     }

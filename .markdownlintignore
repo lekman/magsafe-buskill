@@ -1,8 +1,12 @@
-# Ignore auto-generated files
+# Generated files that shouldn't be linted
 docs/CHANGELOG.md
 
-# Ignore node_modules
+# Dependency directories
 node_modules/
-
-# Ignore vendor directories
 vendor/
+
+# Temporary files created during processing
+**/*.tmp
+
+# Root-level markdown files (auto-generated reports, scratch files)
+/*.md

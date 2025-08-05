@@ -3,8 +3,20 @@ name: "CodeQL Analysis"
 on:
   push:
     branches: ["main"]
+    paths:
+      - "**/*.swift"
+      - "**/Package.swift"
+      - "**/Package.resolved"
+      - "**/*.xcodeproj/**"
+      - ".github/workflows/codeql.yml"
   pull_request:
     branches: ["main"]
+    paths:
+      - "**/*.swift"
+      - "**/Package.swift"
+      - "**/Package.resolved"
+      - "**/*.xcodeproj/**"
+      - ".github/workflows/codeql.yml"
   schedule:
     - cron: "30 1 * * 1" # Run weekly on Mondays at 1:30 AM UTC
 
@@ -19,7 +31,7 @@ concurrency:
 jobs:
   analyze:
     name: Analyze Swift
-    runs-on: macos-latest
+    runs-on: macos-15
     timeout-minutes: 10
 
     permissions:
@@ -30,23 +42,85 @@ jobs:
 
     steps:
       - name: Checkout repository
+        id: checkout
         uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          # Need more history to properly detect changes in PRs
+          fetch-depth: 0
+
+      - name: Record start time
+        id: start-time
+        run: echo "timestamp=$(date +%s)" >> $GITHUB_OUTPUT
+
+      # Check if only docs/non-code files changed
+      - name: Check for code changes
+        id: code-changes
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          # Get list of changed files
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            # Fetch the base branch with enough history to find the merge base
+            git fetch --no-tags --depth=50 origin "$BASE_REF"
+            # Try to find the merge base, if that fails use two-dot diff
+            MERGE_BASE=$(git merge-base "origin/$BASE_REF" HEAD 2>/dev/null || echo "")
+            if [ -n "$MERGE_BASE" ]; then
+              CHANGED_FILES=$(git diff --name-only "$MERGE_BASE" HEAD || echo "")
+            else
+              # Fallback to comparing the branches directly
+              CHANGED_FILES=$(git diff --name-only "origin/$BASE_REF..HEAD" || echo "")
+            fi
+            
+            # Debug output
+            echo "🔍 Detected PR from $HEAD_REF to $BASE_REF"
+            echo "📊 Changed files count: $(echo "$CHANGED_FILES" | wc -l)"
+          else
+            # For push events, compare with the parent commit if available
+            if git rev-parse HEAD^ >/dev/null 2>&1; then
+              CHANGED_FILES=$(git diff --name-only HEAD^ HEAD || echo "")
+            else
+              # First commit in the repository, treat all files as changed
+              CHANGED_FILES=$(git ls-tree -r --name-only HEAD || echo "")
+            fi
+          fi
+
+          # Debug: Show some changed files
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "📝 Sample of changed files:"
+            echo "$CHANGED_FILES" | head -5
+          fi
+
+          # Check if any Swift files or build files changed
+          if echo "$CHANGED_FILES" | grep -qE '\.(swift|xcodeproj|pbxproj|yml|yaml)$|Package\.swift|Package\.resolved'; then
+            echo "has-code-changes=true" >> $GITHUB_OUTPUT
+            echo "🔍 Code changes detected - CodeQL analysis needed"
+            echo "🚀 Swift files found in changes"
+          else
+            echo "has-code-changes=false" >> $GITHUB_OUTPUT
+            echo "📄 Only documentation/non-code changes - CodeQL can be skipped"
+          fi
 
       # Cache CodeQL database to speed up subsequent runs
       - name: Cache CodeQL database
         id: cache-codeql
+        if: steps.code-changes.outputs.has-code-changes == 'true'
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
         with:
           path: |
             .codeql
             ~/codeql-home/codeql-dbs
-            .build
-          key: ${{ runner.os }}-codeql-db-${{ hashFiles('**/*.swift', 'Package.swift') }}-v2
+            MagSafeGuardLib/.build
+            ~/hostedtoolcache/CodeQL
+          key: ${{ runner.os }}-${{ runner.arch }}-codeql-db-${{ hashFiles('**/*.swift', 'MagSafeGuardLib/Package.swift') }}-v6-macos15
           restore-keys: |
-            ${{ runner.os }}-codeql-db-
-            ${{ runner.os }}-codeql-
+            ${{ runner.os }}-${{ runner.arch }}-codeql-db-${{ hashFiles('**/*.swift', 'MagSafeGuardLib/Package.swift') }}-
+            ${{ runner.os }}-${{ runner.arch }}-codeql-db-
+            ${{ runner.os }}-${{ runner.arch }}-codeql-
 
       - name: Initialize CodeQL
+        if: steps.code-changes.outputs.has-code-changes == 'true'
         uses: github/codeql-action/init@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
         with:
           languages: swift
@@ -55,19 +129,36 @@ jobs:
 
       - name: Setup Swift Build Environment
         id: setup-swift
+        if: steps.code-changes.outputs.has-code-changes == 'true'
         uses: ./.github/actions/swift
         with:
           cache-key-suffix: codeql
+          swift-version: "6.0"
 
       - name: Build Swift Project for CodeQL
+        if: steps.code-changes.outputs.has-code-changes == 'true'
         timeout-minutes: 5
         run: |
           echo "🔨 Building project for CodeQL analysis..."
-          # Use Swift Package Manager for fast, minimal builds
-          task swift:build || true
+
+          # Skip build if CodeQL database was cached and is recent
+          if [ "${{ steps.cache-codeql.outputs.cache-hit }}" = "true" ]; then
+            # Check if cached database is less than 7 days old
+            if find .codeql -name "*.trap" -mtime -7 2>/dev/null | grep -q .; then
+              echo "✅ Using cached CodeQL database (less than 7 days old)"
+              exit 0
+            fi
+          fi
+
+          # Navigate to SPM package directory
+          cd MagSafeGuardLib
+
+          # Use minimal build for CodeQL
+          swift build --target MagSafeGuardDomain -c debug || true
           echo "✅ Build completed for CodeQL"
 
       - name: Perform CodeQL Analysis
+        if: steps.code-changes.outputs.has-code-changes == 'true'
         uses: github/codeql-action/analyze@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
         with:
           category: "/language:swift"
@@ -88,15 +179,27 @@ jobs:
       - name: Generate CodeQL Summary
         if: always()
         run: |
-          cat >> $GITHUB_STEP_SUMMARY << EOF
+          if [ "${{ steps.code-changes.outputs.has-code-changes }}" != "true" ]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## 🔍 CodeQL Analysis Summary
+
+          | Property | Value |
+          |----------|-------|
+          | **Status** | ⏭️ Skipped (no code changes) |
+          | **Analysis Time** | ~$(( ($(date +%s) - ${{ steps.start-time.outputs.timestamp }}) / 60 ))m $(( ($(date +%s) - ${{ steps.start-time.outputs.timestamp }}) % 60 ))s |
+
+          > CodeQL analysis was skipped because only documentation or non-code files were changed.
+          EOF
+          else
+            cat >> $GITHUB_STEP_SUMMARY << EOF
           ## 🔍 CodeQL Analysis Summary
 
           | Property | Value |
           |----------|-------|
           | **Language** | Swift |
           | **Build Mode** | manual |
-          | **Build Executed** | Always (required for CodeQL) |
-          | **Analysis Time** | ~$(( $(date +%s) - ${{ steps.checkout.outputs.timestamp || '0' }} ))s |
+          | **Build Executed** | ${{ steps.cache-codeql.outputs.cache-hit == 'true' && 'Skipped (cached)' || 'Yes' }} |
+          | **Analysis Time** | ~$(( ($(date +%s) - ${{ steps.start-time.outputs.timestamp }}) / 60 ))m $(( ($(date +%s) - ${{ steps.start-time.outputs.timestamp }}) % 60 ))s |
 
           ### 📊 Cache Performance
 
@@ -108,9 +211,21 @@ jobs:
           ### 📁 Build Artifacts
 
           \`\`\`
-          $(du -sh .build/debug/ 2>/dev/null || echo "No SPM build products")
-          $(du -sh .build/ 2>/dev/null || echo "No SPM build directory")
+          $(du -sh MagSafeGuardLib/.build/debug/ 2>/dev/null || echo "No SPM build products")
+          $(du -sh MagSafeGuardLib/.build/ 2>/dev/null || echo "No SPM build directory")
           $(du -sh .codeql/ 2>/dev/null || echo "No CodeQL database")
           \`\`\`
 
+          ### ⚡ Optimizations Applied:
           EOF
+            
+            if [ "${{ steps.cache-codeql.outputs.cache-hit }}" = "true" ]; then
+              echo "- ✅ Used cached CodeQL database" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            if [ "${{ steps.setup-swift.outputs.swift-available }}" = "true" ]; then
+              echo "- ✅ Swift pre-installed (no download needed)" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi

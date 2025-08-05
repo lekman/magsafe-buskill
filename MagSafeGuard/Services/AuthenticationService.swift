@@ -7,6 +7,7 @@
 
 import Foundation
 import LocalAuthentication
+import MagSafeGuardCore
 
 /// Authentication service for handling biometric and password authentication.
 ///
