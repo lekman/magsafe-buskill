@@ -9,7 +9,7 @@ inputs:
   cache-key-suffix:
     description: "Additional suffix for cache key"
     required: false
-    default: "v5-swift6"
+    default: "v6-macos15"
   project-path:
     description: "Path to the Swift package directory"
     required: false

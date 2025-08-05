@@ -19,7 +19,7 @@ concurrency:
 jobs:
   analyze:
     name: Analyze Swift
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 10
 
     permissions:
@@ -41,7 +41,7 @@ jobs:
             .codeql
             ~/codeql-home/codeql-dbs
             MagSafeGuardLib/.build
-          key: ${{ runner.os }}-${{ runner.arch }}-codeql-db-${{ hashFiles('**/*.swift', 'MagSafeGuardLib/Package.swift') }}-v3
+          key: ${{ runner.os }}-${{ runner.arch }}-codeql-db-${{ hashFiles('**/*.swift', 'MagSafeGuardLib/Package.swift') }}-v4-macos15
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-codeql-db-
             ${{ runner.os }}-${{ runner.arch }}-codeql-

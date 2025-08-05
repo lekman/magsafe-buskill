@@ -55,7 +55,7 @@ jobs:
 
   test:
     name: Test Suite
-    runs-on: macos-14
+    runs-on: macos-15
     needs: check-skip
     if: needs.check-skip.outputs.should-skip != 'true'
     permissions:
