@@ -82,19 +82,19 @@ fastlane/test_output
 iOSInjectionProject/
 
 # Coverage reports
-# Note: coverage.lcov and coverage.xml are checked in for CI
+# All coverage files are generated and should not be committed
+coverage*
+**/*coverage*
+*.lcov
+*.profdata
 sonar-coverage.lcov
 .coverage/
 coverage/
 coverage-html/
-# Exclude all lcov except the main ones
-**/*.lcov
-!coverage.lcov
-!coverage.xml
-!coverage-report.txt
 
 # Local scratch files
 .taskmaster
+*.tmp
 
 # Logs
 logs
@@ -145,4 +145,7 @@ profiles/
 # Test coverage reports and logs
 coverage/
 *.log
-coverage*.*
+*.log
+
+# AI agent justifications and false positives
+!.justifications.md

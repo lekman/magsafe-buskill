@@ -24,9 +24,9 @@
 
 <!-- List the key changes made in this PR -->
 
-- 
-- 
-- 
+- Change 1
+- Change 2
+- Change 3
 
 ## Screenshots (if applicable)
 
@@ -45,9 +45,9 @@
 
 ### Test Configuration
 
-- macOS Version:
-- Hardware: 
-- Power Adapter Type:
+- macOS Version: `14.03`
+- Hardware: `example`
+- Power Adapter Type: `120w`
 
 ## Security Considerations
 
@@ -86,7 +86,7 @@
 
 ---
 
-<!-- 
+<!--
 Reviewer Guidelines:
 1. Check security implications for all changes
 2. Verify no kernel extensions or privileged operations added
