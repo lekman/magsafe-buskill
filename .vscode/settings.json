@@ -65,10 +65,7 @@
     "editor.insertSpaces": true
   },
   "yaml.schemas": {
-    "https://json.schemastore.org/github-workflow.json": [
-      ".github/workflows/*.yml",
-      ".github/workflows/*.yaml"
-    ]
+    "https://json.schemastore.org/github-workflow.json": [".github/workflows/*.yml", ".github/workflows/*.yaml"]
   },
   "yaml.validate": true,
   "github-actions.workflows.pinned.refresh.enabled": false,

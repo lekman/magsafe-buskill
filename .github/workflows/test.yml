@@ -79,7 +79,7 @@ jobs:
           echo "🧪 Running Clean Architecture tests with coverage reporting..."
           # Use main test task which includes Clean Architecture coverage reporting
           task test
-          
+
           # Generate JUnit XML for test execution reporting
           if command -v xcbeautify &> /dev/null; then
             echo "📊 Generating JUnit XML for test execution reporting..."
@@ -101,7 +101,7 @@ jobs:
           slug: lekman/magsafe-buskill
           codecov_yml_path: .codecov.yml
           fail_ci_if_error: false
-          
+
       - name: Upload Test Results to CodeCov
         if: always()
         uses: codecov/test-results-action@27e7d0fff5f6713bc9a459c80db7af3e99279eb8 # v1

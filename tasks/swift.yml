@@ -131,7 +131,7 @@ tasks:
         echo "   - LCOV: coverage.lcov"
         echo "   - XML: coverage.xml"
         echo "   - Text: coverage-report.txt"
-        
+
         # Generate JUnit XML for test execution reporting (if requested)
         if [ "${GENERATE_JUNIT:-false}" = "true" ]; then
           echo ""

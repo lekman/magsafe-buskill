@@ -24,9 +24,8 @@ public struct SentryLogger {
         
         /// Initialize Sentry configuration from environment variables
         public init() {
-            // NOSONAR: swift:S1075 - Hardcoded DSN is intentional as development fallback
-            self.dsn = ProcessInfo.processInfo.environment["SENTRY_DSN"] ?? 
-                      "https://e74a158126b00e128ebdda98f6a36b76@o4509752039243776.ingest.de.sentry.io/4509752042127440"
+            // Sentry DSN must be provided via environment variable
+            self.dsn = ProcessInfo.processInfo.environment["SENTRY_DSN"] ?? ""
             
             // Environment: development locally, production when deployed
             self.environment = ProcessInfo.processInfo.environment["SENTRY_ENVIRONMENT"] ?? "development"
@@ -56,6 +55,11 @@ public struct SentryLogger {
     public static func initialize(with config: Configuration = Configuration()) {
         guard config.enabled else {
             Log.info("Sentry integration disabled", category: .general)
+            return
+        }
+        
+        guard !config.dsn.isEmpty else {
+            Log.warning("Sentry DSN not provided. Set SENTRY_DSN environment variable to enable Sentry.", category: .general)
             return
         }
         
@@ -274,8 +278,8 @@ public struct SentryLogger {
             (pwdPattern, pwdReplacement),
             (tokenPattern, tokenReplacement),
             (keyPattern, keyReplacement),
-            // Remove file paths that might contain user info
-            ("/Users/[^/\\s]+", "/Users/***"),
+            // Remove file paths that might contain user info (platform-agnostic)
+            ("(/Users/|/home/|C:\\\\Users\\\\)[^/\\\\\\s]+", "$1***"),
             // Remove potential email addresses
             ("\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b", "***@***.***")
         ]

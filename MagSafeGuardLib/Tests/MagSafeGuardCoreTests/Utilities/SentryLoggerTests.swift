@@ -44,11 +44,8 @@ final class SentryLoggerTests: XCTestCase {
         // Test default configuration when disabled
         let config = SentryLogger.Configuration()
         
-        // Should use default DSN from .todo.md requirements
-        XCTAssertEqual(
-            config.dsn, 
-            "https://e74a158126b00e128ebdda98f6a36b76@o4509752039243776.ingest.de.sentry.io/4509752042127440"
-        )
+        // Should have empty DSN when environment variable not set
+        XCTAssertEqual(config.dsn, "")
         
         // Should default to development environment
         XCTAssertEqual(config.environment, "development")
