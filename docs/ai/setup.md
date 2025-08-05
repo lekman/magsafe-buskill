@@ -67,6 +67,40 @@ For MagSafe Guard Sentry project:
 - **Issues URL**: https://lekman-consulting.sentry.io/issues/
 - **Security Header Endpoint**: https://o4509752039243776.ingest.de.sentry.io/api/4509752042127440/security/?sentry_key=e74a158126b00e128ebdda98f6a36b76
 
+## Application Integration
+
+### 1. Automatic Initialization
+
+The Sentry integration is automatically initialized when the application starts through the existing `Logger` infrastructure. The `SentryLogger.initialize()` is called during app startup.
+
+### 2. Integration with Existing Logger  
+
+The Sentry integration works alongside the existing `Logger` system:
+
+```swift
+// Regular logging continues to work as normal
+Log.info("Application started", category: .general)
+Log.error("Authentication failed", category: .authentication)
+
+// Sentry automatically captures errors and creates breadcrumbs
+// No code changes needed for basic integration
+```
+
+### 3. Custom Sentry Events
+
+For advanced use cases, call `SentryLogger` directly:
+
+```swift
+// Capture specific errors with context
+SentryLogger.logError("Power adapter disconnected", category: .hardware)
+
+// Add user context for support
+SentryLogger.setUserContext(context: [
+    "magsafe_connected": false,
+    "power_status": "battery"
+])
+```
+
 ## Task Master AI Integration
 
 ### 1. Installation
@@ -111,22 +145,72 @@ task-master set-status --id=<id> --status=done
 
 Run in Swift code:
 ```swift
-// Initialize logging (done automatically at app start)
-Log.initialize()
+// Initialize Sentry (done automatically at app start)
+SentryLogger.initialize()
 
-// Send a test event
-Log.sendTestEvent { success in
+// Send a test event to verify connectivity
+SentryLogger.sendTestEvent { success in
     print("Test event sent: \(success)")
 }
+
+// Test error logging
+SentryLogger.logError("Test error message", category: .security)
+
+// Test user context
+SentryLogger.setUserContext(context: ["test_run": "true"])
 ```
 
-### 2. Check Sentry Dashboard
+### 2. Available Logging Methods
+
+The `SentryLogger` provides several methods:
+
+```swift
+// Error logging with optional Swift Error
+SentryLogger.logError("Critical error occurred", error: someError, category: .security)
+
+// Warning logging
+SentryLogger.logWarning("Performance degradation detected", category: .performance)
+
+// Info logging (creates breadcrumbs)
+SentryLogger.logInfo("User logged in successfully", category: .authentication)
+
+// User context (anonymous by default)
+SentryLogger.setUserContext(userId: "user-123", context: ["premium": true])
+
+// Flush pending events before app termination
+SentryLogger.flush(timeout: 5.0)
+```
+
+### 3. Check Sentry Dashboard
 
 1. Go to https://lekman-consulting.sentry.io/issues/
 2. Look for test events with tags:
    - `test_event: true`
    - `integration: sentry`
    - `component: magsafe_guard`
+   - `purpose: connectivity_verification`
+
+### 4. Environment-Based Configuration
+
+The integration automatically configures based on environment variables:
+
+```bash
+# Required
+SENTRY_DSN=https://your-dsn-here
+SENTRY_ENABLED=true
+
+# Optional
+SENTRY_ENVIRONMENT=development  # or staging, production
+SENTRY_DEBUG=true              # Enable debug logging
+```
+
+### 5. Performance Monitoring
+
+The integration includes automatic performance monitoring:
+- **Development**: 100% transaction sampling
+- **Production**: 10% transaction sampling
+- Automatic release tracking via app version
+- Privacy-first data scrubbing
 
 ## Troubleshooting
 
@@ -143,13 +227,26 @@ Log.sendTestEvent { success in
 2. **Test DSN**: Validate the DSN format
 3. **Network**: Ensure connectivity to sentry.io
 4. **Logs**: Check console for Sentry initialization messages
+5. **Feature flags**: Verify `FeatureFlags.shared.isSentryEnabled` if using feature flags
 
 ### Test Event Not Appearing
 
 1. **Check environment**: Verify Sentry is enabled
-2. **Wait time**: Events may take 1-2 minutes to appear
-3. **Filters**: Check Sentry filters aren't hiding test events
-4. **Debug mode**: Enable `SENTRY_DEBUG=true` for more logging
+2. **Check initialization**: Ensure `SentryLogger.initialize()` was called
+3. **Wait time**: Events may take 1-2 minutes to appear
+4. **Filters**: Check Sentry filters aren't hiding test events
+5. **Debug mode**: Enable `SENTRY_DEBUG=true` for more logging
+6. **Check status**: Use `SentryLogger.isEnabled` to verify Sentry is active
+
+### Data Privacy Issues
+
+The integration includes automatic data scrubbing for:
+- Password fields (`password=***`)
+- API tokens (`token=***`, `key=***`)
+- User file paths (`/Users/***`)
+- Email addresses (`***@***.***`)
+
+To customize data scrubbing, modify the `scrubSensitiveData` method in `SentryLogger.swift`.
 
 ## Security Considerations
 
