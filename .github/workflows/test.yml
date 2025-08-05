@@ -86,10 +86,12 @@ jobs:
         if: always()
         uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
           files: ./coverage.lcov
           flags: unittests
           name: codecov-umbrella
+          slug: lekman/magsafe-buskill
+          codecov_yml_path: .codecov.yml
           fail_ci_if_error: false
 
       - name: SonarCloud Scan
