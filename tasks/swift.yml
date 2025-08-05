@@ -26,7 +26,8 @@ tasks:
 
         # Clean previous artifacts
         echo "🧹 Cleaning previous build artifacts..."
-        rm -rf {{.SPM_BUILD_DIR}} coverage.lcov coverage.xml coverage-report.txt
+        rm -rf {{.SPM_BUILD_DIR}}
+        rm -f coverage.lcov coverage.xml coverage-report.txt ../coverage.lcov ../coverage.xml ../coverage-report.txt
 
         # Change to the library directory
         cd {{.SPM_PACKAGE_DIR}}
@@ -83,14 +84,21 @@ tasks:
         xcrun llvm-cov export \
           -format=lcov \
           -instr-profile="$PROF_DATA" \
-          "$TEST_EXEC" > ../coverage.lcov
+          "$TEST_EXEC" > coverage.lcov
+
+        # Copy all coverage files to parent directory for consistency
+        cp coverage.lcov ../coverage.lcov
+        cp coverage-merged.profdata ../coverage-merged.profdata 2>/dev/null || true
 
         # Generate text report
         echo "📄 Generating text coverage report..."
         xcrun llvm-cov report \
           -instr-profile="$PROF_DATA" \
           "$TEST_EXEC" \
-          -ignore-filename-regex=".*Tests.*|.*Mock.*|.*\.build.*" > ../coverage-report.txt
+          -ignore-filename-regex=".*Tests.*|.*Mock.*|.*\.build.*" > coverage-report.txt
+
+        # Copy to parent directory
+        cp coverage-report.txt ../coverage-report.txt
 
         # Show coverage summary
         echo ""
@@ -103,27 +111,19 @@ tasks:
         echo "📄 Converting to Cobertura XML format..."
         cd ..
 
-        # Search for lcov file in both local and CI locations
-        LCOV_FILE=""
-        if [ -f "coverage.lcov" ]; then
-          LCOV_FILE="coverage.lcov"
-        elif [ -f "MagSafeGuardLib/coverage.lcov" ]; then
-          LCOV_FILE="MagSafeGuardLib/coverage.lcov"
-          cp "$LCOV_FILE" coverage.lcov
+        # Ensure we have the LCOV file in the right place
+        if [ ! -f "coverage.lcov" ] && [ -f "MagSafeGuardLib/coverage.lcov" ]; then
+          cp MagSafeGuardLib/coverage.lcov coverage.lcov
         fi
 
-        if [ -n "$LCOV_FILE" ]; then
+        if [ -f "coverage.lcov" ]; then
           task sonar:convert || {
-            # Fallback: Create basic XML if conversion fails
-            echo '<?xml version="1.0" ?>' > coverage.xml
-            echo '<coverage version="1">' >> coverage.xml
-            echo '</coverage>' >> coverage.xml
+            echo "⚠️ Coverage conversion failed"
+            exit 1
           }
         else
-          echo "⚠️ No LCOV file found, creating minimal XML"
-          echo '<?xml version="1.0" ?>' > coverage.xml
-          echo '<coverage version="1">' >> coverage.xml
-          echo '</coverage>' >> coverage.xml
+          echo "❌ No coverage.lcov file found"
+          exit 1
         fi
 
         echo ""
