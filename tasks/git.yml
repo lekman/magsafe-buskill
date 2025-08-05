@@ -956,7 +956,7 @@ tasks:
         task git:runs:log RUN_ID=16614742239         # Download specific run ID
         task git:runs:log WORKFLOW="build-sign"      # Partial filename match
         
-      The logs will be downloaded to logs/<workflow-name>/<run-id>/ directory.
+      The logs will be downloaded to .logs/<workflow-name>/<run-id>/ directory.
     silent: true
     vars:
       RUN_ID: "{{.RUN_ID}}"
@@ -1022,7 +1022,7 @@ tasks:
         CREATED_AT=$(echo "$RUN_INFO" | jq -r '.created_at')
 
         # Create logs directory
-        LOG_DIR="logs/${WORKFLOW_NAME}/${RUN_ID}"
+        LOG_DIR=".logs/${WORKFLOW_NAME}/${RUN_ID}"
         mkdir -p "$LOG_DIR"
 
         echo -e "{{.CYAN}}Downloading logs to: $LOG_DIR{{.NC}}"

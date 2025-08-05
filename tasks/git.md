@@ -215,7 +215,7 @@ task git:rl
 **Output Structure:**
 
 ```text
-logs/
+.logs/
 └── build-and-sign-magsafe-guard/
     └── 16614742239/
         ├── run-metadata.json
@@ -341,7 +341,7 @@ task git:cve:analyze MIN_SEVERITY=low
 task git:cve:list
 
 # 3. Review detailed report
-cat ./.logs/vulnerabilities/vulns-*-summary.txt
+cat .logs/vulnerabilities/vulns-*-summary.txt
 ```
 
 ### Branch Cleanup Workflow
