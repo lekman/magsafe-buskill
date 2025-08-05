@@ -60,6 +60,8 @@ ignore:
   # Test Infrastructure (not covered by design - per TEST_REFACTORING_PLAN_V2.md)
   - "MagSafeGuardTests/"
   - "MagSafeGuardUITests/"
+  - "MagSafeGuardLib/Tests/"
+  - "**/Tests/"
   - "**/TestInfrastructure/"
   - "**/Mock*.swift"
   - "**/Mocks/"
