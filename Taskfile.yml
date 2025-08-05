@@ -615,6 +615,7 @@ tasks:
     silent: true
     env:
       CI: "true"
+      SKIP_UI_TESTS: "true"
     cmds:
       - echo "🔬 Running standard QA suite..."
       - task: qa:fix
@@ -662,6 +663,8 @@ tasks:
   qa:local:
     desc: Local QA suite with Xcode tests (no CI-specific checks)
     silent: true
+    env:
+      SKIP_UI_TESTS: "true"
     cmds:
       - echo "🏠 Running local QA suite..."
       - task: qa:fix

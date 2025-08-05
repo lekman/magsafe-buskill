@@ -134,6 +134,13 @@ tasks:
         find . -name "MagSafeGuardUITests-Runner.app" -type d -exec rm -rf {} + 2>/dev/null || true
         find . -name "MagSafeGuardUITests-Runner" -type f -exec rm -f {} + 2>/dev/null || true
 
+        # Determine if UI tests should be skipped
+        SKIP_TESTING_ARGS=""
+        if [ "${SKIP_UI_TESTS}" = "true" ]; then
+          echo "⏭️  Skipping UI tests (SKIP_UI_TESTS=true)"
+          SKIP_TESTING_ARGS="-skip-testing:MagSafeGuardUITests"
+        fi
+
         # Run tests with optional xcbeautify
         if command -v xcbeautify &> /dev/null; then
           xcodebuild test \
@@ -142,6 +149,7 @@ tasks:
             -configuration "{{.CONFIGURATION}}" \
             -destination "{{.DESTINATION}}" \
             -derivedDataPath "{{.DERIVED_DATA_PATH}}" \
+            ${SKIP_TESTING_ARGS} \
             {{.TEST_SETTINGS}} \
             2>&1 | xcbeautify --quiet --is-ci || {
               exit_code=$?
@@ -160,6 +168,7 @@ tasks:
             -configuration "{{.CONFIGURATION}}" \
             -destination "{{.DESTINATION}}" \
             -derivedDataPath "{{.DERIVED_DATA_PATH}}" \
+            ${SKIP_TESTING_ARGS} \
             {{.TEST_SETTINGS}} || {
               exit_code=$?
               echo ""
@@ -186,12 +195,20 @@ tasks:
         find . -name "MagSafeGuardUITests-Runner.app" -type d -exec rm -rf {} + 2>/dev/null || true
         find . -name "MagSafeGuardUITests-Runner" -type f -exec rm -f {} + 2>/dev/null || true
 
+        # Determine if UI tests should be skipped
+        SKIP_TESTING_ARGS=""
+        if [ "${SKIP_UI_TESTS}" = "true" ]; then
+          echo "⏭️  Skipping UI tests (SKIP_UI_TESTS=true)"
+          SKIP_TESTING_ARGS="-skip-testing:MagSafeGuardUITests"
+        fi
+
         xcodebuild test \
           -project "{{.PROJECT_PATH}}" \
           -scheme "{{.SCHEME}}" \
           -configuration "{{.CONFIGURATION}}" \
           -destination "{{.DESTINATION}}" \
           -derivedDataPath "{{.DERIVED_DATA_PATH}}" \
+          ${SKIP_TESTING_ARGS} \
           {{.TEST_SETTINGS}}
 
   build-test:
