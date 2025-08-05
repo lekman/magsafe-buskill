@@ -44,7 +44,11 @@
     "**/*.code-search": true,
     ".build/**": true,
     ".swiftpm/**": true,
-    "MagSafeGuard.xcodeproj/**": true
+    "MagSafeGuard.xcodeproj/**": true,
+    "**/vendor/**": true,
+    "**/*.tmp": true,
+    "/*.md": true,
+    "docs/CHANGELOG.md": true
   },
   "editor.formatOnSave": true,
   "editor.rulers": [80, 120],
@@ -60,6 +64,16 @@
     "editor.tabSize": 4,
     "editor.insertSpaces": true
   },
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-workflow.json": [
+      ".github/workflows/*.yml",
+      ".github/workflows/*.yaml"
+    ]
+  },
+  "yaml.validate": true,
+  "github-actions.workflows.pinned.refresh.enabled": false,
+  "problems.showCurrentInStatus": false,
+  "github-actions.disable-validation": true,
   "files.associations": {
     "*.mdc": "markdown"
   },
@@ -67,5 +81,16 @@
     "connectionId": "lekman",
     "projectKey": "lekman_magsafe-buskill"
   },
-  "postman.settings.dotenv-detection-notification-visibility": false
+  "postman.settings.dotenv-detection-notification-visibility": false,
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/vendor/**": true,
+    "**/*.tmp": true,
+    ".build/**": true,
+    ".swiftpm/**": true,
+    "coverage*": true,
+    ".coverage/**": true,
+    ".scannerwork/**": true,
+    ".sonarcloud/**": true
+  }
 }

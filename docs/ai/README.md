@@ -35,12 +35,14 @@ task ai:all
 ## Available Agents
 
 ### Primary Agents
+
 - `@architect` - Architecture and code quality review
 - `@qa` - Quality assurance and testing
 - `@author` - Documentation management
 - `@devops` - Build and deployment optimization
 
 ### Subagents
+
 Each primary agent has specialized subagents for focused analysis. See [subagents-guide.md](subagents-guide.md) for details.
 
 ## Task Commands
@@ -74,7 +76,7 @@ task ai:clean            # Clean old reports
 Agents can be integrated into your development workflow:
 
 1. **Pre-commit**: Run `task ai:quick-check`
-2. **PR Review**: Run `task ai:qa` 
+2. **PR Review**: Run `task ai:qa`
 3. **Pre-release**: Run `task ai:pre-release`
 4. **Weekly**: Run `task ai:all`
 

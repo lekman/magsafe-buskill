@@ -98,7 +98,7 @@ tasks:
     cmds:
       - |
         echo "🔍 Running Quality Assurance Agent..."
-        
+
         # Get latest PR info
         PR_NUMBER="{{.LATEST_PR}}"
         if [ -n "$PR_NUMBER" ]; then
@@ -106,7 +106,7 @@ tasks:
         else
           echo "📋 No open PR found, analyzing current branch"
         fi
-        
+
         if command -v claude >/dev/null 2>&1; then
           # Use actual Claude Code @qa agent with subagents
           if [ -n "$PR_NUMBER" ]; then
@@ -556,14 +556,14 @@ tasks:
         echo "This command consolidates all findings from AI agent reviews."
         echo "Review files found:"
         echo ""
-        
+
         # List all review files
         for file in .*.review.md; do
           if [ -f "$file" ]; then
             echo "✓ $file"
           fi
         done
-        
+
         echo ""
         echo "To analyze these findings, run this in Claude Code:"
         echo ""
@@ -574,7 +574,7 @@ tasks:
         echo "- P1 (High): Must fix this sprint"
         echo "- P2 (Medium): Plan for next sprint"
         echo "- P3 (Low): Backlog item"
-        
+
         # Check if any review files exist
         if ls .*.review.md 1> /dev/null 2>&1; then
           echo ""

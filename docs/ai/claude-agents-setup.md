@@ -82,6 +82,7 @@ When Claude Code is restarted, agents become available as personas:
 ### Task Command Features
 
 The task commands automatically:
+
 - Detect the latest PR number
 - Pass context to agents
 - Run prerequisite commands (like SonarCloud analysis)
@@ -92,21 +93,25 @@ The task commands automatically:
 Each primary agent can invoke specialized subagents:
 
 ### QA Subagents
+
 - `@qa:security-scanner` - Security vulnerability analysis
 - `@qa:coverage-analyzer` - Deep test coverage analysis
 - `@qa:performance-profiler` - Performance testing
 
 ### Architect Subagents
+
 - `@architect:solid-validator` - SOLID principles compliance
 - `@architect:security-architect` - Security patterns review
 - `@architect:ddd-analyzer` - Domain-driven design validation
 
 ### DevOps Subagents
+
 - `@devops:docker-optimizer` - Container optimization
 - `@devops:k8s-validator` - Kubernetes validation
 - `@devops:cost-analyzer` - Cloud cost analysis
 
 ### Author Subagents
+
 - `@author:api-docs` - API documentation generation
 - `@author:markdown-lint` - Markdown quality check
 - `@author:diagram-gen` - Architecture diagrams
@@ -130,6 +135,7 @@ task ai:qa
 ## Report Files
 
 Agents generate reports in the project root:
+
 - `.architecture.review.md` - Architecture analysis
 - `.qa.review.md` - Quality assurance findings
 - `.devops.review.md` - DevOps metrics and recommendations
@@ -145,6 +151,7 @@ Agents generate reports in the project root:
 ### Task Commands Not Finding Claude CLI
 
 The task commands include fallback behavior:
+
 - They'll run available tools directly
 - Generate basic reports without AI analysis
 - Still provide useful output
@@ -152,6 +159,7 @@ The task commands include fallback behavior:
 ### PR Detection Not Working
 
 Requires GitHub CLI (`gh`) to be installed and authenticated:
+
 ```bash
 # Install GitHub CLI
 brew install gh

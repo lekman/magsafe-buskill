@@ -4,19 +4,19 @@ on:
   push:
     branches: ["main"]
     paths:
-      - '**/*.swift'
-      - '**/Package.swift'
-      - '**/Package.resolved'
-      - '**/*.xcodeproj/**'
-      - '.github/workflows/codeql.yml'
+      - "**/*.swift"
+      - "**/Package.swift"
+      - "**/Package.resolved"
+      - "**/*.xcodeproj/**"
+      - ".github/workflows/codeql.yml"
   pull_request:
     branches: ["main"]
     paths:
-      - '**/*.swift'
-      - '**/Package.swift'
-      - '**/Package.resolved'
-      - '**/*.xcodeproj/**'
-      - '.github/workflows/codeql.yml'
+      - "**/*.swift"
+      - "**/Package.swift"
+      - "**/Package.resolved"
+      - "**/*.xcodeproj/**"
+      - ".github/workflows/codeql.yml"
   schedule:
     - cron: "30 1 * * 1" # Run weekly on Mondays at 1:30 AM UTC
 
@@ -85,13 +85,13 @@ jobs:
               CHANGED_FILES=$(git ls-tree -r --name-only HEAD || echo "")
             fi
           fi
-          
+
           # Debug: Show some changed files
           if [ -n "$CHANGED_FILES" ]; then
             echo "📝 Sample of changed files:"
             echo "$CHANGED_FILES" | head -5
           fi
-          
+
           # Check if any Swift files or build files changed
           if echo "$CHANGED_FILES" | grep -qE '\.(swift|xcodeproj|pbxproj|yml|yaml)$|Package\.swift|Package\.resolved'; then
             echo "has-code-changes=true" >> $GITHUB_OUTPUT
@@ -140,7 +140,7 @@ jobs:
         timeout-minutes: 5
         run: |
           echo "🔨 Building project for CodeQL analysis..."
-          
+
           # Skip build if CodeQL database was cached and is recent
           if [ "${{ steps.cache-codeql.outputs.cache-hit }}" = "true" ]; then
             # Check if cached database is less than 7 days old
@@ -149,10 +149,10 @@ jobs:
               exit 0
             fi
           fi
-          
+
           # Navigate to SPM package directory
           cd MagSafeGuardLib
-          
+
           # Use minimal build for CodeQL
           swift build --target MagSafeGuardDomain -c debug || true
           echo "✅ Build completed for CodeQL"

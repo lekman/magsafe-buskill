@@ -326,19 +326,19 @@ tasks:
     cmds:
       - |
         echo "🔍 Validating codecov.yml configuration..."
-        
+
         if [ ! -f ".codecov.yml" ]; then
           echo "❌ No .codecov.yml file found"
           exit 1
         fi
-        
+
         # Use Codecov validation API
         echo "📤 Sending to Codecov validation API..."
         RESPONSE=$(curl -s -X POST \
           --data-binary @.codecov.yml \
           --header "Accept: application/json" \
           https://api.codecov.io/validate)
-        
+
         # Check response - the API returns "Valid!" with the parsed config
         if echo "$RESPONSE" | grep -q "Valid!"; then
           echo "✅ Codecov configuration is valid!"

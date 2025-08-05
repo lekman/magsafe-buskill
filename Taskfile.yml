@@ -638,7 +638,7 @@ tasks:
         fi
 
         echo "✅ Coverage reports generated"
-        
+
         # Ensure coverage files are in project root for CI
         if [ -f "MagSafeGuardLib/coverage.xml" ]; then
           echo "📊 Copying coverage files from MagSafeGuardLib to project root..."
@@ -733,6 +733,18 @@ tasks:
       - echo "✅ Local QA suite passed!"
 
   # Project management tasks
+  todo:
+    desc: Manage TODO workflow - collect findings, update .todo.md, and execute tasks
+    silent: true
+    cmds:
+      - bash -c './scripts/todo-workflow.sh'
+
+  todo:complete:
+    desc: Mark a todo item as complete and continue workflow
+    silent: true
+    cmds:
+      - bash -c './scripts/todo-workflow.sh complete "{{.CLI_ARGS}}"'
+
   commit:
     desc: Interactive commit with conventional format
     silent: true

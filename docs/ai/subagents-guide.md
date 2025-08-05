@@ -9,6 +9,7 @@ Subagents are specialized, focused agents that work under the coordination of pr
 ### What are Subagents?
 
 Subagents are:
+
 - **Specialized** - Focused on specific tasks or technologies
 - **Lightweight** - Designed for quick, targeted analysis
 - **Composable** - Can be combined for complex workflows
@@ -102,8 +103,10 @@ Specialized security analysis for the QA agent
 ```
 
 ## Integration
+
 Reports to: @qa
 Escalates to: @architect (for design flaws), @devops (for infrastructure issues)
+
 ```
 
 #### Example: Test Coverage Analyzer Subagent
@@ -131,12 +134,14 @@ task test:complexity:analysis
 ```
 
 ## Analysis Criteria
+
 - Critical paths must have >95% coverage
 - Complex functions (cyclomatic >10) need tests
 - Public APIs require 100% coverage
 - Integration points need E2E tests
 
 ## Output Format
+
 ```yaml
 coverage:
   overall: 85.3%
@@ -152,6 +157,7 @@ coverage:
       action: "Add tests for auth validator edge cases"
       impact: "Prevents authentication bypass"
 ```
+
 ```
 
 ### Step 3: Register Subagents
@@ -314,6 +320,7 @@ stages:
 ```
 
 Run pipeline:
+
 ```bash
 claude-code pipeline run comprehensive-security-check
 ```
