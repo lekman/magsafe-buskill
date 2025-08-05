@@ -94,7 +94,7 @@ runs:
         OS_KEY: ${{ steps.os-info.outputs.os-key }}
         CACHE_KEY_SUFFIX: ${{ inputs.cache-key-suffix }}
       run: |
-        TASK_VERSION=$(task --version | grep -o 'Task version: v[0-9.]*' || echo "Unknown")
+        TASK_VERSION=$(task --version | head -n1 || echo "Unknown")
         CACHE_HIT="${CACHE_HIT}"
         CACHE_KEY="taskfile-${OS_KEY}-${CACHE_KEY_SUFFIX}"
         

@@ -30,7 +30,12 @@ jobs:
 
     steps:
       - name: Checkout repository
+        id: checkout
         uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Record start time
+        id: start-time
+        run: echo "timestamp=$(date +%s)" >> $GITHUB_OUTPUT
 
       # Cache CodeQL database to speed up subsequent runs
       - name: Cache CodeQL database
@@ -97,7 +102,7 @@ jobs:
           | **Language** | Swift |
           | **Build Mode** | manual |
           | **Build Executed** | Always (required for CodeQL) |
-          | **Analysis Time** | ~$(( $(date +%s) - ${{ steps.checkout.outputs.timestamp || '0' }} ))s |
+          | **Analysis Time** | ~$(( ($(date +%s) - ${{ steps.start-time.outputs.timestamp }}) / 60 ))m $(( ($(date +%s) - ${{ steps.start-time.outputs.timestamp }}) % 60 ))s |
 
           ### 📊 Cache Performance
 
