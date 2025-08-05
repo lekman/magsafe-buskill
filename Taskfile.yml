@@ -532,47 +532,64 @@ tasks:
             fi
           fi
 
-          # Always generate Cobertura XML for SonarCloud
-          # Try to convert LCOV to Cobertura first
-          if command -v lcov-cobertura &> /dev/null; then
-            lcov-cobertura coverage.lcov -o coverage.xml 2>/dev/null || true
+          # Generate SonarQube Generic Test Coverage XML
+          # Navigate back to project root if needed
+          if [[ "$CHANGED_DIR" == "true" ]]; then
+            cd ..
           fi
-
-          # If conversion failed or lcov-cobertura not available, create XML manually
-          if [ ! -s coverage.xml ]; then
-            echo '<?xml version="1.0" ?>' > coverage.xml
-            echo '<coverage version="1">' >> coverage.xml
-
-            # Parse LCOV to create basic Cobertura XML
-            if [ -s coverage.lcov ]; then
-              current_file=""
-              while IFS= read -r line; do
-                if [[ $line == SF:* ]]; then
-                  current_file="${line#SF:}"
-                  echo "  <file path=\"$current_file\">" >> coverage.xml
-                elif [[ $line == DA:* ]]; then
-                  IFS=',' read -r line_num hit_count <<< "${line#DA:}"
-                  covered="false"
-                  if [ "$hit_count" -gt 0 ]; then
-                    covered="true"
-                  fi
-                  echo "    <lineToCover lineNumber=\"$line_num\" covered=\"$covered\"/>" >> coverage.xml
-                elif [[ $line == end_of_record ]]; then
-                  if [ -n "$current_file" ]; then
-                    echo "  </file>" >> coverage.xml
-                    current_file=""
-                  fi
-                fi
-              done < coverage.lcov
-            else
-              # Fallback minimal coverage
-              echo '  <file path="MagSafeGuard/Models/SettingsModel.swift">' >> coverage.xml
-              echo '    <lineToCover lineNumber="1" covered="true"/>' >> coverage.xml
-              echo '  </file>' >> coverage.xml
-            fi
-
-            echo '</coverage>' >> coverage.xml
+          
+          # Create proper SonarQube Generic Test Coverage XML
+          echo '<?xml version="1.0" encoding="UTF-8"?>' > coverage.xml
+          echo '<coverage version="1">' >> coverage.xml
+          
+          if [ -s coverage.lcov ]; then
+            # Parse LCOV and generate SonarQube XML
+            awk '
+              BEGIN { 
+                current_file = ""
+                in_file = 0
+              }
+              /^SF:/ {
+                # Close previous file if open
+                if (in_file) {
+                  print "  </file>"
+                }
+                # Extract filename and make it relative from MagSafeGuardLib
+                file = substr($0, 4)
+                gsub(/.*MagSafeGuardLib\//, "MagSafeGuardLib/", file)
+                # Skip test files
+                if (file !~ /Tests\//) {
+                  print "  <file path=\"" file "\">"
+                  in_file = 1
+                  current_file = file
+                } else {
+                  in_file = 0
+                  current_file = ""
+                }
+              }
+              /^DA:/ && in_file {
+                # Extract line number and hit count
+                split(substr($0, 4), parts, ",")
+                line_num = parts[1]
+                hit_count = parts[2]
+                covered = (hit_count > 0) ? "true" : "false"
+                print "    <lineToCover lineNumber=\"" line_num "\" covered=\"" covered "\"/>"
+              }
+              /^end_of_record/ && in_file {
+                print "  </file>"
+                in_file = 0
+                current_file = ""
+              }
+              END {
+                # Close last file if still open
+                if (in_file) {
+                  print "  </file>"
+                }
+              }
+            ' coverage.lcov >> coverage.xml
           fi
+          
+          echo '</coverage>' >> coverage.xml
 
           # Return to root directory if we changed into it
           if [[ "$CHANGED_DIR" == "true" ]]; then
