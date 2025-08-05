@@ -552,12 +552,11 @@ tasks:
                 if (in_file && file_count > 0) {
                   print "  </file>"
                 }
-                # Extract filename and make it relative from sonar sources directory
+                # Extract filename and make it relative from project root
                 file = substr($0, 4)
                 # Ensure path is relative from project root (remove any absolute path prefix)
                 gsub(/.*\/magsafe-buskill\//, "", file)
-                # Make paths relative to sonar.sources (MagSafeGuardLib/Sources)
-                gsub(/^MagSafeGuardLib\/Sources\//, "", file)
+                # Keep full path relative to project root for SonarCloud matching
                 # Skip test files, build artifacts, and runner files
                 if (file !~ /Tests\// && file !~ /\.build\// && file !~ /runner\.swift/) {
                   print "  <file path=\"" file "\">"
