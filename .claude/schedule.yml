@@ -1,0 +1,39 @@
+agents:
+  architect:
+    schedule: "0 9 * * MON" # Weekly on Monday
+    triggers:
+      - pattern: "MagSafeGuardLib/Sources/**/*.swift"
+        events: ["change"]
+        threshold: 10 # files changed
+      - pattern: "docs/architecture/*.md"
+        events: ["change"]
+
+  qa:
+    schedule: "0 9 * * *" # Daily
+    triggers:
+      - pattern: "**/*Tests.swift"
+        events: ["change"]
+      - pattern: ".github/workflows/*"
+        events: ["change"]
+      - pattern: "Taskfile.yml"
+        events: ["change"]
+
+  author:
+    schedule: "0 9 * * WED" # Weekly on Wednesday
+    triggers:
+      - pattern: "docs/**/*"
+        events: ["change"]
+      - pattern: "README.md"
+        events: ["change"]
+      - pattern: "CLAUDE.md"
+        events: ["change"]
+
+  devops:
+    schedule: "0 9 * * TUE,THU" # Twice weekly
+    triggers:
+      - pattern: "Taskfile.yml"
+        events: ["change"]
+      - pattern: ".github/workflows/*"
+        events: ["change"]
+      - pattern: "tasks/*.yml"
+        events: ["change"]
