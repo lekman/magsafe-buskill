@@ -41,7 +41,7 @@ public struct AuthenticationRequest: Equatable {
 
 /// Domain model for authentication policy options.
 /// Defines the rules and constraints for authentication.
-public struct AuthenticationPolicy: Equatable {
+public struct AuthenticationPolicy: Equatable, Sendable {
     /// Whether biometric authentication is required
     public let requireBiometric: Bool
     /// Whether password can be used if biometric fails
@@ -313,7 +313,7 @@ public struct AuthenticationAttempt: Equatable {
 
 /// Security configuration for authentication.
 /// Defines security policies and constraints.
-public struct AuthenticationSecurityConfig {
+public struct AuthenticationSecurityConfig: Sendable {
     /// Maximum failed attempts before rate limiting
     public let maxFailedAttempts: Int
 

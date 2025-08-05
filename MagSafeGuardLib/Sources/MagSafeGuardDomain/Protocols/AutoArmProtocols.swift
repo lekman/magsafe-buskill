@@ -10,7 +10,7 @@ import Foundation
 // MARK: - Domain Models
 
 /// Configuration for auto-arm behavior
-public struct AutoArmConfiguration: Equatable {
+public struct AutoArmConfiguration: Equatable, Sendable {
     /// Whether auto-arm is enabled
     public let isEnabled: Bool
 

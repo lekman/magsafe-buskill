@@ -24,10 +24,19 @@ runs:
   using: "composite"
   steps:
     - name: Setup Swift
+      id: setup-swift-toolchain
       uses: swift-actions/setup-swift@v2
       with:
         swift-version: ${{ inputs.swift-version }}
 
+    - name: Get Swift version for cache key
+      id: swift-version
+      shell: bash
+      run: |
+        SWIFT_VERSION=$(swift --version | head -n1 | sed 's/.*version \([0-9.]*\).*/\1/')
+        echo "version=$SWIFT_VERSION" >> $GITHUB_OUTPUT
+        echo "Swift version: $SWIFT_VERSION"
+    
     - name: Create cache directories
       shell: bash
       env:
@@ -46,9 +55,10 @@ runs:
           ${{ inputs.project-path }}/.build
           ~/.swiftpm
           ~/Library/Caches/org.swift.swiftpm
-        key: ${{ runner.os }}-${{ runner.arch }}-spm-${{ hashFiles(format('{0}/Package.swift', inputs.project-path), format('{0}/Package.resolved', inputs.project-path)) }}-${{ inputs.cache-key-suffix }}
+        key: ${{ runner.os }}-${{ runner.arch }}-swift${{ steps.swift-version.outputs.version }}-spm-${{ hashFiles(format('{0}/Package.swift', inputs.project-path), format('{0}/Package.resolved', inputs.project-path)) }}-${{ inputs.cache-key-suffix }}
         restore-keys: |
-          ${{ runner.os }}-${{ runner.arch }}-spm-${{ hashFiles(format('{0}/Package.swift', inputs.project-path)) }}-
+          ${{ runner.os }}-${{ runner.arch }}-swift${{ steps.swift-version.outputs.version }}-spm-${{ hashFiles(format('{0}/Package.swift', inputs.project-path)) }}-
+          ${{ runner.os }}-${{ runner.arch }}-swift${{ steps.swift-version.outputs.version }}-spm-
           ${{ runner.os }}-${{ runner.arch }}-spm-
 
     - name: Resolve Swift Package Dependencies
