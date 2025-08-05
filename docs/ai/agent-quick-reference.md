@@ -2,12 +2,12 @@
 
 ## Agent Overview
 
-| Agent | Focus Area | Output File | Key Responsibilities |
-|-------|------------|-------------|---------------------|
-| **@architect** | Architecture & Design | `.architecture.review.md` | Clean code, DDD, Security, PRD alignment, Tasks |
-| **@qa** | Quality Assurance | `.qa.review.md` | Testing, Code quality, Security scans, Performance |
-| **@author** | Documentation | Direct file updates | Documentation coverage, quality, standards |
-| **@devops** | Build & Deploy | `.devops.review.md` | CI/CD, Infrastructure, Security, Performance |
+| Agent          | Focus Area            | Output File               | Key Responsibilities                               |
+| -------------- | --------------------- | ------------------------- | -------------------------------------------------- |
+| **@architect** | Architecture & Design | `.architecture.review.md` | Clean code, DDD, Security, PRD alignment, Tasks    |
+| **@qa**        | Quality Assurance     | `.qa.review.md`           | Testing, Code quality, Security scans, Performance |
+| **@author**    | Documentation         | Direct file updates       | Documentation coverage, quality, standards         |
+| **@devops**    | Build & Deploy        | `.devops.review.md`       | CI/CD, Infrastructure, Security, Performance       |
 
 ## Quick Setup Commands
 
@@ -17,7 +17,7 @@ mkdir -p docs/templates .claude-agents
 
 # 2. Copy templates to docs/templates/
 # - architect-template.md
-# - qa-template.md  
+# - qa-template.md
 # - author-template.md
 # - devops-template.md
 
@@ -42,7 +42,7 @@ claude-code agent run --all
 ```
 /
 ├── .architecture.review.md    # Architect's report
-├── .qa.review.md             # QA's report  
+├── .qa.review.md             # QA's report
 ├── .devops.review.md         # DevOps report
 ├── docs/
 │   ├── README.md             # Documentation index
@@ -77,6 +77,7 @@ graph LR
 ## Common Commands
 
 ### Running Agents
+
 ```bash
 # Run all agents
 claude-code agent run --all
@@ -92,6 +93,7 @@ claude-code agent run architect --focus security
 ```
 
 ### Task Commands (used by agents)
+
 ```bash
 # Build and test
 task build
@@ -111,28 +113,31 @@ task --list-all
 
 ## Priority Levels
 
-| Priority | Label | Timeline | Action |
-|----------|-------|----------|---------|
-| **P0** | Critical | Immediate | Block release, fix now |
-| **P1** | High | This sprint | Must fix soon |
-| **P2** | Medium | Next sprint | Plan to address |
-| **P3** | Low | Backlog | Nice to have |
+| Priority | Label    | Timeline    | Action                 |
+| -------- | -------- | ----------- | ---------------------- |
+| **P0**   | Critical | Immediate   | Block release, fix now |
+| **P1**   | High     | This sprint | Must fix soon          |
+| **P2**   | Medium   | Next sprint | Plan to address        |
+| **P3**   | Low      | Backlog     | Nice to have           |
 
 ## Key Metrics Tracked
 
 ### Architect Metrics
+
 - Clean Code Compliance %
 - DDD Implementation Score
 - Security Posture Rating
 - PRD Alignment %
 
-### QA Metrics  
+### QA Metrics
+
 - Test Coverage %
 - Build Success Rate
 - Vulnerability Count
 - Performance Benchmarks
 
 ### DevOps Metrics
+
 - MTTD (Mean Time to Deploy)
 - Deployment Frequency
 - Change Failure Rate
@@ -140,14 +145,14 @@ task --list-all
 
 ## Review Schedule
 
-| Day | Agent(s) | Focus |
-|-----|----------|-------|
-| Monday | @architect | Weekly architecture review |
-| Tuesday | @devops | Pipeline optimization |
-| Wednesday | @author | Documentation update |
-| Thursday | @devops | Security & performance |
-| Friday | @qa | Quality gate check |
-| Daily | @qa | Quick health check |
+| Day       | Agent(s)   | Focus                      |
+| --------- | ---------- | -------------------------- |
+| Monday    | @architect | Weekly architecture review |
+| Tuesday   | @devops    | Pipeline optimization      |
+| Wednesday | @author    | Documentation update       |
+| Thursday  | @devops    | Security & performance     |
+| Friday    | @qa        | Quality gate check         |
+| Daily     | @qa        | Quick health check         |
 
 ## Troubleshooting
 

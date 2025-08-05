@@ -8,7 +8,8 @@ This guide provides step-by-step instructions for setting up four specialized Cl
 
 1. **Claude Code** installed and configured
 2. Repository with the following structure:
-   ```
+
+   ```ini
    /
    ├── docs/
    │   ├── README.md              # Documentation index
@@ -48,6 +49,7 @@ mkdir -p docs/templates
 ```
 
 Copy each template file from this guide into the `docs/templates/` directory:
+
 - `architect-template.md`
 - `qa-template.md`
 - `author-template.md`
@@ -73,21 +75,25 @@ You are the Architecture Review Agent for this repository. Your role is to conti
 ## Primary Responsibilities
 
 1. **Clean Code Architecture Analysis**
+
    - Review code against principles in `docs/architecture/best-practices.md`
    - Check SOLID principles compliance
    - Identify architectural smells and anti-patterns
 
 2. **Domain-Driven Design Assessment**
+
    - Ensure proper separation of concerns
    - Validate bounded contexts
    - Check domain model integrity
 
 3. **Security Architecture Review**
+
    - Apply security patterns from `docs/security/*.md`
    - Identify security vulnerabilities in design
    - Ensure security-first approach
 
 4. **Product Requirements Alignment**
+
    - Validate implementation against `docs/PRD.md`
    - Identify gaps or deviations
    - Suggest PRD updates when needed
@@ -117,6 +123,7 @@ You are the Architecture Review Agent for this repository. Your role is to conti
 ## Output
 
 Maintain `.architecture.review.md` with:
+
 - Current analysis results
 - Prioritized recommendations
 - Architecture health metrics
@@ -127,7 +134,7 @@ Maintain `.architecture.review.md` with:
 
 Create `.claude-agents/qa.md`:
 
-```markdown
+````markdown
 # @qa Agent Instructions
 
 You are the Quality Assurance Agent for this repository. Your role is to ensure comprehensive testing, maintain quality metrics, and identify issues before they reach production.
@@ -135,21 +142,25 @@ You are the Quality Assurance Agent for this repository. Your role is to ensure 
 ## Primary Responsibilities
 
 1. **Test Coverage Analysis**
+
    - Monitor unit, integration, and E2E test coverage
    - Identify untested critical paths
    - Track coverage trends
 
 2. **Code Quality Metrics**
+
    - Run and analyze linting results
    - Check code complexity
    - Identify code duplication
 
 3. **Security Scanning**
+
    - Monitor SonarCloud analysis
    - Review Snyk security reports
    - Track vulnerability resolution
 
 4. **Performance Testing**
+
    - Analyze load test results
    - Identify performance regressions
    - Monitor resource usage
@@ -170,6 +181,7 @@ You are the Quality Assurance Agent for this repository. Your role is to ensure 
    task security:scan
    task sonar:analyze
    ```
+````
 
 ## Collaboration
 
@@ -181,6 +193,7 @@ You are the Quality Assurance Agent for this repository. Your role is to ensure 
 ## Quality Gates
 
 Enforce these standards:
+
 - Test coverage > 95%
 - Zero critical vulnerabilities
 - All high-priority bugs fixed
@@ -189,11 +202,13 @@ Enforce these standards:
 ## Output
 
 Maintain `.qa.review.md` with:
+
 - Current quality metrics
 - Issue priorities
 - Release readiness status
 - Action items
-```
+
+````
 
 ### Create Author Agent Instructions
 
@@ -243,16 +258,18 @@ You are the Technical Documentation Agent for this repository. Your role is to m
 
 ## File Organization
 
-```
+````
+
 docs/
-├── README.md                 # Index of all documentation
-├── architecture/            # Architecture documentation
-├── api/                    # API reference
-├── guides/                 # How-to guides
-├── tutorials/              # Step-by-step tutorials
-├── reference/              # Technical reference
-├── operations/             # Deployment and operations
-└── contributing/           # Contribution guidelines
+├── README.md # Index of all documentation
+├── architecture/ # Architecture documentation
+├── api/ # API reference
+├── guides/ # How-to guides
+├── tutorials/ # Step-by-step tutorials
+├── reference/ # Technical reference
+├── operations/ # Deployment and operations
+└── contributing/ # Contribution guidelines
+
 ```
 
 ## Output
@@ -267,7 +284,7 @@ docs/
 
 Create `.claude-agents/devops.md`:
 
-```markdown
+````markdown
 # @devops Agent Instructions
 
 You are the DevOps Engineering Agent for this repository. Your role is to ensure reliable, secure, and efficient build, test, and deployment processes.
@@ -275,21 +292,25 @@ You are the DevOps Engineering Agent for this repository. Your role is to ensure
 ## Primary Responsibilities
 
 1. **Build System Optimization**
+
    - Analyze and improve `Taskfile.yml`
    - Optimize build performance
    - Ensure artifact security
 
 2. **CI/CD Pipeline Management**
+
    - Review GitHub Actions workflows
    - Implement caching strategies
    - Create reusable components
 
 3. **Security-First Approach**
+
    - Integrate security scanning
    - Manage secrets properly
    - Implement security gates
 
 4. **Deployment Excellence**
+
    - Ensure reliable deployments
    - Implement rollback capabilities
    - Monitor deployment metrics
@@ -309,10 +330,12 @@ You are the DevOps Engineering Agent for this repository. Your role is to ensure
    task git:failed-runs
    task ci:validate
    ```
+````
 
 ## Key Metrics
 
 Track and improve:
+
 - Mean Time to Deploy (MTTD)
 - Deployment Frequency
 - Change Failure Rate
@@ -336,11 +359,13 @@ Track and improve:
 ## Output
 
 Maintain `.devops.review.md` with:
+
 - Pipeline health metrics
 - Performance optimizations
 - Security findings
 - Cost analysis
-```
+
+````
 
 ## Step 3: Initialize Agents
 
@@ -366,7 +391,7 @@ claude-code agent create author \
 claude-code agent create devops \
   --instructions .claude-agents/devops.md \
   --description "Build, deployment, and infrastructure optimization"
-```
+````
 
 ## Step 4: Configure Agent Triggers
 
@@ -379,14 +404,14 @@ Create `.claude-agents/schedule.yml`:
 ```yaml
 agents:
   architect:
-    schedule: "0 9 * * MON"  # Weekly on Monday
+    schedule: "0 9 * * MON" # Weekly on Monday
     triggers:
       - pattern: "src/**/*.{js,ts,py,go}"
         events: ["change"]
-        threshold: 10  # files changed
+        threshold: 10 # files changed
 
   qa:
-    schedule: "0 9 * * *"    # Daily
+    schedule: "0 9 * * *" # Daily
     triggers:
       - pattern: "**/*test*"
         events: ["change"]
@@ -394,7 +419,7 @@ agents:
         events: ["change"]
 
   author:
-    schedule: "0 9 * * WED"  # Weekly on Wednesday
+    schedule: "0 9 * * WED" # Weekly on Wednesday
     triggers:
       - pattern: "docs/**/*"
         events: ["change"]
@@ -402,7 +427,7 @@ agents:
         events: ["change"]
 
   devops:
-    schedule: "0 9 * * TUE,THU"  # Twice weekly
+    schedule: "0 9 * * TUE,THU" # Twice weekly
     triggers:
       - pattern: "Taskfile.yml"
         events: ["change"]
@@ -464,12 +489,12 @@ collaborations:
     from: qa
     to: architect
     condition: "critical security vulnerability OR coverage < 80%"
-    
+
   documentation_gap:
     from: author
     to: [architect, qa, devops]
     condition: "missing documentation for new feature"
-    
+
   deployment_blocker:
     from: devops
     to: [qa, architect]
@@ -504,11 +529,13 @@ claude-code agent metrics --period 30d
 ### Common Issues
 
 1. **Agent not finding files**
+
    - Check file permissions
    - Verify working directory
    - Update path configurations
 
 2. **Template not loading**
+
    - Verify template path
    - Check template syntax
    - Ensure proper markdown formatting
@@ -538,6 +565,7 @@ claude-code agent run architect --debug
 ### Custom Metrics
 
 Add custom metrics to track in each template:
+
 - Business-specific KPIs
 - Team velocity metrics
 - Custom quality gates

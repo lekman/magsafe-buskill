@@ -1,0 +1,35 @@
+collaborations:
+  critical_quality_issue:
+    from: qa
+    to: architect
+    condition: "critical security vulnerability OR coverage < 80%"
+    
+  documentation_gap:
+    from: author
+    to: [architect, qa, devops]
+    condition: "missing documentation for new feature"
+    
+  deployment_blocker:
+    from: devops
+    to: [qa, architect]
+    condition: "deployment failure rate > 10%"
+    
+  architecture_violation:
+    from: architect
+    to: [qa, devops]
+    condition: "clean architecture violation OR DDD boundary breach"
+    
+  security_concern:
+    from: [architect, qa, devops]
+    to: all
+    condition: "security vulnerability with CVSS >= 7.0"
+    
+  performance_regression:
+    from: qa
+    to: [architect, devops]
+    condition: "performance degradation > 20%"
+    
+  build_failure_trend:
+    from: devops
+    to: qa
+    condition: "build failure rate > 15% over 3 days"
