@@ -44,6 +44,9 @@ jobs:
       - name: Checkout repository
         id: checkout
         uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          # Need more history to properly detect changes in PRs
+          fetch-depth: 0
 
       - name: Record start time
         id: start-time
@@ -52,12 +55,27 @@ jobs:
       # Check if only docs/non-code files changed
       - name: Check for code changes
         id: code-changes
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           # Get list of changed files
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # Fetch the base branch for comparison
-            git fetch --no-tags --depth=1 origin ${{ github.base_ref }}
-            CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD || echo "")
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            # Fetch the base branch with enough history to find the merge base
+            git fetch --no-tags --depth=50 origin "$BASE_REF"
+            # Try to find the merge base, if that fails use two-dot diff
+            MERGE_BASE=$(git merge-base "origin/$BASE_REF" HEAD 2>/dev/null || echo "")
+            if [ -n "$MERGE_BASE" ]; then
+              CHANGED_FILES=$(git diff --name-only "$MERGE_BASE" HEAD || echo "")
+            else
+              # Fallback to comparing the branches directly
+              CHANGED_FILES=$(git diff --name-only "origin/$BASE_REF..HEAD" || echo "")
+            fi
+            
+            # Debug output
+            echo "🔍 Detected PR from $HEAD_REF to $BASE_REF"
+            echo "📊 Changed files count: $(echo "$CHANGED_FILES" | wc -l)"
           else
             # For push events, compare with the parent commit if available
             if git rev-parse HEAD^ >/dev/null 2>&1; then
@@ -68,10 +86,17 @@ jobs:
             fi
           fi
           
+          # Debug: Show some changed files
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "📝 Sample of changed files:"
+            echo "$CHANGED_FILES" | head -5
+          fi
+          
           # Check if any Swift files or build files changed
           if echo "$CHANGED_FILES" | grep -qE '\.(swift|xcodeproj|pbxproj|yml|yaml)$|Package\.swift|Package\.resolved'; then
             echo "has-code-changes=true" >> $GITHUB_OUTPUT
             echo "🔍 Code changes detected - CodeQL analysis needed"
+            echo "🚀 Swift files found in changes"
           else
             echo "has-code-changes=false" >> $GITHUB_OUTPUT
             echo "📄 Only documentation/non-code changes - CodeQL can be skipped"
