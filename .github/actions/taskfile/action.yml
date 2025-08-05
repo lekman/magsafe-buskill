@@ -35,10 +35,11 @@ runs:
       with:
         path: |
           /usr/local/bin/task
+          /usr/local/bin/xcbeautify
           ~/.task
-        key: taskfile-${{ steps.os-info.outputs.os-key }}-v1
+        key: taskfile-tools-${{ steps.os-info.outputs.os-key }}-v2
         restore-keys: |
-          taskfile-${{ steps.os-info.outputs.os-key }}-v1
+          taskfile-tools-${{ steps.os-info.outputs.os-key }}-v2
 
     - name: Install Taskfile if not cached
       if: steps.cache-restore.outputs.cache-hit != 'true'
@@ -67,6 +68,15 @@ runs:
 
         # Verify installation
         task --version
+        
+        # Install xcbeautify for test output formatting
+        echo "Installing xcbeautify..."
+        if [[ "${{ runner.os }}" == "macOS" ]]; then
+          brew install xcbeautify
+        elif [[ "${{ runner.os }}" == "Linux" ]]; then
+          # For Linux, we could install from source or use mint
+          echo "xcbeautify not available on Linux, skipping..."
+        fi
 
     - name: Verify Taskfile is available
       shell: bash
@@ -75,6 +85,14 @@ runs:
         task --version
         echo "Taskfile location:"
         which task
+        
+        # Check if xcbeautify is available
+        if command -v xcbeautify &> /dev/null; then
+          echo "xcbeautify version:"
+          xcbeautify --version
+          echo "xcbeautify location:"
+          which xcbeautify
+        fi
 
     - name: Save Taskfile cache
       uses: actions/cache/save@v4
@@ -83,8 +101,9 @@ runs:
       with:
         path: |
           /usr/local/bin/task
+          /usr/local/bin/xcbeautify
           ~/.task
-        key: taskfile-${{ steps.os-info.outputs.os-key }}-v1
+        key: taskfile-tools-${{ steps.os-info.outputs.os-key }}-v2
 
     - name: Generate Taskfile summary
       if: always()
@@ -95,8 +114,9 @@ runs:
         CACHE_KEY_SUFFIX: ${{ inputs.cache-key-suffix }}
       run: |
         TASK_VERSION=$(task --version | head -n1 || echo "Unknown")
+        XCBEAUTIFY_VERSION=$(xcbeautify --version 2>/dev/null || echo "Not installed")
         CACHE_HIT="${CACHE_HIT}"
-        CACHE_KEY="taskfile-${OS_KEY}-${CACHE_KEY_SUFFIX}"
+        CACHE_KEY="taskfile-tools-${OS_KEY}-v2"
 
         cat >> $GITHUB_STEP_SUMMARY << EOF
 
@@ -106,6 +126,8 @@ runs:
         |----------|-------|
         | **Taskfile Version** | $TASK_VERSION |
         | **Installation Path** | \`$(which task)\` |
+        | **xcbeautify Version** | $XCBEAUTIFY_VERSION |
+        | **xcbeautify Path** | \`$(which xcbeautify 2>/dev/null || echo "Not found")\` |
         | **Cache Hit** | ${CACHE_HIT:-false} |
         | **Cache Key** | \`$CACHE_KEY\` |
         | **OS Key** | ${OS_KEY} |

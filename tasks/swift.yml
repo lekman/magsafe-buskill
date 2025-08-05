@@ -131,6 +131,16 @@ tasks:
         echo "   - LCOV: coverage.lcov"
         echo "   - XML: coverage.xml"
         echo "   - Text: coverage-report.txt"
+        
+        # Generate JUnit XML for test execution reporting (if requested)
+        if [ "${GENERATE_JUNIT:-false}" = "true" ]; then
+          echo ""
+          echo "📊 Generating JUnit XML for test execution reporting..."
+          cd {{.SPM_PACKAGE_DIR}}
+          swift test --enable-code-coverage --parallel 2>&1 | \
+            python3 ../scripts/swift-test-to-junit.py -o ../test-results.xml
+          echo "✅ JUnit XML generated at test-results.xml"
+        fi
 
   lint:
     desc: Run SwiftLint to check code style

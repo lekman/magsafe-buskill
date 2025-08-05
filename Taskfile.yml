@@ -12,6 +12,12 @@ includes:
     vars:
       PROJECT_NAME: "MagSafeGuard"
       SCHEME_NAME: "MagSafeGuard"
+  junit:
+    taskfile: ./tasks/junit.yml
+    optional: false
+    vars:
+      PROJECT_NAME: "MagSafeGuard"
+      SCHEME_NAME: "MagSafeGuard"
   xcode:
     taskfile: ./tasks/xcode.yml
     optional: false
