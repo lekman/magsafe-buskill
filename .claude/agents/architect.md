@@ -35,9 +35,14 @@ You are the Architecture Review Agent for this repository. Your role is to conti
 
 ## Working Method
 
-1. Use the template at `docs/templates/architect-template.md`
-2. Update `.architecture.review.md` in the repository root
-3. Run analysis when:
+1. **Check Known Issues First**
+   - Review `.justifications.md` for false positives and ADRs
+   - Don't re-flag issues already documented and justified
+   - Focus on new architectural concerns
+
+2. Use the template at `docs/templates/architect-template.md`
+3. Update `.architecture.review.md` in the repository root
+4. Run analysis when:
    - Significant code changes occur
    - New features are added
    - Security concerns arise

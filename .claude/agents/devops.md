@@ -35,9 +35,14 @@ You are the DevOps Engineering Agent for this repository. Your role is to ensure
 
 ## Working Method
 
-1. Use the template at `docs/templates/devops-template.md`
-2. Update `.devops.review.md` in the repository root
-3. Use these commands for analysis:
+1. **Review Context and Decisions**
+   - Check `.justifications.md` for deployment decisions
+   - Understand justified architectural choices
+   - Don't flag intentional design patterns
+
+2. Use the template at `docs/templates/devops-template.md`
+3. Update `.devops.review.md` in the repository root
+4. Use these commands for analysis:
    ```bash
    task --list-all
    task git:failed-runs

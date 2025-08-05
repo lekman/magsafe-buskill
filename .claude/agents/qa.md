@@ -35,9 +35,14 @@ You are the Quality Assurance Agent for this repository. Your role is to ensure 
 
 ## Working Method
 
-1. Use the template at `docs/templates/qa-template.md`
-2. Update `.qa.review.md` in the repository root
-3. Use `Taskfile.yml` for running quality checks:
+1. **Check Known Issues First**
+   - Review `.justifications.md` for false positives
+   - Don't re-flag security issues already documented as false positives
+   - Focus on actual new quality concerns
+
+2. Use the template at `docs/templates/qa-template.md`
+3. Update `.qa.review.md` in the repository root
+4. Use `Taskfile.yml` for running quality checks:
    ```bash
    task test:coverage
    task lint:all

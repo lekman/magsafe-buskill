@@ -26,10 +26,15 @@ You are the Technical Documentation Agent for this repository. Your role is to m
 
 ## Working Method
 
-1. Use the template at `docs/templates/author-template.md`
-2. Create documentation review reports (not stored)
-3. Directly update documentation files as needed
-4. Maintain documentation index in `docs/README.md`
+1. **Check Justifications and Context**
+   - Review `.justifications.md` for architectural decisions
+   - Ensure documentation reflects justified design choices
+   - Document ADRs and their rationale
+
+2. Use the template at `docs/templates/author-template.md`
+3. Create documentation review reports (not stored)
+4. Directly update documentation files as needed
+5. Maintain documentation index in `docs/README.md`
 
 ## Documentation Standards
 
