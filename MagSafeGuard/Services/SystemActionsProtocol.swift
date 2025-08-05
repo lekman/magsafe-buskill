@@ -101,6 +101,14 @@ public enum SystemActionError: LocalizedError {
   case scriptExecutionFailed(exitCode: Int32)
   /// Insufficient permissions for system action
   case permissionDenied
+  /// Invalid script path (security violation)
+  case invalidScriptPath
+  /// Invalid script file type
+  case invalidScriptType
+  /// Script has insecure permissions
+  case insecureScriptPermissions
+  /// Invalid shutdown delay value
+  case invalidShutdownDelay
 
   /// Localized error description for user display.
   public var errorDescription: String? {
@@ -119,6 +127,14 @@ public enum SystemActionError: LocalizedError {
       return "Script failed with exit code: \(exitCode)"
     case .permissionDenied:
       return "Permission denied for system action"
+    case .invalidScriptPath:
+      return "Script path is not allowed for security reasons"
+    case .invalidScriptType:
+      return "Script file type is not supported"
+    case .insecureScriptPermissions:
+      return "Script has insecure file permissions"
+    case .invalidShutdownDelay:
+      return "Invalid shutdown delay value"
     }
   }
 }
