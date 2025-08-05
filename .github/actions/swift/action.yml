@@ -10,6 +10,10 @@ inputs:
     description: "Additional suffix for cache key"
     required: false
     default: "v4-swift6"
+  project-path:
+    description: "Path to the Swift package directory"
+    required: false
+    default: "MagSafeGuardLib"
 
 outputs:
   spm-cache-hit:
@@ -26,9 +30,11 @@ runs:
 
     - name: Create cache directories
       shell: bash
+      env:
+        PROJECT_PATH: ${{ inputs.project-path }}
       run: |
         # Create directories that will be cached to avoid warnings
-        mkdir -p MagSafeGuardLib/.build
+        mkdir -p "$PROJECT_PATH/.build"
         mkdir -p ~/.swiftpm
         mkdir -p ~/Library/Caches/org.swift.swiftpm
     
@@ -37,19 +43,21 @@ runs:
       uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
       with:
         path: |
-          MagSafeGuardLib/.build
+          ${{ inputs.project-path }}/.build
           ~/.swiftpm
           ~/Library/Caches/org.swift.swiftpm
-        key: ${{ runner.os }}-spm-${{ hashFiles('MagSafeGuardLib/Package.swift', 'MagSafeGuardLib/Package.resolved') }}-${{ inputs.cache-key-suffix }}
+        key: ${{ runner.os }}-spm-${{ hashFiles(format('{0}/Package.swift', inputs.project-path), format('{0}/Package.resolved', inputs.project-path)) }}-${{ inputs.cache-key-suffix }}
         restore-keys: |
-          ${{ runner.os }}-spm-${{ hashFiles('MagSafeGuardLib/Package.swift') }}-
+          ${{ runner.os }}-spm-${{ hashFiles(format('{0}/Package.swift', inputs.project-path)) }}-
           ${{ runner.os }}-spm-
 
     - name: Resolve Swift Package Dependencies
       shell: bash
+      env:
+        PROJECT_PATH: ${{ inputs.project-path }}
       run: |
         echo "📦 Resolving Swift package dependencies..."
-        cd MagSafeGuardLib && swift package resolve
+        cd "$PROJECT_PATH" && swift package resolve
         echo "✅ Dependencies resolved"
     
     - name: Cache and Install Taskfile
