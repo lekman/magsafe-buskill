@@ -25,11 +25,16 @@
     "LICENSE": true,
     "sbom.spdx": true,
     "sonar-project.properties": true,
-    "coverage*.*": true,
+    "coverage*.xml": true,
+    "coverage*.md": true,
+    "coverage*.profdata": true,
+    ".markdownlintignore": true,
+    ".*.toml": true,
     ".*.yml": true,
     ".*.json": true,
     "test_output.log": true,
-    ".githooks/": true
+    ".githooks/": true,
+    "CLAUDE.md": true
   },
   "search.exclude": {
     "**/node_modules": true,

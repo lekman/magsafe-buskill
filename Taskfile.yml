@@ -30,6 +30,9 @@ includes:
   git:
     taskfile: ./tasks/git.yml
     optional: false
+  ai:
+    taskfile: ./tasks/ai.yml
+    optional: false
 vars:
   HOOKS_PATH: .githooks
   SEMGREP_CONFIG: auto
@@ -63,6 +66,14 @@ tasks:
         echo "  task markdown:     - Markdown linting"
         echo "  task yaml:         - YAML validation and linting"
         echo "  task git:          - Git and GitHub tasks"
+        echo "  task ai:           - AI agent analysis tasks"
+        echo ""
+        echo "🤖 AI Analysis:"
+        echo "  task ai:qa         - Run all QA agents (security, coverage, performance)"
+        echo "  task ai:architect  - Architecture review and SOLID validation"
+        echo "  task ai:author     - Documentation analysis"
+        echo "  task ai:devops     - Build and deployment optimization"
+        echo "  task ai:status     - Show agent reports status"
         echo ""
         echo "💡 Tips:"
         echo "  • Use 'task <module>:' to see module-specific tasks"

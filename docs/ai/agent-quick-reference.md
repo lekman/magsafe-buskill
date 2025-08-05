@@ -39,7 +39,7 @@ claude-code agent run --all
 
 ## Key Files Structure
 
-```
+```ini
 /
 ├── .architecture.review.md    # Architect's report
 ├── .qa.review.md             # QA's report
