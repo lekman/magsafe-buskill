@@ -55,9 +55,17 @@ jobs:
         run: |
           # Get list of changed files
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD 2>/dev/null || git diff --name-only HEAD~1)
+            # Fetch the base branch for comparison
+            git fetch --no-tags --depth=1 origin ${{ github.base_ref }}
+            CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD || echo "")
           else
-            CHANGED_FILES=$(git diff --name-only HEAD~1 2>/dev/null || echo "")
+            # For push events, compare with the parent commit if available
+            if git rev-parse HEAD^ >/dev/null 2>&1; then
+              CHANGED_FILES=$(git diff --name-only HEAD^ HEAD || echo "")
+            else
+              # First commit in the repository, treat all files as changed
+              CHANGED_FILES=$(git ls-tree -r --name-only HEAD || echo "")
+            fi
           fi
           
           # Check if any Swift files or build files changed

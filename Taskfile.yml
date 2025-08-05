@@ -410,7 +410,7 @@ tasks:
 
           # Filter to only include source files (exclude tests and mocks)
           awk '/^SF:/ {
-            if ($0 !~ /Tests\// && $0 !~ /Mock/) {
+            if ($0 !~ /Tests\// && $0 !~ /Mock/ && $0 !~ /\.build\// && $0 !~ /runner\.swift/) {
               capture=1
             } else {
               capture=0
@@ -543,6 +543,7 @@ tasks:
           echo '<coverage version="1">' >> coverage.xml
           
           if [ -s coverage.lcov ]; then
+            echo "📊 Processing coverage.lcov ($(wc -l < coverage.lcov) lines) into SonarQube XML..."
             # Parse LCOV and generate SonarQube XML
             awk '
               BEGIN { 
@@ -557,8 +558,8 @@ tasks:
                 # Extract filename and make it relative from MagSafeGuardLib
                 file = substr($0, 4)
                 gsub(/.*MagSafeGuardLib\//, "MagSafeGuardLib/", file)
-                # Skip test files
-                if (file !~ /Tests\//) {
+                # Skip test files, build artifacts, and runner files
+                if (file !~ /Tests\// && file !~ /\.build\// && file !~ /runner\.swift/) {
                   print "  <file path=\"" file "\">"
                   in_file = 1
                   current_file = file
