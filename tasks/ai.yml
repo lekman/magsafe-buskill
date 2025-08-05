@@ -33,6 +33,7 @@ tasks:
 
   architect:
     desc: "Run architecture review agent"
+    silent: true
     cmds:
       - echo "🏗️  Running Architecture Review Agent..."
       - |
@@ -58,6 +59,8 @@ tasks:
           if [ -s .architecture.review.md.tmp ]; then
             mv .architecture.review.md.tmp .architecture.review.md
             echo "✅ Architecture report saved to .architecture.review.md"
+            # Lint the markdown file
+            markdownlint --fix .architecture.review.md 2>/dev/null || true
           else
             rm -f .architecture.review.md.tmp
             echo "⚠️  No report generated"
@@ -81,11 +84,14 @@ tasks:
         - P1: Abstract os.Logger in Domain layer
         - P2: Add more integration tests for repositories
         EOF
+          # Lint the markdown file
+          markdownlint --fix .architecture.review.md 2>/dev/null || true
         fi
       - echo "✅ Architecture review complete. See .architecture.review.md"
 
   qa:
     desc: "Run quality assurance agent with all subagents"
+    silent: true
     vars:
       LATEST_PR:
         sh: gh pr list --limit 1 --json number --jq '.[0].number' 2>/dev/null || echo ""
@@ -128,6 +134,8 @@ tasks:
             if [ -s .qa.review.md.tmp ]; then
               mv .qa.review.md.tmp .qa.review.md
               echo "✅ QA report saved to .qa.review.md"
+              # Lint the markdown file
+              markdownlint --fix .qa.review.md 2>/dev/null || true
             else
               rm -f .qa.review.md.tmp
               echo "⚠️  No report generated"
@@ -146,6 +154,8 @@ tasks:
             if [ -s .qa.review.md.tmp ]; then
               mv .qa.review.md.tmp .qa.review.md
               echo "✅ QA report saved to .qa.review.md"
+              # Lint the markdown file
+              markdownlint --fix .qa.review.md 2>/dev/null || true
             else
               rm -f .qa.review.md.tmp
               echo "⚠️  No report generated"
@@ -162,6 +172,7 @@ tasks:
 
   author:
     desc: "Run documentation agent"
+    silent: true
     cmds:
       - echo "📝 Running Documentation Agent..."
       - |
@@ -174,11 +185,35 @@ tasks:
 
   devops:
     desc: "Run DevOps engineering agent"
+    silent: true
     cmds:
       - echo "🚀 Running DevOps Engineering Agent..."
       - |
         if command -v claude >/dev/null 2>&1; then
-          claude agent run devops
+          claude -p "You are the @devops agent. Review the MagSafe Guard build and deployment configuration.
+          
+          Use your subagents:
+          1. @devops:docker-optimizer - Container optimization (if applicable)
+          2. @devops:k8s-validator - Kubernetes validation (if applicable)
+          3. @devops:cost-analyzer - Infrastructure cost analysis
+          
+          Review:
+          - Taskfile.yml for build automation
+          - .github/workflows/ for CI/CD pipelines
+          - Security gates and deployment practices
+          
+          Use the template at docs/templates/devops-template.md and output the complete DevOps review report." > .devops.review.md.tmp
+          
+          # Check if report was generated
+          if [ -s .devops.review.md.tmp ]; then
+            mv .devops.review.md.tmp .devops.review.md
+            echo "✅ DevOps report saved to .devops.review.md"
+            # Lint the markdown file
+            markdownlint --fix .devops.review.md 2>/dev/null || true
+          else
+            rm -f .devops.review.md.tmp
+            echo "⚠️  No report generated"
+          fi
         else
           echo "⚠️  Claude CLI not found. Simulating DevOps review..."
           echo "📝 Creating .devops.review.md..."
@@ -198,6 +233,8 @@ tasks:
         - P2: Add caching for Swift dependencies
         - P3: Optimize test parallelization
         EOF
+          # Lint the markdown file
+          markdownlint --fix .devops.review.md 2>/dev/null || true
         fi
       - echo "✅ DevOps review complete. See .devops.review.md"
 
