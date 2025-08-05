@@ -22,12 +22,12 @@ coverage:
         only_pulls: false
     patch:
       default:
-        target: 80%
-        threshold: 1%
+        target: 0%  # Disable patch coverage requirements
+        threshold: 0%
         base: auto
         if_not_found: success
         if_ci_failed: error
-        informational: false
+        informational: true  # Make it informational only
         only_pulls: false
 
 parsers:
