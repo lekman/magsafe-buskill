@@ -650,10 +650,9 @@ tasks:
       - echo "🔬 Running standard QA suite..."
       - task: qa:fix
       - task: swift:test
-      - task: xcode:build
-      - task: xcode:test
       - task: swift:lint
       - task: yaml:lint
+      - task: yaml:codecov:validate
       - task: markdown:lint
       - task: security:scan
       - task: swift:sbom

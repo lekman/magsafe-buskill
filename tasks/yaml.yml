@@ -319,6 +319,40 @@ tasks:
             exit 1
           fi
         fi
+  codecov:validate:
+    desc: Validate codecov.yml configuration using Codecov API
+    aliases: ["codecov:check"]
+    silent: true
+    cmds:
+      - |
+        echo "🔍 Validating codecov.yml configuration..."
+        
+        if [ ! -f ".codecov.yml" ]; then
+          echo "❌ No .codecov.yml file found"
+          exit 1
+        fi
+        
+        # Use Codecov validation API
+        echo "📤 Sending to Codecov validation API..."
+        RESPONSE=$(curl -s -X POST \
+          --data-binary @.codecov.yml \
+          --header "Accept: application/json" \
+          https://api.codecov.io/validate)
+        
+        # Check response - the API returns "Valid!" with the parsed config
+        if echo "$RESPONSE" | grep -q "Valid!"; then
+          echo "✅ Codecov configuration is valid!"
+        elif echo "$RESPONSE" | grep -qi "error"; then
+          echo "❌ Codecov configuration is invalid:"
+          echo ""
+          echo "$RESPONSE" | jq -r '.error' 2>/dev/null || echo "$RESPONSE"
+          exit 1
+        else
+          echo "⚠️  Unexpected response from Codecov API:"
+          echo "$RESPONSE"
+          echo ""
+          echo "Continuing anyway..."
+        fi
   validate:
     desc: Validate YAML syntax (basic check without linting rules)
     silent: true

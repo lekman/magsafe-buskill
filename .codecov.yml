@@ -48,17 +48,15 @@ flags:
   domain:
     paths:
       - MagSafeGuardLib/Sources/MagSafeGuardDomain/
-    target: 95% # Domain Use Cases: 95-100%
+    # Flags don't support coverage targets directly
 
   models:
     paths:
       - MagSafeGuardLib/Sources/MagSafeGuardDomain/Models/
-    target: 100% # Data Models: 100%
 
   usecases:
     paths:
       - MagSafeGuardLib/Sources/MagSafeGuardDomain/UseCases/
-    target: 95% # Business logic: 95-100%
 
 ignore:
   # Only MagSafeGuardLib is covered - exclude everything else
