@@ -8,6 +8,139 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- This changelog is automatically maintained by release-please -->
 <!-- Do not manually edit below this line -->
 
+## [1.10.0](https://github.com/lekman/magsafe-buskill/compare/v1.9.0...v1.10.0) (2025-08-03)
+
+
+### Features
+
+* add iCloud sync functionality for settings ([b21b885](https://github.com/lekman/magsafe-buskill/commit/b21b8851a3943d4d03138a456ec15749136e5333))
+* **ci:** add Taskfile caching action for all workflows ([b1a174f](https://github.com/lekman/magsafe-buskill/commit/b1a174f80ef79b71175e80e7d56d3996b1907599))
+* **ci:** implement CI test strategies to avoid permission dialogs ([ce7bf7f](https://github.com/lekman/magsafe-buskill/commit/ce7bf7fe06a62f27469354527a0ef3b87a55c592))
+* **ci:** implement Swift Package Manager for CI testing ([aab189e](https://github.com/lekman/magsafe-buskill/commit/aab189eeee35c71c67e8d47dc3338f3c1e3c92f8))
+* **ci:** migrate all CI workflows from macOS to Ubuntu ([3e13a6e](https://github.com/lekman/magsafe-buskill/commit/3e13a6e96c81c6593e2a8896aa4861500f9b09d7))
+* enhance iCloud sync functionality and update feature flag management ([203c4cb](https://github.com/lekman/magsafe-buskill/commit/203c4cb2a171775c27a90e1fe2c3aaefb5634ba8))
+* Implement robust logging and error handling in SyncService; refactor CloudKit initialization and sync methods for improved stability and performance. Update UserDefaultsManager to defer sync service initialization, ensuring proper settings loading. Enhance CloudSyncSettingsView to manage sync state effectively and prevent crashes during UI updates. Add comprehensive crash prevention and debugging guides for maintainers. ([6f3b470](https://github.com/lekman/magsafe-buskill/commit/6f3b470d2bf8e68dcacd2c61704503769a9ce375))
+* migrate project to Xcode structure with CloudKit integration ([f41f6ee](https://github.com/lekman/magsafe-buskill/commit/f41f6ee9e3deaff110eac936a3444619b91e0a5a))
+* **taskfile:** add run IDs to git:runs:check table output ([0520732](https://github.com/lekman/magsafe-buskill/commit/05207320e5bc58d5ada4c6c6c3cbc6c8c07a971e))
+* update settings UI to use sidebar navigation and enhance iCloud sync settings ([2dcadc4](https://github.com/lekman/magsafe-buskill/commit/2dcadc4ff26104e2cb9542ca0fb083e0bdc74376))
+
+
+### Bug Fixes
+
+* add cache-key-suffix to Setup Swift Build Environment step in CodeQL workflow ([62960da](https://github.com/lekman/magsafe-buskill/commit/62960da9cc8f3635cba63a20b5fa21b0846dd753))
+* add CI-specific build scheme and update test commands to use it ([dd730a6](https://github.com/lekman/magsafe-buskill/commit/dd730a63bc00df86791d2932ec0afe3d33833c37))
+* add missing completion parameter to disarm calls in tests ([66331e7](https://github.com/lekman/magsafe-buskill/commit/66331e7f1bab5e6e153dab8fecd70238f0cd4ce7))
+* address Swift linting issues and format code ([627090f](https://github.com/lekman/magsafe-buskill/commit/627090f491bee5c339bd96f3d6f92cf2d21145f9))
+* apply SwiftLint auto-fixes and markdown formatting ([5cb47f2](https://github.com/lekman/magsafe-buskill/commit/5cb47f28023371350d566b059b21070fd43ade27))
+* **build:** remove invalid exclude parameter from Package.swift ([270ed3c](https://github.com/lekman/magsafe-buskill/commit/270ed3cda60bf0665ec7c1c133a3ed3141ee81ff))
+* **build:** specify explicit destination to avoid xcodebuild warnings ([e95121f](https://github.com/lekman/magsafe-buskill/commit/e95121fc4e588cf2b9c2537bef54425196d7203e))
+* **ci:** add CI-specific flags to build tasks to prevent hanging ([43772cb](https://github.com/lekman/magsafe-buskill/commit/43772cbae3f0c055b7fbfecbaf87716772602955))
+* **ci:** add timeout and quiet mode to prevent xcodebuild hanging ([910e312](https://github.com/lekman/magsafe-buskill/commit/910e3121921f319a8bac2584f05ee139c4bec401))
+* **ci:** add xcodeproj files required for CI builds ([ebdaf77](https://github.com/lekman/magsafe-buskill/commit/ebdaf775fb07bd95ba4702514c38b7ac48d30cf3))
+* **ci:** clean up workflows for successful CI/CD execution ([88de410](https://github.com/lekman/magsafe-buskill/commit/88de410aa6fcb1c64b02c8272a9087890bd56917))
+* **ci:** correct Swift Bundler download URL and method ([5b3ad52](https://github.com/lekman/magsafe-buskill/commit/5b3ad529aa5bd24c9354652f5be6d2a646db88e3))
+* **ci:** correct YAML syntax in test-local.yml ([aa692f2](https://github.com/lekman/magsafe-buskill/commit/aa692f26dc032d2b1db5d9a4d43bf23474e53688))
+* **ci:** disable code signing for tests in CI environment ([50ab431](https://github.com/lekman/magsafe-buskill/commit/50ab431a18e165f0b49607cd3b692fef9a2b16ab))
+* **ci:** disable sandbox/hardened runtime and skip UI tests in CI ([fc8afa4](https://github.com/lekman/magsafe-buskill/commit/fc8afa4942592104868cd3e2ce873320f93da2d3))
+* **ci:** disable TEST_HOST and BUNDLE_LOADER to prevent app launch ([5fddd8d](https://github.com/lekman/magsafe-buskill/commit/5fddd8de9c11ae268e44c520d20cab357f819299))
+* **ci:** disable tests in CI and simplify CodeQL for immediate merge ([8978b4f](https://github.com/lekman/magsafe-buskill/commit/8978b4fd69596c35111e52220db2ae64e9fc8ca7))
+* **ci:** fix CodeCov and CodeQL configurations ([83d7770](https://github.com/lekman/magsafe-buskill/commit/83d77701d34fb2c74ebf4039effe5915164a4d03))
+* **ci:** fix sonar:convert task to work with SPM-based testing ([d97dd9a](https://github.com/lekman/magsafe-buskill/commit/d97dd9a41ce3756ff91cece305dd8bcc44c643ba))
+* **ci:** handle ARM Mac Rosetta issues in setup-swift-build action ([510a64c](https://github.com/lekman/magsafe-buskill/commit/510a64ce39556fb723dec16fc638247a12616e5d))
+* **ci:** handle xcodebuild broken pipe errors in swift action ([fe1a66d](https://github.com/lekman/magsafe-buskill/commit/fe1a66dd2100a843cfb4992d917d1208f26b1cf6))
+* **ci:** improve xcodebuild error handling and output capture in CI ([2096cf2](https://github.com/lekman/magsafe-buskill/commit/2096cf2a973e7b10882e98adcaa3fdaa3a4f0397))
+* **ci:** limit tests to safe subset that don't trigger system dialogs ([73a790e](https://github.com/lekman/magsafe-buskill/commit/73a790e37ed4e3a2f59c4d253734d8a2e4756ceb))
+* **ci:** prevent location permission dialogs during CI tests ([32a3638](https://github.com/lekman/magsafe-buskill/commit/32a3638510797380b5fe37c8dc1c0f6c7ccd2206))
+* **ci:** remove build operations from Swift setup action ([4aee356](https://github.com/lekman/magsafe-buskill/commit/4aee35677319537b2ceab88e67678ec4b1cfa02b))
+* **ci:** remove deprecated add-snippets parameter from CodeQL action ([57caf88](https://github.com/lekman/magsafe-buskill/commit/57caf885349a19cba3194f1e8fcbb5b5a71890a9))
+* **ci:** remove missing swift:setup-bundler dependency and inline bundler setup ([ede211c](https://github.com/lekman/magsafe-buskill/commit/ede211cd2bcb8edbbbb60fe25d89539efcfb4925))
+* **ci:** remove TEST_HOST/BUNDLE_LOADER and add MAGSAFE_GUARD_TEST_MODE env var ([767c2a1](https://github.com/lekman/magsafe-buskill/commit/767c2a15172dda8c937c9640c01ee82ae0876470))
+* **ci:** remove timeout command for macOS compatibility ([b4f36ac](https://github.com/lekman/magsafe-buskill/commit/b4f36ac453424bbfae9fd8444fbb10698537707e))
+* **ci:** replace deprecated save-always with separate restore/save steps ([c4989e1](https://github.com/lekman/magsafe-buskill/commit/c4989e1334e5c80b09af4eaf622d9d9e86d0043c))
+* **ci:** resolve CodeQL cache miss and key conflicts ([ab6ed7e](https://github.com/lekman/magsafe-buskill/commit/ab6ed7eed267d07c83b2aaca656ad19faa2a6766))
+* **ci:** resolve test workflow failures with consistent scheme usage ([bfbda7a](https://github.com/lekman/magsafe-buskill/commit/bfbda7a47c3390f65ed9b0de7d724bbcc6a2f13c))
+* **ci:** simplify test execution to use xcodebuild test directly ([141b4c6](https://github.com/lekman/magsafe-buskill/commit/141b4c6c7a23b27507baa50b53ea61b90595d4c6))
+* **ci:** switch from Ubuntu to macOS runners for Swift analysis ([059fdbe](https://github.com/lekman/magsafe-buskill/commit/059fdbe77e4f2b10cf05a22eaf6e5a7751a5602c))
+* **ci:** update build-sign workflow to use Swift Bundler and fix sign tasks ([5f0afa0](https://github.com/lekman/magsafe-buskill/commit/5f0afa0c4e1b7f4f3aaa1dabfb0c9c5f7474fc6e))
+* **ci:** update cache action to v4.2.0 to fix deprecated version error ([7da62ee](https://github.com/lekman/magsafe-buskill/commit/7da62ee64ca3cc00e53f167239a86b38664dac08))
+* **ci:** update cache actions to use v4 tag instead of deprecated SHAs ([206d7c1](https://github.com/lekman/magsafe-buskill/commit/206d7c1846a6232f0fc350d5ab91c8bb13f91daa))
+* **ci:** update CodeQL workflow to use xcodebuild for Xcode project ([bf788f6](https://github.com/lekman/magsafe-buskill/commit/bf788f6e59df31d37f8bfcff6fef3974abd7d211))
+* **ci:** update GitHub workflows to use correct task names and fix PIPESTATUS bash array usage ([43ba8e6](https://github.com/lekman/magsafe-buskill/commit/43ba8e695e6e061040bf627b44104d1ba7285738))
+* **ci:** update Swift version to 5.10 for Ubuntu compatibility ([4083fab](https://github.com/lekman/magsafe-buskill/commit/4083fabb0f21331a287bb8642f44662225c7027b))
+* **ci:** update swift-actions/setup-swift to v2 to fix GPG error ([30b581d](https://github.com/lekman/magsafe-buskill/commit/30b581dd4c922d5efb54ad2a0293be26036bcb03))
+* **ci:** update test.yml to use sonar CLI directly on macOS ([db9bd15](https://github.com/lekman/magsafe-buskill/commit/db9bd1598ecac323bad7c3fa9f63011ba3164a42))
+* **ci:** use direct xcodebuild for CodeQL to avoid build hangs ([dc3d799](https://github.com/lekman/magsafe-buskill/commit/dc3d79935413c3e386d1e8133887102ba2f80072))
+* **ci:** use local action reference for cache-taskfile in setup-swift-build ([5345ce2](https://github.com/lekman/magsafe-buskill/commit/5345ce29894ac2114b72ed7c825880057517a0ea))
+* **codeql:** always build for CodeQL analysis to fix 'no source code seen' error ([3a57715](https://github.com/lekman/magsafe-buskill/commit/3a57715ee705c07529b8987d7ec6f26468eb6811))
+* correct syntax for cache-key-suffix in Setup Swift Build Environment action ([5a89b81](https://github.com/lekman/magsafe-buskill/commit/5a89b811eba7b52be1ae0f5f4f2fd8426b9d4048))
+* implement protocol-based dependency injection for LocationManager ([0b9a843](https://github.com/lekman/magsafe-buskill/commit/0b9a8434fb3bb779e1a78638962eda1ee0888135))
+* settings menu item not opening due to missing target ([a5f47c0](https://github.com/lekman/magsafe-buskill/commit/a5f47c0dd67b890ae68bc0af3256982ccae081f0))
+* streamline permissions section in CodeQL workflow ([15321b2](https://github.com/lekman/magsafe-buskill/commit/15321b2ec14cc561b11d3717ca5494a61b8c222c))
+* **taskfile:** make git:runs:log non-interactive with silent mode ([d1e26e6](https://github.com/lekman/magsafe-buskill/commit/d1e26e680f7317184b94311f5f9c1f298f1fb509))
+* **tests:** fix FeatureFlagsTests JSON file tests for CI ([392aaa4](https://github.com/lekman/magsafe-buskill/commit/392aaa4ce1ca400321e9efb1b259c41fd1421e88))
+* **tests:** fix FeatureFlagsTests loadFromJSON test ([6e0316c](https://github.com/lekman/magsafe-buskill/commit/6e0316c64325266484429d0341d40010c9a803a0))
+* **tests:** make FeatureFlagsTests more robust for CI environment ([f97926c](https://github.com/lekman/magsafe-buskill/commit/f97926c98b4726d9daebf835844395c59243f4fc))
+* **tests:** prevent app initialization during test runs ([2a6a02b](https://github.com/lekman/magsafe-buskill/commit/2a6a02b2eca8e10de109d51d873c96f4cb0b02c1))
+* **tests:** resolve architecture mismatch and scheme issues in CI tests ([51d40f0](https://github.com/lekman/magsafe-buskill/commit/51d40f0b4b4ac93d2583c444106bd37d071e92b5))
+* **tests:** resolve CI test failures with linking and warnings ([ea28c68](https://github.com/lekman/magsafe-buskill/commit/ea28c689106ec97836032f71b767c7e4000d98e7))
+* **tests:** use correct LogCategory.general instead of .app ([283dcd9](https://github.com/lekman/magsafe-buskill/commit/283dcd90e3d4df847b066c3427e3e78761fcaf6b))
+* **ui:** resolve settings window visibility and environment object issues ([024fd2c](https://github.com/lekman/magsafe-buskill/commit/024fd2c9174b4a9bb7ac970380f8b3c4303b4d26))
+* update all remaining references to old naming conventions ([6027b26](https://github.com/lekman/magsafe-buskill/commit/6027b2673febd746a3965ac0ba704ee19bfe1006))
+* **workflows:** remove cache key suffixes for Taskfile caching in build-sign, codeql, and test workflows ([ba690c8](https://github.com/lekman/magsafe-buskill/commit/ba690c8e7bce688e35e2aa95e6faac3843e4da17))
+* **xcode:** add test targets to MagSafeGuard scheme BuildAction ([aa65a54](https://github.com/lekman/magsafe-buskill/commit/aa65a544c902d993eec2b769359705ec4192f737))
+
+
+### Performance Improvements
+
+* **ci:** only save taskfile cache when freshly installed ([6bd3a5b](https://github.com/lekman/magsafe-buskill/commit/6bd3a5b79cbed044fdd74c91262b35999ed8b245))
+* **ci:** optimize build and test performance to prevent timeouts ([e0db009](https://github.com/lekman/magsafe-buskill/commit/e0db009ad55dcb3f636cd7d93da79bac0edf740b))
+* **ci:** optimize CodeQL workflow with enhanced caching ([647e283](https://github.com/lekman/magsafe-buskill/commit/647e283913e6a2ced1699090ac7cd29baa67d759))
+* **ci:** use Swift Package Manager for CodeQL builds ([c571474](https://github.com/lekman/magsafe-buskill/commit/c571474a2ffd702a32f4379dfbf37c44eb9c5821))
+
+
+### Documentation
+
+* add test refactoring plan and remove debug configuration ([600e6fa](https://github.com/lekman/magsafe-buskill/commit/600e6fa52c3b8e257b2be066cd5cf406c89face3))
+
+
+### Continuous Integration
+
+* add more verbose error output for test failures ([6da1721](https://github.com/lekman/magsafe-buskill/commit/6da17217eb253dc28fbcc1c815fb5dcd1d94b613))
+* add verbose output to diagnose test coverage failures ([122b9cc](https://github.com/lekman/magsafe-buskill/commit/122b9cca23c71f1c6d45ee22d08cf0333ca67f6e))
+* temporarily disable build-sign workflow ([f183ae7](https://github.com/lekman/magsafe-buskill/commit/f183ae7293a84c58ff4445532b7d2f84fdc93da3))
+
+
+### Code Refactoring
+
+* **build:** replace Swift Bundler with native xcodebuild task ([cf31a03](https://github.com/lekman/magsafe-buskill/commit/cf31a03e413fcb282cd8d629c0aeb9098af10783))
+* **ci:** consolidate Taskfile caching into setup-swift-build action ([2bd8415](https://github.com/lekman/magsafe-buskill/commit/2bd84151f54421f4ed88a8d24d8b1aa9a64f752d))
+* **ci:** extract SonarCloud scan to reusable action ([248f541](https://github.com/lekman/magsafe-buskill/commit/248f541f2ca9f8038a954ba26b7f8c5b42614f86))
+* **ci:** remove validation and summary steps from Swift setup action ([bd50ddc](https://github.com/lekman/magsafe-buskill/commit/bd50ddc4f0913bdb355cee913e488dc278f809a8))
+* **ci:** streamline CI/CD workflows and improve test coverage reporting ([638305e](https://github.com/lekman/magsafe-buskill/commit/638305e336e3e04f315ccbcd822c873860873f59))
+* **ci:** update GitHub workflows to use Taskfile ([4c47422](https://github.com/lekman/magsafe-buskill/commit/4c47422e5611c651f930657a297810f6d5d06a30))
+* **ci:** use Taskfile commands in CodeQL workflow for consistency ([bb5a555](https://github.com/lekman/magsafe-buskill/commit/bb5a5553f943c2d49cec3f185119e393eaf7d0c5))
+* **ci:** use Taskfile for SPM workflows instead of bash scripts ([4d580c6](https://github.com/lekman/magsafe-buskill/commit/4d580c6e267741e03f18ae9db33e855fd2ac7fe6))
+* clean up project structure and remove demo functionality ([143b794](https://github.com/lekman/magsafe-buskill/commit/143b79448c64894ba86da6446dc4841f1182fac9))
+* code structure for improved readability and maintainability ([b88fc0c](https://github.com/lekman/magsafe-buskill/commit/b88fc0c3bd9380df2229a4c8eb4b8e6a9f6b3f49))
+* consolidate workflow actions and implement concurrency for improved efficiency ([7433786](https://github.com/lekman/magsafe-buskill/commit/743378685212dc7464e9a8911da09e22e8f1303d))
+* streamline code formatting and improve readability across multiple files ([230fc49](https://github.com/lekman/magsafe-buskill/commit/230fc49c8bb0af7da6f8c7a240245ab15084b578))
+* **test:** implement protocol-based dependency injection for location services ([62afba2](https://github.com/lekman/magsafe-buskill/commit/62afba2c5d2b04f6d829d761bf3aa08ec600011f))
+* **tests:** migrate tests to Xcode project structure ([cb49d54](https://github.com/lekman/magsafe-buskill/commit/cb49d5495324894f272bfcff3e62063ca36c8ea5))
+* update action path for pinning specific composite action ([c8c294e](https://github.com/lekman/magsafe-buskill/commit/c8c294ed11511b23d97c86ff71a2af118741b826))
+* **yaml:** reduce verbosity of validation output ([0acf56e](https://github.com/lekman/magsafe-buskill/commit/0acf56ec6d1a1cd1f6be6fa3e14527fb0d6616ce))
+
+
+### Tests
+
+* **ci:** add individual test runner to identify hanging tests ([4c3260b](https://github.com/lekman/magsafe-buskill/commit/4c3260b7e0750401de944ca9fa625c95057de03e))
+* **swift:** add comprehensive unit tests for Logger and FeatureFlags utilities ([31e4b28](https://github.com/lekman/magsafe-buskill/commit/31e4b2896e8aa56c606a9fbd29977ab2f03c66b2))
+
+
+### Styles
+
+* fix SwiftLint warnings and configuration ([bc49e6f](https://github.com/lekman/magsafe-buskill/commit/bc49e6fc25c1fb477318524ba2cee7a522d1d1ad))
+* fix trailing whitespace and YAML formatting ([ee116b1](https://github.com/lekman/magsafe-buskill/commit/ee116b1c0f64f08e6d7089efcfc69efa62c67381))
+
 ## [1.9.0](https://github.com/lekman/magsafe-buskill/compare/v1.8.0...v1.9.0) (2025-07-30)
 
 
