@@ -31,7 +31,7 @@ runs:
 
     - name: Restore Taskfile cache
       id: cache-restore
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v4 # v4
       with:
         path: |
           /usr/local/bin/task
@@ -95,7 +95,7 @@ runs:
         fi
 
     - name: Save Taskfile cache
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v4 # v4
       # Only save cache if we didn't restore from cache (i.e., we installed fresh)
       if: steps.cache-restore.outputs.cache-hit != 'true'
       with:

@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # 8edcb1bdb4e267140fa742c62e395cd74f332709
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
 
       - name: Check coverage files
         id: check-coverage
@@ -45,7 +45,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: steps.check-coverage.outputs.found == 'true'
-        uses: codecov/codecov-action@2db07e317924c76f654a414629d71c65876882e2 # 2db07e317924c76f654a414629d71c65876882e2
+        uses: codecov/codecov-action@2db07e317924c76f654a414629d71c65876882e2 # v3
         with:
           use_oidc: true
           codecov_yml_path: .codecov.yml
