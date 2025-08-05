@@ -628,10 +628,10 @@ tasks:
         echo "✅ Coverage reports generated"
         
         # Ensure coverage files are in project root for CI
-        if [ -f "MagSafeGuardLib/coverage.lcov" ] && [ ! -f "coverage.lcov" ]; then
+        if [ -f "MagSafeGuardLib/coverage.xml" ]; then
           echo "📊 Copying coverage files from MagSafeGuardLib to project root..."
-          cp MagSafeGuardLib/coverage.lcov coverage.lcov
-          cp MagSafeGuardLib/coverage.xml coverage.xml 2>/dev/null || true
+          cp MagSafeGuardLib/coverage.lcov coverage.lcov 2>/dev/null || true
+          cp MagSafeGuardLib/coverage.xml coverage.xml
           cp MagSafeGuardLib/coverage-report.txt coverage-report.txt 2>/dev/null || true
           cp MagSafeGuardLib/coverage-report.md coverage-report.md 2>/dev/null || true
         fi
