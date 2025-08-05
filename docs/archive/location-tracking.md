@@ -90,7 +90,6 @@ The feature/location-tracking branch introduces significant changes to the MagSa
 
 ### CI/CD & Workflows
 
-- **New**: `.github/workflows/build-sign.yml` - Build and sign workflow
 - **Modified**: All existing workflows updated with security improvements
 - **New Scripts**:
   - `sign-app.sh` - App signing automation

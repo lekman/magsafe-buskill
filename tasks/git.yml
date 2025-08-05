@@ -952,9 +952,9 @@ tasks:
       Download logs from the latest run of a workflow or a specific run ID.
 
       Usage:
-        task git:runs:log WORKFLOW="Build and Sign"  # Download latest run of workflow
+        task git:runs:log WORKFLOW="Tests"           # Download latest run of workflow
         task git:runs:log RUN_ID=16614742239         # Download specific run ID
-        task git:runs:log WORKFLOW="build-sign"      # Partial filename match
+        task git:runs:log WORKFLOW="test"            # Partial filename match
 
       The logs will be downloaded to .logs/<workflow-name>/<run-id>/ directory.
     silent: true

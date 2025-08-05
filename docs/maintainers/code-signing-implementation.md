@@ -44,7 +44,7 @@ Updated `tasks/swift.yml` with new signing tasks:
 
 ### 5. CI/CD Support
 
-Created `.github/workflows/build-sign.yml` demonstrating:
+CI/CD signing support includes:
 
 - Certificate import from secrets
 - Configuration-based signing

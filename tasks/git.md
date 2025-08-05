@@ -195,7 +195,7 @@ task git:runs:log WORKFLOW="Build and Sign"
 task git:runs:log RUN_ID=16614742239
 
 # Use partial workflow name or filename
-task git:runs:log WORKFLOW="build-sign"
+task git:runs:log WORKFLOW="test"
 task git:runs:log WORKFLOW="security"
 
 # Aliases
