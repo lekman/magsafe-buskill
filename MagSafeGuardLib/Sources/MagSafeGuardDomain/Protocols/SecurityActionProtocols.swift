@@ -258,6 +258,8 @@ public enum SecurityActionError: LocalizedError, Equatable, Sendable {
     case systemError(description: String)
     /// Configuration is invalid
     case invalidConfiguration(reason: String)
+    /// Rate limit exceeded
+    case rateLimitExceeded
 
     /// Localized error description
     public var errorDescription: String? {
@@ -274,6 +276,8 @@ public enum SecurityActionError: LocalizedError, Equatable, Sendable {
             return "System error: \(description)"
         case .invalidConfiguration(let reason):
             return "Invalid configuration: \(reason)"
+        case .rateLimitExceeded:
+            return "Security action rate limit exceeded. Please wait before trying again."
         }
     }
 }
