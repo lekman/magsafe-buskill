@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 env:
-  SWIFT_VERSION: "5.9"
+  SWIFT_VERSION: "6.0"
 
 permissions:
   contents: read
@@ -31,7 +31,7 @@ jobs:
       - name: Setup Swift Build Environment
         uses: ./.github/actions/swift
         with:
-          swift-version: "5.9"
+          swift-version: "6.0"
 
       - name: Import Signing Certificate
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')

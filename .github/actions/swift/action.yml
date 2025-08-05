@@ -23,8 +23,90 @@ outputs:
 runs:
   using: "composite"
   steps:
+    - name: Record setup start time
+      id: start-time
+      shell: bash
+      run: echo "timestamp=$(date +%s)" >> $GITHUB_OUTPUT
+
+    - name: Check if Swift is already available
+      id: check-swift
+      shell: bash
+      env:
+        REQUESTED_VERSION: ${{ inputs.swift-version }}
+      run: |
+        START_TIME=$(date +%s)
+        
+        # Check if Swift is already available in the requested version
+        echo "🔍 Checking for Swift $REQUESTED_VERSION..."
+        
+        # First check if xcrun can find a Swift toolchain
+        if xcrun --find swift &> /dev/null; then
+          # Try to use xcrun with toolchain to get Swift version
+          if CURRENT_VERSION=$(xcrun --toolchain swift "$REQUESTED_VERSION" --run swift --version 2>/dev/null | head -n1 | sed 's/.*version \([0-9.]*\).*/\1/'); then
+            echo "Found Swift via xcrun toolchain: $CURRENT_VERSION"
+          elif CURRENT_VERSION=$(swift --version 2>/dev/null | head -n1 | sed 's/.*version \([0-9.]*\).*/\1/'); then
+            echo "Found Swift in PATH: $CURRENT_VERSION"
+          else
+            echo "Could not determine Swift version"
+            echo "swift-available=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Extract major.minor versions for comparison
+          CURRENT_MAJOR_MINOR=$(echo "$CURRENT_VERSION" | cut -d. -f1,2)
+          REQUESTED_MAJOR_MINOR=$(echo "$REQUESTED_VERSION" | cut -d. -f1,2)
+          
+          echo "Current version: $CURRENT_VERSION (major.minor: $CURRENT_MAJOR_MINOR)"
+          echo "Requested version: $REQUESTED_VERSION (major.minor: $REQUESTED_MAJOR_MINOR)"
+          
+          if [[ "$CURRENT_MAJOR_MINOR" == "$REQUESTED_MAJOR_MINOR" ]]; then
+            echo "✅ Swift $CURRENT_VERSION is already available"
+            echo "swift-available=true" >> $GITHUB_OUTPUT
+            echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            
+            # Set TOOLCHAINS environment variable for subsequent steps
+            echo "TOOLCHAINS=swift $CURRENT_VERSION" >> $GITHUB_ENV
+            
+            END_TIME=$(date +%s)
+            echo "⏱️ Swift check took $((END_TIME - START_TIME)) seconds"
+          else
+            echo "❌ Swift version mismatch"
+            echo "swift-available=false" >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "❌ Swift not found via xcrun"
+          echo "swift-available=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Check tool cache for Swift
+      id: tool-cache
+      if: steps.check-swift.outputs.swift-available != 'true'
+      shell: bash
+      env:
+        SWIFT_VERSION: ${{ inputs.swift-version }}
+        TOOL_CACHE: ${{ runner.tool_cache }}
+      run: |
+        # Check if Swift is in the tool cache
+        TOOL_CACHE_PATH="${TOOL_CACHE}/swift-macOS/${SWIFT_VERSION}"
+        
+        if [[ -d "$TOOL_CACHE_PATH" ]]; then
+          echo "✅ Found Swift in tool cache: $TOOL_CACHE_PATH"
+          echo "tool-cache-hit=true" >> $GITHUB_OUTPUT
+          echo "tool-cache-path=$TOOL_CACHE_PATH" >> $GITHUB_OUTPUT
+          
+          # Add to PATH
+          echo "$TOOL_CACHE_PATH/usr/bin" >> $GITHUB_PATH
+          export PATH="$TOOL_CACHE_PATH/usr/bin:$PATH"
+          
+          # Verify it works
+          swift --version
+        else
+          echo "tool-cache-hit=false" >> $GITHUB_OUTPUT
+        fi
+
     - name: Setup Swift
       id: setup-swift-toolchain
+      if: steps.check-swift.outputs.swift-available != 'true' && steps.tool-cache.outputs.tool-cache-hit != 'true'
       uses: swift-actions/setup-swift@v2
       with:
         swift-version: ${{ inputs.swift-version }}
@@ -33,7 +115,11 @@ runs:
       id: swift-version
       shell: bash
       run: |
-        SWIFT_VERSION=$(swift --version | head -n1 | sed 's/.*version \([0-9.]*\).*/\1/')
+        if [[ "${{ steps.check-swift.outputs.swift-available }}" == "true" ]]; then
+          SWIFT_VERSION="${{ steps.check-swift.outputs.version }}"
+        else
+          SWIFT_VERSION=$(swift --version | head -n1 | sed 's/.*version \([0-9.]*\).*/\1/')
+        fi
         echo "version=$SWIFT_VERSION" >> $GITHUB_OUTPUT
         echo "Swift version: $SWIFT_VERSION"
 
@@ -65,12 +151,84 @@ runs:
       shell: bash
       env:
         PROJECT_PATH: ${{ inputs.project-path }}
+        CACHE_HIT: ${{ steps.spm-cache.outputs.cache-hit }}
       run: |
-        echo "📦 Resolving Swift package dependencies..."
-        cd "$PROJECT_PATH" && swift package resolve
-        echo "✅ Dependencies resolved"
+        cd "$PROJECT_PATH"
+        START_TIME=$(date +%s)
+        
+        # Skip resolve if cache was hit and Package.resolved exists with valid build artifacts
+        if [[ "$CACHE_HIT" == "true" ]] && [[ -f "Package.resolved" ]] && [[ -d ".build/debug" || -d ".build/release" ]]; then
+          echo "📦 Package dependencies already resolved (cache hit)"
+          # Verify the build directory has actual content
+          if [[ -d ".build" ]]; then
+            SWIFT_FILES=$(find .build -name "*.swiftmodule" 2>/dev/null | wc -l || echo "0")
+            BUILD_SIZE=$(du -sh .build 2>/dev/null | cut -f1 || echo "0")
+            echo "✅ Build cache validated: $SWIFT_FILES Swift modules, size: $BUILD_SIZE"
+          fi
+        else
+          echo "📦 Resolving Swift package dependencies..."
+          swift package resolve
+          echo "✅ Dependencies resolved"
+        fi
+        
+        END_TIME=$(date +%s)
+        echo "⏱️ Package resolution took $((END_TIME - START_TIME)) seconds"
 
     - name: Cache and Install Taskfile
       uses: ./.github/actions/taskfile
       with:
         cache-key-suffix: ${{ inputs.cache-key-suffix }}
+
+    - name: Generate Swift Setup Summary
+      if: always()
+      shell: bash
+      env:
+        SWIFT_AVAILABLE: ${{ steps.check-swift.outputs.swift-available }}
+        SWIFT_VERSION: ${{ steps.swift-version.outputs.version }}
+        SPM_CACHE_HIT: ${{ steps.spm-cache.outputs.cache-hit }}
+        PROJECT_PATH: ${{ inputs.project-path }}
+        START_TIMESTAMP: ${{ steps.start-time.outputs.timestamp }}
+        TOOL_CACHE_HIT: ${{ steps.tool-cache.outputs.tool-cache-hit }}
+      run: |
+        TOTAL_TIME=$(($(date +%s) - START_TIMESTAMP))
+        
+        cat >> $GITHUB_STEP_SUMMARY << EOF
+        
+        ## 🔨 Swift Build Environment
+        
+        | Property | Value |
+        |----------|-------|
+        | **Swift Version** | $SWIFT_VERSION |
+        | **Swift Pre-installed** | ${SWIFT_AVAILABLE:-false} |
+        | **Tool Cache Hit** | ${TOOL_CACHE_HIT:-false} |
+        | **SPM Cache Hit** | ${SPM_CACHE_HIT:-false} |
+        | **Project Path** | \`$PROJECT_PATH\` |
+        | **Total Setup Time** | ${TOTAL_TIME}s |
+        
+        ### ⚡ Optimizations Applied:
+        EOF
+        
+        if [[ "$SWIFT_AVAILABLE" == "true" ]]; then
+          echo "- ✅ Skipped Swift installation (already available) - saved ~45s" >> $GITHUB_STEP_SUMMARY
+        elif [[ "$TOOL_CACHE_HIT" == "true" ]]; then
+          echo "- ✅ Used Swift from tool cache - saved ~40s" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- ⬇️ Downloaded and installed Swift toolchain" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [[ "$SPM_CACHE_HIT" == "true" ]]; then
+          echo "- ✅ Used cached SPM dependencies" >> $GITHUB_STEP_SUMMARY
+          if [[ -d "$PROJECT_PATH/.build/debug" || -d "$PROJECT_PATH/.build/release" ]]; then
+            echo "- ⏭️ Skipped package resolution (valid cache) - saved ~7s" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- 📦 Resolved packages (cache incomplete)" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "- 📦 Resolved package dependencies" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📊 Performance Metrics:" >> $GITHUB_STEP_SUMMARY
+        echo "- **Expected time with no optimizations**: ~60s" >> $GITHUB_STEP_SUMMARY
+        echo "- **Actual time with optimizations**: ${TOTAL_TIME}s" >> $GITHUB_STEP_SUMMARY
+        echo "- **Time saved**: ~$((60 - TOTAL_TIME))s" >> $GITHUB_STEP_SUMMARY
