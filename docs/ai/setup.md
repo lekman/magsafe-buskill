@@ -52,7 +52,8 @@ Create `.mcp.json` in the project root:
 }
 ```
 
-**Important**: 
+**Important**:
+
 - Never commit `.mcp.json` to git (it's in `.gitignore`)
 - Replace all `your_*` placeholders with actual values
 - Store sensitive tokens securely
@@ -144,6 +145,7 @@ task-master set-status --id=<id> --status=done
 ### 1. Verify Configuration
 
 Run in Swift code:
+
 ```swift
 // Initialize Sentry (done automatically at app start)
 SentryLogger.initialize()
@@ -207,6 +209,7 @@ SENTRY_DEBUG=true              # Enable debug logging
 ### 5. Performance Monitoring
 
 The integration includes automatic performance monitoring:
+
 - **Development**: 100% transaction sampling
 - **Production**: 10% transaction sampling
 - Automatic release tracking via app version
@@ -241,6 +244,7 @@ The integration includes automatic performance monitoring:
 ### Data Privacy Issues
 
 The integration includes automatic data scrubbing for:
+
 - Password fields (`password=***`)
 - API tokens (`token=***`, `key=***`)
 - User file paths (`/Users/***`)
@@ -265,6 +269,7 @@ To customize data scrubbing, modify the `scrubSensitiveData` method in `SentryLo
 ## Support
 
 For issues with:
+
 - **Sentry**: Check the Sentry documentation or project issues
 - **Task Master**: Use the Task Master AI GitHub repository
 - **MCP**: Refer to Anthropic MCP documentation

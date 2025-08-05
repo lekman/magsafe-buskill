@@ -94,8 +94,8 @@ tasks:
 
         rm -f "$temp_file"
 
-        # Check for .env files that might be committed
-        env_files=$(find . -name ".env*" -not -path "./.git/*" -not -path "./node_modules/*" 2>/dev/null || true)
+        # Check for .env files that might be committed (exclude .env.example files)
+        env_files=$(find . -name ".env*" -not -name "*.example" -not -path "./.git/*" -not -path "./node_modules/*" 2>/dev/null || true)
         if [ -n "$env_files" ]; then
           # Check if these files are in .gitignore
           unignored_env_files=""

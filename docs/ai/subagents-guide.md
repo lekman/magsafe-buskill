@@ -30,16 +30,16 @@ graph TD
     A[@architect] --> A1[Security Subagent]
     A --> A2[DDD Subagent]
     A --> A3[SOLID Subagent]
-    
+
     Q[@qa] --> Q1[Unit Test Subagent]
     Q --> Q2[Integration Test Subagent]
     Q --> Q3[Performance Subagent]
     Q --> Q4[Security Scan Subagent]
-    
+
     D[@devops] --> D1[Docker Subagent]
     D --> D2[Kubernetes Subagent]
     D --> D3[Terraform Subagent]
-    
+
     AU[@author] --> AU1[API Docs Subagent]
     AU --> AU2[Markdown Lint Subagent]
     AU --> AU3[Diagram Generator Subagent]
@@ -61,13 +61,15 @@ mkdir -p .claude-agents/subagents/{architect,qa,devops,author}
 
 Create `.claude-agents/subagents/qa/security-scanner.md`:
 
-```markdown
+````markdown
 # Security Scanner Subagent
 
 ## Purpose
+
 Specialized security analysis for the QA agent
 
 ## Responsibilities
+
 1. Run SAST analysis
 2. Check dependency vulnerabilities
 3. Scan for secrets in code
@@ -75,6 +77,7 @@ Specialized security analysis for the QA agent
 5. Check OWASP compliance
 
 ## Tools
+
 - Snyk CLI
 - SonarCloud Scanner
 - git-secrets
@@ -82,6 +85,7 @@ Specialized security analysis for the QA agent
 - npm audit
 
 ## Output Format
+
 ```json
 {
   "severity": "CRITICAL|HIGH|MEDIUM|LOW",
@@ -101,25 +105,27 @@ Specialized security analysis for the QA agent
   }
 }
 ```
+````
 
 ## Integration
 
 Reports to: @qa
 Escalates to: @architect (for design flaws), @devops (for infrastructure issues)
 
-```
-
+`````markdown
 #### Example: Test Coverage Analyzer Subagent
 
 Create `.claude-agents/subagents/qa/coverage-analyzer.md`:
 
-```markdown
+````markdown
 # Test Coverage Analyzer Subagent
 
 ## Purpose
+
 Deep analysis of test coverage metrics and gaps
 
 ## Responsibilities
+
 1. Analyze coverage by module
 2. Identify untested critical paths
 3. Calculate complexity vs coverage ratio
@@ -127,12 +133,16 @@ Deep analysis of test coverage metrics and gaps
 5. Suggest test improvements
 
 ## Commands
+
 ```bash
 task test:coverage:detailed
 task test:coverage:report
 task test:complexity:analysis
 ```
+````
+`````
 
+````markdown
 ## Analysis Criteria
 
 - Critical paths must have >95% coverage
@@ -157,8 +167,7 @@ coverage:
       action: "Add tests for auth validator edge cases"
       impact: "Prevents authentication bypass"
 ```
-
-```
+````
 
 ### Step 3: Register Subagents
 
@@ -169,53 +178,53 @@ subagents:
   qa:
     security-scanner:
       description: "Specialized security analysis"
-      trigger: 
+      trigger:
         - on_demand
         - schedule: "daily"
         - on_change: ["package.json", "requirements.txt", "go.mod"]
-      
+
     coverage-analyzer:
       description: "Deep test coverage analysis"
       trigger:
         - on_demand
         - on_change: ["**/*.test.*", "**/*.spec.*"]
         - after: "test runs"
-    
+
     performance-profiler:
       description: "Performance and load testing"
       trigger:
         - on_demand
         - before_release
         - schedule: "weekly"
-  
+
   architect:
     solid-validator:
       description: "SOLID principles compliance"
-      trigger: 
+      trigger:
         - on_change: ["src/**/*.{js,ts,java,cs}"]
-    
+
     security-architect:
       description: "Security architecture patterns"
       trigger:
         - on_demand
         - on_change: ["**/auth*", "**/security*"]
-    
+
     ddd-analyzer:
       description: "Domain-driven design validation"
       trigger:
         - on_change: ["domain/**", "application/**"]
-  
+
   devops:
     docker-optimizer:
       description: "Docker image optimization"
       trigger:
         - on_change: ["**/Dockerfile*", "**/.dockerignore"]
-    
+
     k8s-validator:
-      description: "Kubernetes manifest validation"  
+      description: "Kubernetes manifest validation"
       trigger:
         - on_change: ["k8s/**", "**/*.yaml"]
-    
+
     cost-analyzer:
       description: "Cloud resource cost analysis"
       trigger:
@@ -267,7 +276,7 @@ workflows:
             condition: "always"
           - name: performance-profiler
             condition: "tag matches 'v*'"
-      
+
       - agent: architect
         subagents:
           - name: security-architect
@@ -283,7 +292,7 @@ claude-code chat qa
 > run security scan on the authentication module
 # QA automatically delegates to security-scanner subagent
 
-> analyze test coverage for critical paths only  
+> analyze test coverage for critical paths only
 # QA uses coverage-analyzer subagent with filters
 
 > check all quality metrics before release
@@ -302,17 +311,17 @@ stages:
   - name: dependency-scan
     subagent: qa/dependency-scanner
     output: dependencies.json
-    
+
   - name: code-scan
     subagent: qa/security-scanner
     input: dependencies.json
     output: vulnerabilities.json
-    
+
   - name: architecture-review
     subagent: architect/security-architect
     input: vulnerabilities.json
     output: security-report.md
-    
+
   - name: remediation-plan
     subagent: devops/security-patcher
     input: security-report.md
@@ -343,13 +352,15 @@ Create composite subagents that use other subagents:
 # Composite Release Readiness Subagent
 
 ## Subagents Used
+
 - qa/security-scanner
-- qa/coverage-analyzer  
+- qa/coverage-analyzer
 - qa/performance-profiler
 - architect/api-compatibility
 - devops/deployment-validator
 
 ## Composition Logic
+
 1. Run all QA subagents in parallel
 2. If all pass, run architect subagents
 3. If architect approves, run devops validation
@@ -378,12 +389,12 @@ messaging:
     publishes:
       - topic: "security.vulnerabilities"
       - topic: "security.critical"
-    
+
   coverage-analyzer:
     subscribes:
       - topic: "security.critical"
         action: "prioritize coverage for security-critical code"
-    
+
   security-architect:
     subscribes:
       - topic: "security.vulnerabilities"
@@ -442,7 +453,7 @@ claude-code subagent logs qa/security-scanner --tail 100
 
 ### 2. Naming Conventions
 
-```
+```text
 {parent-agent}/{function}-{target}
 
 Examples:
@@ -458,7 +469,7 @@ Examples:
 # Subagent error configuration
 error_handling:
   security-scanner:
-    on_tool_missing: 
+    on_tool_missing:
       action: "skip_with_warning"
       notify: "@devops"
     on_timeout:
@@ -476,7 +487,7 @@ error_handling:
 subagent_versions:
   qa/security-scanner: "1.2.0"
   qa/coverage-analyzer: "1.1.0"
-  
+
   changelog:
     qa/security-scanner:
       "1.2.0": "Added support for Go security scanning"
