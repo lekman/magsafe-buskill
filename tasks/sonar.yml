@@ -711,7 +711,7 @@ tasks:
         # Create proper SonarQube Generic Test Coverage XML
         echo '<?xml version="1.0" encoding="UTF-8"?>' > coverage.xml
         echo '<coverage version="1">' >> coverage.xml
-        
+
         if [ -s coverage.lcov ]; then
           # Parse LCOV and generate SonarQube XML
           awk '
@@ -760,7 +760,7 @@ tasks:
         else
           echo "⚠️  No coverage.lcov found - creating empty coverage report"
         fi
-        
+
         echo '</coverage>' >> coverage.xml
 
         # Validate and report

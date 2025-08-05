@@ -65,7 +65,7 @@ ignore:
   - "MagSafeGuard/"
   - "MagSafeGuardTests/"
   - "MagSafeGuardUITests/"
-  
+
   # Test Infrastructure (not covered by design - per TEST_REFACTORING_PLAN_V2.md)
   - "MagSafeGuardLib/Tests/"
   - "**/Tests/"
@@ -75,7 +75,7 @@ ignore:
   - "**/Builders/"
   - "**/Fixtures/"
   - "**/Assertions/"
-  
+
   # System Integration Layer in MagSafeGuardLib (excluded per plan)
   - "MagSafeGuardLib/Sources/MagSafeGuardInfrastructure/"
   - "**/MacSystemActions.swift"
