@@ -1,3 +1,7 @@
+# Codecov Configuration
+# NOTE: Coverage is only tracked for MagSafeGuardLib (SPM package)
+# Xcode-specific code cannot be covered in CI
+
 codecov:
   require_ci_to_pass: true
 
@@ -43,23 +47,26 @@ comment:
 flags:
   domain:
     paths:
-      - MagSafeGuard/Domain/
+      - MagSafeGuardLib/Sources/MagSafeGuardDomain/
     target: 95% # Domain Use Cases: 95-100%
 
   models:
     paths:
-      - MagSafeGuard/Models/
+      - MagSafeGuardLib/Sources/MagSafeGuardDomain/Models/
     target: 100% # Data Models: 100%
 
   usecases:
     paths:
-      - MagSafeGuard/Domain/UseCases/
+      - MagSafeGuardLib/Sources/MagSafeGuardDomain/UseCases/
     target: 95% # Business logic: 95-100%
 
 ignore:
-  # Test Infrastructure (not covered by design - per TEST_REFACTORING_PLAN_V2.md)
+  # Only MagSafeGuardLib is covered - exclude everything else
+  - "MagSafeGuard/"
   - "MagSafeGuardTests/"
   - "MagSafeGuardUITests/"
+  
+  # Test Infrastructure (not covered by design - per TEST_REFACTORING_PLAN_V2.md)
   - "MagSafeGuardLib/Tests/"
   - "**/Tests/"
   - "**/TestInfrastructure/"
@@ -68,26 +75,13 @@ ignore:
   - "**/Builders/"
   - "**/Fixtures/"
   - "**/Assertions/"
-  - "backup/"
-
-  # System Integration Layer (excluded per plan)
-  - "MagSafeGuard/Services/MacSystemActions.swift"
-  - "MagSafeGuard/Services/IOKit*.swift"
-  - "MagSafeGuard/Services/CoreLocation*.swift"
-  - "MagSafeGuard/Services/Network*.swift"
-  - "MagSafeGuard/Data/Repositories/*Repository.swift"
-
-  # SwiftUI Views (excluded per plan)
-  - "MagSafeGuard/Views/"
-  - "MagSafeGuard/Assets.xcassets/"
-
-  # Bootstrap Code (excluded per plan)
-  - "MagSafeGuard/AppDelegate.swift"
-  - "MagSafeGuard/AppDelegateCore.swift"
-  - "MagSafeGuard/MagSafeGuardApp.swift"
-
-  # Legacy Controllers (being refactored)
-  - "MagSafeGuard/Controllers/"
+  
+  # System Integration Layer in MagSafeGuardLib (excluded per plan)
+  - "MagSafeGuardLib/Sources/MagSafeGuardInfrastructure/"
+  - "**/MacSystemActions.swift"
+  - "**/IOKit*.swift"
+  - "**/CoreLocation*.swift"
+  - "**/Network*.swift"
 
   # Infrastructure
   - ".githooks/"
