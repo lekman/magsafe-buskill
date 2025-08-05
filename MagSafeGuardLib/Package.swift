@@ -19,7 +19,7 @@ let package = Package(
         ),
     ],
     dependencies: [
-        // Add any external dependencies here
+        .package(url: "https://github.com/getsentry/sentry-cocoa", from: "8.0.0")
     ],
     targets: [
         // Domain Layer
@@ -32,7 +32,10 @@ let package = Package(
         // Core Layer
         .target(
             name: "MagSafeGuardCore",
-            dependencies: ["MagSafeGuardDomain"],
+            dependencies: [
+                "MagSafeGuardDomain",
+                .product(name: "Sentry", package: "sentry-cocoa")
+            ],
             path: "Sources/MagSafeGuardCore"
         ),
         

@@ -40,6 +40,14 @@ public struct Log {
     return FileLogger()
   }()
 
+  // MARK: - Initialization
+  
+  /// Initialize logging system including Sentry integration
+  public static func initialize() {
+    // Initialize Sentry integration if enabled
+    SentryLogger.initialize()
+  }
+
   // MARK: - Public Methods
 
   /// Log debug information (only visible with debug flag)
@@ -99,12 +107,15 @@ public struct Log {
     category.logger.notice("\(message, privacy: .public): \(value, privacy: .private)")
   }
 
-  /// Log warnings
+  /// Log warnings (also sent to Sentry)
   public static func warning(_ message: String, category: LogCategory = .general) {
     category.logger.warning("\(message, privacy: .public)")
+    
+    // Also log to Sentry if enabled
+    SentryLogger.logWarning(message, category: category)
   }
 
-  /// Log errors (also saved to file)
+  /// Log errors (also saved to file and Sentry)
   public static func error(_ message: String, error: Error? = nil, category: LogCategory = .general) {
     let fullMessage: String
     if let error = error {
@@ -117,9 +128,12 @@ public struct Log {
 
     // Also log errors to file
     fileLogger?.logError(fullMessage, category: category)
+    
+    // Also log to Sentry if enabled
+    SentryLogger.logError(message, error: error, category: category)
   }
 
-  /// Log critical failures (also saved to file)
+  /// Log critical failures (also saved to file and Sentry)
   public static func critical(
     _ message: String, error: Error? = nil, category: LogCategory = .general
   ) {
@@ -134,12 +148,18 @@ public struct Log {
 
     // Also log critical errors to file
     fileLogger?.logError(fullMessage, category: category, level: "CRITICAL")
+    
+    // Also log to Sentry if enabled  
+    SentryLogger.logError(message, error: error, category: category, level: .fatal)
   }
 
-  /// Log faults/crashes (also saved to file)
+  /// Log faults/crashes (also saved to file and Sentry)
   public static func fault(_ message: String, category: LogCategory = .general) {
     category.logger.fault("\(message, privacy: .public)")
     fileLogger?.logError(message, category: category, level: "FAULT")
+    
+    // Also log to Sentry if enabled
+    SentryLogger.logError(message, category: category, level: .fatal)
   }
 
   // MARK: - Privacy-Aware Logging

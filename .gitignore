@@ -149,3 +149,4 @@ coverage/
 
 # AI agent justifications and false positives
 !.justifications.md
+.mcp.json
