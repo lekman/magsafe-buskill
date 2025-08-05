@@ -95,7 +95,9 @@ public enum AuthenticationResult: Equatable, Sendable {
 
     /// Whether the authentication was successful.
     public var isSuccess: Bool {
-        if case .success = self { return true }
+        if case .success = self {
+            return true
+        }
         return false
     }
 }
@@ -346,7 +348,7 @@ public struct AuthenticationSecurityConfig: Sendable {
 
     /// Default security configuration.
     /// Balanced for usability and security.
-    public static let `default` = AuthenticationSecurityConfig()
+    public static let defaultConfig = AuthenticationSecurityConfig()
 
     /// High security configuration with stricter limits.
     /// Use for sensitive environments.

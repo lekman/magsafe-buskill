@@ -143,7 +143,7 @@ struct AuthenticationUseCaseImplTests {
     @Test("AuthenticationUseCaseImpl initialization")
     func authenticationUseCaseImplInitialization() {
         let repository = MockAuthenticationRepository()
-        let config = AuthenticationSecurityConfig.default
+        let config = AuthenticationSecurityConfig.defaultConfig
         let stateManager = MockAuthenticationStateManager()
 
         _ = AuthenticationUseCaseImpl(

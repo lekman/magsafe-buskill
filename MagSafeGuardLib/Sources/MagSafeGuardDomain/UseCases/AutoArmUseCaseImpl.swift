@@ -71,7 +71,7 @@ public actor AutoArmDecisionUseCaseImpl: AutoArmDecisionUseCase {
 
     /// Checks if auto-arm is currently possible
     public func canAutoArm() async -> Bool {
-        let configuration = await configurationStore.loadConfiguration() ?? .default
+        let configuration = await configurationStore.loadConfiguration() ?? .defaultConfig
 
         // Check basic conditions
         guard configuration.isEnabled else { return false }
@@ -89,7 +89,7 @@ public actor AutoArmDecisionUseCaseImpl: AutoArmDecisionUseCase {
 
     /// Gets the current auto-arm status
     public func getAutoArmStatus() async -> AutoArmStatus {
-        let configuration = await configurationStore.loadConfiguration() ?? .default
+        let configuration = await configurationStore.loadConfiguration() ?? .defaultConfig
         let isArmed = await armingService.isArmed()
 
         return AutoArmStatus(
@@ -154,7 +154,7 @@ public actor AutoArmConfigurationUseCaseImpl: AutoArmConfigurationUseCase {
 
     /// Gets the current auto-arm configuration
     public func getConfiguration() async -> AutoArmConfiguration {
-        return await configurationStore.loadConfiguration() ?? .default
+        return await configurationStore.loadConfiguration() ?? .defaultConfig
     }
 
     /// Updates the auto-arm configuration
@@ -215,7 +215,7 @@ public actor AutoArmMonitoringUseCaseImpl: AutoArmMonitoringUseCase {
         // Stop any existing monitoring
         monitoringTask?.cancel()
 
-        let configuration = await configurationStore.loadConfiguration() ?? .default
+        let configuration = await configurationStore.loadConfiguration() ?? .defaultConfig
         guard configuration.isEnabled else { return }
 
         // Start repositories based on configuration
@@ -228,20 +228,25 @@ public actor AutoArmMonitoringUseCaseImpl: AutoArmMonitoringUseCase {
         }
 
         // Start monitoring task
-        monitoringTask = Task {
-            await withTaskGroup(of: Void.self) { group in
-                // Monitor location changes
-                if configuration.armByLocation {
-                    group.addTask { [weak self] in
-                        await self?.monitorLocationChanges()
-                    }
-                }
+        monitoringTask = Task { [weak self] in
+            guard let self = self else { return }
+            await self.startMonitoringTasks(configuration: configuration)
+        }
+    }
 
-                // Monitor network changes
-                if configuration.armOnUntrustedNetwork {
-                    group.addTask { [weak self] in
-                        await self?.monitorNetworkChanges()
-                    }
+    private func startMonitoringTasks(configuration: AutoArmConfiguration) async {
+        await withTaskGroup(of: Void.self) { group in
+            // Monitor location changes
+            if configuration.armByLocation {
+                group.addTask { [weak self] in
+                    await self?.monitorLocationChanges()
+                }
+            }
+
+            // Monitor network changes
+            if configuration.armOnUntrustedNetwork {
+                group.addTask { [weak self] in
+                    await self?.monitorNetworkChanges()
                 }
             }
         }
@@ -285,7 +290,7 @@ public actor AutoArmMonitoringUseCaseImpl: AutoArmMonitoringUseCase {
         for await isInTrusted in locationRepository.observeLocationTrustChanges() {
             if wasInTrustedLocation && !isInTrusted {
                 // Left trusted location
-                let configuration = await configurationStore.loadConfiguration() ?? .default
+                let configuration = await configurationStore.loadConfiguration() ?? .defaultConfig
                 let event = AutoArmEvent(
                     trigger: .leftTrustedLocation(name: nil),
                     configuration: configuration
@@ -298,7 +303,7 @@ public actor AutoArmMonitoringUseCaseImpl: AutoArmMonitoringUseCase {
 
     private func monitorNetworkChanges() async {
         for await change in networkRepository.observeNetworkChanges() {
-            let configuration = await configurationStore.loadConfiguration() ?? .default
+            let configuration = await configurationStore.loadConfiguration() ?? .defaultConfig
 
             switch change {
             case .connectedToNetwork(let ssid, let trusted):
@@ -347,7 +352,9 @@ public actor InMemoryAutoArmConfigurationStore: AutoArmConfigurationStore {
     private var storedConfiguration: AutoArmConfiguration?
 
     /// Initializes the in-memory configuration store
-    public init() {}
+    public init() {
+        // No initialization required for in-memory storage
+    }
 
     /// Saves configuration to memory
     public func saveConfiguration(_ configuration: AutoArmConfiguration) async throws {

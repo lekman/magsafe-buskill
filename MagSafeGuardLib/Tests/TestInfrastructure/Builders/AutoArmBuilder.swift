@@ -276,7 +276,7 @@ public final class TrustedNetworkBuilder {
 public final class AutoArmEventBuilder {
     private var trigger: AutoArmTrigger = .manual(reason: "Test")
     private var timestamp = Date()
-    private var configuration: AutoArmConfiguration = .default
+    private var configuration: AutoArmConfiguration = .defaultConfig
 
     /// Initialize a new auto-arm event builder.
     public init() {}

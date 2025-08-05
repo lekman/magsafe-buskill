@@ -100,8 +100,12 @@ public actor SecurityActionExecutionUseCaseImpl: SecurityActionExecutionUseCase 
     private func getSortedActions(from enabledActions: Set<SecurityActionType>) -> [SecurityActionType] {
         return enabledActions.sorted { action1, action2 in
             // Screen lock has highest priority
-            if action1 == .lockScreen { return true }
-            if action2 == .lockScreen { return false }
+            if action1 == .lockScreen {
+                return true
+            }
+            if action2 == .lockScreen {
+                return false
+            }
             return action1.rawValue < action2.rawValue
         }
     }
@@ -123,7 +127,7 @@ public actor SecurityActionConfigurationUseCaseImpl: SecurityActionConfiguration
         configurationStore: SecurityActionConfigurationStore = InMemoryConfigurationStore()
     ) {
         self.configurationStore = configurationStore
-        self.currentConfiguration = .default
+        self.currentConfiguration = .defaultConfig
 
         Task {
             // Load persisted configuration
@@ -188,7 +192,7 @@ public actor SecurityActionConfigurationUseCaseImpl: SecurityActionConfiguration
 
     /// Resets configuration to default values
     public func resetToDefault() async {
-        currentConfiguration = .default
+        currentConfiguration = .defaultConfig
         try? await configurationStore.saveConfiguration(currentConfiguration)
     }
 
@@ -214,7 +218,9 @@ public actor InMemoryConfigurationStore: SecurityActionConfigurationStore {
     private var storedConfiguration: SecurityActionConfiguration?
 
     /// Initializes the in-memory configuration store
-    public init() {}
+    public init() {
+        // No initialization required for in-memory storage
+    }
 
     /// Saves configuration to memory
     public func saveConfiguration(_ configuration: SecurityActionConfiguration) async throws {

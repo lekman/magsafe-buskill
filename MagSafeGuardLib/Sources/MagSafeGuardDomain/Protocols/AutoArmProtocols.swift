@@ -54,7 +54,7 @@ public struct AutoArmConfiguration: Equatable, Sendable {
     }
 
     /// Default configuration with auto-arm disabled
-    public static let `default` = AutoArmConfiguration()
+    public static let defaultConfig = AutoArmConfiguration()
 }
 
 /// Trigger that caused auto-arm activation
@@ -121,7 +121,9 @@ public enum AutoArmDecision: Equatable, Sendable {
 
     /// Whether the decision is to arm
     public var shouldArm: Bool {
-        if case .arm = self { return true }
+        if case .arm = self {
+            return true
+        }
         return false
     }
 }

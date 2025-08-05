@@ -169,7 +169,7 @@ struct SecurityActionUseCaseTests {
         let configuration = await useCase.getCurrentConfiguration()
 
         // Then
-        #expect(configuration == .default)
+        #expect(configuration == .defaultConfig)
     }
 
     @Test("Should update configuration")
@@ -348,7 +348,7 @@ struct SecurityActionUseCaseTests {
 
         // Then
         let configuration = await useCase.getCurrentConfiguration()
-        #expect(configuration == .default)
+        #expect(configuration == .defaultConfig)
     }
     
     // MARK: - SecurityActionType Tests

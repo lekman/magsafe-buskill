@@ -559,7 +559,7 @@ tasks:
           # Display available PRs
           echo ""
           echo "Available pull requests:"
-          echo "$PR_LIST" | jq -r '.pullRequests[] | "  PR #\\(.key): \\(.title) [\\(.status)]"' 2>/dev/null || echo "  Unable to parse PR list"
+          echo "$PR_LIST" | jq -r '.pullRequests[] | "  PR #\(.key): \(.title) [\(.status)]"' 2>/dev/null || echo "  Unable to parse PR list"
 
           echo ""
           echo "Enter PR number, 'latest' for most recent, or press Enter to choose latest:"

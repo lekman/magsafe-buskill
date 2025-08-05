@@ -261,7 +261,7 @@ struct DomainProtocolTests {
 
     @Test("SecurityActionConfiguration has default values")
     func securityActionConfigurationDefaults() {
-        let config = SecurityActionConfiguration.default
+        let config = SecurityActionConfiguration.defaultConfig
 
         #expect(config.enabledActions.contains(.lockScreen))
         #expect(config.actionDelay >= 0)
@@ -346,7 +346,7 @@ struct DomainProtocolTests {
 
     @Test("SecurityActionRequest initialization")
     func securityActionRequestInit() {
-        let config = SecurityActionConfiguration.default
+        let config = SecurityActionConfiguration.defaultConfig
         let trigger = SecurityTrigger.powerDisconnected
         let timestamp = Date()
 
@@ -363,7 +363,7 @@ struct DomainProtocolTests {
 
     @Test("SecurityActionRequest default timestamp")
     func securityActionRequestDefaultTimestamp() {
-        let config = SecurityActionConfiguration.default
+        let config = SecurityActionConfiguration.defaultConfig
         let trigger = SecurityTrigger.manualTrigger
 
         let request = SecurityActionRequest(
@@ -380,7 +380,7 @@ struct DomainProtocolTests {
 
     @Test("SecurityActionExecutionResult initialization")
     func securityActionExecutionResultInit() {
-        let config = SecurityActionConfiguration.default
+        let config = SecurityActionConfiguration.defaultConfig
         let trigger = SecurityTrigger.testTrigger
         let request = SecurityActionRequest(configuration: config, trigger: trigger)
 
@@ -406,7 +406,7 @@ struct DomainProtocolTests {
 
     @Test("SecurityActionExecutionResult allSucceeded computation")
     func securityActionExecutionResultAllSucceeded() {
-        let config = SecurityActionConfiguration.default
+        let config = SecurityActionConfiguration.defaultConfig
         let trigger = SecurityTrigger.testTrigger
         let request = SecurityActionRequest(configuration: config, trigger: trigger)
 
@@ -439,7 +439,7 @@ struct DomainProtocolTests {
 
     @Test("SecurityActionExecutionResult failedActions computation")
     func securityActionExecutionResultFailedActions() {
-        let config = SecurityActionConfiguration.default
+        let config = SecurityActionConfiguration.defaultConfig
         let trigger = SecurityTrigger.testTrigger
         let request = SecurityActionRequest(configuration: config, trigger: trigger)
 
@@ -462,7 +462,7 @@ struct DomainProtocolTests {
 
     @Test("SecurityActionExecutionResult duration computation")
     func securityActionExecutionResultDuration() {
-        let config = SecurityActionConfiguration.default
+        let config = SecurityActionConfiguration.defaultConfig
         let trigger = SecurityTrigger.testTrigger
         let request = SecurityActionRequest(configuration: config, trigger: trigger)
 
@@ -906,7 +906,7 @@ struct DomainProtocolTests {
     @Test("AuthenticationSecurityConfig static configurations")
     func authenticationSecurityConfigStatic() {
         // Test default config
-        let defaultConfig = AuthenticationSecurityConfig.default
+        let defaultConfig = AuthenticationSecurityConfig.defaultConfig
         #expect(defaultConfig.maxFailedAttempts == 3)
         #expect(defaultConfig.rateLimitDuration == 30)
 
@@ -1184,7 +1184,7 @@ struct DomainProtocolTests {
 
     @Test("AutoArmConfiguration default static value")
     func autoArmConfigurationDefault() {
-        let defaultConfig = AutoArmConfiguration.default
+        let defaultConfig = AutoArmConfiguration.defaultConfig
 
         #expect(defaultConfig.isEnabled == false)
         #expect(defaultConfig.armByLocation == false)
@@ -1219,7 +1219,7 @@ struct DomainProtocolTests {
     func autoArmEventInit() {
         let trigger = AutoArmTrigger.leftTrustedLocation(name: "Office")
         let timestamp = Date()
-        let config = AutoArmConfiguration.default
+        let config = AutoArmConfiguration.defaultConfig
 
         let event = AutoArmEvent(
             trigger: trigger,
@@ -1235,7 +1235,7 @@ struct DomainProtocolTests {
     @Test("AutoArmEvent default timestamp")
     func autoArmEventDefaultTimestamp() {
         let trigger = AutoArmTrigger.manual(reason: "Test")
-        let config = AutoArmConfiguration.default
+        let config = AutoArmConfiguration.defaultConfig
 
         let event = AutoArmEvent(trigger: trigger, configuration: config)
 
@@ -1369,7 +1369,7 @@ struct DomainProtocolTests {
     @Test("AutoArmStatus initialization")
     func autoArmStatusInit() {
         let timestamp = Date()
-        let config = AutoArmConfiguration.default
+        let config = AutoArmConfiguration.defaultConfig
         let trigger = AutoArmTrigger.manual(reason: "Test")
         let lastEvent = AutoArmEvent(trigger: trigger, timestamp: timestamp, configuration: config)
         let networkInfo = NetworkInfo(isConnected: true, currentSSID: "Test", isTrusted: true)

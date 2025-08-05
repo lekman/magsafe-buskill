@@ -67,10 +67,10 @@ public enum SecurityActionType: String, CaseIterable, Equatable, Codable, Sendab
 
     /// Whether this action is enabled by default
     public var defaultEnabled: Bool {
-        switch self {
-        case .lockScreen: return true
-        default: return false
+        if self == .lockScreen {
+            return true
         }
+        return false
     }
 }
 
@@ -115,7 +115,7 @@ public struct SecurityActionConfiguration: Equatable, Sendable {
     }
 
     /// Default configuration with only screen lock enabled
-    public static let `default` = SecurityActionConfiguration()
+    public static let defaultConfig = SecurityActionConfiguration()
 }
 
 /// Security action execution request
@@ -345,7 +345,9 @@ public protocol SecurityActionExecutionStrategy {
 /// Sequential execution strategy
 public struct SequentialExecutionStrategy: SecurityActionExecutionStrategy, Sendable {
     /// Initializes the sequential execution strategy
-    public init() {}
+    public init() {
+        // No initialization required for stateless strategy
+    }
 
     /// Executes actions sequentially
     public func executeActions(
@@ -414,7 +416,9 @@ public struct SequentialExecutionStrategy: SecurityActionExecutionStrategy, Send
 /// Parallel execution strategy
 public struct ParallelExecutionStrategy: SecurityActionExecutionStrategy, Sendable {
     /// Initializes the parallel execution strategy
-    public init() {}
+    public init() {
+        // No initialization required for stateless strategy
+    }
 
     /// Executes actions in parallel
     public func executeActions(

@@ -130,7 +130,7 @@ public final class SecurityActionConfigurationBuilder {
 
 /// Builder for creating SecurityActionRequest test instances.
 public final class SecurityActionRequestBuilder {
-    private var configuration: SecurityActionConfiguration = .default
+    private var configuration: SecurityActionConfiguration = .defaultConfig
     private var trigger: SecurityTrigger = .testTrigger
     private var timestamp = Date()
 

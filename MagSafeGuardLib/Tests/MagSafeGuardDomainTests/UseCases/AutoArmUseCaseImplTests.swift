@@ -180,7 +180,7 @@ struct AutoArmUseCaseImplTests {
 
         let event = AutoArmEvent(
             trigger: .leftTrustedLocation(name: "Home"),
-            configuration: .default // isEnabled = false
+            configuration: .defaultConfig // isEnabled = false
         )
 
         let decision = await useCase.evaluateAutoArmEvent(event)
@@ -578,7 +578,7 @@ struct AutoArmUseCaseImplTests {
         )
 
         let config = await useCase.getConfiguration()
-        #expect(config == .default)
+        #expect(config == .defaultConfig)
     }
 
     @Test("Get configuration")

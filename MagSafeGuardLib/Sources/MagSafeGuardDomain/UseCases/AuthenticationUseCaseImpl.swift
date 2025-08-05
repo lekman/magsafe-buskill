@@ -25,7 +25,7 @@ public actor AuthenticationUseCaseImpl: AuthenticationUseCase {
     ///   - stateManager: State manager for authentication history
     public init(
         repository: AuthenticationRepository,
-        securityConfig: AuthenticationSecurityConfig = .default,
+        securityConfig: AuthenticationSecurityConfig = .defaultConfig,
         stateManager: AuthenticationStateManager = InMemoryAuthenticationStateManager()
     ) {
         self.repository = repository
@@ -140,11 +140,10 @@ public actor AuthenticationUseCaseImpl: AuthenticationUseCase {
 
         let failedAttempts = recentAttempts.filter { !$0.success }.count
 
-        if failedAttempts >= securityConfig.maxFailedAttempts {
+        if failedAttempts >= securityConfig.maxFailedAttempts,
+           let lastFailedAttempt = recentAttempts.filter({ !$0.success }).last {
             // Calculate when rate limit expires
-            if let lastFailedAttempt = recentAttempts.filter({ !$0.success }).last {
-                return lastFailedAttempt.timestamp.addingTimeInterval(securityConfig.rateLimitDuration)
-            }
+            return lastFailedAttempt.timestamp.addingTimeInterval(securityConfig.rateLimitDuration)
         }
 
         return nil
@@ -224,7 +223,9 @@ public actor InMemoryAuthenticationStateManager: AuthenticationStateManager {
     private let maxHistorySize = 100
 
     /// Initializes the in-memory state manager
-    public init() {}
+    public init() {
+        // No initialization required for in-memory storage
+    }
 
     /// Records an authentication attempt
     public func recordAttempt(_ attempt: AuthenticationAttempt) {
