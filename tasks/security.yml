@@ -191,6 +191,7 @@ tasks:
         else
           SEARCH_PATHS="{{.TARGET_PATH}}"
         fi
+
         # Check if jq is installed
         if ! command -v jq &> /dev/null; then
           echo "❌ jq is required but not installed"
@@ -219,49 +220,99 @@ tasks:
         echo "🔒 Pinning GitHub Actions to specific commit SHAs..."
         echo ""
 
+        # Function to get version/tag name for a SHA
+        get_version_for_sha() {
+          local full_action=$1
+          local sha=$2
+          
+          # Extract base repo (handle sub-path actions like github/codeql-action/upload-sarif)
+          local repo=$(echo "$full_action" | cut -d'/' -f1-2)
+          
+          # Set auth header if token is available
+          local auth_header=""
+          if [ -n "$GITHUB_TOKEN" ]; then
+            auth_header="Authorization: token $GITHUB_TOKEN"
+          fi
+
+          # Try to find matching tags for this SHA
+          response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/git/refs/tags" 2>/dev/null)
+          if [ $? -eq 0 ] && [ -n "$response" ]; then
+            # Check if response is valid JSON
+            if echo "$response" | jq empty 2>/dev/null; then
+              # Look for a tag that points to this SHA
+              tag=$(echo "$response" | jq -r --arg sha "$sha" '.[] | select(.object.sha == $sha) | .ref' 2>/dev/null | head -1 | sed 's|refs/tags/||')
+              if [ -n "$tag" ] && [ "$tag" != "null" ]; then
+                echo "$tag"
+                return
+              fi
+            fi
+          fi
+
+          # If no tag found, return empty
+          echo ""
+        }
+
         # Function to get latest commit SHA for a tag using GitHub API
         get_sha_for_tag() {
-          local repo=$1
+          local full_action=$1
           local tag=$2
           local sha=""
+
+          # Extract base repo (handle sub-path actions like github/codeql-action/upload-sarif)
+          local repo=$(echo "$full_action" | cut -d'/' -f1-2)
 
           # Set auth header if token is available
           local auth_header=""
           if [ -n "$GITHUB_TOKEN" ]; then
-            auth_header="Authorization: Bearer $GITHUB_TOKEN"
+            auth_header="Authorization: token $GITHUB_TOKEN"
           fi
 
-          # Try to get SHA from GitHub API for the tag
-          response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/git/refs/tags/$tag")
+          # Special handling for v-prefixed versions
+          if [[ ! "$tag" =~ ^v ]] && [[ "$tag" =~ ^[0-9] ]]; then
+            # Try with v prefix first for numeric versions
+            response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/git/refs/tags/v$tag" 2>/dev/null)
+            sha=$(echo "$response" | jq -r '.object.sha // empty' 2>/dev/null)
+            if [ -n "$sha" ] && [ "$sha" != "null" ] && [ "$sha" != "" ]; then
+              echo "$sha"
+              return
+            fi
+          fi
+
+          # Try exact tag
+          response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/git/refs/tags/$tag" 2>/dev/null)
           sha=$(echo "$response" | jq -r '.object.sha // empty' 2>/dev/null)
+          if [ -n "$sha" ] && [ "$sha" != "null" ] && [ "$sha" != "" ]; then
+            echo "$sha"
+            return
+          fi
 
-          if [ -z "$sha" ] || [ "$sha" = "null" ]; then
-            # If tag not found, try to get the tag from releases
-            response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/releases/tags/$tag")
-            sha=$(echo "$response" | jq -r '.target_commitish // empty' 2>/dev/null)
-
+          # If not found, try to get the release
+          response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/releases/tags/$tag" 2>/dev/null)
+          sha=$(echo "$response" | jq -r '.target_commitish // empty' 2>/dev/null)
+          if [ -n "$sha" ] && [ "$sha" != "null" ] && [ "$sha" != "" ]; then
             # If we got a branch name instead of SHA, resolve it
-            if [ -n "$sha" ] && [ "$sha" != "null" ] && ! echo "$sha" | grep -qE '^[a-f0-9]{40}$'; then
-              branch_response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/git/refs/heads/$sha")
+            if ! echo "$sha" | grep -qE '^[a-f0-9]{40}$'; then
+              branch_response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/git/refs/heads/$sha" 2>/dev/null)
               resolved_sha=$(echo "$branch_response" | jq -r '.object.sha // empty' 2>/dev/null)
               if [ -n "$resolved_sha" ] && [ "$resolved_sha" != "null" ]; then
                 sha="$resolved_sha"
               fi
             fi
+            echo "$sha"
+            return
           fi
 
-          if [ -z "$sha" ] || [ "$sha" = "null" ]; then
-            # Last resort: try to get default branch and use its SHA
-            response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo")
-            default_branch=$(echo "$response" | jq -r '.default_branch // empty' 2>/dev/null)
-
-            if [ -n "$default_branch" ] && [ "$default_branch" != "null" ]; then
-              response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/git/refs/heads/$default_branch")
-              sha=$(echo "$response" | jq -r '.object.sha // empty' 2>/dev/null)
+          # Also try with v prefix for releases
+          if [[ ! "$tag" =~ ^v ]] && [[ "$tag" =~ ^[0-9] ]]; then
+            response=$(curl -s -H "$auth_header" "https://api.github.com/repos/$repo/releases/tags/v$tag" 2>/dev/null)
+            sha=$(echo "$response" | jq -r '.target_commitish // empty' 2>/dev/null)
+            if [ -n "$sha" ] && [ "$sha" != "null" ] && [ "$sha" != "" ]; then
+              echo "$sha"
+              return
             fi
           fi
 
-          echo "$sha"
+          echo ""
         }
 
         # Find all workflow and action files in the specified path
@@ -319,29 +370,54 @@ tasks:
               processed="$processed $action_key"
 
               # Check if this is already a SHA
+              is_sha=false
               if echo "$version" | grep -qE '^[a-f0-9]{40}$'; then
-                # It's already a SHA - skip it completely
-                continue
+                is_sha=true
               fi
-
-              echo "  Found: $action@$version"
-
-              # Get the SHA for this version
-              sha=$(get_sha_for_tag "$action" "$version")
-
-              if [ -n "$sha" ] && [ "$sha" != "null" ]; then
-                # Escape special characters for sed
-                escaped_action=$(echo "$action" | sed 's/[[\.*^$()+?{|]/\\&/g')
-                escaped_version=$(echo "$version" | sed 's/[[\.*^$()+?{|]/\\&/g')
-
-                # Replace in temp file - preserve exact formatting
-                # Match the entire line including any existing comments
-                sed -i '' "s|uses: ${escaped_action}@${escaped_version}.*$|uses: ${action}@${sha} # ${version}|g" "$temp_file"
-
-                echo "    ✅ Pinned to: $sha"
-                total_pinned=$((total_pinned + 1))
+              
+              if [ "$is_sha" = true ]; then
+                # It's already a SHA - check if it has a version comment
+                if echo "$full_version" | grep -q '#'; then
+                  # Already has a comment, skip it entirely
+                  # Don't process this action further
+                else
+                  # Missing version comment - try to find what version this SHA corresponds to
+                  actual_version=$(get_version_for_sha "$action" "$version")
+                  
+                  if [ -n "$actual_version" ] && [ "$actual_version" != "$version" ]; then
+                    echo "  Found: $action@$version (missing version comment)"
+                    
+                    # Escape special characters for sed
+                    escaped_action=$(echo "$action" | sed 's/[[\.*^$()+?{|]/\\&/g')
+                    escaped_version=$(echo "$version" | sed 's/[[\.*^$()+?{|]/\\&/g')
+                    
+                    # Add version comment
+                    sed -i '' "s|uses: ${escaped_action}@${escaped_version}$|uses: ${action}@${version} # ${actual_version}|g" "$temp_file"
+                    
+                    echo "    ✅ Added version comment: $actual_version"
+                    total_pinned=$((total_pinned + 1))
+                  fi
+                fi
               else
-                echo "    ⚠️  Could not find SHA for $action@$version"
+                echo "  Found: $action@$version"
+
+                # Get the SHA for this version
+                sha=$(get_sha_for_tag "$action" "$version")
+
+                if [ -n "$sha" ] && [ "$sha" != "null" ] && [ "$sha" != "" ]; then
+                  # Escape special characters for sed
+                  escaped_action=$(echo "$action" | sed 's/[[\.*^$()+?{|]/\\&/g')
+                  escaped_version=$(echo "$version" | sed 's/[[\.*^$()+?{|]/\\&/g')
+
+                  # Replace in temp file - preserve exact formatting
+                  # Match the entire line including any existing comments
+                  sed -i '' "s|uses: ${escaped_action}@${escaped_version}.*$|uses: ${action}@${sha} # ${version}|g" "$temp_file"
+
+                  echo "    ✅ Pinned to: $sha"
+                  total_pinned=$((total_pinned + 1))
+                else
+                  echo "    ⚠️  Could not find SHA for $action@$version"
+                fi
               fi
             fi
           done < "$file"
@@ -357,7 +433,6 @@ tasks:
           echo ""
           echo "📝 Remember to commit these changes!"
         fi
-
   update-pins:
     desc: Update GitHub Action pins to latest SHAs
     silent: true
@@ -414,51 +489,88 @@ tasks:
           temp_file="${file}.tmp"
           cp "$file" "$temp_file"
 
-          # Find all uses statements with SHA and comment
+          # Track processed actions in this file to avoid duplicates
+          processed=""
+          
+          # Find all uses statements (same logic as pin-actions)
           while IFS= read -r line; do
-            if [[ $line =~ uses:[[:space:]]*([^@]+)@([a-f0-9]{40})[[:space:]]*#[[:space:]]*([^[:space:]]+) ]]; then
-              action="${BASH_REMATCH[1]}"
-              current_sha="${BASH_REMATCH[2]}"
-              version_or_sha="${BASH_REMATCH[3]}"
+            # Check if line contains uses: and has @ symbol (external actions only)
+            if echo "$line" | grep -qE '^[[:space:]]*uses:[[:space:]]*[^[:space:]]+@[^[:space:]]+'; then
+              # Extract action and full version string (including potential SHA and comment)
+              action=$(echo "$line" | sed -E 's/^[[:space:]]*uses:[[:space:]]*([^@]+)@.*/\1/')
+              full_version=$(echo "$line" | sed -E 's/^[[:space:]]*uses:[[:space:]]*[^@]+@(.*)/\1/')
 
-              # Check if the comment contains a duplicate SHA
-              if [[ "$version_or_sha" =~ ^[a-f0-9]{40}$ ]]; then
-                # Comment has duplicate SHA - try to extract version from git
-                echo "  Found: $action@$current_sha # $version_or_sha (duplicate SHA)"
-                
-                # Use gh to get tags containing this commit
-                version=$(gh api repos/$action/git/refs/tags 2>/dev/null | \
-                  jq -r --arg sha "$current_sha" '.[] | select(.object.sha == $sha) | .ref | sub("refs/tags/"; "")' | \
-                  head -1)
-                
-                if [ -z "$version" ]; then
-                  echo "    ⚠️  Cannot determine version for SHA, skipping"
-                  continue
-                fi
-                
-                # Fix the comment
-                escaped_action=$(echo "$action" | sed 's/[[\\.*^$()+?{|]/\\\\&/g')
-                sed -i '' "s|uses: ${escaped_action}@${current_sha} # ${version_or_sha}|uses: ${action}@${current_sha} # ${version}|g" "$temp_file"
-                echo "    ✅ Fixed comment: $version"
-                total_updated=$((total_updated + 1))
-              else
-                version="$version_or_sha"
-                echo "  Found: $action@$current_sha # $version"
+              # Extract just the version part (remove any trailing comments or spaces)
+              version=$(echo "$full_version" | sed 's/[[:space:]]*#.*//' | sed 's/[[:space:]]*$//')
 
-                # Get the latest SHA for this version
-                new_sha=$(get_sha_for_tag "$action" "$version")
+              # Create unique key for this action@version
+              action_key="${action}@${version}"
+              
+              # Skip if we've already processed this exact action@version in this file
+              if echo "$processed" | grep -qF "$action_key"; then
+                continue
+              fi
+              processed="$processed $action_key"
 
-                if [ -n "$new_sha" ] && [ "$new_sha" != "null" ] && [ "$new_sha" != "$current_sha" ]; then
-                  # Replace in temp file
-                  escaped_action=$(echo "$action" | sed 's/[[\\.*^$()+?{|]/\\\\&/g')
+              # Check if this is already a SHA (pinned action)
+              is_sha=false
+              if echo "$version" | grep -qE '^[a-f0-9]{40}$'; then
+                is_sha=true
+              fi
+              
+              if [ "$is_sha" = true ]; then
+                # It's already a SHA - check if it has a version comment and if we need to update it
+                if echo "$full_version" | grep -q '#'; then
+                  # Extract the comment part (version tag)
+                  comment_version=$(echo "$full_version" | sed 's/.*#[[:space:]]*//')
+                  
+                  # Check if the comment contains a duplicate SHA
+                  if echo "$comment_version" | grep -qE '^[a-f0-9]{40}$'; then
+                    # Comment has duplicate SHA - try to find the proper version
+                    echo "  Found: $action@$version # $comment_version (duplicate SHA)"
+                    
+                    # Use gh to get tags containing this commit
+                    proper_version=$(gh api repos/$action/git/refs/tags 2>/dev/null | \
+                      jq -r --arg sha "$version" '.[] | select(.object.sha == $sha) | .ref | sub("refs/tags/"; "")' | \
+                      head -1)
+                    
+                    if [ -n "$proper_version" ]; then
+                      # Fix the comment
+                      escaped_action=$(echo "$action" | sed 's/[[\.*^$()+?{|]/\\&/g')
+                      escaped_version=$(echo "$version" | sed 's/[[\.*^$()+?{|]/\\&/g')
+                      sed -i '' "s|uses: ${escaped_action}@${escaped_version} # ${comment_version}|uses: ${action}@${version} # ${proper_version}|g" "$temp_file"
+                      echo "    ✅ Fixed comment: $proper_version"
+                      total_updated=$((total_updated + 1))
+                    else
+                      echo "    ⚠️  Cannot determine version for SHA, skipping"
+                    fi
+                  else
+                    # Already has proper version comment - check if we need to update the SHA
+                    echo "  Found: $action@$version # $comment_version"
 
-                  sed -i '' "s|uses: ${escaped_action}@${current_sha} # ${version}|uses: ${action}@${new_sha} # ${version}|g" "$temp_file"
+                    # Get the latest SHA for this version
+                    new_sha=$(get_sha_for_tag "$action" "$comment_version")
 
-                  echo "    ✅ Updated to: $new_sha"
-                  total_updated=$((total_updated + 1))
+                    if [ -n "$new_sha" ] && [ "$new_sha" != "null" ] && [ "$new_sha" != "$version" ]; then
+                      # Replace in temp file
+                      escaped_action=$(echo "$action" | sed 's/[[\.*^$()+?{|]/\\&/g')
+                      escaped_version=$(echo "$version" | sed 's/[[\.*^$()+?{|]/\\&/g')
+
+                      sed -i '' "s|uses: ${escaped_action}@${escaped_version} # ${comment_version}|uses: ${action}@${new_sha} # ${comment_version}|g" "$temp_file"
+
+                      echo "    ✅ Updated to: $new_sha"
+                      total_updated=$((total_updated + 1))
+                    else
+                      echo "    ✓ Already up to date"
+                    fi
+                  fi
                 else
-                  echo "    ✓ Already up to date"
+                  # SHA without comment - skip (this would be handled by pin-actions)
+                  echo "  Found: $action@$version (no comment - run pin-actions first)"
                 fi
+              else
+                # This is a version tag, not a SHA - skip (should be handled by pin-actions)
+                echo "  Found: $action@$version (version tag - run pin-actions first)"
               fi
             fi
           done < "$file"
