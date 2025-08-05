@@ -126,4 +126,50 @@ final class SentryLoggerTests: XCTestCase {
         XCTAssertNoThrow(SentryLogger.logError("Test error occurred", error: error))
         XCTAssertNoThrow(Log.error("Test error via Log", error: error, category: .general))
     }
+
+    func testSendTestEventWhenDisabled() {
+        // Test that sendTestEvent works when Sentry is disabled
+        let disabledConfig = SentryLogger.Configuration(
+            dsn: "test://dsn",
+            environment: "test", 
+            enabled: false
+        )
+        
+        SentryLogger.initialize(with: disabledConfig)
+        
+        let expectation = XCTestExpectation(description: "Test event completion")
+        
+        SentryLogger.sendTestEvent { success in
+            XCTAssertFalse(success, "Should return false when Sentry is disabled")
+            expectation.fulfill()
+        }
+        
+        wait(for: [expectation], timeout: 2.0)
+    }
+
+    func testSendTestEventWhenEnabled() {
+        // Test that sendTestEvent doesn't crash when enabled (can't test actual sending in unit tests)
+        let enabledConfig = SentryLogger.Configuration(
+            dsn: "https://test@sentry.io/123",
+            environment: "test",
+            enabled: true,
+            debug: false
+        )
+        
+        // Note: This initializes Sentry but won't actually send events in test environment
+        XCTAssertNoThrow(SentryLogger.initialize(with: enabledConfig))
+        
+        // Should not crash when calling sendTestEvent
+        XCTAssertNoThrow(SentryLogger.sendTestEvent())
+        
+        // Test with completion handler
+        let expectation = XCTestExpectation(description: "Test event completion")
+        
+        SentryLogger.sendTestEvent { success in
+            // In test environment, this should complete but we can't verify actual success
+            expectation.fulfill()
+        }
+        
+        wait(for: [expectation], timeout: 3.0)
+    }
 }

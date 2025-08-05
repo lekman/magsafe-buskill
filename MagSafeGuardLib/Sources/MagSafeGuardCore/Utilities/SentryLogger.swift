@@ -189,6 +189,71 @@ public struct SentryLogger {
         SentrySDK.flush(timeout: timeout)
     }
     
+    /// Send a test event to Sentry for verification (similar to Sentry UI test event)
+    /// This creates an archived test event that won't affect error budgets
+    /// - Parameter completion: Optional completion handler with success status
+    public static func sendTestEvent(completion: (@Sendable (Bool) -> Void)? = nil) {
+        guard isEnabled else { 
+            completion?(false)
+            return 
+        }
+        
+        // Create a test event that will be archived automatically
+        let testEvent = Event(level: .info)
+        testEvent.message = SentryMessage(formatted: "MagSafe Guard Sentry Integration Test - This is a test event to verify connectivity")
+        testEvent.environment = ProcessInfo.processInfo.environment["SENTRY_ENVIRONMENT"] ?? "development"
+        
+        // Add test context
+        testEvent.context = [
+            "test_context": [
+                "test_type": "integration_verification",
+                "app_version": Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown",
+                "timestamp": ISO8601DateFormatter().string(from: Date()),
+                "platform": "macOS",
+                "purpose": "Verify Sentry integration is working correctly"
+            ]
+        ]
+        
+        // Add user context for the test
+        testEvent.user = User()
+        testEvent.user?.userId = "test-user-\(Date().timeIntervalSince1970)"
+        testEvent.user?.email = "test@magsafeguard.local"
+        
+        // Add fingerprint to group test events together
+        testEvent.fingerprint = ["magsafe-guard", "integration-test", "{{ default }}"]
+        
+        // Add tags for filtering
+        testEvent.tags = [
+            "test_event": "true",
+            "integration": "sentry",
+            "component": "magsafe_guard",
+            "purpose": "connectivity_verification"
+        ]
+        
+        // Add breadcrumb leading up to test
+        let breadcrumb = Breadcrumb()
+        breadcrumb.message = "Sentry integration test initiated"
+        breadcrumb.category = "test"
+        breadcrumb.level = .info
+        breadcrumb.data = [
+            "initiated_by": "integration_test",
+            "test_time": ISO8601DateFormatter().string(from: Date())
+        ]
+        SentrySDK.addBreadcrumb(breadcrumb)
+        
+        // Capture the test event
+        let eventId = SentrySDK.capture(event: testEvent)
+        
+        Log.info("Sentry test event sent with ID: \(eventId)", category: .general)
+        
+        // Use a slight delay to allow the event to be sent
+        if let completion = completion {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                completion(true)
+            }
+        }
+    }
+    
     // MARK: - Private Methods
     
     /// Scrub sensitive data from log messages

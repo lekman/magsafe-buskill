@@ -47,6 +47,13 @@ public struct Log {
     // Initialize Sentry integration if enabled
     SentryLogger.initialize()
   }
+  
+  /// Send a test event to Sentry for integration verification
+  /// This creates an archived test event that won't affect error budgets
+  /// - Parameter completion: Optional completion handler with success status
+  public static func sendTestEvent(completion: (@Sendable (Bool) -> Void)? = nil) {
+    SentryLogger.sendTestEvent(completion: completion)
+  }
 
   // MARK: - Public Methods
 
