@@ -9,7 +9,12 @@
 
 # AI files, local settings and scratch pads
 /*.md
+!CLAUDE.md
 .claude
+!.claude/agents/
+!.claude/commands/
+!.claude/schedule.yml
+!.claude/collaboration.yml
 .env
 
 # Feature flags (use docs/examples/feature-flags.example.json as template)

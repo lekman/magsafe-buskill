@@ -73,6 +73,7 @@ tasks:
         echo "  task ai:architect  - Architecture review and SOLID validation"
         echo "  task ai:author     - Documentation analysis"
         echo "  task ai:devops     - Build and deployment optimization"
+        echo "  task ai-review     - Consolidate findings for discussion"
         echo "  task ai:status     - Show agent reports status"
         echo ""
         echo "💡 Tips:"

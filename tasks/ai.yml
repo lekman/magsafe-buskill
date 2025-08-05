@@ -545,6 +545,81 @@ tasks:
   # REPORTING AND UTILITIES
   # =========================================================
 
+  ai-review:
+    desc: "Consolidate all AI agent findings for prioritization"
+    silent: true
+    cmds:
+      - |
+        echo "📊 AI Agent Review Findings Summary"
+        echo "=================================="
+        echo ""
+        echo "This command consolidates all findings from AI agent reviews."
+        echo "Review files found:"
+        echo ""
+        
+        # List all review files
+        for file in .*.review.md; do
+          if [ -f "$file" ]; then
+            echo "✓ $file"
+          fi
+        done
+        
+        echo ""
+        echo "To analyze these findings, run this in Claude Code:"
+        echo ""
+        echo "task ai-review"
+        echo ""
+        echo "Then discuss which items to prioritize based on:"
+        echo "- P0 (Critical): Block release, fix immediately"
+        echo "- P1 (High): Must fix this sprint"
+        echo "- P2 (Medium): Plan for next sprint"
+        echo "- P3 (Low): Backlog item"
+        
+        # Check if any review files exist
+        if ls .*.review.md 1> /dev/null 2>&1; then
+          echo ""
+          echo "=== CONSOLIDATED FINDINGS ==="
+          echo ""
+          
+          # Process each review file
+          for file in .*.review.md; do
+            if [ -f "$file" ]; then
+              echo "📄 From $file:"
+              echo "-------------------"
+              # Extract findings sections (looking for recommendations, issues, etc.)
+              grep -A 20 -E "^#+ (Recommendations|Issues|Findings|Action Items|Priority|P[0-3])" "$file" 2>/dev/null || \
+              grep -A 10 -E "^- (P[0-3]:|Priority|Critical|High|Medium|Low)" "$file" 2>/dev/null || \
+              echo "No specific findings section found"
+              echo ""
+            fi
+          done
+          
+          echo ""
+          echo "=== PRIORITY ITEMS ==="
+          echo ""
+          
+          # Extract all P0 and P1 items
+          echo "🔴 Critical (P0) Issues:"
+          grep -h -E "P0:|Critical:" .*.review.md 2>/dev/null || echo "None found"
+          echo ""
+          
+          echo "🟠 High Priority (P1) Issues:"
+          grep -h -E "P1:|High:" .*.review.md 2>/dev/null || echo "None found"
+          echo ""
+          
+          echo "🟡 Medium Priority (P2) Issues:"
+          grep -h -E "P2:|Medium:" .*.review.md 2>/dev/null || echo "None found"
+          echo ""
+          
+          echo "Use this summary to discuss prioritization and create tasks."
+        else
+          echo ""
+          echo "⚠️  No review files found. Run agent tasks first:"
+          echo "  task ai:qa              # Quality assurance review"
+          echo "  task ai:architect       # Architecture review"
+          echo "  task ai:devops          # DevOps review"
+        fi
+
   qa:report:
     desc: "Generate consolidated QA report"
     cmds:
