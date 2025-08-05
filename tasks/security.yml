@@ -304,14 +304,14 @@ tasks:
               full_version=$(echo "$line" | sed -E 's/^[[:space:]]*uses:[[:space:]]*[^@]+@(.*)/\1/')
 
               # Check if already pinned (has SHA followed by comment with version)
-              if echo "$full_version" | grep -qE '^[a-f0-9]{40}[[:space:]]*#'; then
+              if echo "$full_version" | grep -qE '^[a-f0-9]{40}[[:space:]]*#[[:space:]]*[^[:space:]]+'; then
                 continue
               fi
 
               # Extract just the version part (remove any trailing comments or spaces)
               version=$(echo "$full_version" | sed 's/[[:space:]]*#.*//' | sed 's/[[:space:]]*$//')
 
-              # Skip if version is already a SHA (40 character hex)
+              # Skip if version is already a SHA (40 character hex) without a proper comment
               if echo "$version" | grep -qE '^[a-f0-9]{40}$'; then
                 continue
               fi
@@ -406,14 +406,36 @@ tasks:
           temp_file="${file}.tmp"
           cp "$file" "$temp_file"
 
-          # Find all uses statements with SHA and comment showing version
+          # Find all uses statements with SHA and comment
           while IFS= read -r line; do
             if [[ $line =~ uses:[[:space:]]*([^@]+)@([a-f0-9]{40})[[:space:]]*#[[:space:]]*([^[:space:]]+) ]]; then
               action="${BASH_REMATCH[1]}"
               current_sha="${BASH_REMATCH[2]}"
-              version="${BASH_REMATCH[3]}"
+              version_or_sha="${BASH_REMATCH[3]}"
 
-              echo "  Found: $action@$current_sha # $version"
+              # Check if the comment contains a duplicate SHA
+              if [[ "$version_or_sha" =~ ^[a-f0-9]{40}$ ]]; then
+                # Comment has duplicate SHA - try to extract version from git
+                echo "  Found: $action@$current_sha # $version_or_sha (duplicate SHA)"
+                
+                # Use gh to get tags containing this commit
+                version=$(gh api repos/$action/git/refs/tags 2>/dev/null | \
+                  jq -r --arg sha "$current_sha" '.[] | select(.object.sha == $sha) | .ref | sub("refs/tags/"; "")' | \
+                  head -1)
+                
+                if [ -z "$version" ]; then
+                  echo "    ⚠️  Cannot determine version for SHA, skipping"
+                  continue
+                fi
+                
+                # Fix the comment
+                escaped_action=$(echo "$action" | sed 's/[[\\.*^$()+?{|]/\\\\&/g')
+                sed -i '' "s|uses: ${escaped_action}@${current_sha} # ${version_or_sha}|uses: ${action}@${current_sha} # ${version}|g" "$temp_file"
+                echo "    ✅ Fixed comment: $version"
+                total_updated=$((total_updated + 1))
+              else
+                version="$version_or_sha"
+                echo "  Found: $action@$current_sha # $version"
 
               # Get the latest SHA for this version
               new_sha=$(get_sha_for_tag "$action" "$version")
