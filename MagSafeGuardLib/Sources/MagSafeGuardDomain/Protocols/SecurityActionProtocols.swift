@@ -15,7 +15,7 @@ import Foundation
 
 /// Domain model representing a security action type.
 /// All possible security responses to potential theft.
-public enum SecurityActionType: String, CaseIterable, Equatable, Codable {
+public enum SecurityActionType: String, CaseIterable, Equatable, Codable, Sendable {
     /// Lock the screen immediately
     case lockScreen = "lock_screen"
     /// Sound an alarm
@@ -76,7 +76,7 @@ public enum SecurityActionType: String, CaseIterable, Equatable, Codable {
 
 /// Configuration for security actions.
 /// Controls which actions execute and how.
-public struct SecurityActionConfiguration: Equatable {
+public struct SecurityActionConfiguration: Equatable, Sendable {
     /// Which security actions are enabled
     public let enabledActions: Set<SecurityActionType>
     /// Delay before executing actions (seconds)
@@ -215,7 +215,7 @@ public struct SecurityActionExecutionResult: Equatable {
 }
 
 /// Result of a single action execution
-public struct SecurityActionResult: Equatable {
+public struct SecurityActionResult: Equatable, Sendable {
     /// The type of action executed
     public let actionType: SecurityActionType
     /// Whether the action succeeded

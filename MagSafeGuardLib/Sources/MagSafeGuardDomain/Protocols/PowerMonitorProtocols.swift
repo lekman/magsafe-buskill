@@ -10,7 +10,7 @@ import Foundation
 // MARK: - Domain Models
 
 /// Domain model representing power state information
-public struct PowerStateInfo: Equatable {
+public struct PowerStateInfo: Equatable, Sendable {
     /// Indicates whether AC power is connected
     public let isConnected: Bool
 
@@ -49,7 +49,7 @@ public struct PowerStateInfo: Equatable {
 }
 
 /// Domain model representing a power state change event
-public struct PowerStateChange: Equatable {
+public struct PowerStateChange: Equatable, Sendable {
     /// The power state before the change
     public let previousState: PowerStateInfo
 
@@ -60,7 +60,7 @@ public struct PowerStateChange: Equatable {
     public let changeType: ChangeType
 
     /// Types of power state changes
-    public enum ChangeType: Equatable {
+    public enum ChangeType: Equatable, Sendable {
         /// AC power was connected
         case connected
         /// AC power was disconnected
@@ -130,7 +130,7 @@ public protocol PowerStateAnalyzer {
 }
 
 /// Security analysis result
-public struct SecurityAnalysis: Equatable {
+public struct SecurityAnalysis: Equatable, Sendable {
     /// The assessed threat level
     public let threatLevel: ThreatLevel
 
@@ -141,7 +141,7 @@ public struct SecurityAnalysis: Equatable {
     public let recommendedActions: [SecurityAction]
 
     /// Threat severity levels
-    public enum ThreatLevel: Int, Comparable {
+    public enum ThreatLevel: Int, Comparable, Sendable {
         /// No threat detected
         case none = 0
         /// Low threat - monitoring recommended
@@ -158,7 +158,7 @@ public struct SecurityAnalysis: Equatable {
     }
 
     /// Available security actions
-    public enum SecurityAction: Equatable {
+    public enum SecurityAction: Equatable, Sendable {
         /// No action required
         case none
         /// Notify the user
@@ -190,7 +190,7 @@ public struct SecurityAnalysis: Equatable {
 // MARK: - Service Configuration
 
 /// Configuration for power monitoring behavior
-public struct PowerMonitorConfiguration {
+public struct PowerMonitorConfiguration: Sendable {
     /// Interval between power state checks (for polling implementations)
     public let pollingInterval: TimeInterval
 

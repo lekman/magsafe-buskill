@@ -15,7 +15,7 @@ import Foundation
 
 /// Domain model representing an authentication request.
 /// Encapsulates all information needed to authenticate a user.
-public struct AuthenticationRequest: Equatable {
+public struct AuthenticationRequest: Equatable, Sendable {
     /// The reason for authentication shown to the user
     public let reason: String
     /// The authentication policy to apply
@@ -85,7 +85,7 @@ public struct AuthenticationPolicy: Equatable, Sendable {
 
 /// Domain model representing authentication result.
 /// Captures all possible outcomes of an authentication attempt.
-public enum AuthenticationResult: Equatable {
+public enum AuthenticationResult: Equatable, Sendable {
     /// Authentication succeeded
     case success(AuthenticationSuccess)
     /// Authentication failed with reason
@@ -102,7 +102,7 @@ public enum AuthenticationResult: Equatable {
 
 /// Authentication success details.
 /// Contains information about a successful authentication.
-public struct AuthenticationSuccess: Equatable {
+public struct AuthenticationSuccess: Equatable, Sendable {
     /// When the authentication occurred
     public let authenticatedAt: Date
     /// The method used to authenticate
@@ -128,7 +128,7 @@ public struct AuthenticationSuccess: Equatable {
 
 /// Authentication method used.
 /// Identifies how the user authenticated.
-public enum AuthenticationMethod: String, Equatable {
+public enum AuthenticationMethod: String, Equatable, Sendable {
     /// Touch ID fingerprint authentication
     case touchID = "TouchID"
     /// Face ID facial recognition
@@ -141,7 +141,7 @@ public enum AuthenticationMethod: String, Equatable {
 
 /// Authentication failure reasons.
 /// Comprehensive list of why authentication might fail.
-public enum AuthenticationFailure: Equatable {
+public enum AuthenticationFailure: Equatable, Sendable {
     /// Biometric hardware not available on device
     case biometryNotAvailable
     /// User has not enrolled any biometric data
@@ -201,7 +201,7 @@ public protocol AuthenticationRepository {
 
 /// Biometric availability information.
 /// Details about biometric authentication capabilities.
-public struct BiometricAvailability: Equatable {
+public struct BiometricAvailability: Equatable, Sendable {
     /// Whether biometric authentication is available
     public let isAvailable: Bool
     /// The type of biometric available
@@ -227,7 +227,7 @@ public struct BiometricAvailability: Equatable {
 
 /// Type of biometric authentication.
 /// Different biometric methods available on Apple devices.
-public enum BiometricType: String, Equatable {
+public enum BiometricType: String, Equatable, Sendable {
     /// Touch ID fingerprint sensor
     case touchID = "TouchID"
     /// Face ID facial recognition
@@ -280,7 +280,7 @@ public protocol AuthenticationStateUseCase {
 
 /// Authentication attempt record.
 /// Historical record of an authentication attempt.
-public struct AuthenticationAttempt: Equatable {
+public struct AuthenticationAttempt: Equatable, Sendable {
     /// When the attempt occurred
     public let timestamp: Date
     /// Whether it succeeded

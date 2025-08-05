@@ -58,7 +58,7 @@ public struct AutoArmConfiguration: Equatable, Sendable {
 }
 
 /// Trigger that caused auto-arm activation
-public enum AutoArmTrigger: Equatable {
+public enum AutoArmTrigger: Equatable, Sendable {
     /// Left a trusted location
     case leftTrustedLocation(name: String?)
     /// Connected to an untrusted network
@@ -88,7 +88,7 @@ public enum AutoArmTrigger: Equatable {
 }
 
 /// Auto-arm event for tracking and decision making
-public struct AutoArmEvent: Equatable {
+public struct AutoArmEvent: Equatable, Sendable {
     /// The trigger that caused this event
     public let trigger: AutoArmTrigger
     /// When the event occurred
@@ -113,7 +113,7 @@ public struct AutoArmEvent: Equatable {
 }
 
 /// Result of auto-arm decision
-public enum AutoArmDecision: Equatable {
+public enum AutoArmDecision: Equatable, Sendable {
     /// Decision to arm with reason
     case arm(reason: String)
     /// Decision to skip arming with reason
@@ -127,7 +127,7 @@ public enum AutoArmDecision: Equatable {
 }
 
 /// Reasons for skipping auto-arm
-public enum AutoArmSkipReason: Equatable {
+public enum AutoArmSkipReason: Equatable, Sendable {
     /// Auto-arm feature is disabled
     case disabled
     /// System is already armed
@@ -159,7 +159,7 @@ public enum AutoArmSkipReason: Equatable {
 }
 
 /// Trusted location for auto-arm
-public struct TrustedLocationDomain: Equatable {
+public struct TrustedLocationDomain: Equatable, Sendable {
     /// Unique identifier
     public let id: UUID
     /// User-friendly name
@@ -194,7 +194,7 @@ public struct TrustedLocationDomain: Equatable {
 }
 
 /// Trusted network for auto-arm
-public struct TrustedNetwork: Equatable {
+public struct TrustedNetwork: Equatable, Sendable {
     /// Network SSID
     public let ssid: String
     /// When the network was added as trusted
@@ -264,7 +264,7 @@ public protocol NetworkRepository {
 }
 
 /// Network information
-public struct NetworkInfo: Equatable {
+public struct NetworkInfo: Equatable, Sendable {
     /// Whether network is connected
     public let isConnected: Bool
     /// Current network SSID if connected
@@ -289,7 +289,7 @@ public struct NetworkInfo: Equatable {
 }
 
 /// Network change event
-public enum NetworkChangeEvent: Equatable {
+public enum NetworkChangeEvent: Equatable, Sendable {
     /// Connected to a network
     case connectedToNetwork(ssid: String, trusted: Bool)
     /// Disconnected from a network
@@ -343,7 +343,7 @@ public protocol AutoArmMonitoringUseCase {
 }
 
 /// Auto-arm status information
-public struct AutoArmStatus: Equatable {
+public struct AutoArmStatus: Equatable, Sendable {
     /// Whether auto-arm is enabled
     public let isEnabled: Bool
     /// Whether actively monitoring
@@ -383,7 +383,7 @@ public struct AutoArmStatus: Equatable {
 }
 
 /// Current auto-arm conditions
-public struct AutoArmConditions: Equatable {
+public struct AutoArmConditions: Equatable, Sendable {
     /// Whether in a trusted location
     public let isInTrustedLocation: Bool
     /// Current network information
