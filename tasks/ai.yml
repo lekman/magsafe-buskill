@@ -50,9 +50,18 @@ tasks:
           - docs/PRD.md for requirements alignment
           - Clean Architecture principles
           
-          Use the template at docs/templates/architect-template.md and update .architecture.review.md with findings.
+          Use the template at docs/templates/architect-template.md and output the complete architecture review report.
           
-          Also check .taskmaster/ directory for task alignment and suggest new tasks if needed."
+          Also check .taskmaster/ directory for task alignment and suggest new tasks if needed." > .architecture.review.md.tmp
+          
+          # Check if report was generated
+          if [ -s .architecture.review.md.tmp ]; then
+            mv .architecture.review.md.tmp .architecture.review.md
+            echo "✅ Architecture report saved to .architecture.review.md"
+          else
+            rm -f .architecture.review.md.tmp
+            echo "⚠️  No report generated"
+          fi
         else
           echo "⚠️  Claude CLI not found. Running fallback architecture checks..."
           echo "📝 Creating .architecture.review.md..."
@@ -106,14 +115,23 @@ tasks:
             2. @qa:coverage-analyzer - Test coverage deep analysis  
             3. @qa:performance-profiler - Performance testing and profiling
             
-            Follow the template at docs/templates/qa-template.md and update .qa.review.md with consolidated findings.
+            Follow the template at docs/templates/qa-template.md and output the complete QA review report.
             
             Include in your analysis:
             - SonarCloud code smells from the PR
             - Security vulnerabilities
             - Test coverage gaps
             - Performance concerns
-            - Build health metrics"
+            - Build health metrics" > .qa.review.md.tmp
+            
+            # Check if report was generated
+            if [ -s .qa.review.md.tmp ]; then
+              mv .qa.review.md.tmp .qa.review.md
+              echo "✅ QA report saved to .qa.review.md"
+            else
+              rm -f .qa.review.md.tmp
+              echo "⚠️  No report generated"
+            fi
           else
             claude -p "You are the @qa agent. Perform comprehensive quality review of the current branch.
             
@@ -122,7 +140,16 @@ tasks:
             2. @qa:coverage-analyzer - Test coverage deep analysis  
             3. @qa:performance-profiler - Performance testing and profiling
             
-            Follow the template at docs/templates/qa-template.md and update .qa.review.md with findings."
+            Follow the template at docs/templates/qa-template.md and output the complete QA review report." > .qa.review.md.tmp
+            
+            # Check if report was generated
+            if [ -s .qa.review.md.tmp ]; then
+              mv .qa.review.md.tmp .qa.review.md
+              echo "✅ QA report saved to .qa.review.md"
+            else
+              rm -f .qa.review.md.tmp
+              echo "⚠️  No report generated"
+            fi
           fi
         else
           echo "⚠️  Claude CLI not found. Running fallback QA checks..."
