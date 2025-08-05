@@ -196,6 +196,50 @@ public class SecurityActionsService {
 
   /// Serial queue for thread safety
   private let queue = DispatchQueue(label: "com.magsafeguard.securityactions", qos: .userInitiated)
+  
+  // MARK: - Rate Limiting
+  
+  /// Last execution timestamp for rate limiting
+  private var lastExecutionTime: Date?
+  
+  /// Minimum time interval between executions (in seconds)
+  private let minimumExecutionInterval: TimeInterval = 5.0
+  
+  /// Maximum number of executions within the time window
+  private let maxExecutionsPerWindow = 10
+  
+  /// Time window for rate limiting (in seconds)
+  private let rateLimitWindow: TimeInterval = 60.0
+  
+  /// Execution history for rate limiting
+  private var executionHistory: [Date] = []
+  
+  /// Lock for thread-safe access to rate limiting properties
+  private let rateLimitLock = NSLock()
+  
+  // MARK: - Circuit Breaker
+  
+  /// Circuit breaker state
+  private enum CircuitBreakerState {
+    case closed
+    case open(until: Date)
+    case halfOpen
+  }
+  
+  /// Current circuit breaker state
+  private var circuitBreakerState: CircuitBreakerState = .closed
+  
+  /// Number of consecutive failures
+  private var consecutiveFailures = 0
+  
+  /// Maximum consecutive failures before opening circuit
+  private let maxConsecutiveFailures = 3
+  
+  /// Time to keep circuit open (in seconds)
+  private let circuitOpenDuration: TimeInterval = 60.0
+  
+  /// Lock for circuit breaker state
+  private let circuitBreakerLock = NSLock()
 
   // MARK: - Initialization
 
@@ -239,6 +283,32 @@ public class SecurityActionsService {
   /// - Note: Only one execution can be active at a time. Subsequent
   ///   calls while executing are ignored to prevent conflicts.
   public func executeActions(completion: @escaping (ExecutionResult) -> Void) {
+    // Check circuit breaker first
+    if let circuitError = checkCircuitBreaker() {
+      Log.warning("Circuit breaker open: \(circuitError)", category: .security)
+      DispatchQueue.main.async {
+        completion(ExecutionResult(
+          executedActions: [],
+          failedActions: [(SecurityAction.screenLock, circuitError)],
+          timestamp: Date()
+        ))
+      }
+      return
+    }
+    
+    // Check rate limiting
+    if !checkRateLimit() {
+      Log.warning("Rate limit exceeded for security actions", category: .security)
+      DispatchQueue.main.async {
+        completion(ExecutionResult(
+          executedActions: [],
+          failedActions: [(SecurityAction.screenLock, MagSafeGuardDomain.SecurityActionError.rateLimitExceeded)],
+          timestamp: Date()
+        ))
+      }
+      return
+    }
+    
     guard trySetExecuting() else {
       Log.warning("Actions already executing, ignoring request", category: .security)
       return
@@ -247,6 +317,105 @@ public class SecurityActionsService {
     queue.async { [weak self] in
       guard let self = self else { return }
       self.performExecution(completion: completion)
+    }
+  }
+
+  // MARK: - Rate Limiting Methods
+  
+  /// Check if execution is allowed based on rate limiting rules
+  private func checkRateLimit() -> Bool {
+    rateLimitLock.lock()
+    defer { rateLimitLock.unlock() }
+    
+    let now = Date()
+    
+    // Check minimum interval between executions
+    if let lastExecution = lastExecutionTime {
+      let timeSinceLastExecution = now.timeIntervalSince(lastExecution)
+      if timeSinceLastExecution < minimumExecutionInterval {
+        Log.warning("Execution denied: minimum interval not met (\(timeSinceLastExecution)s < \(minimumExecutionInterval)s)", category: .security)
+        return false
+      }
+    }
+    
+    // Clean up old execution history
+    executionHistory = executionHistory.filter { execution in
+      now.timeIntervalSince(execution) <= rateLimitWindow
+    }
+    
+    // Check if we've exceeded the rate limit
+    if executionHistory.count >= maxExecutionsPerWindow {
+      Log.warning("Execution denied: rate limit exceeded (\(executionHistory.count) executions in \(rateLimitWindow)s)", category: .security)
+      return false
+    }
+    
+    // Record this execution
+    lastExecutionTime = now
+    executionHistory.append(now)
+    
+    return true
+  }
+  
+  // MARK: - Circuit Breaker Methods
+  
+  /// Check if circuit breaker allows execution
+  private func checkCircuitBreaker() -> MagSafeGuardDomain.SecurityActionError? {
+    circuitBreakerLock.lock()
+    defer { circuitBreakerLock.unlock() }
+    
+    switch circuitBreakerState {
+    case .closed:
+      return nil
+      
+    case .open(let until):
+      if Date() >= until {
+        // Try to move to half-open state
+        circuitBreakerState = .halfOpen
+        Log.info("Circuit breaker moved to half-open state", category: .security)
+        return nil
+      } else {
+        return .systemError(description: "Circuit breaker is open. Too many consecutive failures.")
+      }
+      
+    case .halfOpen:
+      // Allow one attempt in half-open state
+      return nil
+    }
+  }
+  
+  /// Record execution success
+  private func recordSuccess() {
+    circuitBreakerLock.lock()
+    defer { circuitBreakerLock.unlock() }
+    
+    consecutiveFailures = 0
+    
+    // If in half-open state, close the circuit
+    if case .halfOpen = circuitBreakerState {
+      circuitBreakerState = .closed
+      Log.info("Circuit breaker closed after successful execution", category: .security)
+    }
+  }
+  
+  /// Record execution failure
+  private func recordFailure() {
+    circuitBreakerLock.lock()
+    defer { circuitBreakerLock.unlock() }
+    
+    consecutiveFailures += 1
+    
+    // Check if we should open the circuit
+    if consecutiveFailures >= maxConsecutiveFailures {
+      let reopenTime = Date().addingTimeInterval(circuitOpenDuration)
+      circuitBreakerState = .open(until: reopenTime)
+      Log.error("Circuit breaker opened due to \(consecutiveFailures) consecutive failures", category: .security)
+    }
+    
+    // If in half-open state, reopen the circuit
+    if case .halfOpen = circuitBreakerState {
+      let reopenTime = Date().addingTimeInterval(circuitOpenDuration)
+      circuitBreakerState = .open(until: reopenTime)
+      Log.error("Circuit breaker reopened after failure in half-open state", category: .security)
     }
   }
 
@@ -290,6 +459,13 @@ public class SecurityActionsService {
       failedActions: failedActions,
       timestamp: startTime
     )
+    
+    // Update circuit breaker based on result
+    if result.allSucceeded {
+      recordSuccess()
+    } else {
+      recordFailure()
+    }
 
     DispatchQueue.main.async {
       completion(result)

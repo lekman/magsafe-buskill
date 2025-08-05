@@ -137,8 +137,101 @@ tasks:
           echo ""
           echo "📊 Generating JUnit XML for test execution reporting..."
           cd {{.SPM_PACKAGE_DIR}}
-          swift test --enable-code-coverage --parallel 2>&1 | \
-            python3 ../scripts/swift-test-to-junit.py -o ../test-results.xml
+          
+          # Run tests and convert to JUnit XML using awk
+          swift test --enable-code-coverage --parallel 2>&1 | awk '
+            BEGIN {
+              print "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+              print "<testsuites name=\"MagSafeGuard Tests\">"
+              total_tests = 0
+              total_failures = 0
+              total_skipped = 0
+              total_time = 0
+              current_suite = ""
+              current_class = ""
+              current_test = ""
+              suite_tests = 0
+              suite_failures = 0
+              suite_time = 0
+              suite_output = ""
+            }
+            
+            /◇ Suite ".*" started/ {
+              if (current_suite != "") {
+                # Close previous suite
+                print "  <testsuite name=\"" current_suite "\" tests=\"" suite_tests "\" failures=\"" suite_failures "\" time=\"" suite_time "\">"
+                print suite_output
+                print "  </testsuite>"
+              }
+              match($0, /◇ Suite "(.+)" started/, arr)
+              current_suite = arr[1]
+              suite_tests = 0
+              suite_failures = 0
+              suite_time = 0
+              suite_output = ""
+            }
+            
+            /◇ Test ".*" started/ {
+              match($0, /◇ Test "(.+)" started/, arr)
+              current_test = arr[1]
+              # Use suite name as classname if available
+              if (current_suite != "") {
+                current_class = current_suite
+              } else {
+                current_class = "Tests"
+              }
+            }
+            
+            /✔ Test ".*" passed after [0-9.]+ seconds/ {
+              match($0, /✔ Test "(.+)" passed after ([0-9.]+) seconds/, arr)
+              test_name = arr[1]
+              time = arr[2]
+              suite_output = suite_output "    <testcase classname=\"" current_class "\" name=\"" test_name "\" time=\"" time "\"/>\n"
+              suite_tests++
+              total_tests++
+              suite_time += time
+              total_time += time
+            }
+            
+            /✘ Test ".*" failed after [0-9.]+ seconds/ {
+              match($0, /✘ Test "(.+)" failed after ([0-9.]+) seconds/, arr)
+              test_name = arr[1]
+              time = arr[2]
+              suite_output = suite_output "    <testcase classname=\"" current_class "\" name=\"" test_name "\" time=\"" time "\">\n"
+              suite_output = suite_output "      <failure type=\"XCTAssertionFailure\" message=\"Test failed\"/>\n"
+              suite_output = suite_output "    </testcase>\n"
+              suite_tests++
+              suite_failures++
+              total_tests++
+              total_failures++
+              suite_time += time
+              total_time += time
+            }
+            
+            /✘ Test ".*" skipped:/ {
+              match($0, /✘ Test "(.+)" skipped: "(.+)"/, arr)
+              test_name = arr[1]
+              reason = arr[2]
+              suite_output = suite_output "    <testcase classname=\"" current_class "\" name=\"" test_name "\" time=\"0\">\n"
+              suite_output = suite_output "      <skipped message=\"" reason "\"/>\n"
+              suite_output = suite_output "    </testcase>\n"
+              suite_tests++
+              total_tests++
+              total_skipped++
+            }
+            
+            END {
+              if (current_suite != "") {
+                print "  <testsuite name=\"" current_suite "\" tests=\"" suite_tests "\" failures=\"" suite_failures "\" time=\"" suite_time "\">"
+                print suite_output
+                print "  </testsuite>"
+              }
+              # Update testsuites element with totals
+              gsub(/<testsuites name="MagSafeGuard Tests">/, "<testsuites name=\"MagSafeGuard Tests\" tests=\"" total_tests "\" failures=\"" total_failures "\" skipped=\"" total_skipped "\" time=\"" total_time "\">", $0)
+              print "</testsuites>"
+            }
+          ' > test-results.xml
+          
           echo "✅ JUnit XML generated at test-results.xml"
         fi
 
