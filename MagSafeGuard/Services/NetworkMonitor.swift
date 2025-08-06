@@ -49,7 +49,7 @@ public protocol NetworkMonitorDelegate: AnyObject {
 /// Network SSIDs are stored locally and never transmitted.
 /// The system only tracks whether a network is trusted, not any
 /// authentication credentials or network details.
-public class NetworkMonitor {
+public final class NetworkMonitor: @unchecked Sendable {
 
   // MARK: - Properties
 

@@ -24,11 +24,6 @@ tasks:
         echo "🧪 Running tests with Swift Package Manager..."
         echo "=============================================="
 
-        # Clean previous artifacts
-        echo "🧹 Cleaning previous build artifacts..."
-        rm -rf {{.SPM_BUILD_DIR}}
-        rm -f coverage.lcov coverage.xml coverage-report.txt ../coverage.lcov ../coverage.xml ../coverage-report.txt
-
         # Change to the library directory
         cd {{.SPM_PACKAGE_DIR}}
 

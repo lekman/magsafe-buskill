@@ -4,6 +4,14 @@
 
 Subagents are specialized, focused agents that work under the coordination of primary agents. They handle specific, well-defined tasks and report back to their parent agents, enabling more granular and efficient analysis of your codebase.
 
+## Current Implementation in MagSafe Guard
+
+This project implements subagents through:
+
+1. **Task Tool Integration** - Subagents accessible via Claude Code's Task tool
+2. **Taskfile Commands** - `task ai:*` commands for direct invocation
+3. **Global Agent Registration** - Agents available via `/agents` command when copied to `~/.claude/agents/`
+
 ## Understanding Subagents
 
 ### What are Subagents?
@@ -45,14 +53,40 @@ graph TD
     AU --> AU3[Diagram Generator Subagent]
 ```
 
+## Available Subagents in MagSafe Guard
+
+### Architect Subagents
+
+- `task ai:architect:solid-validator` - SOLID principles compliance  
+- `task ai:architect:security-architect` - Security architecture patterns
+- `task ai:architect:ddd-analyzer` - Domain-driven design validation
+
+### QA Subagents
+
+- `task ai:qa:security-scanner` - Security vulnerability analysis
+- `task ai:qa:coverage-analyzer` - Deep test coverage analysis  
+- `task ai:qa:performance-profiler` - Performance metrics and profiling
+
+### Author Subagents
+
+- `task ai:author:api-docs` - API documentation generation
+- `task ai:author:markdown-lint` - Markdown quality checking
+- `task ai:author:diagram-gen` - Architecture diagram generation
+
+### DevOps Subagents
+
+- `task ai:devops:docker-optimizer` - Container optimization (N/A for macOS)
+- `task ai:devops:k8s-validator` - Kubernetes validation (N/A for macOS)
+- `task ai:devops:cost-analyzer` - Infrastructure cost analysis
+
 ## Creating Subagents
 
 ### Step 1: Define Subagent Structure
 
-Create a subagents directory:
+For new projects, create a subagents directory:
 
 ```bash
-mkdir -p .claude-agents/subagents/{architect,qa,devops,author}
+mkdir -p .claude/agents/subagents/{architect,qa,devops,author}
 ```
 
 ### Step 2: Create Subagent Templates
@@ -232,37 +266,75 @@ subagents:
         - on_demand
 ```
 
-## Using Subagents
+## Using Subagents in MagSafe Guard
 
-### Method 1: Direct Subagent Invocation
-
-```bash
-# Run a specific subagent
-claude-code subagent run qa/security-scanner
-
-# Run with parameters
-claude-code subagent run qa/coverage-analyzer --module auth
-
-# Run multiple subagents
-claude-code subagent run qa/security-scanner qa/coverage-analyzer
-```
-
-### Method 2: Parent Agent Delegation
+### Method 1: Taskfile Commands (Recommended)
 
 ```bash
-# Parent agent automatically delegates to subagents
-claude-code agent run qa --deep-analysis
+# Run specific subagents directly
+task ai:architect:solid-validator
+task ai:qa:security-scanner
+task ai:qa:coverage-analyzer
 
-# Specific subagent through parent
-claude-code agent run qa --subagent security-scanner
+# Run parent agents (which may delegate to subagents)
+task ai:architect
+task ai:qa
+task ai:author
+task ai:devops
 
-# Chain subagents
-claude-code agent run qa --subagents "security-scanner,coverage-analyzer"
+# Quick checks
+task ai:quick-check    # Fast P0/P1 issue scan
+task ai:status         # Check agent reports
 ```
 
-### Method 3: Conditional Subagent Execution
+### Method 2: Claude Code Task Tool
 
-Create `.claude-agents/workflows/conditional-subagents.yml`:
+In a Claude Code conversation, I can invoke subagents using the Task tool:
+
+```markdown
+"Please run the security scanner subagent on the circuit breaker implementation"
+"Use the SOLID validator to check the resource protection code"
+"Run coverage analysis on the security module"
+```
+
+### Method 3: Direct Agent Invocation (if globally registered)
+
+After copying agents to `~/.claude/agents/`:
+
+```bash
+# In Claude Code chat
+/agents                          # List available agents
+@architect                       # Invoke architect agent
+@qa                             # Invoke QA agent
+
+# Or with specific instructions
+@architect Review the circuit breaker implementation for SOLID compliance
+@qa Run security scan on authentication module
+```
+
+### Method 4: Automated Workflows
+
+Configure in `.claude/schedule.yml`:
+
+```yaml
+agents:
+  architect:
+    schedule: "0 9 * * MON"
+    triggers:
+      - pattern: "MagSafeGuardLib/Sources/**/*.swift"
+        events: ["change"]
+        threshold: 10
+        
+  qa:
+    schedule: "0 9 * * *"
+    triggers:
+      - pattern: "**/*Tests.swift"
+        events: ["change"]
+```
+
+### Method 5: Conditional Subagent Execution
+
+Create `.claude/workflows/conditional-subagents.yml`:
 
 ```yaml
 workflows:
@@ -283,27 +355,34 @@ workflows:
             condition: "qa/security-scanner found critical issues"
 ```
 
-### Method 4: Interactive Subagent Usage
+### Method 6: Interactive Subagent Usage in Claude Code
 
-```bash
-# Start interactive session
-claude-code chat qa
+When chatting with Claude Code:
 
-> run security scan on the authentication module
-# QA automatically delegates to security-scanner subagent
+```markdown
+User: "Run security scan on the authentication module"
+Claude: [Uses Task tool to invoke qa:security-scanner subagent]
 
-> analyze test coverage for critical paths only
-# QA uses coverage-analyzer subagent with filters
+User: "Analyze test coverage for critical paths only"  
+Claude: [Uses Task tool to invoke qa:coverage-analyzer with filters]
 
-> check all quality metrics before release
-# QA orchestrates multiple subagents
+User: "Check all quality metrics before release"
+Claude: [Orchestrates multiple subagents via Task tool]
+```
+
+Or with globally registered agents:
+
+```markdown
+User: "@qa run security scan on auth module"
+User: "@architect validate SOLID principles in resource protection"
+User: "@author check documentation coverage"
 ```
 
 ## Advanced Subagent Patterns
 
-### 1. Subagent Pipelines
+### 1. Subagent Pipelines in MagSafe Guard
 
-Create `.claude-agents/pipelines/security-pipeline.yml`:
+The project implements pipelines through Taskfile workflows:
 
 ```yaml
 pipeline: comprehensive-security-check
@@ -328,21 +407,28 @@ stages:
     output: remediation-tasks.json
 ```
 
-Run pipeline:
+Run pipeline through Taskfile:
 
 ```bash
-claude-code pipeline run comprehensive-security-check
+# Pre-defined pipelines
+task ai:qa           # Runs all QA subagents
+task ai:pre-release  # Comprehensive pre-release checks
+task ai:security     # Security-focused pipeline
 ```
 
 ### 2. Parallel Subagent Execution
 
-```bash
-# Run subagents in parallel for faster analysis
-claude-code agent run qa --parallel-subagents "security-scanner,coverage-analyzer,performance-profiler"
+In MagSafe Guard, parallel execution is handled by the Task tool:
 
-# With resource limits
-claude-code agent run qa --parallel-subagents all --max-concurrent 3
+```bash
+# The QA agent runs multiple subagents in parallel
+task ai:qa
+
+# Or request parallel analysis in Claude Code:
+"Run security scan, coverage analysis, and performance profiling in parallel"
 ```
+
+Claude Code will use the Task tool to coordinate parallel execution.
 
 ### 3. Subagent Composition
 
@@ -367,15 +453,16 @@ Create composite subagents that use other subagents:
 4. Compile unified release report
 ```
 
-### 4. Dynamic Subagent Creation
+### 4. Dynamic Subagent Usage in Claude Code
 
-```bash
-# Create temporary subagent for specific analysis
-claude-code subagent create-temp \
-  --name "log4j-scanner" \
-  --parent qa \
-  --task "scan for log4j vulnerabilities" \
-  --expires "24h"
+Request specific analysis dynamically:
+
+```markdown
+User: "Create a custom analysis for log4j vulnerabilities in our dependencies"
+Claude: [Creates temporary subagent configuration and executes via Task tool]
+
+User: "Check for hardcoded secrets in the new feature branch"  
+Claude: [Configures security scanner with specific parameters]
 ```
 
 ## Subagent Communication
@@ -413,32 +500,34 @@ claude-code subagent run qa/security-scanner --save-state
 claude-code subagent run architect/security-architect --use-state qa/security-scanner
 ```
 
-## Monitoring Subagents
+## Monitoring Subagents in MagSafe Guard
 
-### Performance Metrics
+### Checking Agent Reports
 
 ```bash
-# View subagent performance
-claude-code subagent metrics qa/security-scanner
+# View latest agent reports
+task ai:status
 
-# Compare subagent efficiency
-claude-code subagent compare qa/*
+# Check specific report files
+cat .architect.review.md
+cat .qa.review.md
+cat .devops.review.md
 
-# Resource usage
-claude-code subagent resources --last-run
+# View task execution logs
+task --summary
 ```
 
 ### Debugging Subagents
 
 ```bash
-# Debug mode
-claude-code subagent run qa/security-scanner --debug
+# Run with verbose output
+task ai:qa --verbose
 
-# Trace execution
-claude-code subagent trace qa/coverage-analyzer
+# Check individual subagent results
+ls -la .*.review.md
 
-# View subagent logs
-claude-code subagent logs qa/security-scanner --tail 100
+# View agent execution history in git
+git log --oneline -- ".*.review.md"
 ```
 
 ## Best Practices

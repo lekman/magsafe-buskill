@@ -280,8 +280,11 @@ final class LoggerTests: XCTestCase {
     // Verify test environment detection works
     // In CI or with CI=true, XCTestConfigurationFilePath may not be set
     // Instead, check for either XCTestConfigurationFilePath or CI environment variable
+    // Also check for XCTestSessionIdentifier which is set by Xcode
     let isTestEnv = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil ||
-                    ProcessInfo.processInfo.environment["CI"] != nil
+                    ProcessInfo.processInfo.environment["CI"] != nil ||
+                    ProcessInfo.processInfo.environment["XCTestSessionIdentifier"] != nil ||
+                    ProcessInfo.processInfo.environment["XCTestBundlePath"] != nil
     XCTAssertTrue(isTestEnv, "Should detect test environment")
     
     // Test that error logging still works even with file logging disabled

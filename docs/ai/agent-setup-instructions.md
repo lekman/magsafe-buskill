@@ -57,15 +57,42 @@ Copy each template file from this guide into the `docs/templates/` directory:
 
 ## Step 2: Create Agent Instructions
 
-For each agent, create an instruction file that Claude Code will use. Create a `.claude-agents/` directory:
+For each agent, create an instruction file that Claude Code will use. Create a `.claude/agents/` directory in your project:
 
 ```bash
-mkdir -p .claude-agents
+mkdir -p .claude/agents
+```
+
+### Making Agents Available Globally
+
+To make your project agents available globally in Claude Code (accessible via the `/agents` command), create symlinks in your global Claude configuration:
+
+```bash
+# Create a specialized folder for your project agents
+mkdir -p ~/.claude/agents/specialized/$(basename $(pwd))
+
+# Create symlinks to your project agents
+cd ~/.claude/agents/specialized/$(basename $(pwd))
+ln -sf $(pwd)/.claude/agents/*.md .
+```
+
+This allows you to:
+
+- Access your project agents from any Claude Code session
+- Keep agents project-specific but globally accessible
+- Automatically reflect updates to agent instructions
+- Use the `/agents` command to list and invoke them
+
+Alternative: If you want them as core agents instead:
+
+```bash
+# Copy to core agents (permanent, not symlinked)
+cp .claude/agents/*.md ~/.claude/agents/core/
 ```
 
 ### Create Architect Agent Instructions
 
-Create `.claude-agents/architect.md`:
+Create `.claude/agents/architect.md`:
 
 ```markdown
 # @architect Agent Instructions
@@ -132,7 +159,7 @@ Maintain `.architecture.review.md` with:
 
 ### Create QA Agent Instructions
 
-Create `.claude-agents/qa.md`:
+Create `.claude/agents/qa.md`:
 
 ````markdown
 # @qa Agent Instructions
@@ -211,7 +238,7 @@ Maintain `.qa.review.md` with:
 ````markdown
 ### Create Author Agent Instructions
 
-Create `.claude-agents/author.md`:
+Create `.claude/agents/author.md`:
 
 ```markdown
 # @author Agent Instructions
@@ -284,7 +311,7 @@ docs/
 
 ### Create DevOps Agent Instructions
 
-Create `.claude-agents/devops.md`:
+Create `.claude/agents/devops.md`:
 
 ````markdown
 # @devops Agent Instructions
@@ -367,33 +394,20 @@ Maintain `.devops.review.md` with:
 - Security findings
 - Cost analysis
 
-````markdown
-## Step 3: Initialize Agents
+## Step 3: Initialize Agents Globally
 
-Run these commands to create each agent in Claude Code:
+Once you've created your agent instruction files, copy them to the global Claude configuration to make them permanently available:
 
 ```bash
-# Create the Architect agent
-claude-code agent create architect \
-  --instructions .claude-agents/architect.md \
-  --description "Architecture review and code quality analysis"
+# Copy all project agents to global core agents
+cp .claude/agents/*.md ~/.claude/agents/core/
 
-# Create the QA agent
-claude-code agent create qa \
-  --instructions .claude-agents/qa.md \
-  --description "Quality assurance and testing oversight"
-
-# Create the Author agent
-claude-code agent create author \
-  --instructions .claude-agents/author.md \
-  --description "Technical documentation management"
-
-# Create the DevOps agent
-claude-code agent create devops \
-  --instructions .claude-agents/devops.md \
-  --description "Build, deployment, and infrastructure optimization"
+# Or copy to a specialized folder for better organization
+mkdir -p ~/.claude/agents/specialized/magsafe-guard
+cp .claude/agents/*.md ~/.claude/agents/specialized/magsafe-guard/
 ```
-````
+
+Now your agents will be available globally via the `/agents` command in any Claude Code session.
 
 ## Step 4: Configure Agent Triggers
 
@@ -401,7 +415,7 @@ Set up agents to run automatically:
 
 ### Option 1: Scheduled Reviews
 
-Create `.claude-agents/schedule.yml`:
+Create `.claude/schedule.yml` (or `.claude/agents/schedule.yml`):
 
 ```yaml
 agents:
@@ -462,28 +476,38 @@ task ci:validate
 
 ## Step 5: Manual Agent Execution
 
-Run agents manually when needed:
+### Using Task Commands (Project-Specific)
+
+Run agents through the Taskfile integration:
 
 ```bash
 # Run individual agents
-claude-code agent run architect
-claude-code agent run qa
-claude-code agent run author
-claude-code agent run devops
+task ai:architect      # Architecture review
+task ai:qa            # Quality assurance  
+task ai:author        # Documentation review
+task ai:devops        # DevOps analysis
 
-# Run all agents
-claude-code agent run --all
+# Quick checks
+task ai:quick-check   # Fast P0/P1 issue scan
+task ai:status        # Check agent reports
+```
 
-# Run with specific focus
-claude-code agent run architect --focus security
-claude-code agent run qa --focus coverage
+### Using Claude Code Commands
+
+If agents are installed globally, you can use them directly:
+
+```bash
+# In Claude Code chat:
+/agents               # List available agents
+@architect           # Invoke architect agent
+@qa                  # Invoke QA agent
 ```
 
 ## Step 6: Inter-Agent Communication
 
 Set up agent collaboration:
 
-Create `.claude-agents/collaboration.yml`:
+Create `.claude/collaboration.yml` (or `.claude/agents/collaboration.yml`):
 
 ```yaml
 collaborations:
@@ -505,17 +529,21 @@ collaborations:
 
 ## Step 7: Monitoring Agent Performance
 
-Track agent effectiveness:
+Track agent effectiveness through the Taskfile:
 
 ```bash
-# View agent activity
-claude-code agent status --all
+# Check agent status and reports
+task ai:status        # View latest agent reports
 
-# View agent logs
-claude-code agent logs architect --tail 50
+# View specific agent outputs
+cat .architect.review.md
+cat .qa.review.md
+cat .devops.review.md
 
-# View agent metrics
-claude-code agent metrics --period 30d
+# Run specific subagents for detailed analysis
+task ai:architect:solid-validator
+task ai:qa:security-scanner
+task ai:qa:coverage-analyzer
 ```
 
 ## Best Practices

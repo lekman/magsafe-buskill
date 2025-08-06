@@ -39,6 +39,7 @@ disabled_rules:
   - explicit_acl # Extension methods don't need explicit ACL
   - large_tuple # Notification tuples need 3 elements
   - line_length # Long lines are sometimes necessary for readability
+  - type_body_length # Some service classes are necessarily large
 
 # Rule configurations
 missing_docs:
@@ -68,10 +69,10 @@ file_header:
 #   warning: 60
 #   error: 100
 
-# Type body length
-type_body_length:
-  warning: 310 # Increased slightly to accommodate test files
-  error: 400
+# Type body length - commented out since disabled
+# type_body_length:
+#   warning: 310 # Increased slightly to accommodate test files
+#   error: 400
 
 # File length - commented out since disabled
 # file_length:

@@ -133,7 +133,7 @@ extension NetworkFrameworkRepository: NetworkMonitorDelegate {
 // MARK: - Trusted Networks Storage
 
 /// Protocol for persisting trusted networks
-public protocol TrustedNetworksStore {
+public protocol TrustedNetworksStore: Sendable {
     /// Saves trusted networks to persistent storage
     func saveTrustedNetworks(_ networks: [TrustedNetwork]) async throws
     /// Loads trusted networks from persistent storage

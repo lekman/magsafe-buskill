@@ -2,13 +2,13 @@ SPDXVersion: SPDX-2.3
 DataLicense: CC0-1.0
 SPDXID: SPDXRef-DOCUMENT
 DocumentName: MagSafeGuardLib
-DocumentNamespace: https://sbom.swift/MagSafeGuardLib/spdx-v1.10.0-65-g50fca2a-1754412803
+DocumentNamespace: https://sbom.swift/MagSafeGuardLib/spdx-v1.10.0-82-g403daf5-1754469678
 Creator: Tool: swift-package-sbom-1.0.0
-Created: 2025-08-05T16:53:23Z
+Created: 2025-08-06T08:41:18Z
 
 PackageName: MagSafeGuardLib
 SPDXID: SPDXRef-Package-MagSafeGuardLib
-PackageVersion: v1.10.0-65-g50fca2a
+PackageVersion: v1.10.0-82-g403daf5
 PackageSupplier: Organization: Swift Package
 PackageDownloadLocation: NOASSERTION
 FilesAnalyzed: true

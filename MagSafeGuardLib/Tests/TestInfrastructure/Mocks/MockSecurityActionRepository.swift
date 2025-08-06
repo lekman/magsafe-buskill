@@ -14,7 +14,7 @@ import Foundation
 
 /// Mock implementation of SecurityActionRepository for testing.
 /// Allows full control over security action behavior in tests.
-public actor MockSecurityActionRepository: SecurityActionRepository {
+public final class MockSecurityActionRepository: SecurityActionRepository, @unchecked Sendable {
 
     // MARK: - Properties
 
@@ -54,6 +54,21 @@ public actor MockSecurityActionRepository: SecurityActionRepository {
     /// Behavior configuration
     public var shouldFailAfterDelay = false
     public var failureDelay: TimeInterval = 0.5
+    
+    /// Test helper properties for ProtectedActionUseCaseTests
+    public var lockScreenShouldSucceed = true
+    public var lockScreenCalled: Bool { lockScreenCalls > 0 }
+    public var playAlarmShouldSucceed = true
+    public var playAlarmCalled: Bool { playAlarmCalls > 0 }
+    public var stopAlarmCalled: Bool { stopAlarmCalls > 0 }
+    public var forceLogoutShouldSucceed = true
+    public var forceLogoutCalled: Bool { forceLogoutCalls > 0 }
+    public var scheduleShutdownShouldSucceed = true
+    public var scheduleShutdownCalled: Bool { scheduleShutdownCalls > 0 }
+    public var executeScriptShouldSucceed = true
+    public var executeScriptCalled: Bool { executeScriptCalls > 0 }
+    public var shouldThrowCustomError = false
+    public var customError: Error?
 
     // MARK: - Initialization
 
@@ -151,9 +166,17 @@ public actor MockSecurityActionRepository: SecurityActionRepository {
             try await Task.sleep(nanoseconds: UInt64(failureDelay * 1_000_000_000))
             throw SecurityActionError.actionFailed(type: .lockScreen, reason: "Failed after delay")
         }
+        
+        if shouldThrowCustomError, let error = customError {
+            throw error
+        }
 
         if let error = lockScreenError {
             throw error
+        }
+        
+        if !lockScreenShouldSucceed {
+            throw SecurityActionError.actionFailed(type: .lockScreen, reason: "Test failure")
         }
 
         isScreenLocked = true
@@ -169,6 +192,10 @@ public actor MockSecurityActionRepository: SecurityActionRepository {
 
         if let error = playAlarmError {
             throw error
+        }
+        
+        if !playAlarmShouldSucceed {
+            throw SecurityActionError.actionFailed(type: .soundAlarm, reason: "Test failure")
         }
 
         isAlarmPlaying = true
@@ -189,6 +216,10 @@ public actor MockSecurityActionRepository: SecurityActionRepository {
         if let error = forceLogoutError {
             throw error
         }
+        
+        if !forceLogoutShouldSucceed {
+            throw SecurityActionError.actionFailed(type: .forceLogout, reason: "Test failure")
+        }
 
         // Simulate logout by locking screen
         isScreenLocked = true
@@ -204,6 +235,10 @@ public actor MockSecurityActionRepository: SecurityActionRepository {
 
         if let error = scheduleShutdownError {
             throw error
+        }
+        
+        if !scheduleShutdownShouldSucceed {
+            throw SecurityActionError.actionFailed(type: .shutdown, reason: "Test failure")
         }
 
         isShutdownScheduled = true
@@ -224,6 +259,10 @@ public actor MockSecurityActionRepository: SecurityActionRepository {
 
         if let error = executeScriptError {
             throw error
+        }
+        
+        if !executeScriptShouldSucceed {
+            throw SecurityActionError.actionFailed(type: .customScript, reason: "Test failure")
         }
 
         executedScripts.append(path)

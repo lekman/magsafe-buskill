@@ -160,6 +160,9 @@ final class FeatureFlagsTests: XCTestCase {
     let tempDir = FileManager.default.temporaryDirectory
     let testPath = tempDir.appendingPathComponent("test-feature-flags.json").path
 
+    // Clean up any existing file first
+    try? FileManager.default.removeItem(atPath: testPath)
+
     // Ensure flags are initialized before modifying
     FeatureFlags.shared.reload()
 
@@ -171,7 +174,7 @@ final class FeatureFlagsTests: XCTestCase {
     try FeatureFlags.shared.saveToJSON(at: testPath)
 
     // Verify file exists
-    XCTAssertTrue(FileManager.default.fileExists(atPath: testPath))
+    XCTAssertTrue(FileManager.default.fileExists(atPath: testPath), "File should exist at: \(testPath)")
 
     // Load and verify JSON content
     let data = try Data(contentsOf: URL(fileURLWithPath: testPath))

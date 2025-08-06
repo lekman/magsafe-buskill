@@ -12,7 +12,7 @@ import Foundation
 @testable import MagSafeGuard
 
 /// Mock factory for creating mock authentication contexts
-class MockAuthenticationContextFactory: AuthenticationContextFactoryProtocol {
+final class MockAuthenticationContextFactory: AuthenticationContextFactoryProtocol, @unchecked Sendable {
   private let context: MockAuthenticationContext
 
   init(mockContext: MockAuthenticationContext) {
