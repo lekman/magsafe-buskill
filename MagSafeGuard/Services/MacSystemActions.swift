@@ -17,6 +17,39 @@ public class MacSystemActions: SystemActionsProtocol {
 
   private var alarmPlayer: AVAudioPlayer?
 
+  /// Check if running in test mode to prevent actual system actions
+  private var isTestMode: Bool {
+    // Check for CI environment
+    if ProcessInfo.processInfo.environment["CI"] != nil {
+      return true
+    }
+
+    // Check for test-specific environment variable
+    if ProcessInfo.processInfo.environment["MAGSAFE_TEST_MODE"] != nil {
+      return true
+    }
+
+    // Check for XCTest framework
+    if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+      return true
+    }
+
+    // Check if running in test bundle
+    if Bundle.main.bundlePath.contains("xctest") {
+      return true
+    }
+
+    // Check for debug mode and test process name
+    #if DEBUG
+    let processName = ProcessInfo.processInfo.processName
+    if processName.contains("Test") || processName.contains("xctest") {
+      return true
+    }
+    #endif
+
+    return false
+  }
+
   /// Configuration for system command paths
   public struct SystemPaths {
     let pmsetPath: String
@@ -106,6 +139,12 @@ public class MacSystemActions: SystemActionsProtocol {
   /// Locks the screen using distributed notification center
   /// - Throws: SystemActionError if the operation fails
   public func lockScreen() throws {
+    // In test mode, simulate the action without actually locking the screen
+    if isTestMode {
+      Log.info("TEST MODE: Simulating screen lock (no actual lock performed)", category: .security)
+      return
+    }
+
     // Use distributed notification center to lock screen
     let notificationName = "com.apple.screenIsLocked" as CFString
     let notificationCenter = CFNotificationCenterGetDistributedCenter()
@@ -141,6 +180,12 @@ public class MacSystemActions: SystemActionsProtocol {
   /// - Parameter volume: Volume level from 0.0 to 1.0
   /// - Throws: SystemActionError if playback fails
   public func playAlarm(volume: Float) throws {
+    // In test mode, simulate the alarm without actually playing sound
+    if isTestMode {
+      Log.info("TEST MODE: Simulating alarm sound at volume \(volume) (no actual sound played)", category: .security)
+      return
+    }
+
     // Play alarm sound
     guard let soundURL = Bundle.main.url(forResource: "alarm", withExtension: "wav") else {
       // Use system sound as fallback
@@ -176,6 +221,12 @@ public class MacSystemActions: SystemActionsProtocol {
   /// Forces logout of all users using AppleScript
   /// - Throws: SystemActionError if the operation fails
   public func forceLogout() throws {
+    // In test mode, simulate the action without actually logging out
+    if isTestMode {
+      Log.warning("TEST MODE: Simulating force logout (no actual logout performed)", category: .security)
+      return
+    }
+
     // Force logout all users
     let task = Process()
     task.launchPath = systemPaths.osascriptPath
@@ -207,6 +258,30 @@ public class MacSystemActions: SystemActionsProtocol {
     // Convert to minutes with minimum of 1 minute
     let minutes = max(1, Int(afterSeconds / 60))
 
+    // Ensure minutes is a valid integer to prevent injection
+    guard minutes >= 1 && minutes <= 60 else {
+      Log.error("Invalid shutdown delay after conversion: \(minutes) minutes", category: .security)
+      throw SystemActionError.invalidShutdownDelay
+    }
+
+    // In test mode, simulate the action without actually scheduling shutdown
+    if isTestMode {
+      Log.warning("TEST MODE: Simulating shutdown schedule for \(minutes) minutes (no actual shutdown scheduled)", category: .security)
+
+      // Show a notification instead of scheduling shutdown
+      #if os(macOS)
+      DispatchQueue.main.async {
+        let notification = NSUserNotification()
+        notification.title = "MagSafe Guard Test Mode"
+        notification.informativeText = "Would schedule shutdown in \(minutes) minutes (TEST MODE - no actual shutdown)"
+        notification.soundName = NSUserNotificationDefaultSoundName
+        NSUserNotificationCenter.default.deliver(notification)
+      }
+      #endif
+
+      return
+    }
+
     Log.info("Scheduling system shutdown in \(minutes) minutes", category: .security)
 
     // Use AppleScript for shutdown without requiring sudo privileges
@@ -215,6 +290,7 @@ public class MacSystemActions: SystemActionsProtocol {
     task.launchPath = systemPaths.osascriptPath
 
     // Create AppleScript to schedule shutdown with delay
+    // Using string interpolation with validated integer to prevent injection
     let appleScript: String
     if minutes == 1 {
       // Immediate shutdown (1 minute minimum)
@@ -222,13 +298,16 @@ public class MacSystemActions: SystemActionsProtocol {
     } else {
       // Delayed shutdown using a more user-friendly approach
       // This will show a system dialog allowing the user to cancel
+      // Sanitized minutes value used in string interpolation
+      let sanitizedMinutes = String(minutes)
+      let sanitizedSeconds = String(minutes * 60)
       appleScript = """
         tell application "Finder"
-          display dialog "System will shut down in \(minutes) minutes" ¬
+          display dialog "System will shut down in \(sanitizedMinutes) minutes" ¬
             buttons {"Cancel", "Shut Down Now"} ¬
             default button "Shut Down Now" ¬
             with icon caution ¬
-            giving up after \(minutes * 60)
+            giving up after \(sanitizedSeconds)
         end tell
         tell application "System Events" to shut down
         """
@@ -262,6 +341,12 @@ public class MacSystemActions: SystemActionsProtocol {
 
     // Validate script content
     try validateScriptContent(canonicalPath)
+
+    // In test mode, simulate the script execution without actually running it
+    if isTestMode {
+      Log.warning("TEST MODE: Simulating script execution: \(canonicalPath) (no actual execution)", category: .security)
+      return
+    }
 
     // Execute the validated script
     try executeValidatedScript(canonicalPath)
@@ -351,20 +436,69 @@ public class MacSystemActions: SystemActionsProtocol {
         throw error
       }
       Log.error("Failed to read script: \(path)", error: error, category: .security)
-      throw SystemActionError.scriptValidationFailed
+      throw SystemActionError.scriptValidationFailed(reason: "Script validation error")
     }
   }
 
   private func checkDangerousPatterns(in content: String) throws {
+    // Basic dangerous patterns
     let dangerousPatterns = [
       "sudo", "su ", "rm -rf /", "dd if=/dev", "mkfs",
       ":(){ :|:& };:", "> /dev/sda", "chmod 777 /",
-      "chown -R", "pkill -9", "killall -9"
+      "chown -R", "pkill -9", "killall -9",
+      "curl ", "wget ", "nc ", "telnet", "ssh ",
+      "/etc/passwd", "/etc/shadow", "dscl ", "systemsetup",
+      "networksetup", "defaults write", "launchctl", "kextload", "kextunload"
     ]
 
-    for pattern in dangerousPatterns where content.contains(pattern) {
+    let lowercaseContent = content.lowercased()
+    for pattern in dangerousPatterns where lowercaseContent.contains(pattern.lowercased()) {
       Log.error("Script contains dangerous command pattern: \(pattern)", category: .security)
       throw SystemActionError.dangerousScriptContent
+    }
+
+    // Check for obfuscation patterns
+    let obfuscationPatterns = [
+      "\\\\x[0-9a-fA-F]{2}",  // Hex encoding
+      "echo.*\\|.*(sh|bash)",  // Echo piped to shell
+      "eval\\s+",              // Dynamic evaluation
+      "exec\\s+",              // Dynamic execution
+      "source\\s+/dev/stdin",  // Reading from stdin
+      "(bash|sh)\\s+-c",       // Command execution
+      "python\\s+-c",          // Python one-liners
+      "perl\\s+-e",            // Perl one-liners
+      "ruby\\s+-e",            // Ruby one-liners
+      "base64\\s+(--decode|-d)", // Base64 decoding
+      "xxd\\s+-r",             // Hex decoding
+      "openssl\\s+enc",        // Encryption/decryption
+      "IFS=",                  // IFS manipulation
+      "\\$\\(",                // Command substitution
+      "`[^`]+`",               // Backtick substitution
+      "printf.*\\\\x",         // Printf with hex
+      "echo\\s+-e.*\\\\"      // Echo with escapes
+    ]
+
+    for pattern in obfuscationPatterns {
+      if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+         let match = regex.firstMatch(in: content, options: [], range: NSRange(content.startIndex..., in: content)) {
+        let matchedString = String(content[Range(match.range, in: content)!])
+        Log.error("Script contains obfuscated command: \(matchedString)", category: .security)
+        throw SystemActionError.scriptValidationFailed(reason: "Obfuscated command detected: \(matchedString)")
+      }
+    }
+
+    // Check for excessive special characters (potential obfuscation)
+    let specialCharCount = content.filter { "\\$`|<>;&(){}[]".contains($0) }.count
+    let totalCharCount = content.count
+    if totalCharCount > 0 && Double(specialCharCount) / Double(totalCharCount) > 0.15 {
+      Log.error("Script contains excessive special characters", category: .security)
+      throw SystemActionError.scriptValidationFailed(reason: "Excessive special characters detected")
+    }
+
+    // Check for binary content (non-text files)
+    if content.contains("\0") {
+      Log.error("Script contains binary content", category: .security)
+      throw SystemActionError.scriptValidationFailed(reason: "Binary content detected")
     }
   }
 

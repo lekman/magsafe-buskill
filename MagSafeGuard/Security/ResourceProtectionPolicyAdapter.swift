@@ -74,7 +74,7 @@ public final class ResourceProtectionPolicyAdapter: ResourceProtectionPolicy {
             successRate: rawMetrics["successRate"] as? Double ?? 0.0
         )
     }
-    
+
     /// Reset protection for specific action
     public func reset(action: SecurityActionType) async {
         let actionKey = mapActionTypeToKey(action)

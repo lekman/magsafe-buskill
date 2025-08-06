@@ -108,14 +108,18 @@ public actor CircuitBreaker: CircuitBreakerProtocol {
 
     /// Check if action can execute through circuit breaker
     public func canExecute(_ action: String) -> Bool {
+        // Ensure circuit exists
+        let circuit = circuits[action] ?? Circuit(
+            failureThreshold: defaultFailureThreshold,
+            successThreshold: defaultSuccessThreshold,
+            timeout: defaultTimeout
+        )
+
         if circuits[action] == nil {
-            circuits[action] = Circuit(
-                failureThreshold: defaultFailureThreshold,
-                successThreshold: defaultSuccessThreshold,
-                timeout: defaultTimeout
-            )
+            circuits[action] = circuit
         }
 
+        // Check timeout and update state if needed
         circuits[action]?.checkTimeout()
         return circuits[action]?.canExecute ?? true
     }

@@ -306,7 +306,8 @@ public final class MacSystemActionsRepository: SecurityActionRepository, @unchec
         case .permissionDenied:
             return .permissionDenied(action: action)
         case .invalidScriptPath, .invalidScriptType, .insecureScriptPermissions,
-             .dangerousScriptContent, .unauthorizedScriptHash, .scriptValidationFailed:
+             .dangerousScriptContent, .unauthorizedScriptHash, .scriptValidationFailed,
+             .scriptNotExecutable:
             return mapScriptValidationError(error)
         case .scriptExecutionTimeout:
             return .actionFailed(type: .customScript, reason: "Script execution timed out")
@@ -327,8 +328,10 @@ public final class MacSystemActionsRepository: SecurityActionRepository, @unchec
             return .actionFailed(type: .customScript, reason: "Script contains dangerous commands")
         case .unauthorizedScriptHash:
             return .actionFailed(type: .customScript, reason: "Script is not authorized")
-        case .scriptValidationFailed:
-            return .actionFailed(type: .customScript, reason: "Script validation failed")
+        case .scriptValidationFailed(let reason):
+            return .actionFailed(type: .customScript, reason: "Script validation failed: \(reason)")
+        case .scriptNotExecutable:
+            return .actionFailed(type: .customScript, reason: "Script file is not executable")
         default:
             return .actionFailed(type: .customScript, reason: "Script error")
         }

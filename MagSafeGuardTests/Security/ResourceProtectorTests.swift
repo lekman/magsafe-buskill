@@ -8,6 +8,7 @@
 //
 
 @testable import MagSafeGuard
+import MagSafeGuardDomain
 import XCTest
 
 final class ResourceProtectorTests: XCTestCase {
