@@ -8,6 +8,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- This changelog is automatically maintained by release-please -->
 <!-- Do not manually edit below this line -->
 
+## [1.11.0](https://github.com/lekman/magsafe-buskill/compare/v1.10.0...v1.11.0) (2025-08-05)
+
+
+### Features
+
+* add AI agent configuration and context file to version control ([6942fad](https://github.com/lekman/magsafe-buskill/commit/6942fad3cdbac7cfa2d688529d02e403b083e8c5))
+* add AI agent justifications system and update agents ([83e9bb8](https://github.com/lekman/magsafe-buskill/commit/83e9bb851e84da645d09d8fc12f3b13edf71cc57))
+* add ai-review task to consolidate AI agent findings and prioritize issues ([17c66ea](https://github.com/lekman/magsafe-buskill/commit/17c66ead737e03aa7fd0cd8f1cfda3d438d30d82))
+* add configuration and instructions for AI Code agents ([195310e](https://github.com/lekman/magsafe-buskill/commit/195310e409a53a20bff98dd652dd115085e19647))
+* improve AI agent tasks with silent mode and markdown linting ([286dbc7](https://github.com/lekman/magsafe-buskill/commit/286dbc760a13c72a2b2584560bd38ad073b394fd))
+* **logging:** add Sentry test event functionality and setup documentation ([c2eb825](https://github.com/lekman/magsafe-buskill/commit/c2eb825853268c02af3e83d50287bfafd8c4177f))
+* **logging:** enhance Sentry integration with automatic initialization and advanced logging methods ([5502af7](https://github.com/lekman/magsafe-buskill/commit/5502af7e994c68f71f784f325ba2daa44209fa58))
+* **logging:** integrate Sentry error tracking and monitoring ([8892a66](https://github.com/lekman/magsafe-buskill/commit/8892a664fe91cc8d99ca4abf70837ae75f705304))
+* **security:** implement resource protection with rate limiting and circuit breaker ([0a29e7f](https://github.com/lekman/magsafe-buskill/commit/0a29e7f241769a8e9d25073141d6f4c588cbe7bf))
+* **tests:** add JUnit XML generation for test execution reporting and integrate with Codecov ([c68240b](https://github.com/lekman/magsafe-buskill/commit/c68240b639d5c06fada404453e50a1198d9dd54b))
+* update .gitignore to exclude coverage files and add justifications file; create PRD template with structured guidelines ([e000ab5](https://github.com/lekman/magsafe-buskill/commit/e000ab53e520fe58a013b3547911314796c10103))
+
+
+### Bug Fixes
+
+* **actions:** update cache actions to use specific commit SHAs ([2750724](https://github.com/lekman/magsafe-buskill/commit/27507247a7581c9beffaafcf97302d6bd0dd7fa3))
+* address security issue in CodeQL workflow ([b7594ab](https://github.com/lekman/magsafe-buskill/commit/b7594ab2ce32e5af49aade1569638a1c443843da))
+* **ci:** correct duplicate SHA comments in GitHub Actions ([ad13fff](https://github.com/lekman/magsafe-buskill/commit/ad13fffc2abc7ec7bf173f2f558a399561de15df))
+* **ci:** replace Python script with awk for generating JUnit XML from Swift test output ([072bfeb](https://github.com/lekman/magsafe-buskill/commit/072bfebc6b2688b5d9d7916fe403500183ad895f))
+* **ci:** update security:pin-actions task to handle already-pinned actions correctly ([9d87dd2](https://github.com/lekman/magsafe-buskill/commit/9d87dd2094e77878b3258c9ad5308f37c140e1e8))
+* **ci:** use correct version tag for codecov test-results-action ([a1df553](https://github.com/lekman/magsafe-buskill/commit/a1df553d88b61d44ed9bc0ca87b5eeda7f09d689))
+* correct SonarCloud coverage file paths for proper path matching ([eabfa99](https://github.com/lekman/magsafe-buskill/commit/eabfa991b5e485cf8733caa5f1cdd35cb960dddf))
+* ensure coverage.xml is always copied to project root for SonarCloud ([5df587d](https://github.com/lekman/magsafe-buskill/commit/5df587d4ec5abe4fa3e6a38880495685518169f3))
+* **logging:** improve privacy scrubbing regex patterns in SentryLogger and update SBOM metadata ([4a85f56](https://github.com/lekman/magsafe-buskill/commit/4a85f566081c04dd85f4834cf34796723079734e))
+* **logging:** update SentryLogger to clarify intentional hardcoded DSN and improve privacy scrubbing regex comments ([9435507](https://github.com/lekman/magsafe-buskill/commit/94355077fd23ca575996130d0540e80bd862ea4f))
+* resolve CI/CD issues with SonarCloud coverage and CodeQL analysis ([e77ad9e](https://github.com/lekman/magsafe-buskill/commit/e77ad9e96db94c8deeebb33c8e1804655ae35bf4))
+* revert coverage.xml paths to project root format for SonarCloud ([0f2a79c](https://github.com/lekman/magsafe-buskill/commit/0f2a79c612c977bb3c00a68b7d66bb1bc632a7d1))
+* **security:** comprehensive security enhancements for script execution ([cd89965](https://github.com/lekman/magsafe-buskill/commit/cd89965b2f590d122b9d8e1f1f26da5bcb61c31e))
+* **security:** improve pin-actions task to skip already-pinned actions ([da5f561](https://github.com/lekman/magsafe-buskill/commit/da5f561e39ed9108efa0078a07a70e1e012b183e))
+* **security:** resolve critical command injection vulnerabilities in MacSystemActions ([95a7650](https://github.com/lekman/magsafe-buskill/commit/95a7650d55f988a5dffbbfa73d1365b60f7d0288))
+* **sentry:** resolve SonarCloud code smells for hardcoded URIs ([e94b1d0](https://github.com/lekman/magsafe-buskill/commit/e94b1d083d1844132d0c2c6095c4c49ad10bffc0))
+* update AI agent tasks to handle file writing properly ([e0b813d](https://github.com/lekman/magsafe-buskill/commit/e0b813ddb970dd9c6c62fd6f389cb3b3bb996483))
+* update justifications and agent setup instructions for clarity and formatting ([cca638e](https://github.com/lekman/magsafe-buskill/commit/cca638e72d89d3d90b59d1ac3d41397205f8ab85))
+* update warnings on code smells from sonar ([3f08845](https://github.com/lekman/magsafe-buskill/commit/3f08845f74c869f1124afe2484cc1814a6fb1e6c))
+
+
+### Security Updates
+
+* Addresses Semgrep finding yaml.github-actions.security.run-shell-injection ([b7594ab](https://github.com/lekman/magsafe-buskill/commit/b7594ab2ce32e5af49aade1569638a1c443843da))
+
+
+### Documentation
+
+* Add comprehensive documentation templates and best practices ([5800668](https://github.com/lekman/magsafe-buskill/commit/5800668f1b830cd59b8abb6965087b1d1210a6d9))
+
+
+### Code Refactoring
+
+* rename ai-review task to review for clarity ([f40c244](https://github.com/lekman/magsafe-buskill/commit/f40c244eb9a105b97df8bcd7cfdc1dfea9d1477a))
+
+
+### Tests
+
+* add validation tests for negative shutdown and action delays in SecurityActionUseCase ([42279c1](https://github.com/lekman/magsafe-buskill/commit/42279c1d46d5540504dcf09a7491a2a962a6fe9c))
+* Enhance SentryLogger tests and configurations; improve security practices ([641bc9a](https://github.com/lekman/magsafe-buskill/commit/641bc9a7316b583644d27ac8e2f8fbf408a796eb))
+* **logging:** enhance LoggerTests and SentryLoggerTests for CI compatibility and coverage reporting ([50fca2a](https://github.com/lekman/magsafe-buskill/commit/50fca2add285bdb459e86a316de9454f54508ce0))
+
 ## [1.10.0](https://github.com/lekman/magsafe-buskill/compare/v1.9.0...v1.10.0) (2025-08-03)
 
 
