@@ -134,7 +134,7 @@ final class RateLimiterTests: XCTestCase {
 
     func testDefaultConfig() {
         // Given
-        let config = RateLimiterConfig.default
+        let config = RateLimiterConfig.defaultConfig
 
         // Then
         XCTAssertEqual(config.lockScreen.capacity, 5)

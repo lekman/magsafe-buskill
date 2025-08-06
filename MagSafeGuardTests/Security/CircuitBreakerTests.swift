@@ -180,7 +180,7 @@ final class CircuitBreakerTests: XCTestCase {
 
     func testDefaultConfig() {
         // Given
-        let config = CircuitBreakerConfig.default
+        let config = CircuitBreakerConfig.defaultConfig
 
         // Then
         XCTAssertEqual(config.lockScreen.failures, 3)

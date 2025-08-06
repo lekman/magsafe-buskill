@@ -129,9 +129,9 @@ struct ResourceProtectionProtocolsTests {
         #expect(config.executeScript.refillRate == 3.0)
     }
     
-    @Test("RateLimiterConfig.default")
+    @Test("RateLimiterConfig.defaultConfig")
     func testRateLimiterConfigDefault() {
-        let config = RateLimiterConfig.default
+        let config = RateLimiterConfig.defaultConfig
         
         #expect(config.lockScreen.capacity == 5)
         #expect(config.lockScreen.refillRate == 2.0)
@@ -206,9 +206,9 @@ struct ResourceProtectionProtocolsTests {
         #expect(config.executeScript.timeout == 30.0)
     }
     
-    @Test("CircuitBreakerConfig.default")
+    @Test("CircuitBreakerConfig.defaultConfig")
     func testCircuitBreakerConfigDefault() {
-        let config = CircuitBreakerConfig.default
+        let config = CircuitBreakerConfig.defaultConfig
         
         #expect(config.lockScreen.failures == 3)
         #expect(config.lockScreen.successes == 2)
@@ -286,12 +286,12 @@ struct ResourceProtectionProtocolsTests {
         #expect(config.enableLogging == false)
     }
     
-    @Test("ResourceProtectorConfig.default")
+    @Test("ResourceProtectorConfig.defaultConfig")
     func testResourceProtectorConfigDefault() {
-        let config = ResourceProtectorConfig.default
+        let config = ResourceProtectorConfig.defaultConfig
         
-        #expect(config.rateLimiter.lockScreen.capacity == RateLimiterConfig.default.lockScreen.capacity)
-        #expect(config.circuitBreaker.lockScreen.failures == CircuitBreakerConfig.default.lockScreen.failures)
+        #expect(config.rateLimiter.lockScreen.capacity == RateLimiterConfig.defaultConfig.lockScreen.capacity)
+        #expect(config.circuitBreaker.lockScreen.failures == CircuitBreakerConfig.defaultConfig.lockScreen.failures)
         #expect(config.enableMetrics == true)
         #expect(config.enableLogging == true)
     }

@@ -129,9 +129,9 @@ public final class ResourceProtectionPolicyAdapter: ResourceProtectionPolicy {
 Balanced protection for normal operation:
 
 ```swift
-ResourceProtectorConfig.default = ResourceProtectorConfig(
-    rateLimiter: .default,
-    circuitBreaker: .default,
+ResourceProtectorConfig.defaultConfig = ResourceProtectorConfig(
+    rateLimiter: .defaultConfig,
+    circuitBreaker: .defaultConfig,
     enableMetrics: true,
     enableLogging: true
 )
@@ -280,7 +280,7 @@ let testConfig = RateLimiterConfig(
 // Initialize repository with protection
 let repository = MacSystemActionsRepository(
     systemActions: MacSystemActions(),
-    resourceProtectorConfig: .default
+    resourceProtectorConfig: .defaultConfig
 )
 
 // Actions are automatically protected
@@ -325,7 +325,7 @@ await repository.resetProtection(for: .lockScreen)
 
 ### 1. Configuration Selection
 
-- Use `.default` for normal operation
+- Use `.defaultConfig` for normal operation
 - Use `.strict` for high-security environments
 - Create custom configurations for specific needs
 

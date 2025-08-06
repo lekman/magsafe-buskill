@@ -149,7 +149,7 @@ public struct RateLimiterConfig: Sendable {
     }
     
     /// Default configuration with balanced limits
-    public static let `default` = RateLimiterConfig(
+    public static let defaultConfig = RateLimiterConfig(
         lockScreen: (capacity: 5, refillRate: 2.0),      // 5 locks per 10 seconds
         playAlarm: (capacity: 3, refillRate: 5.0),       // 3 alarms per 15 seconds
         forceLogout: (capacity: 2, refillRate: 30.0),    // 2 logouts per minute
@@ -199,7 +199,7 @@ public struct CircuitBreakerConfig: Sendable {
     }
     
     /// Default configuration with balanced thresholds
-    public static let `default` = CircuitBreakerConfig(
+    public static let defaultConfig = CircuitBreakerConfig(
         lockScreen: (failures: 3, successes: 2, timeout: 30.0),
         playAlarm: (failures: 3, successes: 2, timeout: 30.0),
         forceLogout: (failures: 2, successes: 1, timeout: 60.0),
@@ -246,9 +246,9 @@ public struct ResourceProtectorConfig: Sendable {
     }
     
     /// Default configuration
-    public static let `default` = ResourceProtectorConfig(
-        rateLimiter: .default,
-        circuitBreaker: .default,
+    public static let defaultConfig = ResourceProtectorConfig(
+        rateLimiter: .defaultConfig,
+        circuitBreaker: .defaultConfig,
         enableMetrics: true,
         enableLogging: true
     )
