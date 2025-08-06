@@ -213,7 +213,7 @@ public class MacSystemActions: SystemActionsProtocol {
     // This provides a safer approach that respects system security
     let task = Process()
     task.launchPath = systemPaths.osascriptPath
-    
+
     // Create AppleScript to schedule shutdown with delay
     let appleScript: String
     if minutes == 1 {
@@ -233,7 +233,7 @@ public class MacSystemActions: SystemActionsProtocol {
         tell application "System Events" to shut down
         """
     }
-    
+
     task.arguments = ["-e", appleScript]
 
     do {
@@ -254,13 +254,27 @@ public class MacSystemActions: SystemActionsProtocol {
   /// - Parameter path: Path to the script file
   /// - Throws: SystemActionError if script doesn't exist, is invalid, or execution fails
   public func executeScript(at path: String) throws {
-    // 0. Path traversal prevention - reject any path with .. or ~
+    // Validate script path and get canonical path
+    let canonicalPath = try validateScriptPath(path)
+
+    // Validate script file properties
+    try validateScriptFile(canonicalPath)
+
+    // Validate script content
+    try validateScriptContent(canonicalPath)
+
+    // Execute the validated script
+    try executeValidatedScript(canonicalPath)
+  }
+
+  private func validateScriptPath(_ path: String) throws -> String {
+    // Path traversal prevention
     guard !path.contains("..") && !path.contains("~") else {
       Log.error("Path traversal attempt detected: \(path)", category: .security)
       throw SystemActionError.invalidScriptPath
     }
-    
-    // 1. Validate path is in allowed directory
+
+    // Validate path is in allowed directory
     let allowedScriptDirs = [
       "/usr/local/magsafe-scripts/",
       NSHomeDirectory() + "/.magsafe/scripts/"
@@ -271,100 +285,105 @@ public class MacSystemActions: SystemActionsProtocol {
       throw SystemActionError.invalidScriptPath
     }
 
-    // 2. Resolve symlinks and check canonical path
+    // Resolve symlinks and check canonical path
     let canonicalPath = (path as NSString).resolvingSymlinksInPath
-    
-    // Double-check the canonical path doesn't escape allowed directories
     let canonicalURL = URL(fileURLWithPath: canonicalPath)
     let allowedURLs = allowedScriptDirs.map { URL(fileURLWithPath: $0) }
-    
-    var isInAllowedDirectory = false
-    for allowedURL in allowedURLs {
-      if canonicalURL.path.hasPrefix(allowedURL.path) {
-        isInAllowedDirectory = true
-        break
-      }
+
+    let isInAllowedDirectory = allowedURLs.contains { allowedURL in
+      canonicalURL.path.hasPrefix(allowedURL.path)
     }
-    
+
     guard isInAllowedDirectory else {
       Log.error("Canonical script path not in allowed directories: \(canonicalPath)", category: .security)
       throw SystemActionError.invalidScriptPath
     }
 
-    // 3. Validate file extension
+    return canonicalPath
+  }
+
+  private func validateScriptFile(_ path: String) throws {
+    // Validate file extension
     let allowedExtensions = [".sh", ".zsh", ".bash"]
     guard allowedExtensions.contains(where: { path.hasSuffix($0) }) else {
       Log.error("Invalid script extension: \(path)", category: .security)
       throw SystemActionError.invalidScriptType
     }
 
-    // 4. Check if file exists
-    guard FileManager.default.fileExists(atPath: canonicalPath) else {
-      Log.error("Script not found: \(canonicalPath)", category: .security)
+    // Check if file exists
+    guard FileManager.default.fileExists(atPath: path) else {
+      Log.error("Script not found: \(path)", category: .security)
       throw SystemActionError.scriptNotFound
     }
 
-    // 5. Check file permissions (not world-writable)
+    // Check file permissions
+    try validateScriptPermissions(path)
+  }
+
+  private func validateScriptPermissions(_ path: String) throws {
     do {
-      let attributes = try FileManager.default.attributesOfItem(atPath: canonicalPath)
+      let attributes = try FileManager.default.attributesOfItem(atPath: path)
       if let permissions = attributes[.posixPermissions] as? NSNumber {
         let perms = permissions.intValue
-        // Check if world-writable (last bit set)
+        // Check if world-writable
         if (perms & 0o002) != 0 {
-          Log.error("Script is world-writable: \(canonicalPath)", category: .security)
+          Log.error("Script is world-writable: \(path)", category: .security)
           throw SystemActionError.insecureScriptPermissions
         }
       }
     } catch {
-      Log.error("Failed to check script permissions: \(canonicalPath)", error: error, category: .security)
+      Log.error("Failed to check script permissions: \(path)", error: error, category: .security)
       throw SystemActionError.permissionDenied
     }
+  }
 
-    // 6. Validate script content for dangerous commands
+  private func validateScriptContent(_ path: String) throws {
     do {
-      let scriptContent = try String(contentsOfFile: canonicalPath, encoding: .utf8)
-      
+      let scriptContent = try String(contentsOfFile: path, encoding: .utf8)
+
       // Check for dangerous patterns
-      let dangerousPatterns = [
-        "sudo",           // Privilege escalation
-        "su ",           // Switch user
-        "rm -rf /",      // Destructive commands
-        "dd if=/dev",    // Disk operations
-        "mkfs",          // Filesystem formatting
-        ":(){ :|:& };:", // Fork bomb
-        "> /dev/sda",    // Direct disk writes
-        "chmod 777 /",   // Permission changes to root
-        "chown -R",      // Recursive ownership changes
-        "pkill -9",      // Force kill processes
-        "killall -9"     // Force kill all processes
-      ]
-      
-      for pattern in dangerousPatterns {
-        if scriptContent.contains(pattern) {
-          Log.error("Script contains dangerous command pattern: \(pattern)", category: .security)
-          throw SystemActionError.dangerousScriptContent
-        }
-      }
-      
+      try checkDangerousPatterns(in: scriptContent)
+
       // Check script hash against whitelist (if configured)
-      if let allowedHashes = ProcessInfo.processInfo.environment["MAGSAFE_ALLOWED_SCRIPT_HASHES"]?.split(separator: ",").map(String.init) {
-        let scriptData = scriptContent.data(using: .utf8)!
-        let scriptHash = scriptData.base64EncodedString()
-        
-        if !allowedHashes.contains(scriptHash) {
-          Log.error("Script hash not in whitelist", category: .security)
-          throw SystemActionError.unauthorizedScriptHash
-        }
-      }
+      try validateScriptHash(scriptContent)
     } catch {
-      if let systemError = error as? SystemActionError {
-        throw systemError
+      if error is SystemActionError {
+        throw error
       }
-      Log.error("Failed to read script content for validation", error: error, category: .security)
+      Log.error("Failed to read script: \(path)", error: error, category: .security)
       throw SystemActionError.scriptValidationFailed
     }
-    
-    // 7. Execute with restricted environment and timeout
+  }
+
+  private func checkDangerousPatterns(in content: String) throws {
+    let dangerousPatterns = [
+      "sudo", "su ", "rm -rf /", "dd if=/dev", "mkfs",
+      ":(){ :|:& };:", "> /dev/sda", "chmod 777 /",
+      "chown -R", "pkill -9", "killall -9"
+    ]
+
+    for pattern in dangerousPatterns where content.contains(pattern) {
+      Log.error("Script contains dangerous command pattern: \(pattern)", category: .security)
+      throw SystemActionError.dangerousScriptContent
+    }
+  }
+
+  private func validateScriptHash(_ content: String) throws {
+    guard let allowedHashes = ProcessInfo.processInfo.environment["MAGSAFE_ALLOWED_SCRIPT_HASHES"]?.split(separator: ",").map(String.init) else {
+      return // No hash validation configured
+    }
+
+    let scriptData = content.data(using: .utf8)!
+    let scriptHash = scriptData.base64EncodedString()
+
+    if !allowedHashes.contains(scriptHash) {
+      Log.error("Script hash not in whitelist", category: .security)
+      throw SystemActionError.unauthorizedScriptHash
+    }
+  }
+
+  private func executeValidatedScript(_ canonicalPath: String) throws {
+    // Execute with restricted environment and timeout
     let task = Process()
     task.launchPath = systemPaths.bashPath
     task.arguments = ["-c", "set -euo pipefail; exec \"\(canonicalPath)\""]
@@ -383,9 +402,9 @@ public class MacSystemActions: SystemActionsProtocol {
     do {
       // Set up timeout
       let timeout: TimeInterval = 30.0 // 30 second timeout
-      
+
       try task.run()
-      
+
       // Use a dispatch work item for timeout handling
       let timeoutWorkItem = DispatchWorkItem {
         if task.isRunning {
@@ -393,16 +412,16 @@ public class MacSystemActions: SystemActionsProtocol {
           Log.error("Script execution timed out after \(timeout) seconds", category: .security)
         }
       }
-      
+
       // Schedule the timeout
       DispatchQueue.global().asyncAfter(deadline: .now() + timeout, execute: timeoutWorkItem)
-      
+
       // Wait for the task to complete
       task.waitUntilExit()
-      
+
       // Cancel timeout if task completed
       timeoutWorkItem.cancel()
-      
+
       // Check if terminated due to timeout
       if task.terminationStatus == SIGTERM {
         throw SystemActionError.scriptExecutionTimeout

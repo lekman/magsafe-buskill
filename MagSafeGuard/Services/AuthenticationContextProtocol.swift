@@ -57,14 +57,14 @@ public class RealAuthenticationContext: AuthenticationContextProtocol {
 }
 
 /// Factory for creating authentication contexts
-public protocol AuthenticationContextFactoryProtocol {
+public protocol AuthenticationContextFactoryProtocol: Sendable {
   /// Creates a new authentication context
   /// - Returns: A new authentication context instance
   func createContext() -> AuthenticationContextProtocol
 }
 
 /// Real factory that creates LAContext instances
-public class RealAuthenticationContextFactory: AuthenticationContextFactoryProtocol {
+public final class RealAuthenticationContextFactory: AuthenticationContextFactoryProtocol {
   /// Creates a new factory instance
   public init() {
     // No initialization required - factory simply creates LAContext instances on demand
