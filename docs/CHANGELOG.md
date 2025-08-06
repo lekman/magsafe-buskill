@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- This changelog is automatically maintained by release-please -->
 <!-- Do not manually edit below this line -->
 
+## [1.12.0](https://github.com/lekman/magsafe-buskill/compare/v1.11.0...v1.12.0) (2025-08-06)
+
+
+### Features
+
+* Circuit Breaker ([e038209](https://github.com/lekman/magsafe-buskill/commit/e038209e0a6965330611708f41292e8cecdfb66a))
+* implement ProtectedActionUseCase and related protocols for executing protected security actions ([7804f7c](https://github.com/lekman/magsafe-buskill/commit/7804f7c9338ffc5374bf01f18215db93faf5cd72))
+
+
+### Bug Fixes
+
+* update SPDX document namespace and version ([7804f7c](https://github.com/lekman/magsafe-buskill/commit/7804f7c9338ffc5374bf01f18215db93faf5cd72))
+
+
+### Code Refactoring
+
+* Mock Classes and Enhance Testing Coverage ([403daf5](https://github.com/lekman/magsafe-buskill/commit/403daf5844a7f84ab91e645c6b2778c6bec4bae6))
+* rename default configurations to defaultConfig for clarity ([e44c72d](https://github.com/lekman/magsafe-buskill/commit/e44c72d57a162b1ce8a78cc7761b6d17f1d9c2db))
+* update SwiftLint configuration and improve test cases for feature flags and logging ([7804f7c](https://github.com/lekman/magsafe-buskill/commit/7804f7c9338ffc5374bf01f18215db93faf5cd72))
+
 ## [1.11.0](https://github.com/lekman/magsafe-buskill/compare/v1.10.0...v1.11.0) (2025-08-05)
 
 
