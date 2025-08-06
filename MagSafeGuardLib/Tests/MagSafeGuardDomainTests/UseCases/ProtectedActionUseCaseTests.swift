@@ -1,10 +1,10 @@
 //
-//  ProtectedActionUseCaseTests.swift
+//  ProtectedActionUseCaseImplTests.swift
 //  MagSafeGuardDomainTests
 //
 //  Created on 2025-08-06.
 //
-//  Unit tests for ProtectedActionUseCase using Swift Testing framework.
+//  Unit tests for ProtectedActionUseCaseImpl using Swift Testing framework.
 //
 
 import Foundation
@@ -13,7 +13,7 @@ import Testing
 @testable import TestInfrastructure
 
 @Suite("Protected Action Use Case")
-struct ProtectedActionUseCaseTests {
+struct ProtectedActionUseCaseImplTests {
     
     // MARK: - Lock Screen Tests
     
@@ -298,13 +298,13 @@ struct ProtectedActionUseCaseTests {
         )
         
         // Then
-        #expect(useCase is ProtectedActionUseCase)
+        #expect(useCase is ProtectedActionUseCaseImpl)
     }
 }
 
 // MARK: - Test Helpers
 
-private extension ProtectedActionUseCaseTests {
+private extension ProtectedActionUseCaseImplTests {
     struct TestContext {
         let sut: ProtectedActionUseCase
         let mockRepository: MockSecurityActionRepository
@@ -313,7 +313,7 @@ private extension ProtectedActionUseCaseTests {
         init() {
             mockRepository = MockSecurityActionRepository()
             mockProtectionPolicy = MockResourceProtectionPolicy()
-            sut = ProtectedActionUseCase(
+            sut = ProtectedActionUseCaseImpl(
                 repository: mockRepository,
                 protectionPolicy: mockProtectionPolicy
             )

@@ -11,6 +11,7 @@ import AppKit
 import AVFoundation
 import Foundation
 import MagSafeGuardCore
+import UserNotifications
 
 /// Real implementation of system actions for macOS
 public class MacSystemActions: SystemActionsProtocol {
@@ -270,12 +271,19 @@ public class MacSystemActions: SystemActionsProtocol {
 
       // Show a notification instead of scheduling shutdown
       #if os(macOS)
-      DispatchQueue.main.async {
-        let notification = NSUserNotification()
-        notification.title = "MagSafe Guard Test Mode"
-        notification.informativeText = "Would schedule shutdown in \(minutes) minutes (TEST MODE - no actual shutdown)"
-        notification.soundName = NSUserNotificationDefaultSoundName
-        NSUserNotificationCenter.default.deliver(notification)
+      Task { @MainActor in
+        let content = UNMutableNotificationContent()
+        content.title = "MagSafe Guard Test Mode"
+        content.body = "Would schedule shutdown in \(minutes) minutes (TEST MODE - no actual shutdown)"
+        content.sound = UNNotificationSound.default
+
+        let request = UNNotificationRequest(
+          identifier: UUID().uuidString,
+          content: content,
+          trigger: nil
+        )
+
+        try? await UNUserNotificationCenter.current().add(request)
       }
       #endif
 

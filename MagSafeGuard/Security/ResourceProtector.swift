@@ -177,7 +177,7 @@ public actor ResourceProtector {
         operation: () async throws -> T
     ) async throws -> T {
         // Check if action is allowed
-        try await checkAction(action)
+        _ = try await checkAction(action)
 
         do {
             // Execute the operation
