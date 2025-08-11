@@ -69,7 +69,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
+        uses: actions/checkout@9f265659d3bb64ab1440b03b12f4d47a24320917 # v4
         with:
           fetch-depth: 0
 
@@ -162,7 +162,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
+        uses: actions/checkout@9f265659d3bb64ab1440b03b12f4d47a24320917 # v4
 
       - name: Dependency Review
         uses: actions/dependency-review-action@89c73830747a68fcfdecb3b682ff934fc8c3abf1 # v3
@@ -185,13 +185,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
+        uses: actions/checkout@9f265659d3bb64ab1440b03b12f4d47a24320917 # v4
         with:
           fetch-depth: 0 # Fetch all history for scanning
 
       - name: TruffleHog OSS
         id: trufflehog
-        uses: trufflesecurity/trufflehog@9d7c0afbc82629a94e316ff54b5b803ec6a6a39b # v3
+        uses: trufflesecurity/trufflehog@0ebf8ca606e44775476ab15b80f971e500f56d5f # v3
         with:
           path: ./
           base: ${{ github.event.repository.default_branch }}
@@ -233,7 +233,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
+        uses: actions/checkout@9f265659d3bb64ab1440b03b12f4d47a24320917 # v4
 
       - name: Check for security policy
         run: |
@@ -257,7 +257,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
+        uses: actions/checkout@9f265659d3bb64ab1440b03b12f4d47a24320917 # v4
 
       # Run Semgrep - automatically uses cloud rules if SEMGREP_APP_TOKEN is set
       - name: Run Semgrep
@@ -270,7 +270,7 @@ jobs:
 
       # Upload Semgrep results to GitHub Security tab
       - name: Upload SARIF results
-        uses: github/codeql-action/upload-sarif@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
+        uses: github/codeql-action/upload-sarif@76621b61decf072c1cee8dd1ce2d2a82d33c17ed # v3.29.8
         if: always() # Upload even if Semgrep step fails
         with:
           sarif_file: semgrep.sarif
@@ -284,7 +284,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
+        uses: actions/checkout@9f265659d3bb64ab1440b03b12f4d47a24320917 # v4
 
       - name: Setup Snyk
         uses: snyk/actions/setup@b98d498629f1c368650224d6d212bf7dfa89e4bf # v0.4.0
@@ -300,7 +300,7 @@ jobs:
         continue-on-error: true # Don't fail if Snyk is not configured
 
       - name: Upload Snyk results to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
+        uses: github/codeql-action/upload-sarif@76621b61decf072c1cee8dd1ce2d2a82d33c17ed # v3.29.8
         if: always() && env.SNYK_TOKEN != ''
         with:
           sarif_file: snyk.sarif
@@ -317,7 +317,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
+        uses: actions/checkout@9f265659d3bb64ab1440b03b12f4d47a24320917 # v4
 
       - name: Run License Scan
         uses: fossas/fossa-action@4f804ad44d80e2b8a3d4f2caeb20887ed344c14b # v1
@@ -340,7 +340,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
+        uses: actions/checkout@9f265659d3bb64ab1440b03b12f4d47a24320917 # v4
         with:
           persist-credentials: false
 
@@ -352,7 +352,7 @@ jobs:
           publish_results: false
 
       - name: Upload results to code scanning
-        uses: github/codeql-action/upload-sarif@4dd16135b69a43b6c8efb853346f8437d92d3c93 # v3.26.6
+        uses: github/codeql-action/upload-sarif@76621b61decf072c1cee8dd1ce2d2a82d33c17ed # v3.29.8
         with:
           sarif_file: results.sarif
 
