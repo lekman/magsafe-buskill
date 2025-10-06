@@ -29,14 +29,14 @@ jobs:
     steps:
       - name: Generate GitHub App Token
         id: app-token
-        uses: actions/create-github-app-token@d7ee28121512479a18a428398f948ac5ce15fb4c # v1
+        uses: actions/create-github-app-token@b96fde71c0080358ed6e2d162f11c612c92a97d1 # v1
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
       - name: Release Please
         id: release
-        uses: googleapis/release-please-action@1155c2c8dcbd6b15e85bae6bc6d1fed9552663cb # v4
+        uses: googleapis/release-please-action@4cd397a333e5500c1683589c277f56a3c10990e6 # v4
         with:
           token: ${{ steps.app-token.outputs.token }}
           config-file: .github/.release-please-config.json
@@ -50,7 +50,7 @@ jobs:
     steps:
       - name: Generate GitHub App Token
         id: app-token
-        uses: actions/create-github-app-token@d7ee28121512479a18a428398f948ac5ce15fb4c # v1
+        uses: actions/create-github-app-token@b96fde71c0080358ed6e2d162f11c612c92a97d1 # v1
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
@@ -73,7 +73,7 @@ jobs:
     steps:
       - name: Generate GitHub App Token
         id: app-token
-        uses: actions/create-github-app-token@d7ee28121512479a18a428398f948ac5ce15fb4c # v1
+        uses: actions/create-github-app-token@b96fde71c0080358ed6e2d162f11c612c92a97d1 # v1
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
