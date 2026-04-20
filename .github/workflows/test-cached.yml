@@ -45,7 +45,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: steps.check-coverage.outputs.found == 'true'
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v3
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v3
         with:
           use_oidc: true
           codecov_yml_path: .codecov.yml
