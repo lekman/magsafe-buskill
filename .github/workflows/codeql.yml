@@ -106,7 +106,7 @@ jobs:
       - name: Cache CodeQL database
         id: cache-codeql
         if: steps.code-changes.outputs.has-code-changes == 'true'
-        uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v4
         with:
           path: |
             .codeql
@@ -121,7 +121,7 @@ jobs:
 
       - name: Initialize CodeQL
         if: steps.code-changes.outputs.has-code-changes == 'true'
-        uses: github/codeql-action/init@19b2f06db2b6f5108140aeb04014ef02b648f789 # v4.31.11
+        uses: github/codeql-action/init@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
         with:
           languages: swift
           build-mode: manual
@@ -159,7 +159,7 @@ jobs:
 
       - name: Perform CodeQL Analysis
         if: steps.code-changes.outputs.has-code-changes == 'true'
-        uses: github/codeql-action/analyze@19b2f06db2b6f5108140aeb04014ef02b648f789 # v4.31.11
+        uses: github/codeql-action/analyze@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
         with:
           category: "/language:swift"
           upload: true
