@@ -31,7 +31,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98 # v4
+        uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231 # v4
         with:
           fetch-depth: 0
 
@@ -131,7 +131,7 @@ jobs:
           echo "- Workflow files: $(find .github/workflows -name "*.yml" 2>/dev/null | wc -l || echo 0)" >> security-audit/SUMMARY.md
 
       - name: Upload Audit Reports
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
         with:
           name: security-audit-${{ github.run_number }}
           path: security-audit/
