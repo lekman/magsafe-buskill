@@ -64,7 +64,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98 # v4
+        uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231 # v4
         with:
           fetch-depth: 0 # Full history for SonarCloud blame data
 
@@ -92,7 +92,7 @@ jobs:
 
       - name: Upload coverage to CodeCov
         if: always()
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v3
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v3
         with:
           use_oidc: true
           files: ./coverage.xml
@@ -135,7 +135,7 @@ jobs:
 
       - name: Upload test artifacts
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
         with:
           name: tests
           path: |
