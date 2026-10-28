@@ -69,7 +69,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98 # v4
+        uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231 # v4
         with:
           fetch-depth: 0
 
@@ -162,10 +162,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98 # v4
+        uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231 # v4
 
       - name: Dependency Review
-        uses: actions/dependency-review-action@98884d411b0f1c583e5ee579e7e897d4623019c2 # v3
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v3
         with:
           # Fail on high severity vulnerabilities
           fail-on-severity: high
@@ -185,13 +185,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98 # v4
+        uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231 # v4
         with:
           fetch-depth: 0 # Fetch all history for scanning
 
       - name: TruffleHog OSS
         id: trufflehog
-        uses: trufflesecurity/trufflehog@94fdf01214232715294e27e66eab2a6dad568d21 # v3
+        uses: trufflesecurity/trufflehog@ba0a524d6e51744d9d4e306bc57ac5d6ca5173ea # v3
         with:
           path: ./
           base: ${{ github.event.repository.default_branch }}
@@ -233,7 +233,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98 # v4
+        uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231 # v4
 
       - name: Check for security policy
         run: |
@@ -257,7 +257,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98 # v4
+        uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231 # v4
 
       # Run Semgrep - automatically uses cloud rules if SEMGREP_APP_TOKEN is set
       - name: Run Semgrep
@@ -270,7 +270,7 @@ jobs:
 
       # Upload Semgrep results to GitHub Security tab
       - name: Upload SARIF results
-        uses: github/codeql-action/upload-sarif@19b2f06db2b6f5108140aeb04014ef02b648f789 # v4.31.11
+        uses: github/codeql-action/upload-sarif@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
         if: always() # Upload even if Semgrep step fails
         with:
           sarif_file: semgrep.sarif
@@ -284,7 +284,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98 # v4
+        uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231 # v4
 
       - name: Setup Snyk
         uses: snyk/actions/setup@9adf32b1121593767fc3c057af55b55db032dc04 # v1.0.0
@@ -300,7 +300,7 @@ jobs:
         continue-on-error: true # Don't fail if Snyk is not configured
 
       - name: Upload Snyk results to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@19b2f06db2b6f5108140aeb04014ef02b648f789 # v4.31.11
+        uses: github/codeql-action/upload-sarif@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
         if: always() && env.SNYK_TOKEN != ''
         with:
           sarif_file: snyk.sarif
@@ -317,10 +317,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98 # v4
+        uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231 # v4
 
       - name: Run License Scan
-        uses: fossas/fossa-action@ba7c3dfb1bf67d00ed62e6f182274062c80e3c04 # v1
+        uses: fossas/fossa-action@29693cc50323968e039056be419b32989fc5880c # v1
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
         continue-on-error: true # Don't fail if FOSSA is not configured
@@ -340,19 +340,19 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98 # v4
+        uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231 # v4
         with:
           persist-credentials: false
 
       - name: Run Scorecard
-        uses: ossf/scorecard-action@4a0b87a20cc42672e6c80e82e63b5cd8f25f108a # v2
+        uses: ossf/scorecard-action@af76153369ae1eb1eaffc4118046b7fda9a8419e # v2
         with:
           results_file: results.sarif
           results_format: sarif
           publish_results: false
 
       - name: Upload results to code scanning
-        uses: github/codeql-action/upload-sarif@19b2f06db2b6f5108140aeb04014ef02b648f789 # v4.31.11
+        uses: github/codeql-action/upload-sarif@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
         with:
           sarif_file: results.sarif
 
